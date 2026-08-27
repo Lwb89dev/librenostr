@@ -61,7 +61,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 - **Tests:** Duplicate replies; out-of-order; partial tree
 - **Risk:** Medium — NIP-10 graphs are messy across relays
 - **Complexity:** L
-- **Status:** todo
+- **Status:** done (relay REQ by id + #e; ancestor walk; cache only if querier missing)
 
 ## Phase 0 — docs / baseline
 

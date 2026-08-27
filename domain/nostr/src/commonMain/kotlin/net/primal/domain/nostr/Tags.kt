@@ -81,6 +81,9 @@ fun JsonArray.isPubKeyTag() = getOrNull(0)?.jsonPrimitive?.content == "p"
 fun List<JsonArray>.pubkeyTagValues(): List<String> =
     mapNotNull { tag -> tag.takeIf { it.isPubKeyTag() }?.getTagValueOrNull() }
 
+fun List<JsonArray>.eventIdTagValues(): List<String> =
+    mapNotNull { tag -> tag.takeIf { it.isEventIdTag() }?.getTagValueOrNull() }
+
 fun List<JsonArray>.hasEventIdTag(): Boolean = any { it.isEventIdTag() }
 
 fun JsonArray.isHashtagTag() = getOrNull(0)?.jsonPrimitive?.content == "t"
@@ -168,6 +171,10 @@ fun List<JsonArray>.findReplyTargetId(): String? {
         ?: find { it.hasRootMarker() }?.getTagValueOrNull()
         ?: filterNot { it.hasMentionMarker() }.lastOrNull { it.isEventIdTag() }?.getTagValueOrNull()
 }
+
+fun List<JsonArray>.findRootEventId(): String? =
+    find { it.hasRootMarker() }?.getTagValueOrNull()
+        ?: filterNot { it.hasMentionMarker() }.firstOrNull { it.isEventIdTag() }?.getTagValueOrNull()
 
 fun List<JsonArray>.findFirstHostPubkey() = firstOrNull { it.isPubKeyTag() && it.hasHostMarker() }?.getTagValueOrNull()
 

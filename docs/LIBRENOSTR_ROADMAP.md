@@ -50,6 +50,8 @@ Status: **done** for `{"id":"latest","kind":"notes"}` (and LWR). Other feed spec
 
 ## Phase 5 — Thread / event retrieval
 
+Status: **done** for note threads (root by id, `#e` replies, ancestor walk, gaps). Article threads still use the cache.
+
 - REQ by id and `#e` / `#a`.
 - Tolerate partial threads and out-of-order events.
 - Open a note without `thread_view`.

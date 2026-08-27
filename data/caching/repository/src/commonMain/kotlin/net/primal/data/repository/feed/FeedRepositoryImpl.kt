@@ -156,23 +156,37 @@ internal class FeedRepositoryImpl(
         kinds: List<Int>,
     ) {
         withContext(dispatcherProvider.io()) {
-            val response = try {
-                feedApi.getMultiKindThread(
-                    MultiKindThreadRequestBody(
-                        eventId = noteId,
-                        userPubKey = userId,
-                        kinds = kinds,
-                        limit = limit,
-                    ),
-                )
-            } catch (error: NetworkException) {
-                throw NetworkException(message = error.message, cause = error)
-            }
-
+            val response = fetchConversationResponse(
+                userId = userId,
+                noteId = noteId,
+                limit = limit,
+                kinds = kinds,
+            )
             mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-
             response.persistToDatabaseAsTransaction(userId = userId, database = database)
             response.persistNoteRepliesAndArticleCommentsToDatabase(noteId = noteId, database = database)
+        }
+    }
+
+    private suspend fun fetchConversationResponse(
+        userId: String,
+        noteId: String,
+        limit: Int,
+        kinds: List<Int>,
+    ) = relayEventQuerier?.let { querier ->
+        RelayThreadFetcher(querier).fetch(noteId = noteId, kinds = kinds, limit = limit)
+    } ?: run {
+        try {
+            feedApi.getMultiKindThread(
+                MultiKindThreadRequestBody(
+                    eventId = noteId,
+                    userPubKey = userId,
+                    kinds = kinds,
+                    limit = limit,
+                ),
+            )
+        } catch (error: NetworkException) {
+            throw NetworkException(message = error.message, cause = error)
         }
     }
 

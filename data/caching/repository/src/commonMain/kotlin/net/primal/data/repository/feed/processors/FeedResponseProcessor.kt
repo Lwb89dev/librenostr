@@ -35,7 +35,6 @@ import net.primal.data.repository.mappers.remote.parseAndMapPrimalPollStats
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
 import net.primal.domain.nostr.NostrEvent
-import net.primal.domain.nostr.findReplyTargetId
 import net.primal.shared.data.local.db.withTransaction
 
 internal suspend fun FeedResponse.persistToDatabaseAsTransaction(userId: String, database: CachingDatabase) {
@@ -172,29 +171,15 @@ internal suspend fun FeedResponse.persistNoteRepliesAndArticleCommentsToDatabase
 ) {
     val cdnResources = this.cdnResources.flatMapNotNullAsCdnResource().asMapByKey { it.url }
     val articles = this.articles.mapNotNullAsArticleDataPO(cdnResources = cdnResources)
+    val conversationIds = (notes + polls).map { it.id }.distinct()
 
     database.withTransaction {
-        val eventsById = (notes + polls).associateBy { it.id }
-
-        // Walk ancestor chain upward from noteId and connect ancestors to this conversation
-        val ancestors = mutableSetOf<String>()
-        var currentId: String? = noteId
-        while (currentId != null) {
-            val event = eventsById[currentId]
-            val parentId = event?.tags?.findReplyTargetId()
-            if (parentId != null && parentId != currentId && ancestors.add(parentId)) {
-                currentId = parentId
-            } else {
-                break
-            }
-        }
-
-        if (ancestors.isNotEmpty()) {
+        if (conversationIds.isNotEmpty()) {
             database.threadConversations().connectNoteWithReply(
-                data = ancestors.map {
+                data = conversationIds.map { eventId ->
                     NoteConversationCrossRef(
                         noteId = noteId,
-                        replyNoteId = it,
+                        replyNoteId = eventId,
                     )
                 },
             )
