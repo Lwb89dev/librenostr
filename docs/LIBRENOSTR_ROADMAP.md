@@ -33,7 +33,7 @@ Status: **done** (`RelayPool.query`, EOSE/timeout/dedupe/CLOSE, `lastQueryStats`
 
 ## Phase 3 — Profile / contact data from relays
 
-Status: **partial** — kind 3 is relay-first with cache fallback. Kind 0 and NIP-65 still cache.
+Status: **partial** — kind 3 and kind 0 are relay-first with cache fallback. NIP-65 still cache.
 
 - Kind 3 contact list → Room.
 - Kind 0 metadata for those pubkeys → Room (respect local cache; do not re-query unchanged profiles forever).

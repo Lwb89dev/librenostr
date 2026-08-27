@@ -5,6 +5,19 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import net.primal.domain.nostr.relay.RelayFilter
+
+fun RelayFilter.toJsonObject(): JsonObject =
+    buildRelayFilter(
+        kinds = kinds,
+        authors = authors,
+        ids = ids,
+        limit = limit,
+        since = since,
+        until = until,
+        eventTags = eventTags,
+        pubkeyTags = pubkeyTags,
+    )
 
 fun buildRelayFilter(
     kinds: List<Int>? = null,

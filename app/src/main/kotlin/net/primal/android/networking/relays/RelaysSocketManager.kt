@@ -20,6 +20,8 @@ import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 
 @Singleton
 class RelaysSocketManager @Inject constructor(
@@ -28,7 +30,8 @@ class RelaysSocketManager @Inject constructor(
     private val cachingImportRepository: CachingImportRepository,
     private val activeAccountStore: ActiveAccountStore,
     private val usersDatabase: UsersDatabase,
-) {
+) : RelayEventQuerier {
+
     private val scope = CoroutineScope(dispatchers.io())
     private val relayPoolsMutex = Mutex()
 
@@ -146,6 +149,10 @@ class RelaysSocketManager @Inject constructor(
     suspend fun queryEvents(filter: JsonObject): RelayPoolQueryResult {
         val pool = if (userRelaysPool.hasRelays()) userRelaysPool else fallbackRelaysPool
         return pool.query(filter)
+    }
+
+    override suspend fun query(filter: RelayFilter): List<NostrEvent> {
+        return queryEvents(filter.toJsonObject()).events
     }
 
     fun lastQueryStats() = userRelaysPool.lastQueryStats.value ?: fallbackRelaysPool.lastQueryStats.value

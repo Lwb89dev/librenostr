@@ -39,7 +39,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 - **Tests:** Upsert latest kind 0; cache hit; batch authors
 - **Risk:** Medium — UI currently expects Primal premium/legend/CDN fields
 - **Complexity:** M
-- **Status:** todo
+- **Status:** done (relay-first kind 0, Room upsert, Primal cache fallback)
 
 ### LN-004 — Following feed from relays
 

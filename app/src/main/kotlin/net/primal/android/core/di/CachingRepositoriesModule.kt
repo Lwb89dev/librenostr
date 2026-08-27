@@ -22,6 +22,7 @@ import net.primal.domain.messages.ChatRepository
 import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
@@ -165,12 +166,14 @@ object CachingRepositoriesModule {
         primalPublisher: PrimalPublisher,
         mediaCacher: MediaCacher?,
         nip05VerificationService: Nip05VerificationService,
+        relayEventQuerier: RelayEventQuerier,
     ): ProfileRepository =
         PrimalRepositoryFactory.createProfileRepository(
             cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
             mediaCacher = mediaCacher,
             nip05VerificationService = nip05VerificationService,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
@@ -216,12 +219,14 @@ object CachingRepositoriesModule {
         primalPublisher: PrimalPublisher,
         nip05VerificationService: Nip05VerificationService,
         mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): StreamRepository =
         PrimalRepositoryFactory.createStreamRepository(
             cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
             nip05VerificationService = nip05VerificationService,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides

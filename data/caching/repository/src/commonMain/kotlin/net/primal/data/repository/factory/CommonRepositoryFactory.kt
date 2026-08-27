@@ -43,6 +43,7 @@ import net.primal.domain.messages.ChatRepository
 import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
@@ -247,6 +248,7 @@ abstract class CommonRepositoryFactory {
         primalPublisher: PrimalPublisher,
         mediaCacher: MediaCacher? = null,
         nip05VerificationService: Nip05VerificationService? = null,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): ProfileRepository {
         return ProfileRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
@@ -256,6 +258,7 @@ abstract class CommonRepositoryFactory {
             primalPublisher = primalPublisher,
             mediaCacher = mediaCacher,
             nip05VerificationService = nip05VerificationService,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
@@ -283,6 +286,7 @@ abstract class CommonRepositoryFactory {
         primalPublisher: PrimalPublisher,
         nip05VerificationService: Nip05VerificationService? = null,
         mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): StreamRepository =
         StreamRepositoryImpl(
             database = resolveCachingDatabase(),
@@ -292,6 +296,7 @@ abstract class CommonRepositoryFactory {
                 primalPublisher = primalPublisher,
                 mediaCacher = mediaCacher,
                 nip05VerificationService = nip05VerificationService,
+                relayEventQuerier = relayEventQuerier,
             ),
             liveStreamApi = PrimalApiServiceFactory.createStreamMonitor(cachingPrimalApiClient),
         )

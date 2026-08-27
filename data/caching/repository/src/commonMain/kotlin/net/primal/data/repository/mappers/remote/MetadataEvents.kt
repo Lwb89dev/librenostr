@@ -68,6 +68,18 @@ fun NostrEvent.asProfileDataPO(
     blossomServers = blossomServers,
 )
 
+fun List<NostrEvent>.latestMetadataByPubkey(): List<NostrEvent> =
+    groupBy { it.pubKey }.mapNotNull { (_, events) -> events.maxByOrNull { it.createdAt } }
+
+fun NostrEvent.asProfileDataPOFromRelay(): ProfileData =
+    asProfileDataPO(
+        cdnResources = emptyMap(),
+        primalUserNames = emptyMap(),
+        primalPremiumInfo = emptyMap(),
+        primalLegendProfiles = emptyMap(),
+        blossomServers = emptyMap(),
+    )
+
 fun NostrEvent.asProfileDataPO(
     cdnResources: Map<String, CdnResource>,
     primalUserNames: Map<String, String>,
