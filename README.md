@@ -1,236 +1,137 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
-<a name="readme-top"></a>
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
+# LibreNostr
 
+<p align="center">
+  <img src="assets/icons/icon.png" alt="LibreNostr" width="128" height="128">
+</p>
 
+<p align="center">
+  <strong>A relay-first Nostr client for Android.</strong><br>
+  Talks to ordinary relays. Stores data on the device. Does not need Primal’s cache servers.
+</p>
 
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+<p align="center">
+  <a href="https://github.com/Lwb89dev/librenostr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-6430D5?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://github.com/Lwb89dev/librenostr"><img src="https://img.shields.io/badge/status-early%20fork-222?style=for-the-badge" alt="Early fork"></a>
+</p>
 
+LibreNostr is a fork of the open-source [Primal Android app](https://github.com/PrimalHQ/primal-android-app). We kept the UI and the Nostr pieces that already work, and we are cutting the product free from Primal-specific infrastructure.
 
+This is **not** a re-skinned Primal. The point of the fork is architectural:
 
-<!-- PROJECT LOGO -->
-<!--suppress ALL -->
+```text
+client  ↔  Nostr relays  +  local Room cache
+```
 
-<br />
-<div align="center">
-  <a href="https://github.com/PrimalHQ/primal-android-app">
-    <img src="https://primal.net/assets/logo-d368885b.svg" alt="Logo" width="80" height="80">
-  </a>
+not:
 
-<h3 align="center">Primal</h3>
+```text
+client  ↔  primal.net cache  ↔  Nostr
+```
 
-  <p align="center">
-    A Nostr social client with a built-in Bitcoin Lightning wallet. Featuring easy onboarding, a fast & snappy
-    UI, long-form Reads, custom feeds, advanced search, and zaps.
-    <br />
-    <a href="https://primal.net"><strong>Explore Primal »</strong></a>
-    <br />
-    <br />
-    <a href="https://play.google.com/store/apps/details?id=net.primal.android">Get it on Google Play</a>
-    ·
-    <a href="https://github.com/PrimalHQ/primal-android-app/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/PrimalHQ/primal-android-app/issues">Request Feature</a>
-  </p>
-</div>
+Today the imported tree still speaks to Primal’s cache for most reads. That is documented, not hidden. Each migrated path is switched to relays, then the old caller is deleted. See [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
 
+## What stays, what goes
 
+**Keep (and reuse)**
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-      </ul>
-        <li><a href="#building">Building</a></li>
-        <ul>
-            <li><a href="#debug">Debug</a></li>
-            <li><a href="#release">Release</a></li>
-        </ul>
-    </li>
-    <li>
-      <a href="#installing">Installing</a>
-      <ul>
-        <li><a href="#debug-builds">Debug builds</a></li>
-        <li><a href="#release-builds">Release builds</a></li>
-      </ul>
-    </li>
-    <li><a href="#development">Development</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+- Compose UI and navigation patterns
+- Local Room / DataStore cache (on the device, not a remote aggregator)
+- Local `nsec` identity
+- Existing Nostr models, secp256k1, Quartz NIP-04/NIP-44
+- Direct relay `EVENT` publish (`RelayPool`)
+- NWC and LNURL where they do not depend on Primal
 
+**Remove (incrementally)**
 
+- Primal cache WebSocket/HTTP as the source of feeds, profiles, threads, search
+- Trending / discovery that only exists because of that cache
+- Primal Premium / membership / promo
+- External signer product (NIP-46 / NIP-55) after local keys still publish
+- Primal trademarks, logos, and store copy — MIT copyright stays
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+## Current status
 
-<div align="center" style="display: flex; justify-content: center; gap: 21px;">
-    <img src="https://raw.githubusercontent.com/PrimalHQ/primal-android-app/main/docs/screenshots/feeds.png" alt="Primal Feeds Screenshot" width="200px">
-    <img src="https://raw.githubusercontent.com/PrimalHQ/primal-android-app/main/docs/screenshots/reads.png" alt="Primal Reads Screenshot" width="200px">
-    <img src="https://raw.githubusercontent.com/PrimalHQ/primal-android-app/main/docs/screenshots/wallet.png" alt="Primal Wallet Screenshot" width="200px">
-    <img src="https://raw.githubusercontent.com/PrimalHQ/primal-android-app/main/docs/screenshots/explore.png" alt="Primal Explore Screenshot" width="200px">
-</div>
+Imported from Primal **3.5.25** (`efb88b5af`). Phase 0 baseline compiles.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+| Check | Result |
+|---|---|
+| `./gradlew :app:assembleAospDebug` | success |
+| `./gradlew :app:testAospDebugUnitTest` | 344 tests, 0 fail |
+| `./gradlew allTests` | 985 XML tests, 0 fail |
 
+The app name and launcher icon are LibreNostr. Package id is still `net.primal.android` until networking is stable — renaming it in the same breath as the data-layer work would make diffs unreadable.
 
+Honest caveat: **blocking `primal.net` will still break most reads** until the relay migration (LN-001…) lands. Publish already goes to relays.
 
-### Built With
+## Docs
 
-[![Kotlin][Kotlin]][Kotlin-url]
-[![Jetpack Compose][Compose]][Compose-url]
-[![Kotlin Multiplatform][KMP]][KMP-url]
-[![Android Studio][AndroidStudio]][AndroidStudio-url]
-
-Multi-module app built with **Kotlin Multiplatform**, **Jetpack Compose**, **Room** (SQLCipher), and **Hilt**,
-following an MVI + Clean Architecture approach.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-### Prerequisites
-
-This project requires the following pre-requisites:
-- Java 21;
-- Android SDK (compileSdk 36);
-- Android Studio (latest stable, AGP 8.13+, Kotlin 2.2.x);
-- Android 8.0+ (API 26) device or emulator;
-
-The app ships in two product flavors (`aosp` and `google`), each with `debug`, `altRelease`, and `playRelease`
-build types — giving variants such as `aospDebug`, `aospAltRelease`, and `googlePlayRelease`.
+| File | What it is |
+|---|---|
+| [`docs/UPSTREAM.md`](docs/UPSTREAM.md) | Origin, remotes, MIT obligations |
+| [`docs/BASELINE.md`](docs/BASELINE.md) | Toolchain and the unmodified build |
+| [`docs/ARCHITECTURE_UPSTREAM.md`](docs/ARCHITECTURE_UPSTREAM.md) | KEEP / REFACTOR / REPLACE / REMOVE |
+| [`docs/PRIMAL_SERVER_DEPENDENCIES.md`](docs/PRIMAL_SERVER_DEPENDENCIES.md) | 84 cache/wallet verbs |
+| [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md) | Phased strangler plan |
+| [`docs/LIBRENOSTR_BACKLOG.md`](docs/LIBRENOSTR_BACKLOG.md) | Atomic tasks (`LN-00x`) |
 
 ## Building
-### Debug
-To build debug builds no extra configuration is required, just execute `./gradlew :app:assembleAospDebug`
-(or `:app:assembleGoogleDebug`) or run in Android Studio.
+
+**Requires:** JDK 21, Android SDK (compileSdk 37, minSdk 26), Android Studio current enough for AGP 9.2.
+
+Flavors: `aosp` (F-Droid / Zapstore) and `google` (Play). Use **aospDebug** unless you have Play secrets.
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64   # or your JDK 21
+export ANDROID_HOME="$HOME/Android/Sdk"
+
+# sdk.dir is written to gitignored local.properties
+echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+./gradlew :app:assembleAospDebug
+./gradlew :app:installAospDebug
+```
+
+Debug builds **do not encrypt** stored keys (`NoEncryption`). Release builds use AES + SQLCipher. Do not daily-drive a debug APK with a real `nsec`.
 
 ### Release
-To build release builds you will need to create `config.properties` file in the project root directory.
-Following properties in `config.properties` are **MANDATORY** for any release build:
+
+Create `config.properties` in the repo root (gitignored):
+
 ```properties
 localStorage.keyAlias={KeystoreAliasForEncryption}
 ```
-If you want to build the release build with your own certificate you can use `googlePlayRelease` or `aospAltRelease`
-build variant which will read the certificate details from following properties in `config.properties`:
+
+Optional signing:
+
 ```properties
 {signingConfigName}.storeFile={PathToYourCertificate}
 {signingConfigName}.storePassword={CertificatePassword}
 {signingConfigName}.keyAlias={YourAlias}
 {signingConfigName}.keyPassword={AliasPassword}
 ```
-`{signingConfigName}` should be replaced with `playStore` or `alternative`.
 
-## Installing
-Attach your device to the computer or start your emulator and install debug or release build as described below.
+`{signingConfigName}` is `playStore` or `alternative`. Then `./gradlew :app:installAospAltRelease`.
 
-### Debug builds
-To install debug build execute `./gradlew :app:installAospDebug` or run a `debug` build variant in Android Studio.
-Please note that debug builds do not use encryption when storing sensitive information and that the performance is
-significantly slower compared to release builds.
+## Git remotes
 
-### Release builds
-To install release build execute `./gradlew installAospAltRelease` or `./gradlew installGooglePlayRelease`, or
-run in AndroidStudio. Please note that `googlePlayRelease` and `aospAltRelease` build variants require
-`config.properties` configured with mandatory properties. If no certificate properties are provided it fallbacks
-to `debug` certificate.
+```text
+origin    https://github.com/Lwb89dev/librenostr.git
+upstream  https://github.com/PrimalHQ/primal-android-app.git   (fetch only)
+```
 
-## Development
-The app is still under the development and changes are frequent. Breaking changes can and will happen in the future.
+Do not push to `upstream`.
 
-<!-- CONTRIBUTING -->
 ## Contributing
 
-Read more about contributions in [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Open issues on this repository, not on Primal’s.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+MIT. Upstream copyright: Copyright (c) 2023 PRIMAL SYSTEMS INC. See [LICENSE](LICENSE). LibreNostr does not claim authorship of unmodified upstream code and does not use the Primal trademark.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTACT -->
-## Contact
-
-For help with Primal:
-
-- 🌐 Website — [primal.net](https://primal.net)
-- ✉️ Email — [support@primal.net](mailto:support@primal.net)
-- 🐛 Report a bug — [GitHub Issues](https://github.com/PrimalHQ/primal-android-app/issues)
-- 💡 Request a feature — [GitHub Issues](https://github.com/PrimalHQ/primal-android-app/issues)
-
-Developed by [Appollo41](https://appollo41.com), a software development studio.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* [Quartz](https://github.com/vitorpamplona/quartz) — Nostr event & NIP-04/NIP-44 crypto
-* [Breez SDK](https://breez.technology) — Spark self-custodial Lightning wallet
-* [NostrPostr](https://github.com/Giszmo/NostrPostr)
-* [Acinq](https://acinq.co)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/PrimalHQ/primal-android-app.svg?style=for-the-badge
-[contributors-url]: https://github.com/PrimalHQ/primal-android-app/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/PrimalHQ/primal-android-app.svg?style=for-the-badge
-[forks-url]: https://github.com/PrimalHQ/primal-android-app/network/members
-[stars-shield]: https://img.shields.io/github/stars/PrimalHQ/primal-android-app.svg?style=for-the-badge
-[stars-url]: https://github.com/PrimalHQ/primal-android-app/stargazers
-[issues-shield]: https://img.shields.io/github/issues/PrimalHQ/primal-android-app.svg?style=for-the-badge
-[issues-url]: https://github.com/PrimalHQ/primal-android-app/issues
-[license-shield]: https://img.shields.io/github/license/PrimalHQ/primal-android-app.svg?style=for-the-badge
-[license-url]: https://github.com/PrimalHQ/primal-android-app/blob/main/LICENSE
-[Kotlin]: https://img.shields.io/badge/kotlin-000000?style=for-the-badge&logo=kotlin&logoColor=white
-[Kotlin-url]: https://kotlinlang.org
-[Compose]: https://img.shields.io/badge/jetpack%20compose-000000?style=for-the-badge&logo=jetpackcompose&logoColor=white
-[Compose-url]: https://developer.android.com/jetpack/compose
-[KMP]: https://img.shields.io/badge/kotlin%20multiplatform-000000?style=for-the-badge&logo=kotlin&logoColor=white
-[KMP-url]: https://kotlinlang.org/docs/multiplatform.html
-[AndroidStudio]: https://img.shields.io/badge/androidstudio-000000?style=for-the-badge&logo=androidstudio&logoColor=white
-[AndroidStudio-url]: https://developer.android.com/studio
+- [PrimalHQ/primal-android-app](https://github.com/PrimalHQ/primal-android-app) — the client this fork starts from
+- [Quartz](https://github.com/vitorpamplona/quartz) — NIP-04 / NIP-44
+- [Acinq](https://acinq.co) — secp256k1
+- [Breez SDK](https://breez.technology) — optional Lightning (still under audit for LibreNostr)

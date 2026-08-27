@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">Primal</string>
+    <string name="app_name">LibreNostr</string>
 
     <string name="nsec_or_npub">nsec / npub</string>
     <string name="nsec">nsec</string>

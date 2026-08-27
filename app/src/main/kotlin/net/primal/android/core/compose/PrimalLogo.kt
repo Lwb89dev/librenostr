@@ -26,7 +26,7 @@ fun PrimalLogo(modifier: Modifier = Modifier, showBackground: Boolean = false) {
 
         Image(
             painter = painterResource(id = R.drawable.primal_icon_fg),
-            contentDescription = null,
+            contentDescription = "LibreNostr",
         )
     }
 }

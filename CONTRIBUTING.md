@@ -73,7 +73,7 @@ further defined and clarified by project maintainers.
 ### Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by sending a DM to the official [Primal](https://primal.net/primal) Nostr account. All
+reported by opening a GitHub issue on [Lwb89dev/librenostr](https://github.com/Lwb89dev/librenostr). All
 complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an incident.

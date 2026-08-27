@@ -24,7 +24,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Primal"
+rootProject.name = "LibreNostr"
 
 include(":app")
 include(":detekt-rules")

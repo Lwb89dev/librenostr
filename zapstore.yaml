@@ -1,9 +1,8 @@
-repository: https://github.com/PrimalHQ/primal-android-app
-match: primal-\d+\.\d+\.\d+\.apk$
-name: Primal
-description: Bitcoin wallet and Nostr social media in one app.
+repository: https://github.com/Lwb89dev/librenostr
+match: librenostr-\d+\.\d+\.\d+\.apk$
+name: LibreNostr
+description: Relay-first Nostr client for Android. Fork of Primal, without Primal cache servers as a requirement.
 license: MIT
-website: https://primal.net
+website: https://github.com/Lwb89dev/librenostr
 metadata_sources:
   - github
-  - playstore

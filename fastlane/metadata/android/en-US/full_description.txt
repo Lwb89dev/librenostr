@@ -1,1 +1,2 @@
-<p><i>Primal</i> is a Nostr client featuring easy onboarding, fast & snappy UI, ability to explore Nostr, and create & manage custom feeds.</p>
+<p><i>LibreNostr</i> is a relay-first Nostr client for Android. It is a fork of the open-source Primal Android app: the UI stays, the dependence on Primal cache and membership services does not.</p>
+<p>The client talks to ordinary Nostr relays, keeps a local cache on the device, and signs with a local nsec. It does not need primal.net to read a follow list or publish a note — that migration is in progress; see the repository docs.</p>
