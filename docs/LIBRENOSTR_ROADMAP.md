@@ -41,6 +41,8 @@ Status: **partial** — kind 3 and kind 0 are relay-first with cache fallback. N
 
 ## Phase 4 — Following feed from relays
 
+Status: **done** for `{"id":"latest","kind":"notes"}` (and LWR). Other feed specs still use the cache.
+
 - Authors from kind 3, REQ kind 1 (+ 6/16 if cheap).
 - Merge, dedupe, chronological sort.
 - Progressive UI: notes first, profiles later.

@@ -25,6 +25,9 @@ import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.domain.feeds.isFollowingNotesFeedSpec
+import net.primal.domain.feeds.isUserNotesLwrFeedSpec
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.data.repository.feed.processors.persistNoteRepliesAndArticleCommentsToDatabase
 import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
 import net.primal.data.repository.mappers.local.mapAsFeedPostDO
@@ -46,6 +49,7 @@ internal class FeedRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val invalidationTracker: FeedSpecInvalidationTracker,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : FeedRepository {
 
     override fun feedBySpec(
@@ -208,8 +212,17 @@ internal class FeedRepositoryImpl(
         limit: Int,
     ): FeedPageSnapshot =
         withContext(dispatcherProvider.io()) {
-            val response = feedApi.getMultiKindFeedBySpec(
-                body = MultiKindFeedBySpecRequestBody(
+            val querier = relayEventQuerier
+            val response = if (querier != null && feedSpec.isFollowingNotesFeedSpec()) {
+                RelayNotesFeedFetcher(querier).fetch(
+                    userId = userId,
+                    includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
+                    limit = limit,
+                    until = until,
+                    since = since,
+                )
+            } else {
+                val body = MultiKindFeedBySpecRequestBody(
                     spec = feedSpec,
                     userPubKey = userId,
                     kinds = kinds,
@@ -218,11 +231,14 @@ internal class FeedRepositoryImpl(
                     since = since,
                     order = order,
                     limit = limit,
-                ),
-            )
-
-            mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-
+                )
+                val cacheResponse = feedApi.getMultiKindFeedBySpec(body = body)
+                mediaCacher?.cacheAvatarUrls(
+                    metadata = cacheResponse.metadata,
+                    cdnResources = cacheResponse.cdnResources,
+                )
+                cacheResponse
+            }
             response.asFeedPageSnapshot()
         }
 
@@ -262,6 +278,7 @@ internal class FeedRepositoryImpl(
             invalidationTracker = invalidationTracker,
             mediaCacher = mediaCacher,
             kinds = kinds,
+            relayEventQuerier = relayEventQuerier,
         ),
         pagingSourceFactory = {
             invalidationTracker.track(

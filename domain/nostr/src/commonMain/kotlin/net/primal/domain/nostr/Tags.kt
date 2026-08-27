@@ -78,6 +78,11 @@ fun JsonArray.isEventIdTag() = getOrNull(0)?.jsonPrimitive?.content == "e"
 
 fun JsonArray.isPubKeyTag() = getOrNull(0)?.jsonPrimitive?.content == "p"
 
+fun List<JsonArray>.pubkeyTagValues(): List<String> =
+    mapNotNull { tag -> tag.takeIf { it.isPubKeyTag() }?.getTagValueOrNull() }
+
+fun List<JsonArray>.hasEventIdTag(): Boolean = any { it.isEventIdTag() }
+
 fun JsonArray.isHashtagTag() = getOrNull(0)?.jsonPrimitive?.content == "t"
 
 fun JsonArray.isIdentifierTag() = getOrNull(0)?.jsonPrimitive?.content == "d"

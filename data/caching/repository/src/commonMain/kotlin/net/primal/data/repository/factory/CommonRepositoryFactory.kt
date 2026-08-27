@@ -137,6 +137,7 @@ abstract class CommonRepositoryFactory {
     fun createFeedRepository(
         cachingPrimalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): FeedRepository {
         return FeedRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
@@ -144,6 +145,7 @@ abstract class CommonRepositoryFactory {
             database = resolveCachingDatabase(),
             invalidationTracker = feedSpecInvalidationTracker,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 

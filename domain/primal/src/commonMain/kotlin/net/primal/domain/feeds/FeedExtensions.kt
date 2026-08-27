@@ -11,6 +11,8 @@ fun String.isUserNotesLwrFeedSpec(): Boolean {
     return this == "{\"id\":\"latest\",\"include_replies\":true,\"kind\":\"notes\"}"
 }
 
+fun String.isFollowingNotesFeedSpec(): Boolean = isUserNotesFeedSpec() || isUserNotesLwrFeedSpec()
+
 private fun String?.isValidProfileId(): Boolean {
     return if (this != null) {
         runCatching { this@isValidProfileId.hexToNpubHrp() }.isSuccess

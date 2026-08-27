@@ -101,10 +101,12 @@ object CachingRepositoriesModule {
     fun provideFeedRepository(
         @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): FeedRepository =
         PrimalRepositoryFactory.createFeedRepository(
             cachingPrimalApiClient = primalApiClient,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides

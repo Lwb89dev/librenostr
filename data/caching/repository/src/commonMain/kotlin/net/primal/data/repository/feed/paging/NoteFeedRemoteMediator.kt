@@ -22,13 +22,17 @@ import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
+import net.primal.data.repository.feed.RelayNotesFeedFetcher
 import net.primal.data.repository.feed.processors.FeedProcessor
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.feeds.isFollowingNotesFeedSpec
 import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNotesFeedSpec
+import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.supportsUpwardsNotesPagination
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.posts.FeedRepository
 
 @ExperimentalPagingApi
@@ -41,7 +45,12 @@ internal class NoteFeedRemoteMediator(
     private val invalidationTracker: FeedSpecInvalidationTracker,
     private val mediaCacher: MediaCacher? = null,
     private val kinds: List<Int> = FeedRepository.DEFAULT_FEED_KINDS,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : RemoteMediator<Int, FeedPost>() {
+
+    private val relayFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }
+    private val useRelayFollowingFeed =
+        relayFeedFetcher != null && feedSpec.isFollowingNotesFeedSpec()
 
     private val lastRequests: MutableMap<LoadType, Pair<MultiKindFeedBySpecRequestBody, Long>> = mutableMapOf()
 
@@ -168,16 +177,7 @@ internal class NoteFeedRemoteMediator(
             kinds = kinds,
             limit = pageSize,
         )
-        val response = retryNetworkCall(
-            onBeforeDelay = { error -> Napier.w("Attempting FeedRemoteMediator.retry().", error) },
-        ) {
-            val response = withContext(dispatcherProvider.io()) { feedApi.getMultiKindFeedBySpec(body = requestBody) }
-            response.paging ?: throw NetworkException("PagingEvent not found.")
-
-            mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-
-            response
-        }
+        val response = fetchFeedPage(requestBody)
         return requestBody to response
     }
 
@@ -200,17 +200,7 @@ internal class NoteFeedRemoteMediator(
             }
         }
 
-        val feedResponse = retryNetworkCall(
-            onBeforeDelay = { error -> Napier.w("Attempting FeedRemoteMediator.retry().", error) },
-        ) {
-            val response = withContext(dispatcherProvider.io()) { feedApi.getMultiKindFeedBySpec(body = requestBody) }
-            if (response.paging == null) throw NetworkException("PagingEvent not found.")
-
-            mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-
-            response
-        }
-
+        val feedResponse = fetchFeedPage(requestBody)
         return requestBody to feedResponse
     }
 
@@ -232,18 +222,31 @@ internal class NoteFeedRemoteMediator(
             }
         }
 
-        val feedResponse = retryNetworkCall(
+        val feedResponse = fetchFeedPage(requestBody)
+        return requestBody to feedResponse
+    }
+
+    private suspend fun fetchFeedPage(requestBody: MultiKindFeedBySpecRequestBody): FeedResponse {
+        val fetcher = relayFeedFetcher
+        if (useRelayFollowingFeed && fetcher != null) {
+            return fetcher.fetch(
+                userId = userId,
+                includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
+                limit = requestBody.limit ?: FeedRepository.DEFAULT_PAGE_SIZE,
+                until = requestBody.until,
+                since = requestBody.since,
+            )
+        }
+        return retryNetworkCall(
             onBeforeDelay = { error -> Napier.w("Attempting FeedRemoteMediator.retry().", error) },
         ) {
-            val response = withContext(dispatcherProvider.io()) { feedApi.getMultiKindFeedBySpec(body = requestBody) }
-            if (response.paging == null) throw NetworkException("PagingEvent not found.")
-
+            val response = withContext(dispatcherProvider.io()) {
+                feedApi.getMultiKindFeedBySpec(body = requestBody)
+            }
+            response.paging ?: throw NetworkException("PagingEvent not found.")
             mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-
             response
         }
-
-        return requestBody to feedResponse
     }
 
     private fun Long.isRequestCacheExpired() = (Clock.System.now().epochSeconds - this) < LAST_REQUEST_EXPIRY

@@ -50,7 +50,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 - **Tests:** Merge/dedupe; author filter; paging/limit
 - **Risk:** High — UX will be slower/incomplete vs Primal; paging model differs
 - **Complexity:** L
-- **Status:** todo
+- **Status:** done (home latest notes feed via relay REQ; other specs still cache)
 
 ### LN-005 — Thread by event id from relays
 
