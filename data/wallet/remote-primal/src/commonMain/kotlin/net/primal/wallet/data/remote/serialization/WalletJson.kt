@@ -11,7 +11,7 @@ internal val WalletJson = Json {
  * Encodes an object to a JSON string using CommonJson serializer.
  *
  * Note: When working with JsonObject, use `toString()` instead of this function
- * to ensure proper formatting and compatibility with iOS.
+ * to keep canonical JSON for other Nostr clients.
  */
 internal inline fun <reified T> T.encodeToWalletJsonString(): String {
     return WalletJson.encodeToString(this)

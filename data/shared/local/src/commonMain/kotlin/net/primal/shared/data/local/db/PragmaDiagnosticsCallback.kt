@@ -6,7 +6,7 @@ import io.github.aakira.napier.Napier
 
 /**
  * Debug-only Room callback that logs the live SQLite engine settings for every connection Room opens
- * — on every target (Android / iOS / desktop) and every database routed through [buildLocalDatabase]
+ * — on every target (Android / desktop) and every database routed through [buildLocalDatabase]
  * (caching / wallet / account). It is attached only when diagnostics are enabled (see
  * `logEngineDiagnostics` on [buildLocalDatabase]); it is never attached in release builds.
  *

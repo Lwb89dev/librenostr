@@ -115,4 +115,4 @@ These are the next implementation slice after Phase 0. Do them in order.
 - Recreating Primal trending
 - Rewriting secp256k1 / NIP-44
 - Full wallet rewrite
-- iOS/desktop parity
+- desktop parity

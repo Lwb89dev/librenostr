@@ -82,7 +82,7 @@ Recorded on this machine, 2026-08-27:
 |---|---|
 | `./gradlew :app:assembleAospDebug` | BUILD SUCCESSFUL, 41s |
 | `./gradlew :app:testAospDebugUnitTest` | BUILD SUCCESSFUL, 1m 11s — **344 tests, 0 failures, 0 errors, 0 skipped** |
-| `./gradlew allTests` | BUILD SUCCESSFUL, 1m 41s — **985 JUnit XML tests across modules, 0 failures** (includes the 344 app tests; iOS simulator tests skipped on Linux) |
+| `./gradlew allTests` | BUILD SUCCESSFUL, 1m 41s — **985 JUnit XML tests across modules, 0 failures** (includes the 344 app tests) |
 | `ktlintCheck` / `detekt` / `lint` | not run in this baseline |
 | `compileGoogleDebugKotlin` | not run (needs Google flavor `google-services.json` from CI secrets) |
 
@@ -104,7 +104,7 @@ The first Gradle run of the import downloaded the 9.6.0 distribution and configu
 ### Configuration warnings (non-fatal)
 
 - Gradle 9.6 deprecations in several `build.gradle.kts` files (`properties`, `srcDirs`, `registering`/`getting` delegates).
-- `:paging-runtime-ios` warns that `iosSimulatorArm64Test` cannot run on Linux.
+- iOS targets were removed after this baseline (Android-only).
 - `:core:networking-lightning` warns that `commonTest` exists but Android host tests are not enabled.
 
 ### Tests
@@ -113,7 +113,7 @@ App unit tests and KMP `allTests` passed on this machine (see table above). Rema
 
 - `ktlintCheck` / `detekt` / `lint` — not recorded here
 - Google flavor compile — not recorded here
-- iOS simulator tests — skipped on Linux by design
+- iOS targets — removed after this baseline (Android-only)
 
 ### GitHub origin
 
@@ -130,4 +130,4 @@ App unit tests and KMP `allTests` passed on this machine (see table above). Rema
 - Runtime behaviour without Primal cache servers.
 - Unit / KMP / UI test health.
 - Google flavor compile (`compileGoogleDebugKotlin` needs `app/src/google/google-services.json` from CI secrets).
-- iOS / desktop targets.
+- desktop targets.

@@ -12,7 +12,7 @@ import net.primal.domain.nostr.NostrEvent
  * Converts a NostrEvent to a JsonObject.
  *
  * Note: When converting the returned JsonObject to a string, use `toString()`
- * instead of `encodeToString()` to ensure proper formatting and compatibility with iOS.
+ * instead of `encodeToString()` to keep canonical JSON for other Nostr clients.
  */
 fun NostrEvent.toNostrJsonObject(): JsonObject {
     val nostrEvent = this@toNostrJsonObject

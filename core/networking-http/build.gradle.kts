@@ -1,12 +1,8 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
 }
-
-private val xcfName = "HttpNetworking"
 
 kotlin {
     // Android target
@@ -19,17 +15,6 @@ kotlin {
 
     // JVM Target
     jvm("desktop")
-
-    // iOS Target
-    val xcfFramework = XCFramework(xcfName)
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-
-    iosTargets.forEach {
-        it.binaries.framework {
-            baseName = xcfName
-            xcfFramework.add(this)
-        }
-    }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -63,13 +48,6 @@ kotlin {
             }
         }
 
-        iosMain {
-            dependencies {
-                // Networking
-                api(libs.ktor.client.darwin)
-            }
-        }
-
         val desktopMain by getting
         desktopMain.dependencies {
             // Ktor
@@ -86,7 +64,6 @@ kotlin {
         }
     }
 
-    // Opting in to the experimental @ObjCName annotation for native coroutines on iOS targets
     kotlin.sourceSets.all {
         languageSettings.optIn("kotlin.uuid.ExperimentalUuidApi")
         languageSettings.optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")

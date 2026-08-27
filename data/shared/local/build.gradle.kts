@@ -1,14 +1,9 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
     alias(libs.plugins.ksp)
 }
-
-private val xcfName = "PrimalDataSharedLocal"
 
 kotlin {
     // Android target
@@ -20,17 +15,6 @@ kotlin {
 
     // JVM Target
     jvm("desktop")
-
-    // iOS Target
-    val xcfFramework = XCFramework(xcfName)
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-
-    iosTargets.forEach {
-        it.binaries.framework {
-            baseName = xcfName
-            xcfFramework.add(this)
-        }
-    }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -75,25 +59,6 @@ kotlin {
             }
         }
 
-        iosMain {
-            dependencies {
-                // Cryptography
-                implementation(libs.whyoleg.cryptography.provider.apple)
-            }
-        }
-
-        val iosArm64Main by getting {
-            dependencies {
-                // SQLite
-                api(libs.jetpack.sqlite.framework.iosarm64)
-            }
-        }
-        val iosSimulatorArm64Main by getting {
-            dependencies {
-                // SQLite
-                api(libs.jetpack.sqlite.framework.iossimulatorarm64)
-            }
-        }
         val desktopMain by getting
         desktopMain.dependencies {
             // Add JVM-Desktop-specific dependencies here
@@ -109,21 +74,6 @@ kotlin {
                 implementation(libs.kotest.assertions.json)
                 implementation(libs.kotlinx.coroutines.test)
             }
-        }
-    }
-
-    // This tells the Kotlin/Native compiler to link against the system SQLite library
-    // and ensures that NativeSQLiteDriver (used on iOS targets) can find libsqlite3 at
-    // runtime without missing symbols.
-    targets.withType<KotlinNativeTarget> {
-        binaries.all {
-            linkerOpts("-lsqlite3")
-            // androidx.sqlite's NativeSQLiteDriver cinterop references sqlite3_load_extension,
-            // which the iOS SDK's libsqlite3.tbd no longer exports (extension loading is
-            // disabled on Apple platforms). Room never loads SQLite extensions, so allow the
-            // symbol to stay undefined. Pass -U and the symbol as two separate args: Kotlin/
-            // Native forwards these directly to ld, so -Xlinker wrapping would fail.
-            linkerOpts("-U", "_sqlite3_load_extension")
         }
     }
 }

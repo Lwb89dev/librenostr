@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
@@ -7,8 +5,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktorfit)
 }
-
-private val xcfName = "PrimalDataCachingRemote"
 
 kotlin {
     // Android target
@@ -20,17 +16,6 @@ kotlin {
 
     // JVM Target
     jvm("desktop")
-
-    // iOS Target
-    val xcfFramework = XCFramework(xcfName)
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-
-    iosTargets.forEach {
-        it.binaries.framework {
-            baseName = xcfName
-            xcfFramework.add(this)
-        }
-    }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -67,11 +52,6 @@ kotlin {
             }
         }
 
-        iosMain {
-            dependencies {
-            }
-        }
-
         val desktopMain by getting
         desktopMain.dependencies {
             // Add JVM-Desktop-specific dependencies here
@@ -86,10 +66,5 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.test)
             }
         }
-    }
-
-    // Opting in to the experimental @ObjCName annotation for native coroutines on iOS targets
-    kotlin.sourceSets.all {
-        languageSettings.optIn("kotlin.experimental.ExperimentalObjCName")
     }
 }

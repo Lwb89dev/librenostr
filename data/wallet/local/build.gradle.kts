@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
@@ -7,8 +5,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.jetpack.room3)
 }
-
-private val xcfName = "PrimalDataWalletLocal"
 
 kotlin {
     // Android target
@@ -20,17 +16,6 @@ kotlin {
 
     // JVM Target
     jvm("desktop")
-
-    // iOS Target
-    val xcfFramework = XCFramework(xcfName)
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-
-    iosTargets.forEach {
-        it.binaries.framework {
-            baseName = xcfName
-            xcfFramework.add(this)
-        }
-    }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -68,8 +53,6 @@ dependencies {
     listOf(
         "kspAndroid",
         "kspDesktop",
-        "kspIosSimulatorArm64",
-        "kspIosArm64",
     ).forEach {
         add(it, libs.room3.compiler)
     }

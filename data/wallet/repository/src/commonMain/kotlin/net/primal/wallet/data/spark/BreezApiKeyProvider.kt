@@ -8,7 +8,6 @@ import net.primal.wallet.data.spark.BreezApiKeyProvider.init
  *
  * Must be initialized before using Spark wallet features.
  * - Android: Call [init] in Application.onCreate()
- * - iOS: Call init() before using WalletRepositoryFactory
  *
  * Thread-safe: Uses @Volatile for visibility across threads.
  * Note: Init is expected to be called only once from Application.onCreate on the main thread.

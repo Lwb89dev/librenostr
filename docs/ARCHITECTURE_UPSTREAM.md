@@ -35,8 +35,7 @@ data/
   wallet/{local,remote-primal,remote-nwc,repository}
 domain/
   account/ nostr/ primal/ wallet/
-shared/                       KMP shared stub
-paging-runtime-ios/
+
 macrobenchmark/
 detekt-rules/
 ```

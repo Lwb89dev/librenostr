@@ -83,7 +83,6 @@ security-app-authenticator = "1.0.0"
 security-crypto = "1.1.0"
 collection = "1.6.0"
 security-identity-credential = "1.0.0-alpha03"
-skie = "0.10.13"
 sqlcipher-android = "4.9.0"
 telephoto = "0.18.0"
 url-detector = "0.1.23"
@@ -187,7 +186,6 @@ ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "k
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
-ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
@@ -226,8 +224,6 @@ room3-paging = { module = "androidx.room3:room3-paging", version.ref = "jetpack-
 jetpack-sqlite-bundled-jvm = { module = "androidx.sqlite:sqlite-bundled-jvm", version.ref = "jetpack-sqlite" }
 jetpack-sqlite-bundled-android = { module = "androidx.sqlite:sqlite-bundled-android", version.ref = "jetpack-sqlite" }
 jetpack-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "jetpack-sqlite" }
-jetpack-sqlite-framework-iosarm64 = { module = "androidx.sqlite:sqlite-framework-iosarm64", version.ref = "jetpack-sqlite" }
-jetpack-sqlite-framework-iossimulatorarm64 = { module = "androidx.sqlite:sqlite-framework-iossimulatorarm64", version.ref = "jetpack-sqlite" }
 sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipher-android" }
 
 # Media libs
@@ -264,17 +260,11 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 
 # Bitcoin libs
 lightning-kmp = { module = "fr.acinq.lightning:lightning-kmp", version.ref = "acinq-lightning-kmp" }
-lightning-kmp-iosarm64 = { module = "fr.acinq.lightning:lightning-kmp-iosarm64", version.ref = "acinq-lightning-kmp" }
-lightning-kmp-iossimulatorarm64 = { module = "fr.acinq.lightning:lightning-kmp-iossimulatorarm64", version.ref = "acinq-lightning-kmp" }
 lightning-kmp-jvm = { module = "fr.acinq.lightning:lightning-kmp-jvm", version.ref = "acinq-lightning-kmp" }
 bitcoin-kmp = { module = "fr.acinq.bitcoin:bitcoin-kmp", version.ref = "acinq-bitcoin-kmp"}
-bitcoin-kmp-iosarm64 = { module = "fr.acinq.bitcoin:bitcoin-kmp-iosarm64", version.ref = "acinq-bitcoin-kmp"}
-bitcoin-kmp-iossimulatorarm64 = { module = "fr.acinq.bitcoin:bitcoin-kmp-iossimulatorarm64", version.ref = "acinq-bitcoin-kmp"}
 bitcoin-kmp-jvm = { module = "fr.acinq.bitcoin:bitcoin-kmp-jvm", version.ref = "acinq-bitcoin-kmp"}
 secp256k1 = { module = "fr.acinq.secp256k1:secp256k1", version.ref = "acinq-secp256k1-kmp" }
 secp256k1-kmp = { module = "fr.acinq.secp256k1:secp256k1-kmp", version.ref = "acinq-secp256k1-kmp" }
-secp256k1-kmp-iosarm64 = { module = "fr.acinq.secp256k1:secp256k1-kmp-iosarm64", version.ref = "acinq-secp256k1-kmp" }
-secp256k1-kmp-iossimulatorarm64 = { module = "fr.acinq.secp256k1:secp256k1-kmp-iossimulatorarm64", version.ref = "acinq-secp256k1-kmp" }
 secp256k1-kmp-jvm = { module = "fr.acinq.secp256k1:secp256k1-kmp-jvm", version.ref = "acinq-secp256k1-kmp" }
 secp256k1-kmp-jni-android = { module = "fr.acinq.secp256k1:secp256k1-kmp-jni-android", version.ref = "acinq-secp256k1-kmp" }
 secp256k1-kmp-jni-jvm = { module = "fr.acinq.secp256k1:secp256k1-kmp-jni-jvm", version.ref = "acinq-secp256k1-kmp" }
@@ -289,16 +279,12 @@ androidx-security-identity-credential = { module = "androidx.security:security-i
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 whyoleg-cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "whyoleg-cryptography-kotlin" }
 whyoleg-cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "whyoleg-cryptography-kotlin" }
-whyoleg-cryptography-provider-apple = { module = "dev.whyoleg.cryptography:cryptography-provider-apple", version.ref = "whyoleg-cryptography-kotlin" }
 whyoleg-cryptography-provider-optimal = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "whyoleg-cryptography-kotlin" }
 
 # Detekt custom rule API
 detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt" }
 
 #Interop
-skie-configuration-annotations = { module = "co.touchlab.skie:configuration-annotations", version.ref = "skie" }
-skie-configuration-annotations-iosarm64 = { module = "co.touchlab.skie:configuration-annotations-iosarm64", version.ref = "skie" }
-skie-configuration-annotations-iossimulatorarm64 = { module = "co.touchlab.skie:configuration-annotations-iossimulatorarm64", version.ref = "skie" }
 
 # Tests libs
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -338,6 +324,5 @@ android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.
 jetpack-room = { id = "androidx.room", version.ref = "jetpack-room" }
 jetpack-room3 = { id = "androidx.room3", version.ref = "jetpack-room3" }
 ktorfit = { id = "de.jensklingenberg.ktorfit", version.ref = "ktorfit" }
-touchlab-skie = { id = "co.touchlab.skie", version.ref = "skie" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 android-test = { id = "com.android.test", version.ref = "agp" }

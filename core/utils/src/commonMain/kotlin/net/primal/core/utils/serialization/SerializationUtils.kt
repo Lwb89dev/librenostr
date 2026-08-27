@@ -20,7 +20,7 @@ inline fun <reified T> String?.decodeFromJsonStringOrNull(): T? {
  * Encodes an object to a JSON string using CommonJson serializer.
  *
  * Note: When working with JsonObject, use `toString()` instead of this function
- * to ensure proper formatting and compatibility with iOS.
+ * to keep canonical JSON for other Nostr clients.
  */
 inline fun <reified T> T.encodeToJsonString(): String {
     return CommonJson.encodeToString(this)

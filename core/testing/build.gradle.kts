@@ -15,9 +15,6 @@ kotlin {
     // JVM Target
     jvm("desktop")
 
-    // iOS Target
-    listOf(iosArm64(), iosSimulatorArm64())
-
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
         commonMain {
@@ -39,11 +36,6 @@ kotlin {
                 // Testing
                 implementation(libs.junit)
                 implementation(libs.mockk)
-            }
-        }
-
-        iosMain {
-            dependencies {
             }
         }
 

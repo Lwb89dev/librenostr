@@ -1,12 +1,8 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
 }
-
-private val xcfName = "PrimalCoreNips"
 
 kotlin {
 
@@ -27,17 +23,6 @@ kotlin {
 
     // JVM Target
     jvm("desktop")
-
-    // iOS Target
-    val xcfFramework = XCFramework(xcfName)
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-
-    iosTargets.forEach {
-        it.binaries.framework {
-            baseName = xcfName
-            xcfFramework.add(this)
-        }
-    }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -78,11 +63,6 @@ kotlin {
 
         val desktopMain by getting
         desktopMain.dependencies {
-        }
-
-        iosMain {
-            dependencies {
-            }
         }
     }
 }

@@ -1,14 +1,9 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
     alias(libs.plugins.ksp)
 }
-
-private val xcfName = "PrimalDataWalletRepository"
 
 kotlin {
     // Android target
@@ -20,20 +15,6 @@ kotlin {
         withHostTestBuilder {
         }
     }
-
-    // iOS Target (minimum iOS 16 to match shared module)
-    val xcfFramework = XCFramework(xcfName)
-
-    fun KotlinNativeTarget.configureFramework(platformName: String) {
-        binaries.framework {
-            baseName = xcfName
-            linkerOpts += listOf("-platform_version", platformName, "16.0", "16.0")
-            xcfFramework.add(this)
-        }
-    }
-
-    iosArm64 { configureFramework("ios") }
-    iosSimulatorArm64 { configureFramework("ios-simulator") }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -95,12 +76,6 @@ kotlin {
 
                 // Paging
                 implementation(libs.paging.runtime)
-            }
-        }
-
-        iosMain {
-            dependencies {
-                implementation(project(":paging-runtime-ios"))
             }
         }
 

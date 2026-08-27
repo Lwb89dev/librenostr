@@ -1,6 +1,4 @@
 import java.util.*
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
@@ -34,8 +32,6 @@ val buildConfigGenerator by tasks.registering(Sync::class) {
     into(layout.buildDirectory.dir("generated-src/kotlin/"))
 }
 
-private val xcfName = "PrimalCoreUtils"
-
 kotlin {
     // Android target
     android {
@@ -47,17 +43,6 @@ kotlin {
 
     // JVM Target
     jvm("desktop")
-
-    // iOS Target
-    val xcfFramework = XCFramework(xcfName)
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-
-    iosTargets.forEach {
-        it.binaries.framework {
-            baseName = xcfName
-            xcfFramework.add(this)
-        }
-    }
 
     // Source set declarations (https://kotlinlang.org/docs/multiplatform-hierarchy.html)
     sourceSets {
@@ -87,11 +72,6 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(libs.kotlinx.coroutines.android)
-            }
-        }
-
-        iosMain {
-            dependencies {
             }
         }
 
