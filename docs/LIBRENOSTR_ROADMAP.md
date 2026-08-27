@@ -24,12 +24,16 @@ Status: **this document set**.
 
 ## Phase 2 — Relay infrastructure
 
+Status: **done** (`RelayPool.query`, EOSE/timeout/dedupe/CLOSE, `lastQueryStats`). Publish unchanged.
+
 - Extend `RelayPool` with REQ / EOSE / CLOSE / timeout / event-id dedupe / merge.
 - Expose connection state and safe debug counts (no secrets).
 - Keep publish path working.
 - Optional: move socket types toward a neutral module name later.
 
 ## Phase 3 — Profile / contact data from relays
+
+Status: **partial** — kind 3 is relay-first with cache fallback. Kind 0 and NIP-65 still cache.
 
 - Kind 3 contact list → Room.
 - Kind 0 metadata for those pubkeys → Room (respect local cache; do not re-query unchanged profiles forever).

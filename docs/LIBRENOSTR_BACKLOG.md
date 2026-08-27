@@ -17,7 +17,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 - **Tests:** Fake socket clients; dedupe; one relay failure does not block others; timeout; CLOSE sent
 - **Risk:** High — every later read path depends on this
 - **Complexity:** L
-- **Status:** todo
+- **Status:** done
 
 ### LN-002 — Contact list from relays
 
@@ -28,7 +28,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 - **Tests:** Parse kind 3; prefer latest replaceable; empty list; relay timeout
 - **Risk:** Medium — follow list is the input to the home feed
 - **Complexity:** M
-- **Status:** todo
+- **Status:** done (relay-first, Primal cache fallback)
 
 ### LN-003 — Profiles from relays
 
@@ -77,7 +77,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 
 | ID | Title | Files | Depends | Acceptance | Tests | Risk | Complexity | Status |
 |---|---|---|---|---|---|---|---|---|
-| LN-010 | Relay observability (debug) | `RelayPool`, logging | LN-001 | Connected relays, active subs, timeouts, event/dup counts; never log nsec | unit | Low | S | todo |
+| LN-010 | Relay observability (debug) | `RelayPool`, logging | LN-001 | Connected relays, active subs, timeouts, event/dup counts; never log nsec | unit | Low | S | done |
 | LN-011 | Default + user relay model | `FallbackRelays`, `settings/network`, NIP-65 | LN-002 | Add/remove/enable relays; read/write; not a single vendor | UI + unit | Medium | M | todo |
 | LN-012 | Disable `cachingProxyEnabled` publish | `RelaysSocketManager`, `RelayPool` | LN-006 | EVENT only to relays | publish still OK | Medium | S | todo |
 
@@ -99,7 +99,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 | LN-019 | Remove premium/membership | `app/.../premium`, membership verbs | LN-004 | No paywall, no IAP membership | compile | Medium | L | todo |
 | LN-020 | Remove NIP-46 / NIP-55 product | `nostrconnect`, `signer`, `data/account/signer` | LN-013 (publish proven with nsec) | Local nsec still publishes; no Amber/bunker login | login + publish tests | High | XL | todo |
 | LN-021 | Wallet classification implementation | `data/wallet/*` | LN-010 audit | NWC kept; primal wallet gone or isolated | compile | High | XL | todo |
-| LN-022 | Rebrand LibreNostr (no package rename) | strings, icons, README, about | after LN-018/019 | User-facing Primal marks gone; LICENSE kept | visual | Low | M | todo |
+| LN-022 | Rebrand LibreNostr (no package rename) | strings, icons, README, about | after LN-018/019 | User-facing Primal marks gone; LICENSE kept | visual | Low | M | in_progress (name, icon, README, splash; package still net.primal.android) |
 | LN-023 | Package rename | `net.primal.android` | LN-022 + stable networking | Own applicationId | full assemble | High | XL | todo |
 
 ## Phase 14

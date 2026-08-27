@@ -8,6 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -396,5 +397,107 @@ class RelayPoolTest {
                 nostrEvent = buildNostrEvent(eventId = eventId),
                 cachingProxyEnabled = true,
             )
+        }
+
+    private fun buildQuerySocket(
+        url: String,
+        incoming: MutableSharedFlow<NostrIncomingMessage>,
+    ): NostrSocketClient {
+        return mockk(relaxed = true) {
+            every { socketUrl } returns url
+            every { incomingMessages } returns incoming
+            every { connectionGeneration } returns MutableStateFlow(0L)
+        }
+    }
+
+    @Test
+    fun query_deduplicatesEventsByIdAndSendsClose() =
+        runTest {
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-1" }
+            val event = buildNostrEvent("same-id")
+            val incomingA = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val incomingB = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val clientA = buildQuerySocket("wss://a", incomingA)
+            val clientB = buildQuerySocket("wss://b", incomingB)
+            relayPool.socketClients = listOf(clientA, clientB)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(3))) }
+            runCurrent()
+            incomingA.emit(NostrIncomingMessage.EventMessage(subscriptionId = "sub-1", nostrEvent = event))
+            incomingB.emit(NostrIncomingMessage.EventMessage(subscriptionId = "sub-1", nostrEvent = event))
+            incomingA.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-1"))
+            incomingB.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-1"))
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id } shouldBe listOf("same-id")
+            result.duplicateCount shouldBe 1
+            result.eoseRelays shouldBe setOf("wss://a", "wss://b")
+            relayPool.activeSubscriptionCount() shouldBe 0
+            coVerify { clientA.sendCLOSE("sub-1") }
+            coVerify { clientB.sendCLOSE("sub-1") }
+        }
+
+    @Test
+    fun query_oneRelayFailureDoesNotDropEventsFromOthers() =
+        runTest {
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-fail" }
+            val event = buildNostrEvent("kept")
+            val incomingA = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val incomingB = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val clientA = buildQuerySocket("wss://a", incomingA)
+            val clientB = buildQuerySocket("wss://b", incomingB)
+            coEvery { clientB.sendREQ(any(), any()) } throws RuntimeException("boom")
+            relayPool.socketClients = listOf(clientA, clientB)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(3))) }
+            runCurrent()
+            incomingA.emit(NostrIncomingMessage.EventMessage(subscriptionId = "sub-fail", nostrEvent = event))
+            incomingA.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-fail"))
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id } shouldBe listOf("kept")
+            result.failedRelays.keys shouldBe setOf("wss://b")
+            coVerify { clientA.sendCLOSE("sub-fail") }
+            coVerify { clientB.sendCLOSE("sub-fail") }
+        }
+
+    @Test
+    fun query_timeoutsDeadRelayWithoutBlockingOthers() =
+        runTest {
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-timeout" }
+            val event = buildNostrEvent("alive")
+            val incomingAlive = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val incomingDead = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val alive = buildQuerySocket("wss://alive", incomingAlive)
+            val dead = buildQuerySocket("wss://dead", incomingDead)
+            relayPool.socketClients = listOf(alive, dead)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1))) }
+            runCurrent()
+            incomingAlive.emit(NostrIncomingMessage.EventMessage(subscriptionId = "sub-timeout", nostrEvent = event))
+            incomingAlive.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-timeout"))
+            runCurrent()
+            testScheduler.advanceTimeBy(RelayPool.SUBSCRIBE_TIMEOUT.toLong())
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id } shouldBe listOf("alive")
+            result.failedRelays["wss://dead"] shouldBe "timeout"
+            coVerify { alive.sendCLOSE("sub-timeout") }
+            coVerify { dead.sendCLOSE("sub-timeout") }
+        }
+
+    @Test
+    fun query_emptyPoolReturnsEmptyResult() =
+        runTest {
+            val relayPool = buildRelayPool()
+            val result = relayPool.query(buildRelayFilter(kinds = listOf(0)))
+            result.events shouldBe emptyList()
+            result.eoseRelays shouldBe emptySet()
         }
 }

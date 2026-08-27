@@ -1,6 +1,7 @@
 package net.primal.android.user.repository
 
 import androidx.room.withTransaction
+import io.github.aakira.napier.Napier
 import java.time.Instant
 import javax.inject.Inject
 import kotlin.time.Clock
@@ -13,6 +14,8 @@ import net.primal.android.core.compose.profile.model.UserProfileItemUi
 import net.primal.android.core.compose.profile.model.mapAsUserProfileUi
 import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.core.utils.usernameUiFriendly
+import net.primal.android.networking.relays.RelaysSocketManager
+import net.primal.android.networking.relays.buildRelayFilter
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.nostr.publish.NostrPublisher
 import net.primal.android.premium.repository.asProfileDataDO
@@ -60,6 +63,7 @@ class UserRepository @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val primalUploadService: AndroidPrimalBlossomUploadService,
     private val usersApi: UsersApi,
+    private val relaysSocketManager: RelaysSocketManager,
     private val nostrPublisher: NostrPublisher,
     private val profileRepository: ProfileRepository,
     private val userDataCleanupRepository: UserDataCleanupRepository,
@@ -130,10 +134,32 @@ class UserRepository @Inject constructor(
 
     private suspend fun fetchUserFollowListOrNull(userId: String): UserAccount? =
         withContext(dispatchers.io()) {
-            val contactsResponse = usersApi.getUserFollowList(userId = userId)
-
-            contactsResponse.followListEvent?.asUserAccountFromFollowListEvent()
+            fetchFollowListFromRelays(userId) ?: fetchFollowListFromCache(userId)
         }
+
+    private suspend fun fetchFollowListFromRelays(userId: String): UserAccount? {
+        val result = runCatching {
+            relaysSocketManager.queryEvents(
+                filter = buildRelayFilter(
+                    kinds = listOf(NostrEventKind.FollowList.value),
+                    authors = listOf(userId),
+                    limit = 5,
+                ),
+            )
+        }.getOrNull() ?: return null
+
+        val latest = result.events.maxByOrNull { it.createdAt } ?: return null
+        Napier.i {
+            "Relay kind-3 for $userId: events=${result.uniqueEventCount} " +
+                "eose=${result.eoseRelays.size} fail=${result.failedRelays.size}"
+        }
+        return latest.asUserAccountFromFollowListEvent()
+    }
+
+    private suspend fun fetchFollowListFromCache(userId: String): UserAccount? {
+        val contactsResponse = usersApi.getUserFollowList(userId = userId)
+        return contactsResponse.followListEvent?.asUserAccountFromFollowListEvent()
+    }
 
     suspend fun clearAllUserRelatedData(userId: String) =
         withContext(dispatchers.io()) {

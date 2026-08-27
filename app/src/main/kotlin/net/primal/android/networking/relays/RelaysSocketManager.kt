@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonObject
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.db.UsersDatabase
@@ -141,4 +142,16 @@ class RelaysSocketManager @Inject constructor(
     }
 
     suspend fun tryConnectingToUserRelay(url: String) = userRelaysPool.tryConnectingToRelay(url)
+
+    suspend fun queryEvents(filter: JsonObject): RelayPoolQueryResult {
+        val pool = if (userRelaysPool.hasRelays()) userRelaysPool else fallbackRelaysPool
+        return pool.query(filter)
+    }
+
+    fun lastQueryStats() = userRelaysPool.lastQueryStats.value ?: fallbackRelaysPool.lastQueryStats.value
+
+    fun activeSubscriptionCount(): Int =
+        userRelaysPool.activeSubscriptionCount() +
+            nwcRelaysPool.activeSubscriptionCount() +
+            fallbackRelaysPool.activeSubscriptionCount()
 }
