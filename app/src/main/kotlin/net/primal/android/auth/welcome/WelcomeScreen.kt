@@ -70,9 +70,9 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
                 )
 
                 Image(
-                    modifier = Modifier.width(200.dp),
-                    painter = painterResource(id = R.drawable.primal_welcome_logo),
-                    contentDescription = null,
+                    modifier = Modifier.width(128.dp),
+                    painter = painterResource(id = R.drawable.primal_icon),
+                    contentDescription = "LibreNostr",
                 )
 
                 Spacer(

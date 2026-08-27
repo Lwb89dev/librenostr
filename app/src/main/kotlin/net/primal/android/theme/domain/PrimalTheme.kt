@@ -20,7 +20,7 @@ enum class PrimalTheme(
         colorScheme = midnightColorScheme,
         extraColorScheme = midnightExtraColorScheme,
         isDarkTheme = true,
-        logoId = R.drawable.primal_wave_logo_winter,
+        logoId = R.drawable.primal_icon,
     ),
 
     Ice(
@@ -28,7 +28,7 @@ enum class PrimalTheme(
         colorScheme = iceColorScheme,
         extraColorScheme = iceExtraColorScheme,
         isDarkTheme = false,
-        logoId = R.drawable.primal_wave_logo_winter,
+        logoId = R.drawable.primal_icon,
     ),
     ;
 

@@ -4,6 +4,10 @@
     package="net.primal.android">
 
     <application tools:ignore="MissingApplicationIcon">
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/librenostr_stat_icon" />
+
         <service
             android:name=".core.push.PrimalFirebaseMessagingService"
             android:exported="false">
