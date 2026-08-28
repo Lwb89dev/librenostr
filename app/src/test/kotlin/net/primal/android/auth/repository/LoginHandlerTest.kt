@@ -260,26 +260,34 @@ class LoginHandlerTest {
         }
 
     @Test
-    fun login_prefetchesNoteFeeds_forExternalSignerCredential() =
+    fun login_withExternalSigner_activatesAccountWithoutWaitingForNetwork() =
         runTest {
+            val hexPubkey = expectedUserId
             val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
                 coEvery { saveExternalSignerNpub(any()) } returns expectedUserId
             }
+            val userRepository = mockk<UserRepository>(relaxed = true)
             val feedsRepository = mockk<FeedsRepository>(relaxed = true)
+            val nostrNotary = mockk<NostrNotary>(relaxed = true)
+            val authRepository = mockk<AuthRepository>(relaxed = true)
             val loginHandler = createLoginHandler(
+                authRepository = authRepository,
+                userRepository = userRepository,
                 feedsRepository = feedsRepository,
                 credentialsStore = credentialsStore,
+                nostrNotary = nostrNotary,
             )
 
             loginHandler.login(
-                nostrKey = "npub1p64ty2pgcj6k2c6v7u9dwu7aesle8v9qelnpgx4zrfa37av8f24q9jxt7c",
+                nostrKey = hexPubkey,
                 credentialType = CredentialType.ExternalSigner,
-                authorizationEvent = createDummyNostrEvent(userId = expectedUserId),
+                authorizationEvent = null,
             )
 
-            coVerify(exactly = 1) {
-                feedsRepository.fetchAndPersistNoteFeeds(userId = expectedUserId)
-            }
+            coVerify(exactly = 1) { authRepository.loginWithExternalSignerNpub(npub = hexPubkey) }
+            coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
+            coVerify(exactly = 0) { nostrNotary.signAuthorizationNostrEvent(any(), any(), any()) }
+            coVerify(exactly = 0) { feedsRepository.fetchAndPersistNoteFeeds(any()) }
         }
 
     @Test

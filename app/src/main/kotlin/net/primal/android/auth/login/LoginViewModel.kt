@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -25,9 +26,9 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.cryptography.utils.extractKeyPairFromPrivateKeyOrThrow
+import net.primal.domain.nostr.utils.asHexPubkeyOrNull
 import net.primal.domain.nostr.utils.isValidNostrPrivateKey
 import net.primal.domain.nostr.utils.isValidNostrPublicKey
-import net.primal.domain.nostr.utils.takeAsProfileHexIdOrNull
 import net.primal.domain.profile.ProfileRepository
 
 @HiltViewModel
@@ -57,7 +58,11 @@ class LoginViewModel @Inject constructor(
             events.collect {
                 when (it) {
                     is UiEvent.LoginRequestEvent ->
-                        login(nostrKey = _state.value.loginInput, authorizationEvent = it.nostrEvent)
+                        login(
+                            nostrKey = it.nostrKey ?: _state.value.loginInput,
+                            authorizationEvent = it.nostrEvent,
+                            credentialType = it.credentialType ?: _state.value.credentialType,
+                        )
 
                     is UiEvent.UpdateLoginInput -> changeLoginInput(
                         input = it.newInput,
@@ -68,28 +73,37 @@ class LoginViewModel @Inject constructor(
             }
         }
 
-    private fun login(nostrKey: String, authorizationEvent: NostrEvent?) =
-        viewModelScope.launch {
-            setState { copy(loading = true) }
-            try {
-                state.value.credentialType?.let { loginType ->
-                    loginHandler.login(
-                        nostrKey = nostrKey,
-                        credentialType = loginType,
-                        authorizationEvent = authorizationEvent,
-                    )
-                    setEffect(SideEffect.LoginSuccess)
-                }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Login failed due to network error." }
-                setErrorState(error = UiState.LoginError.GenericError(error))
-                if (state.value.credentialType == CredentialType.ExternalSigner) {
-                    resetLoginState()
-                }
-            } finally {
-                setState { copy(loading = false) }
-            }
+    private fun login(
+        nostrKey: String,
+        authorizationEvent: NostrEvent?,
+        credentialType: CredentialType?,
+    ) = viewModelScope.launch {
+        val loginType = credentialType
+        if (loginType == null || nostrKey.isBlank()) {
+            setState { copy(loading = false) }
+            return@launch
         }
+
+        setState { copy(loading = true, credentialType = loginType, loginInput = nostrKey) }
+        try {
+            loginHandler.login(
+                nostrKey = nostrKey,
+                credentialType = loginType,
+                authorizationEvent = authorizationEvent,
+            )
+            setEffect(SideEffect.LoginSuccess)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Napier.w(throwable = error) { "Login failed." }
+            setErrorState(error = UiState.LoginError.GenericError(error))
+            if (loginType == CredentialType.ExternalSigner) {
+                resetLoginState()
+            }
+        } finally {
+            setState { copy(loading = false) }
+        }
+    }
 
     private fun setErrorState(error: UiState.LoginError) {
         setState { copy(error = error) }
@@ -101,7 +115,10 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    private fun resetLoginState() = changeLoginInput(input = "")
+    private fun resetLoginState() {
+        setState { copy(loading = false) }
+        changeLoginInput(input = "")
+    }
 
     private fun changeLoginInput(input: String, credentialType: CredentialType? = null) {
         setState { copy(loginInput = input) }
@@ -137,7 +154,7 @@ class LoginViewModel @Inject constructor(
             setState { copy(fetchingProfileDetails = true) }
             val profile = withContext(dispatcherProvider.io()) {
                 try {
-                    npub.takeAsProfileHexIdOrNull()?.let { userId ->
+                    npub.asHexPubkeyOrNull()?.let { userId ->
                         profileRepository.fetchProfile(profileId = userId)
                         profileRepository.findProfileDataOrNull(profileId = userId)
                     }

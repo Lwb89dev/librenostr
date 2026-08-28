@@ -13,7 +13,6 @@ import net.primal.android.user.domain.CredentialType
 import net.primal.android.user.repository.UserRepository
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.onFailure
-import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
 import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.feeds.FeedsRepository
@@ -41,38 +40,63 @@ class LoginHandler @Inject constructor(
         credentialType: CredentialType,
         authorizationEvent: NostrEvent?,
     ) = withContext(dispatchers.io()) {
-        runCatching {
-            val userId = saveCredentials(credentialType = credentialType, nostrKey = nostrKey)
-            val authorizationEvent = authorizationEvent ?: nostrNotary.signAuthorizationNostrEvent(
+        val userId = saveCredentials(credentialType = credentialType, nostrKey = nostrKey)
+        try {
+            completeLogin(
                 userId = userId,
-                description = "Sync app settings",
-            ).getOrNull()
-
-            userRepository.fetchAndUpdateUserAccount(userId = userId)
-
-            ensurePrimalWalletExistsUseCase.invoke(userId = userId, setAsActive = true)
-
-            bookmarksRepository.fetchAndPersistBookmarks(userId = userId)
-            authorizationEvent?.let {
-                settingsRepository.fetchAndPersistAppSettings(authorizationEvent)
-            }
-            mutedItemRepository.fetchAndPersistMuteList(userId = userId)
-
-            prefetchNoteFeeds(userId = userId, credentialType = credentialType)
-        }.onFailure { exception ->
+                nostrKey = nostrKey,
+                credentialType = credentialType,
+                authorizationEvent = authorizationEvent,
+            )
+        } catch (exception: Exception) {
             removeCredentials(credentialType = credentialType, nostrKey = nostrKey)
-
             throw exception
-        }.onSuccess {
-            when (credentialType) {
-                CredentialType.ExternalSigner -> authRepository.loginWithExternalSignerNpub(npub = nostrKey)
+        }
+    }
 
-                CredentialType.PublicKey -> authRepository.loginWithNpub(npub = nostrKey)
+    private suspend fun completeLogin(
+        userId: String,
+        nostrKey: String,
+        credentialType: CredentialType,
+        authorizationEvent: NostrEvent?,
+    ) {
+        if (credentialType == CredentialType.ExternalSigner) {
+            activateAccount(credentialType = credentialType, nostrKey = nostrKey)
+            return
+        }
 
-                CredentialType.PrivateKey -> authRepository.loginWithNsec(nostrKey = nostrKey)
+        hydrateUserSession(
+            userId = userId,
+            credentialType = credentialType,
+            authorizationEvent = authorizationEvent,
+        )
+        activateAccount(credentialType = credentialType, nostrKey = nostrKey)
+    }
 
-                CredentialType.InternalSigner -> Unit
-            }
+    private suspend fun hydrateUserSession(
+        userId: String,
+        credentialType: CredentialType,
+        authorizationEvent: NostrEvent?,
+    ) {
+        val authorizationEvent = authorizationEvent ?: nostrNotary.signAuthorizationNostrEvent(
+            userId = userId,
+            description = "Sync app settings",
+        ).getOrNull()
+
+        userRepository.fetchAndUpdateUserAccount(userId = userId)
+        ensurePrimalWalletExistsUseCase.invoke(userId = userId, setAsActive = true)
+        bookmarksRepository.fetchAndPersistBookmarks(userId = userId)
+        authorizationEvent?.let { settingsRepository.fetchAndPersistAppSettings(it) }
+        mutedItemRepository.fetchAndPersistMuteList(userId = userId)
+        prefetchNoteFeeds(userId = userId, credentialType = credentialType)
+    }
+
+    private suspend fun activateAccount(credentialType: CredentialType, nostrKey: String) {
+        when (credentialType) {
+            CredentialType.ExternalSigner -> authRepository.loginWithExternalSignerNpub(npub = nostrKey)
+            CredentialType.PublicKey -> authRepository.loginWithNpub(npub = nostrKey)
+            CredentialType.PrivateKey -> authRepository.loginWithNsec(nostrKey = nostrKey)
+            CredentialType.InternalSigner -> Unit
         }
     }
 

@@ -72,11 +72,8 @@ import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.primalGradientBrush
 import net.primal.android.core.compose.profile.model.ProfileDetailsUi
 import net.primal.android.core.utils.pasteText
-import net.primal.android.signer.client.event.buildAppSpecificDataEvent
 import net.primal.android.signer.client.launchGetPublicKey
-import net.primal.android.signer.client.launchSignEvent
 import net.primal.android.signer.client.rememberAmberPubkeyLauncher
-import net.primal.android.signer.client.rememberAmberSignerLauncher
 import net.primal.android.signer.client.utils.isCompatibleAmberVersionInstalled
 import net.primal.android.stream.player.hideStreamMiniPlayer
 import net.primal.android.theme.AppTheme
@@ -120,19 +117,15 @@ fun LoginScreen(
     }
 
     val context = LocalContext.current
-    val signLauncher = rememberAmberSignerLauncher(
-        onFailure = { eventPublisher(LoginContract.UiEvent.ResetLoginState) },
-    ) { nostrEvent ->
-        eventPublisher(LoginContract.UiEvent.LoginRequestEvent(nostrEvent = nostrEvent))
-    }
-
     val pubkeyLauncher = rememberAmberPubkeyLauncher(
         onFailure = { eventPublisher(LoginContract.UiEvent.ResetLoginState) },
     ) { pubkey ->
         eventPublisher(
-            LoginContract.UiEvent.UpdateLoginInput(newInput = pubkey, credentialType = CredentialType.ExternalSigner),
+            LoginContract.UiEvent.LoginRequestEvent(
+                nostrKey = pubkey,
+                credentialType = CredentialType.ExternalSigner,
+            ),
         )
-        signLauncher.launchSignEvent(event = buildAppSpecificDataEvent(pubkey = pubkey))
     }
 
     BackHandler(enabled = state.loading) { }
@@ -275,6 +268,8 @@ fun LoginContent(
                         .fillMaxWidth(),
                     containerColor = Color.Transparent,
                     contentColor = PrimalDarkTextColor,
+                    disabledContainerColor = Color.Transparent,
+                    enabled = !state.loading,
                     onClick = onLoginWithAmberClick,
                     text = "Login with Amber",
                 )
