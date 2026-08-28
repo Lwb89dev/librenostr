@@ -9,6 +9,7 @@ interface NoteFeedsContract {
     data class UiState(
         val feeds: List<FeedUi> = emptyList(),
         val streams: List<StreamPillUi> = emptyList(),
+        val showLiveStreams: Boolean = false,
         val loading: Boolean = true,
         val uiError: UiError? = null,
     )

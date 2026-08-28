@@ -10,6 +10,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -41,6 +42,7 @@ import net.primal.android.core.compose.AppBarPage
 import net.primal.android.core.compose.ListLoadingError
 import net.primal.android.core.compose.ListNoContent
 import net.primal.android.core.compose.PrimalDivider
+import net.primal.android.core.compose.pulltorefresh.PrimalPullToRefreshBox
 import net.primal.android.core.compose.PrimalTopLevelAppBar
 import net.primal.android.core.compose.heightAdjustableLoadingLazyListPlaceholder
 import net.primal.android.core.compose.isEmpty
@@ -287,6 +289,22 @@ private fun NotificationsList(
         }
     }
 
+    var pullToRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(seenPagingItems.loadState.refresh) {
+        if (seenPagingItems.loadState.refresh !is LoadState.Loading) {
+            pullToRefreshing = false
+        }
+    }
+
+    PrimalPullToRefreshBox(
+        isRefreshing = pullToRefreshing,
+        onRefresh = {
+            pullToRefreshing = true
+            seenPagingItems.refresh()
+        },
+        state = rememberPullToRefreshState(),
+        indicatorPaddingValues = paddingValues,
+    ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = paddingValues,
@@ -412,6 +430,7 @@ private fun NotificationsList(
 
             else -> Unit
         }
+    }
     }
 }
 

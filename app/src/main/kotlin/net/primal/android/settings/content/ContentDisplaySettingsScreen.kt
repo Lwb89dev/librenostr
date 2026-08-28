@@ -135,6 +135,24 @@ private fun ContentDisplaySettingsScreen(
                         eventPublisher(UiEvent.UpdateShowFocusMode(enabled = !state.focusMode))
                     },
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsItem(
+                    headlineText = stringResource(id = R.string.settings_content_display_live_streams),
+                    supportText = stringResource(id = R.string.settings_content_display_live_streams_hint),
+                    trailingContent = {
+                        PrimalSwitch(
+                            checked = state.showLiveStreams,
+                            onCheckedChange = {
+                                eventPublisher(UiEvent.UpdateShowLiveStreams(enabled = it))
+                            },
+                        )
+                    },
+                    onClick = {
+                        eventPublisher(UiEvent.UpdateShowLiveStreams(enabled = !state.showLiveStreams))
+                    },
+                )
             }
         },
     )

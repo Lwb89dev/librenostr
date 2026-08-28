@@ -64,29 +64,6 @@ fun ProfileFollowUnfollowListItem(
                 legendaryCustomization = data.legendaryCustomization,
                 profileId = data.profileId,
             )
-
-            if (data.followersCount != null && data.followersCount != 0) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = data.followersCount.shortened(),
-                        textAlign = TextAlign.End,
-                        fontWeight = FontWeight.Bold,
-                        style = AppTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.search_followers_text).lowercase(),
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
         }
 
         FollowUnfollowButton(

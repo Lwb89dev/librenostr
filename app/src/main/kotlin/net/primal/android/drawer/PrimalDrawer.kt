@@ -32,15 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import java.text.NumberFormat
 import net.primal.android.R
 import net.primal.android.core.compose.NostrUserText
 import net.primal.android.core.compose.PrimalOverlayBottomBar
@@ -181,63 +177,11 @@ private fun DrawerHeader(
                 )
             }
 
-            Text(
-                text = buildStatsAnnotatedString(
-                    followersCount = userAccount?.followersCount,
-                    followingCount = userAccount?.followingCount,
-                ),
-                style = AppTheme.typography.labelLarge,
-                modifier = Modifier.padding(top = 16.dp),
-            )
         }
 
         AccountSwitcher(
             callbacks = accountSwitcherCallbacks,
             onLogoutClick = onSignOutClick,
-        )
-    }
-}
-
-@Composable
-private fun buildStatsAnnotatedString(followingCount: Int?, followersCount: Int?): AnnotatedString {
-    val numberFormat = remember { NumberFormat.getNumberInstance() }
-    return buildAnnotatedString {
-        append(
-            AnnotatedString(
-                text = followingCount?.let { numberFormat.format(it) } ?: "-",
-                spanStyle = SpanStyle(
-                    color = AppTheme.extraColorScheme.onBrand,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-        append(
-            AnnotatedString(
-                text = " " + stringResource(id = R.string.drawer_following_suffix),
-                spanStyle = SpanStyle(
-                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-        append("   ")
-        append(
-            AnnotatedString(
-                text = followersCount?.let { numberFormat.format(it) } ?: "-",
-                spanStyle = SpanStyle(
-                    color = AppTheme.extraColorScheme.onBrand,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-        append(
-            AnnotatedString(
-                text = " " + stringResource(id = R.string.drawer_followers_suffix),
-                spanStyle = SpanStyle(
-                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
         )
     }
 }

@@ -30,7 +30,7 @@ import net.primal.android.core.compose.button.FollowUnfollowButton
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.profile.model.UserProfileItemUi
 import net.primal.android.core.utils.formatNip05Identifier
-import net.primal.android.core.utils.shortened
+
 import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
@@ -84,23 +84,6 @@ fun UserProfileListItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (data.followersCount != null) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                    ) {
-                        Text(
-                            text = data.followersCount.shortened(),
-                            textAlign = TextAlign.End,
-                            fontWeight = FontWeight.Bold,
-                            style = AppTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            text = stringResource(id = R.string.search_followers_text).lowercase(),
-                            color = AppTheme.extraColorScheme.onSurfaceVariantAlt4,
-                        )
-                    }
-                }
-
                 if (followUnfollowVisibility != FollowUnfollowVisibility.Gone) {
                     Spacer(modifier = Modifier.width(8.dp))
                     val isVisible = followUnfollowVisibility == FollowUnfollowVisibility.Visible

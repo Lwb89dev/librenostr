@@ -129,7 +129,7 @@
     <string name="primary_destination_feed_label">Feeds</string>
     <string name="primary_destination_reads_label">Reads</string>
     <string name="primary_destination_wallet_label">Wallet</string>
-    <string name="primary_destination_notifications_label">Alerts</string>
+    <string name="primary_destination_notifications_label">Notifications</string>
     <string name="primary_destination_explore_label">Algorithm</string>
     <string name="algorithm_title">Your algorithm</string>
     <string name="algorithm_subtitle">Be your own algorhythm</string>
@@ -869,7 +869,7 @@
     <string name="wallet_picker_nwc_description">Your external lightning wallet</string>
     <string name="wallet_top_app_bar_subtitle">All transactions</string>
 
-    <string name="notifications_title">Alerts</string>
+    <string name="notifications_title">Notifications</string>
     <string name="notifications_filter_all_title">All Notifications</string>
     <string name="notifications_filter_zaps_title">Zaps</string>
     <string name="notifications_filter_replies_title">Replies</string>
@@ -1075,6 +1075,8 @@
     <string name="settings_content_display_animated_avatars_hint">Switch off to disable animated avatars in feeds. Profile will continue to show the full version.</string>
     <string name="settings_content_display_full_screen_feed_display">Full screen feed display</string>
     <string name="settings_content_display_full_screen_feed_display_hint">Maximize screen real estate by hiding app header &amp; footer as you scroll down the feed.</string>
+    <string name="settings_content_display_live_streams">Live streams</string>
+    <string name="settings_content_display_live_streams_hint">Show live streams from people you follow at the top of the home feed. Off by default to keep the feed light.</string>
 
     <string name="settings_network_title">Network</string>
     <string name="settings_network_relays_section">Relays</string>

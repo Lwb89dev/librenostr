@@ -37,10 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,7 +45,6 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.NumberFormat
 import kotlinx.coroutines.launch
 import net.primal.android.R
 import net.primal.android.core.activity.LocalZappingState
@@ -219,8 +215,6 @@ private fun ProfileHeaderDetails(
         state.profileId?.let { profileId ->
             ProfileFollowIndicators(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
-                followingCount = state.profileStats?.followingCount,
-                followersCount = state.profileStats?.followersCount,
                 isProfileFollowingMe = state.isProfileFollowingMe,
                 onFollowingClick = { onFollowsClick(profileId, ProfileFollowsType.Following) },
                 onFollowersClick = { onFollowsClick(profileId, ProfileFollowsType.Followers) },
@@ -354,53 +348,10 @@ private const val FOLLOWED_BY_AVATAR_OVERLAP = 0.25f
 @Composable
 private fun ProfileFollowIndicators(
     modifier: Modifier = Modifier,
-    followingCount: Int?,
-    followersCount: Int?,
     isProfileFollowingMe: Boolean,
     onFollowingClick: () -> Unit,
     onFollowersClick: () -> Unit,
 ) {
-    val numberFormat = remember { NumberFormat.getNumberInstance() }
-    val followingAnnotatedString = buildAnnotatedString {
-        append(
-            AnnotatedString(
-                text = followingCount?.let { numberFormat.format(it) } ?: "-",
-                spanStyle = SpanStyle(
-                    color = AppTheme.colorScheme.onSurfaceVariant,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-        append(
-            AnnotatedString(
-                text = " " + stringResource(id = R.string.drawer_following_suffix).lowercase(),
-                spanStyle = SpanStyle(
-                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt4,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-    }
-    val followersAnnotatedString = buildAnnotatedString {
-        append(
-            AnnotatedString(
-                text = followersCount?.let { numberFormat.format(it) } ?: "-",
-                spanStyle = SpanStyle(
-                    color = AppTheme.colorScheme.onSurfaceVariant,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-        append(
-            AnnotatedString(
-                text = " " + stringResource(id = R.string.drawer_followers_suffix).lowercase(),
-                spanStyle = SpanStyle(
-                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt4,
-                    fontStyle = AppTheme.typography.labelLarge.fontStyle,
-                ),
-            ),
-        )
-    }
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -408,13 +359,15 @@ private fun ProfileFollowIndicators(
     ) {
         Text(
             modifier = Modifier.clickable { onFollowingClick() },
-            text = followingAnnotatedString,
+            text = stringResource(id = R.string.drawer_following_suffix),
             style = AppTheme.typography.labelLarge,
+            color = AppTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             modifier = Modifier.clickable { onFollowersClick() },
-            text = followersAnnotatedString,
+            text = stringResource(id = R.string.drawer_followers_suffix),
             style = AppTheme.typography.labelLarge,
+            color = AppTheme.colorScheme.onSurfaceVariant,
         )
 
         FollowsYouBadge(isProfileFollowingMe = isProfileFollowingMe)

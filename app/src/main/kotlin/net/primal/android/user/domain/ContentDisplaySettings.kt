@@ -9,6 +9,7 @@ data class ContentDisplaySettings(
     val autoPlayVideoSoundOn: Boolean = true,
     val showAnimatedAvatars: Boolean = false,
     val focusModeEnabled: Boolean = true,
+    val showLiveStreams: Boolean = false,
     @SerialName("noteAppearance") val contentAppearance: ContentAppearance = ContentAppearance.Default,
 ) {
     companion object {

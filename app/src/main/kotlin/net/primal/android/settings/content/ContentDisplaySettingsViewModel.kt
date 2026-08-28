@@ -39,6 +39,7 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                     is UiEvent.UpdateAutoPlayVideos -> handleAutoPlayVideosUpdate(it)
                     is UiEvent.UpdateShowAnimatedAvatars -> handleShowAnimatedAvatarsUpdate(it)
                     is UiEvent.UpdateShowFocusMode -> handleShowFocusModeUpdate(it)
+                    is UiEvent.UpdateShowLiveStreams -> handleShowLiveStreamsUpdate(it)
                 }
             }
         }
@@ -52,6 +53,7 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                         autoPlayVideos = it.contentDisplaySettings.autoPlayVideos,
                         showAnimatedAvatars = it.contentDisplaySettings.showAnimatedAvatars,
                         focusMode = it.contentDisplaySettings.focusModeEnabled,
+                        showLiveStreams = it.contentDisplaySettings.showLiveStreams,
                     )
                 }
             }
@@ -80,6 +82,15 @@ class ContentDisplaySettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
                 copy(focusModeEnabled = event.enabled)
+            }
+        }
+    }
+
+    private fun handleShowLiveStreamsUpdate(event: UiEvent.UpdateShowLiveStreams) {
+        setState { copy(showLiveStreams = event.enabled) }
+        viewModelScope.launch {
+            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
+                copy(showLiveStreams = event.enabled)
             }
         }
     }

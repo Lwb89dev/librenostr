@@ -12,7 +12,11 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import net.primal.android.core.errors.UiError
@@ -105,8 +109,22 @@ class NoteFeedsViewModel @Inject constructor(
     @OptIn(FlowPreview::class)
     private fun observeLiveEventsFromFollows() =
         viewModelScope.launch {
-            streamRepository.observeLiveEventsFromFollows(userId = activeAccountStore.activeUserId())
-                .collectLatest { streams -> setState { copy(streams = streams.map { it.asStreamPillUi() }) } }
+            activeAccountStore.activeUserAccount
+                .map { it.contentDisplaySettings.showLiveStreams }
+                .distinctUntilChanged()
+                .flatMapLatest { enabled ->
+                    setState { copy(showLiveStreams = enabled, streams = emptyList()) }
+                    if (!enabled) {
+                        flowOf(emptyList())
+                    } else {
+                        streamRepository.observeLiveEventsFromFollows(
+                            userId = activeAccountStore.activeUserId(),
+                        )
+                    }
+                }
+                .collectLatest { streams ->
+                    setState { copy(streams = streams.map { it.asStreamPillUi() }) }
+                }
         }
 
     private fun observeEvents() {
