@@ -8,7 +8,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -16,10 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -31,10 +27,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,7 +36,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -50,10 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.isDigitsOnly
-import androidx.emoji2.emojipicker.EmojiPickerView
 import java.text.NumberFormat
 import net.primal.android.R
 import net.primal.android.core.compose.PrimalDefaults
@@ -181,7 +171,7 @@ private fun ZapSettingsAnimatedContent(
                 )
             }
 
-            in (0..PRESETS_COUNT) -> {
+            in 0 until PRESETS_COUNT -> {
                 ZapPresetEditor(
                     paddingValues = contentPadding,
                     index = it,
@@ -273,7 +263,7 @@ private fun ZapDefaultListItem(
             },
             headlineContent = {
                 Text(
-                    text = text,
+                    text = text.ifBlank { "${numberFormat.format(amount)} sats" },
                     color = AppTheme.colorScheme.onPrimary,
                 )
             },
@@ -308,12 +298,14 @@ private fun ZapCustomPresets(
                     colors = ListItemDefaults.colors(
                         containerColor = AppTheme.extraColorScheme.surfaceVariantAlt3,
                     ),
-                    leadingContent = {
-                        Text(text = zapItem.emoji)
+                    leadingContent = if (zapItem.emoji.isNotBlank()) {
+                        { Text(text = zapItem.emoji) }
+                    } else {
+                        null
                     },
                     headlineContent = {
                         Text(
-                            text = zapItem.message,
+                            text = zapItem.message.ifBlank { "${zapItem.amount} sats" },
                             color = AppTheme.colorScheme.onPrimary,
                         )
                     },
@@ -344,7 +336,6 @@ fun ZapPresetEditor(
 ) {
     val zapConfig = zapsConfig[index]
 
-    var emoji by remember { mutableStateOf(zapConfig.emoji) }
     var message by remember { mutableStateOf(zapConfig.message) }
     var amount by remember { mutableStateOf(zapConfig.amount.toString()) }
 
@@ -354,10 +345,6 @@ fun ZapPresetEditor(
             .padding(paddingValues),
     ) {
         ZapPresetForm(
-            emojiValue = emoji,
-            onEmojiValueChange = {
-                emoji = it
-            },
             messageValue = message,
             onMessageValueChanged = {
                 message = it
@@ -378,14 +365,14 @@ fun ZapPresetEditor(
             modifier = Modifier
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
-            enabled = emoji.isEmoji() && message.isNotEmpty() && amount.toLongOrNull() != null,
+            enabled = amount.toLongOrNull() != null,
             loading = updating,
             text = stringResource(id = R.string.settings_zaps_editor_save),
             onClick = {
                 keyboard?.hide()
                 onUpdate(
                     ContentZapConfigItem(
-                        emoji = emoji,
+                        emoji = "",
                         message = message,
                         amount = amount.toLong(),
                     ),
@@ -401,49 +388,7 @@ private fun ZapPresetForm(
     onMessageValueChanged: (String) -> Unit,
     amountValue: String,
     onAmountValueChanged: (String) -> Unit,
-    emojiValue: String? = null,
-    onEmojiValueChange: ((String) -> Unit)? = null,
 ) {
-    if (emojiValue != null && onEmojiValueChange != null) {
-        var emojiPickerVisible by remember { mutableStateOf(false) }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            text = stringResource(id = R.string.settings_zaps_editor_emoji).uppercase(),
-            style = AppTheme.typography.bodySmall,
-        )
-
-        Box(
-            modifier = Modifier
-                .width(96.dp)
-                .height(56.dp)
-                .padding(horizontal = 16.dp)
-                .background(color = AppTheme.extraColorScheme.surfaceVariantAlt3, shape = AppTheme.shapes.medium)
-                .clickable {
-                    emojiPickerVisible = true
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = emojiValue,
-                style = AppTheme.typography.bodyMedium.copy(fontSize = 24.sp),
-            )
-        }
-
-        if (emojiPickerVisible) {
-            EmojiPicker(
-                onEmojiSelected = {
-                    onEmojiValueChange(it)
-                },
-                onDismissRequest = {
-                    emojiPickerVisible = false
-                },
-            )
-        }
-    }
-
     Spacer(modifier = Modifier.height(8.dp))
 
     Text(
@@ -488,9 +433,6 @@ private fun ZapPresetForm(
     )
 }
 
-private fun String.isEmoji(): Boolean = this.isNotEmpty()
-
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ZapDefaultEditor(
     paddingValues: PaddingValues,
@@ -527,7 +469,7 @@ fun ZapDefaultEditor(
             modifier = Modifier
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
-            enabled = message.isNotEmpty() && amount.toLongOrNull() != null,
+            enabled = amount.toLongOrNull() != null,
             loading = updating,
             text = stringResource(id = R.string.settings_zaps_editor_save),
             onClick = {
@@ -536,33 +478,6 @@ fun ZapDefaultEditor(
                     ContentZapDefault(amount = amount.toLong(), message = message),
                 )
             },
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EmojiPicker(onEmojiSelected: (String) -> Unit, onDismissRequest: () -> Unit) {
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-    ) {
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .verticalScroll(rememberScrollState())
-                .offset(y = (-32).dp),
-            factory = {
-                EmojiPickerView(it)
-                    .apply {
-                        setOnEmojiPickedListener { item ->
-                            onEmojiSelected(item.emoji)
-                            onDismissRequest()
-                        }
-                    }
-            },
-            update = {},
         )
     }
 }

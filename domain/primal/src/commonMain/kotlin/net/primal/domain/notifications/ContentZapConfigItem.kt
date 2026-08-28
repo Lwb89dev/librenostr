@@ -10,10 +10,12 @@ data class ContentZapConfigItem(
 )
 
 val DEFAULT_ZAP_CONFIG = listOf(
-    ContentZapConfigItem(emoji = "👍", amount = 21, message = "Great post 👍"),
-    ContentZapConfigItem(emoji = "🚀", amount = 420, message = "Let's go 🚀"),
-    ContentZapConfigItem(emoji = "☕", amount = 1000, message = "Coffee on me ☕"),
-    ContentZapConfigItem(emoji = "🍻", amount = 5000, message = "Cheers 🍻"),
-    ContentZapConfigItem(emoji = "🍷", amount = 10000, message = "Party time 🍷"),
-    ContentZapConfigItem(emoji = "👑", amount = 100000, message = "Generational wealth 👑"),
+    ContentZapConfigItem(emoji = "", amount = 21, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 50, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 100, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 500, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 1000, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 2000, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 3000, message = ""),
+    ContentZapConfigItem(emoji = "", amount = 5000, message = ""),
 )

@@ -50,6 +50,7 @@ import net.primal.android.core.compose.icons.primaliconpack.FeedPickerFilled
 import net.primal.android.core.compose.icons.primaliconpack.LongReadFilled
 import net.primal.android.core.compose.icons.primaliconpack.NavWalletBoltFilled
 import net.primal.android.core.compose.icons.primaliconpack.NotificationsFilled
+import net.primal.android.core.compose.icons.primaliconpack.SettingsFilled
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.Badges
@@ -62,6 +63,8 @@ fun PrimalNavigationBar(
     activeDestination: PrimalTopLevelDestination,
     onTopLevelDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     onActiveDestinationClick: (() -> Unit)? = null,
+    onSettingsClick: () -> Unit = {},
+    settingsSelected: Boolean = false,
     badges: Badges = Badges(),
     exploreAnchorHandle: AnchorHandle? = null,
 ) {
@@ -85,8 +88,13 @@ fun PrimalNavigationBar(
                 val destinations = PrimalTopLevelDestination.entries.filter {
                     it != PrimalTopLevelDestination.Wallet
                 }
+                val visualSelected = if (settingsSelected) {
+                    PrimalTopLevelDestination.Settings
+                } else {
+                    activeDestination
+                }
                 val itemWidth = (maxWidth - horizontalPadding * 2) / destinations.size
-                val selectedIndex = destinations.indexOf(activeDestination).coerceAtLeast(0)
+                val selectedIndex = destinations.indexOf(visualSelected).coerceAtLeast(0)
 
                 val pillOffset by animateDpAsState(
                     targetValue = horizontalPadding + itemWidth * selectedIndex + (itemWidth - pillWidth) / 2,
@@ -126,10 +134,12 @@ fun PrimalNavigationBar(
                                 .weight(1f)
                                 .anchorIfExplore(destination, exploreAnchorHandle),
                             destination = destination,
-                            selected = destination == activeDestination,
+                            selected = destination == visualSelected,
                             badge = badgesMap.getOrDefault(destination, 0),
                             onClick = {
-                                if (activeDestination != destination) {
+                                if (destination == PrimalTopLevelDestination.Settings) {
+                                    onSettingsClick()
+                                } else if (activeDestination != destination) {
                                     onTopLevelDestinationChanged(destination)
                                 } else {
                                     onActiveDestinationClick?.invoke()
@@ -212,6 +222,7 @@ enum class PrimalTopLevelDestination {
     Wallet,
     Alerts,
     Explore,
+    Settings,
 }
 
 private fun PrimalTopLevelDestination.imageVector(): ImageVector {
@@ -221,6 +232,7 @@ private fun PrimalTopLevelDestination.imageVector(): ImageVector {
         PrimalTopLevelDestination.Wallet -> PrimalIcons.NavWalletBoltFilled
         PrimalTopLevelDestination.Alerts -> PrimalIcons.NotificationsFilled
         PrimalTopLevelDestination.Explore -> PrimalIcons.ExploreFilled
+        PrimalTopLevelDestination.Settings -> PrimalIcons.SettingsFilled
     }
 }
 
@@ -232,6 +244,7 @@ private fun PrimalTopLevelDestination.label(): String {
         PrimalTopLevelDestination.Wallet -> stringResource(id = R.string.primary_destination_wallet_label)
         PrimalTopLevelDestination.Alerts -> stringResource(id = R.string.primary_destination_notifications_label)
         PrimalTopLevelDestination.Explore -> stringResource(id = R.string.primary_destination_explore_label)
+        PrimalTopLevelDestination.Settings -> stringResource(id = R.string.drawer_destination_settings)
     }
 }
 

@@ -24,12 +24,12 @@ class ZappingStateStore @Inject constructor(
 
     val zappingState: StateFlow<ZappingState> =
         activeAccountStore.activeUserAccount
-            .map { account ->
+            .map { _ ->
                 ZappingState(
                     walletConnected = true,
                     walletBalanceInBtc = null,
-                    zapDefault = account.appSettings?.zapDefault ?: DEFAULT_ZAP_DEFAULT,
-                    zapsConfig = account.appSettings?.zapsConfig ?: DEFAULT_ZAP_CONFIG,
+                    zapDefault = DEFAULT_ZAP_DEFAULT,
+                    zapsConfig = DEFAULT_ZAP_CONFIG,
                 )
             }
             .stateIn(scope, SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000), ZappingState())

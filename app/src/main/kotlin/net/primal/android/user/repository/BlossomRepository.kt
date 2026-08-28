@@ -19,24 +19,14 @@ class BlossomRepository @Inject constructor(
 ) {
 
     private companion object {
-        private val DEFAULT_BLOSSOM_LIST = listOf("https://blossom.primal.net")
+        private val DEFAULT_BLOSSOM_LIST = listOf("https://blossom.band")
     }
 
     suspend fun ensureBlossomServerList(userId: String): List<String> {
         val userAccount = userAccountsStore.findByIdOrNull(userId)
         val existingList = userAccount?.blossomServers.orEmpty()
-
-        return if (existingList.isEmpty()) {
-            runCatching {
-                publishBlossomServerList(
-                    userId = userId,
-                    servers = DEFAULT_BLOSSOM_LIST,
-                )
-            }
-            DEFAULT_BLOSSOM_LIST
-        } else {
-            existingList
-        }
+            .filterNot { it.contains("blossom.primal.net") }
+        return existingList.ifEmpty { DEFAULT_BLOSSOM_LIST }
     }
 
     suspend fun publishBlossomServerList(userId: String, servers: List<String>) {

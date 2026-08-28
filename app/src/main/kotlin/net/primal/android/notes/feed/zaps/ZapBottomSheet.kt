@@ -213,7 +213,7 @@ private fun ZapCustomAmountOutlinedTextField(value: String, onValueChange: (Stri
     )
 }
 
-private const val ZAP_OPTIONS_COLUMNS_COUNT = 3
+private const val ZAP_OPTIONS_COLUMNS_COUNT = 4
 
 @Composable
 private fun ZapOptions(
@@ -266,12 +266,14 @@ private fun ZapOption(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                modifier = Modifier.padding(bottom = 8.dp),
-                text = defaultEmoji,
-                fontWeight = FontWeight.Black,
-                fontSize = 28.sp,
-            )
+            if (defaultEmoji.isNotBlank()) {
+                Text(
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    text = defaultEmoji,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 28.sp,
+                )
+            }
             Text(
                 text = defaultAmount.shortened(),
                 fontWeight = FontWeight.SemiBold,

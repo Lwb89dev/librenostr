@@ -27,4 +27,4 @@ interface ZapSettingsContract {
     }
 }
 
-const val PRESETS_COUNT = 6
+const val PRESETS_COUNT = 8

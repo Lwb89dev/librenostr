@@ -63,6 +63,7 @@ class MainViewModel @Inject constructor(
             activeAccountStore.activeUserAccount.collect {
                 setState {
                     copy(
+                        activeAccountId = it.pubkey,
                         activeAccountAvatarCdnImage = it.avatarCdnImage,
                         activeAccountLegendaryCustomization = it.primalLegendProfile?.asLegendaryCustomization(),
                         activeAccountBlossoms = it.blossomServers,

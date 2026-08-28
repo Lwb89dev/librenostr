@@ -81,6 +81,7 @@ import net.primal.android.navigation.navigateToExploreFeed
 import net.primal.android.navigation.navigateToFollowPack
 import net.primal.android.navigation.navigateToHome
 import net.primal.android.navigation.navigateToNoteEditor
+import net.primal.android.navigation.navigateToProfile
 import net.primal.android.navigation.navigateToProfileQrCodeViewer
 import net.primal.android.navigation.navigateToSearch
 import net.primal.android.navigation.noteCallbacksHandler
@@ -116,7 +117,7 @@ fun MainScreen(
     LaunchedEffect(requestedTab.value) {
         val tabName = requestedTab.value ?: return@LaunchedEffect
         val destination = PrimalTopLevelDestination.entries.find { it.name == tabName }
-        if (destination != null && destination != activeTab) {
+        if (destination != null && destination != activeTab && destination != PrimalTopLevelDestination.Settings) {
             activeTab = destination
         }
         navBackStackEntry.savedStateHandle[REQUESTED_TAB_KEY] = null
@@ -322,6 +323,8 @@ private fun MainScreenTopAppBar(
             )
         }
 
+        PrimalTopLevelDestination.Settings -> {}
+
         PrimalTopLevelDestination.Wallet -> WalletDashboardTopAppBar(
             scrollBehavior = scrollBehavior,
             onAvatarClick = onAvatarClick,
@@ -354,6 +357,7 @@ private fun ScaffoldTopAppBar(
     exploreActiveSection: ExploreSection,
     homeFeeds: List<FeedUi>,
     readsFeeds: List<FeedUi>,
+    navController: NavController,
 ) {
     val drawerTitle = if (accountDrawerVisible) stringResource(id = R.string.account_drawer_title) else null
     val drawerSubtitle = if (accountDrawerVisible) {
@@ -366,7 +370,11 @@ private fun ScaffoldTopAppBar(
     MainScreenTopAppBar(
         activeTab = activeTab,
         scrollBehavior = scrollBehavior,
-        onAvatarClick = { toggleOverlay(ActiveOverlay.AccountDrawer) },
+        onAvatarClick = {
+            if (mainState.activeAccountId.isNotEmpty()) {
+                navController.navigateToProfile(profileId = mainState.activeAccountId)
+            }
+        },
         onAvatarSwipeDown = if (mainState.hasMultipleAccounts) {
             { mainEventPublisher(MainContract.UiEvent.SwitchToNextAccount) }
         } else {
@@ -487,6 +495,8 @@ private fun MainScreenContent(
                     shouldAnimateScrollToTop = sharedState.notificationsShouldAnimateScrollToTop,
                 )
 
+                PrimalTopLevelDestination.Settings -> Unit
+
                 PrimalTopLevelDestination.Wallet -> WalletDashboardContent(
                     currencyMode = sharedState.walletCurrencyMode.value,
                     onCurrencyModeToggle = { sharedState.walletCurrencyMode.value = it },
@@ -554,6 +564,8 @@ private fun MainScreenScaffold(
         activeDestination = activeTab,
         onActiveDestinationClick = onActiveDestinationClick,
         onPrimaryDestinationChanged = onTabChanged,
+        onSettingsClick = { toggleOverlay(ActiveOverlay.AccountDrawer) },
+        settingsSelected = accountDrawerVisible,
         badges = mainState.badges,
         focusModeEnabled = focusModeEnabled,
         exploreAnchorHandle = exploreAnchor,
@@ -577,6 +589,7 @@ private fun MainScreenScaffold(
                 exploreActiveSection = exploreActiveSection,
                 homeFeeds = homeState.feeds,
                 readsFeeds = readsState.feeds,
+                navController = navController,
             )
         },
         content = { paddingValues ->
@@ -873,6 +886,7 @@ private fun rememberPerTabTopAppBarState(
         PrimalTopLevelDestination.Explore -> exploreTopAppBarState
         PrimalTopLevelDestination.Alerts -> notificationsTopAppBarState
         PrimalTopLevelDestination.Wallet -> walletTopAppBarState
+        PrimalTopLevelDestination.Settings -> homeTopAppBarState
     }
 }
 

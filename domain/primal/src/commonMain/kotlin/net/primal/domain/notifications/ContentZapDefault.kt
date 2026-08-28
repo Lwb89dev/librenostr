@@ -8,4 +8,4 @@ data class ContentZapDefault(
     val message: String,
 )
 
-val DEFAULT_ZAP_DEFAULT = ContentZapDefault(amount = 42L, message = "Onward \uD83E\uDEE1")
+val DEFAULT_ZAP_DEFAULT = ContentZapDefault(amount = 21L, message = "")

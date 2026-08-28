@@ -49,6 +49,8 @@ fun PrimalMainScaffold(
     onPrimaryDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     badges: Badges = Badges(),
     onActiveDestinationClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    settingsSelected: Boolean = false,
     topAppBarState: TopAppBarState = remember {
         TopAppBarState(
             initialHeightOffsetLimit = -Float.MAX_VALUE,
@@ -104,6 +106,8 @@ fun PrimalMainScaffold(
                     activeDestination = activeDestination,
                     onPrimaryDestinationChanged = onPrimaryDestinationChanged,
                     onActiveDestinationClick = onActiveDestinationClick,
+                    onSettingsClick = onSettingsClick,
+                    settingsSelected = settingsSelected,
                     badges = badges,
                     exploreAnchorHandle = exploreAnchorHandle,
                 )
@@ -170,6 +174,8 @@ private fun ScaffoldBottomBar(
     activeDestination: PrimalTopLevelDestination,
     onPrimaryDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     onActiveDestinationClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    settingsSelected: Boolean,
     badges: Badges,
     exploreAnchorHandle: AnchorHandle? = null,
 ) {
@@ -197,6 +203,8 @@ private fun ScaffoldBottomBar(
             activeDestination = activeDestination,
             onTopLevelDestinationChanged = onPrimaryDestinationChanged,
             onActiveDestinationClick = onActiveDestinationClick,
+            onSettingsClick = onSettingsClick,
+            settingsSelected = settingsSelected,
             badges = badges,
             exploreAnchorHandle = exploreAnchorHandle,
         )

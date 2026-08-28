@@ -7,6 +7,7 @@ import net.primal.domain.links.CdnImage
 interface MainContract {
 
     data class UiState(
+        val activeAccountId: String = "",
         val activeAccountAvatarCdnImage: CdnImage? = null,
         val activeAccountLegendaryCustomization: LegendaryCustomization? = null,
         val activeAccountBlossoms: List<String> = emptyList(),

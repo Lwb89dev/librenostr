@@ -9,7 +9,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonArray
 import net.primal.android.networking.relays.FALLBACK_RELAYS
 import net.primal.android.nostr.notary.NostrNotary
-import net.primal.android.user.accounts.UserAccountsStore
 import net.primal.android.user.domain.RelayKind
 import net.primal.android.user.domain.mapToRelayDO
 import net.primal.android.user.repository.RelayRepository
@@ -20,10 +19,10 @@ import net.primal.domain.nostr.cryptography.utils.getOrNull
 import net.primal.domain.nostr.zaps.ZapError
 import net.primal.domain.nostr.zaps.ZapResult
 import net.primal.domain.nostr.zaps.ZapTarget
+import net.primal.domain.notifications.DEFAULT_ZAP_DEFAULT
 
 class ZapHandler @Inject constructor(
     private val dispatcherProvider: DispatcherProvider,
-    private val accountsStore: UserAccountsStore,
     private val relayRepository: RelayRepository,
     private val notary: NostrNotary,
     private val lightningPayHelper: LightningPayHelper,
@@ -38,12 +37,8 @@ class ZapHandler @Inject constructor(
         optionalTags: List<JsonArray> = emptyList(),
         @Suppress("UNUSED_PARAMETER") walletId: String = "",
     ) = withContext(dispatcherProvider.io()) {
-        val userAccount = accountsStore.findByIdOrNull(userId = userId)
-        val defaultZapOptions = userAccount?.appSettings?.zapDefault
-        val zapComment = comment ?: defaultZapOptions?.message ?: ""
-        val zapAmountInSats = amountInSats
-            ?: defaultZapOptions?.amount?.toULong()
-            ?: return@withContext ZapResult.Failure(error = ZapError.InvalidZap(message = "Missing zap amount."))
+        val zapComment = comment ?: DEFAULT_ZAP_DEFAULT.message
+        val zapAmountInSats = amountInSats ?: DEFAULT_ZAP_DEFAULT.amount.toULong()
 
         val userRelays = relayRepository.findRelays(userId, RelayKind.UserRelay)
             .map { it.mapToRelayDO() }
