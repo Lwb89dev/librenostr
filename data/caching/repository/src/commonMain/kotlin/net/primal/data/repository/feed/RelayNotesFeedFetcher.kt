@@ -6,10 +6,13 @@ import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
-import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.domain.common.ContentPrimalPaging
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.feeds.extractFollowSetDTag
+import net.primal.domain.feeds.extractFollowSetPubkey
+import net.primal.domain.feeds.isFollowSetFeedSpec
+import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.hasEventIdTag
 import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -21,12 +24,13 @@ internal class RelayNotesFeedFetcher(
 
     suspend fun fetch(
         userId: String,
+        feedSpec: String,
         includeReplies: Boolean,
         limit: Int,
         until: Long? = null,
         since: Long? = null,
     ): FeedResponse {
-        val authors = loadFollows(userId) + userId
+        val authors = loadAuthors(userId, feedSpec)
         if (authors.isEmpty()) return emptyFeedResponse()
 
         val noteEvents = queryInChunks(
@@ -45,14 +49,32 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
+        return page.toFeedResponse(emptyList())
+    }
 
-        val authorIds = page.map { it.pubKey }.distinct()
-        val metadata = queryInChunks(
-            authors = authorIds,
-            kinds = listOf(NostrEventKind.Metadata.value),
-        ).latestMetadataByPubkey()
+    private suspend fun loadAuthors(userId: String, feedSpec: String): List<String> {
+        if (feedSpec.isFollowSetFeedSpec()) {
+            val pubkey = feedSpec.extractFollowSetPubkey() ?: userId
+            val dTag = feedSpec.extractFollowSetDTag() ?: return emptyList()
+            return loadFollowSet(pubkey, dTag)
+        }
+        return loadFollows(userId) + userId
+    }
 
-        return page.toFeedResponse(metadata)
+    private suspend fun loadFollowSet(pubkey: String, dTag: String): List<String> {
+        val events = runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.CategorizedPeopleList.value),
+                    authors = listOf(pubkey),
+                ),
+            )
+        }.getOrDefault(emptyList())
+        val latest = events
+            .filter { it.tags.findFirstIdentifier() == dTag }
+            .maxByOrNull { it.createdAt }
+            ?: return emptyList()
+        return latest.tags.pubkeyTagValues().distinct()
     }
 
     private suspend fun queryInChunks(

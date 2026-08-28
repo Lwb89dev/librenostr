@@ -25,6 +25,7 @@ import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.domain.feeds.isFollowSetFeedSpec
 import net.primal.domain.feeds.isFollowingNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -227,9 +228,13 @@ internal class FeedRepositoryImpl(
     ): FeedPageSnapshot =
         withContext(dispatcherProvider.io()) {
             val querier = relayEventQuerier
-            val response = if (querier != null && feedSpec.isFollowingNotesFeedSpec()) {
+            val response = if (
+                querier != null &&
+                (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
+            ) {
                 RelayNotesFeedFetcher(querier).fetch(
                     userId = userId,
+                    feedSpec = feedSpec,
                     includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
                     limit = limit,
                     until = until,

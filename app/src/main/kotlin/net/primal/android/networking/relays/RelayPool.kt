@@ -52,7 +52,7 @@ class RelayPool(
     companion object {
         const val PUBLISH_TIMEOUT = 10_000
         const val SUBSCRIBE_TIMEOUT = 8_000
-        const val FIRST_EOSE_GRACE_MS = 400L
+        const val FIRST_EOSE_GRACE_MS = 150L
     }
 
     private val scope = CoroutineScope(dispatchers.io())

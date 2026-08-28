@@ -26,6 +26,7 @@ import net.primal.data.repository.feed.RelayNotesFeedFetcher
 import net.primal.data.repository.feed.processors.FeedProcessor
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.feeds.isFollowSetFeedSpec
 import net.primal.domain.feeds.isFollowingNotesFeedSpec
 import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
@@ -50,7 +51,8 @@ internal class NoteFeedRemoteMediator(
 
     private val relayFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }
     private val useRelayFollowingFeed =
-        relayFeedFetcher != null && feedSpec.isFollowingNotesFeedSpec()
+        relayFeedFetcher != null &&
+            (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
 
     private val lastRequests: MutableMap<LoadType, Pair<MultiKindFeedBySpecRequestBody, Long>> = mutableMapOf()
 
@@ -231,6 +233,7 @@ internal class NoteFeedRemoteMediator(
         if (useRelayFollowingFeed && fetcher != null) {
             return fetcher.fetch(
                 userId = userId,
+                feedSpec = feedSpec,
                 includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
                 limit = requestBody.limit ?: FeedRepository.DEFAULT_PAGE_SIZE,
                 until = requestBody.until,

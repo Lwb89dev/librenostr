@@ -63,6 +63,12 @@ interface FeedsRepository {
         feeds: List<PrimalFeed>,
     )
 
+    suspend fun persistLocalUserFeeds(
+        userId: String,
+        specKind: FeedSpecKind,
+        feeds: List<PrimalFeed>,
+    )
+
     @Throws(
         SignatureException::class,
         NetworkException::class,

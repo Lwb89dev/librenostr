@@ -25,17 +25,14 @@ import net.primal.android.navigation.primalName
 import net.primal.android.navigation.streamNaddr
 import net.primal.android.notes.feed.model.asStreamPillUi
 import net.primal.android.user.accounts.active.ActiveAccountStore
-import net.primal.core.networking.utils.retryNetworkCall
 import net.primal.core.utils.map
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
-import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.FeedsRepository
-import net.primal.domain.nostr.cryptography.SignatureException
-import net.primal.domain.nostr.cryptography.SigningKeyNotFoundException
-import net.primal.domain.nostr.cryptography.SigningRejectedException
+import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
+import net.primal.domain.feeds.isLibreNostrHomeFeedSpec
 import net.primal.domain.nostr.toNostrString
 import net.primal.domain.nostr.utils.npubToPubkey
 import net.primal.domain.profile.ProfileRepository
@@ -71,7 +68,6 @@ class NoteFeedsViewModel @Inject constructor(
         observeLiveEventsFromFollows()
         observeEvents()
         observeFeeds()
-        fetchAndPersistNoteFeeds()
     }
 
     private fun resolveStreamParams() =
@@ -117,7 +113,7 @@ class NoteFeedsViewModel @Inject constructor(
         viewModelScope.launch {
             events.collect {
                 when (it) {
-                    UiEvent.RefreshNoteFeeds -> fetchAndPersistNoteFeeds()
+                    UiEvent.RefreshNoteFeeds -> restoreDefaultNoteFeeds()
                     UiEvent.RestoreDefaultNoteFeeds -> restoreDefaultNoteFeeds()
                     UiEvent.DismissError -> setState { copy(uiError = null) }
                 }
@@ -127,53 +123,29 @@ class NoteFeedsViewModel @Inject constructor(
 
     private fun restoreDefaultNoteFeeds() =
         viewModelScope.launch {
-            try {
-                setState { copy(loading = true) }
-                val userId = activeAccountStore.activeUserId()
-                feedsRepository.fetchAndPersistDefaultFeeds(
-                    userId = userId,
-                    specKind = FeedSpecKind.Notes,
-                    givenDefaultFeeds = emptyList(),
-                )
-            } catch (error: SignatureException) {
-                Napier.w(throwable = error) { "Failed to restore default feeds due to signature error." }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to restore default feeds due to network error." }
-            } finally {
-                setState { copy(loading = false) }
-            }
-        }
-
-    private fun fetchAndPersistNoteFeeds() =
-        viewModelScope.launch {
-            setState { copy(loading = true) }
-            try {
-                val userId = activeAccountStore.activeUserId()
-                retryNetworkCall {
-                    feedsRepository.fetchAndPersistNoteFeeds(userId = userId)
-                }
-            } catch (error: SigningRejectedException) {
-                Napier.w(throwable = error) { "Signing rejected while fetching and persisting feeds." }
-            } catch (error: SigningKeyNotFoundException) {
-                restoreDefaultNoteFeeds()
-                Napier.w(throwable = error) { "Signing key not found while fetching and persisting feeds." }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Network error while fetching and persisting feeds." }
-            } finally {
-                setState { copy(loading = false) }
-            }
+            val userId = activeAccountStore.activeUserId()
+            feedsRepository.persistLocalUserFeeds(
+                userId = userId,
+                specKind = FeedSpecKind.Notes,
+                feeds = defaultLibreNostrNoteFeeds(userId),
+            )
+            setState { copy(loading = false) }
         }
 
     private fun observeFeeds() =
         viewModelScope.launch {
             feedsRepository.observeNotesFeeds(userId = activeAccountStore.activeUserId())
                 .collect { feeds ->
-                    setState {
-                        copy(
-                            feeds = feeds
-                                .filter { it.enabled }
-                                .map { it.asFeedUi() },
-                        )
+                    val kept = feeds.filter { it.enabled && it.spec.isLibreNostrHomeFeedSpec() }
+                    if (kept.isEmpty()) {
+                        restoreDefaultNoteFeeds()
+                    } else {
+                        setState {
+                            copy(
+                                feeds = kept.map { it.asFeedUi() },
+                                loading = false,
+                            )
+                        }
                     }
                 }
         }

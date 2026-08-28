@@ -183,7 +183,7 @@ class FeedsRepositoryImpl(
             feedsApi.setUserFeeds(userFeedsNostrEvent = signedEvent)
         }
 
-    override suspend fun persistLocallyAndRemotelyUserFeeds(
+    override suspend fun persistLocalUserFeeds(
         userId: String,
         specKind: FeedSpecKind,
         feeds: List<PrimalFeed>,
@@ -192,6 +192,14 @@ class FeedsRepositoryImpl(
             database.feeds().deleteAllByOwnerIdAndSpecKind(ownerId = userId, specKind = specKind)
             database.feeds().upsertAll(data = feeds.map { it.asFeedPO() })
         }
+    }
+
+    override suspend fun persistLocallyAndRemotelyUserFeeds(
+        userId: String,
+        specKind: FeedSpecKind,
+        feeds: List<PrimalFeed>,
+    ) = withContext(dispatcherProvider.io()) {
+        persistLocalUserFeeds(userId = userId, specKind = specKind, feeds = feeds)
 
         val signedEvent = signatureHandler.signNostrEvent(
             unsignedNostrEvent = NostrUnsignedEvent(

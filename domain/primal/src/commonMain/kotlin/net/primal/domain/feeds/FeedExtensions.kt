@@ -13,6 +13,29 @@ fun String.isUserNotesLwrFeedSpec(): Boolean {
 
 fun String.isFollowingNotesFeedSpec(): Boolean = isUserNotesFeedSpec() || isUserNotesLwrFeedSpec()
 
+fun buildFollowSetFeedSpec(pubkey: String, dTag: String) =
+    """{"id":"list","kind":"notes","pubkey":"$pubkey","d":"$dTag"}"""
+
+fun String.isFollowSetFeedSpec(): Boolean =
+    contains("\"id\":\"list\"") && contains("\"kind\":\"notes\"")
+
+fun String.extractFollowSetDTag(): String? = extractJsonField("d")
+
+fun String.extractFollowSetPubkey(): String? = extractJsonField("pubkey")
+
+fun String.isLibreNostrHomeFeedSpec(): Boolean =
+    isFollowingNotesFeedSpec() || isFollowSetFeedSpec()
+
+private fun String.extractJsonField(name: String): String? {
+    val prefix = "\"$name\":\""
+    val start = indexOf(prefix)
+    if (start < 0) return null
+    val valueStart = start + prefix.length
+    val valueEnd = indexOf("\"", startIndex = valueStart)
+    if (valueEnd < 0) return null
+    return substring(valueStart, valueEnd)
+}
+
 private fun String?.isValidProfileId(): Boolean {
     return if (this != null) {
         runCatching { this@isValidProfileId.hexToNpubHrp() }.isSuccess

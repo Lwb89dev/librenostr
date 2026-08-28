@@ -8,7 +8,6 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,13 +22,23 @@ import net.primal.android.feeds.list.ui.model.FeedUi
 import net.primal.android.feeds.list.ui.model.asFeedUi
 import net.primal.android.feeds.list.ui.model.asPrimalFeed
 import net.primal.android.user.accounts.active.ActiveAccountStore
+import net.primal.core.utils.getOrDefault
+import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.feeds.DvmFeed
+import net.primal.domain.feeds.FEED_KIND_LIST
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.FeedsRepository
-import net.primal.domain.feeds.PrimalFeed
+import net.primal.domain.feeds.buildFollowSetFeedSpec
 import net.primal.domain.feeds.buildSpec
-import net.primal.domain.nostr.cryptography.SignatureException
+import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
+import net.primal.domain.feeds.isLibreNostrHomeFeedSpec
+import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.findFirstIdentifier
+import net.primal.domain.nostr.findFirstTitle
+import net.primal.domain.nostr.pubkeyTagValues
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.posts.FeedRepository
 
 @HiltViewModel(assistedFactory = FeedListViewModel.Factory::class)
@@ -39,6 +48,7 @@ class FeedListViewModel @AssistedInject constructor(
     private val feedsRepository: FeedsRepository,
     private val activeAccountStore: ActiveAccountStore,
     private val dvmFeedListHandler: DvmFeedListHandler,
+    private val relayEventQuerier: RelayEventQuerier,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -54,15 +64,12 @@ class FeedListViewModel @AssistedInject constructor(
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
     private var allFeeds: List<FeedUi> = emptyList()
-    private var defaultFeeds: List<PrimalFeed> = emptyList()
 
-    private var dvmFeedsJob: Job? = null
-    private var dvmFeedsInitialized = false
+
 
     init {
         observeEvents()
         observeFeeds()
-        fetchAndProcessDefaultFeeds()
     }
 
     private fun observeEvents() =
@@ -70,7 +77,7 @@ class FeedListViewModel @AssistedInject constructor(
             events.collect {
                 when (it) {
                     UiEvent.ShowFeedMarketplace -> {
-                        fetchAndObserveLatestFeedMarketplace()
+                        fetchFollowSets()
                         setState {
                             copy(
                                 feedMarketplaceStage = FeedMarketplaceStage.FeedMarketplace,
@@ -131,7 +138,7 @@ class FeedListViewModel @AssistedInject constructor(
                     UiEvent.CloseEditMode -> {
                         setState { copy(isEditMode = false) }
                         updateFeedsState()
-                        persistRemotelyFeeds()
+                        persistLocalFeeds()
                     }
 
                     is UiEvent.FeedReordered -> {
@@ -145,26 +152,22 @@ class FeedListViewModel @AssistedInject constructor(
                     UiEvent.RestoreDefaultPrimalFeeds -> {
                         restoreDefaultPrimalFeeds()
                     }
+
+                    is UiEvent.AddFollowSetFeed -> addFollowSetFeed(it.followSet)
                 }
             }
         }
 
     private fun restoreDefaultPrimalFeeds() =
         viewModelScope.launch {
-            try {
-                val userId = activeAccountStore.activeUserId()
-                feedsRepository.fetchAndPersistDefaultFeeds(
-                    userId = userId,
-                    specKind = specKind,
-                    givenDefaultFeeds = defaultFeeds,
-                )
-                setState { copy(isEditMode = false) }
-                updateFeedsState()
-            } catch (error: SignatureException) {
-                Napier.w(throwable = error) { "Failed to restore default feeds due to signature error." }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to restore default feeds due to network error." }
-            }
+            val userId = activeAccountStore.activeUserId()
+            feedsRepository.persistLocalUserFeeds(
+                userId = userId,
+                specKind = specKind,
+                feeds = defaultLibreNostrNoteFeeds(userId),
+            )
+            setState { copy(isEditMode = false) }
+            updateFeedsState()
         }
 
     private fun observeFeeds() =
@@ -176,7 +179,7 @@ class FeedListViewModel @AssistedInject constructor(
         }
 
     private fun changeAllFeeds(feeds: List<FeedUi>) {
-        allFeeds = feeds
+        allFeeds = feeds.filter { it.spec.isLibreNostrHomeFeedSpec() }
         updateFeedsState()
     }
 
@@ -198,53 +201,6 @@ class FeedListViewModel @AssistedInject constructor(
             setState { copy(feeds = allFeeds) }
         } else {
             setState { copy(feeds = allFeeds.filter { it.enabled }) }
-        }
-    }
-
-    private fun fetchAndProcessDefaultFeeds() =
-        viewModelScope.launch {
-            val userId = activeAccountStore.activeUserId()
-            try {
-                defaultFeeds = feedsRepository.fetchDefaultFeeds(userId = userId, specKind = specKind) ?: emptyList()
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to fetch default feeds." }
-            }
-
-            try {
-                feedsRepository.persistNewDefaultFeeds(
-                    userId = userId,
-                    specKind = specKind,
-                    givenDefaultFeeds = defaultFeeds,
-                )
-            } catch (error: SignatureException) {
-                Napier.w(throwable = error) { "Failed to persist new default feeds due to signature error." }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to persist new default feeds due to network error." }
-            }
-        }
-
-    private fun fetchAndObserveLatestFeedMarketplace() {
-        if (dvmFeedsInitialized) return
-        dvmFeedsInitialized = true
-        dvmFeedsJob?.cancel()
-        dvmFeedsJob = viewModelScope.launch {
-            setState { copy(fetchingDvmFeeds = true) }
-            try {
-                dvmFeedListHandler.fetchDvmFeedsAndObserveStatsUpdates(
-                    scope = viewModelScope,
-                    userId = activeAccountStore.activeUserId(),
-                    specKind = specKind,
-                ) { dvmFeeds ->
-                    val updatedSelectedDvmFeed = dvmFeeds.firstOrNull {
-                        _state.value.selectedDvmFeed?.data?.eventId == it.data.eventId
-                    }
-                    setState { copy(dvmFeeds = dvmFeeds, selectedDvmFeed = updatedSelectedDvmFeed) }
-                }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to fetch and observe latest feed marketplace." }
-            } finally {
-                setState { copy(fetchingDvmFeeds = false) }
-            }
         }
     }
 
@@ -274,7 +230,7 @@ class FeedListViewModel @AssistedInject constructor(
             }
             updateFeedsState()
             feedsRepository.removeFeedLocally(userId = activeAccountStore.activeUserId(), feedSpec = spec)
-            persistRemotelyFeeds()
+            persistLocalFeeds()
         }
 
     private fun updateEnabledUserFeeds(spec: String, enabled: Boolean) =
@@ -285,24 +241,68 @@ class FeedListViewModel @AssistedInject constructor(
                     this[feedIndex] = this[feedIndex].copy(enabled = enabled)
                 }
                 updateFeedsState()
-                persistRemotelyFeeds()
+                persistLocalFeeds()
             }
         }
 
-    private fun persistRemotelyFeeds() =
+    private fun fetchFollowSets() =
+        viewModelScope.launch {
+            val userId = activeAccountStore.activeUserId()
+            val events = runCatching {
+                relayEventQuerier.query(
+                    RelayFilter(
+                        kinds = listOf(NostrEventKind.CategorizedPeopleList.value),
+                        authors = listOf(userId),
+                    ),
+                )
+            }.getOrDefault(emptyList())
+            val followSets = events
+                .groupBy { it.tags.findFirstIdentifier().orEmpty() }
+                .filterKeys { it.isNotBlank() }
+                .mapNotNull { (dTag, group) ->
+                    val latest = group.maxByOrNull { it.createdAt } ?: return@mapNotNull null
+                    val members = latest.tags.pubkeyTagValues().distinct()
+                    FeedListContract.FollowSetUi(
+                        dTag = dTag,
+                        title = latest.tags.findFirstTitle() ?: latest.content.ifBlank { dTag },
+                        memberCount = members.size,
+                    )
+                }
+                .sortedBy { it.title.lowercase() }
+            setState { copy(followSets = followSets) }
+        }
+
+    private fun addFollowSetFeed(followSet: FeedListContract.FollowSetUi) =
+        viewModelScope.launch {
+            val userId = activeAccountStore.activeUserId()
+            val spec = buildFollowSetFeedSpec(pubkey = userId, dTag = followSet.dTag)
+            if (allFeeds.any { it.spec == spec }) {
+                setState { copy(feedMarketplaceStage = FeedMarketplaceStage.FeedList, isEditMode = false) }
+                return@launch
+            }
+            val newFeed = FeedUi(
+                ownerId = userId,
+                spec = spec,
+                specKind = specKind,
+                feedKind = FEED_KIND_LIST,
+                title = followSet.title,
+                description = "${followSet.memberCount} people",
+                enabled = true,
+            )
+            allFeeds = allFeeds + newFeed
+            updateFeedsState()
+            persistLocalFeeds()
+            setState { copy(feedMarketplaceStage = FeedMarketplaceStage.FeedList, isEditMode = false) }
+        }
+
+    private fun persistLocalFeeds() =
         viewModelScope.launch {
             val currentFeeds = allFeeds.map { it.asPrimalFeed() }
-            try {
-                val userId = activeAccountStore.activeUserId()
-                feedsRepository.persistLocallyAndRemotelyUserFeeds(
-                    userId = userId,
-                    specKind = specKind,
-                    feeds = currentFeeds,
-                )
-            } catch (error: SignatureException) {
-                Napier.w(throwable = error) { "Failed to persist feeds remotely due to signature error." }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to persist feeds remotely due to network error." }
-            }
+            val userId = activeAccountStore.activeUserId()
+            feedsRepository.persistLocalUserFeeds(
+                userId = userId,
+                specKind = specKind,
+                feeds = currentFeeds,
+            )
         }
 }
