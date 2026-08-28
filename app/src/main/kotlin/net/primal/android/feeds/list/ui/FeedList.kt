@@ -167,7 +167,7 @@ private fun FeedListBottomBar(
         if (!isEditMode) {
             RegularBottomBar(
                 onEditFeedClick = { onEditFeedClick?.invoke() },
-                onCloseClick = { onCloseClick?.invoke() },
+                onCloseClick = onCloseClick,
             )
         } else {
             EditModeBottomBar(
@@ -280,14 +280,18 @@ private fun RestoreDefaultFeedsItem(onRestoreClick: () -> Unit) {
 }
 
 @Composable
-private fun RegularBottomBar(onEditFeedClick: () -> Unit, onCloseClick: () -> Unit) {
+private fun RegularBottomBar(onEditFeedClick: () -> Unit, onCloseClick: (() -> Unit)?) {
     PrimalOverlayBottomBar(
         leading = {
             TextButton(onClick = onEditFeedClick) {
                 Text(text = stringResource(id = R.string.feed_list_edit))
             }
         },
-        trailing = { PrimalOverlayCloseButton(onClick = onCloseClick) },
+        trailing = {
+            if (onCloseClick != null) {
+                PrimalOverlayCloseButton(onClick = onCloseClick)
+            }
+        },
     )
 }
 

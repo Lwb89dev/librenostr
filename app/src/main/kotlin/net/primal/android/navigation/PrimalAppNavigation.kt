@@ -265,7 +265,7 @@ fun NavController.navigateToProfileFollows(profileId: String, followsType: Profi
 
 fun NavController.navigateToProfileEditor() = navigate(route = "profileEditor")
 
-private fun NavController.navigateToSettings() = navigate(route = "settings")
+internal fun NavController.navigateToSettings() = navigate(route = "settings")
 
 fun NavController.navigateToThread(noteId: String) = navigate(route = "thread/$noteId")
 

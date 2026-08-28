@@ -1,10 +1,7 @@
 package net.primal.android.main.feeds
 
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarDuration
@@ -19,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -31,7 +28,6 @@ import net.primal.android.core.compose.HeightAdjustableLoadingLazyListPlaceholde
 import net.primal.android.core.compose.PrimalTopLevelAppBar
 import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.feeds.list.ui.model.FeedUi
-import net.primal.android.feeds.list.ui.model.toAppBarPages
 import net.primal.android.main.feeds.NoteFeedsContract.UiEvent
 import net.primal.android.notes.feed.list.NoteFeedList
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
@@ -66,15 +62,13 @@ internal fun NoteFeedsContent(
         }
     }
 
-    LaunchedEffect(pagerState, state.feeds) {
-        snapshotFlow { pagerState.currentPage }
-            .collect { index ->
-                if (state.feeds.isNotEmpty()) {
-                    val feed = state.feeds[index]
-                    activeFeed = feed
-                    onActiveFeedChanged(feed)
-                }
-            }
+    LaunchedEffect(state.feeds, activeFeed) {
+        val current = activeFeed
+        if (current == null || state.feeds.none { it.spec == current.spec }) {
+            val feed = state.feeds.firstOrNull()
+            activeFeed = feed
+            onActiveFeedChanged(feed)
+        }
     }
 
     LaunchedEffect(scrollToFeed.value) {
@@ -86,37 +80,28 @@ internal fun NoteFeedsContent(
         scrollToFeed.value = null
     }
 
-    if (state.feeds.isNotEmpty()) {
-        HorizontalPager(
-            state = pagerState,
-            key = { index -> state.feeds.getOrNull(index)?.spec ?: Unit },
-            pageNestedScrollConnection = PagerDefaults.pageNestedScrollConnection(
-                state = pagerState,
-                orientation = Orientation.Horizontal,
-            ),
-        ) { index ->
-            val feedUi = state.feeds[index]
-            NoteFeedList(
-                feedSpec = feedUi.spec,
-                pollingEnabled = pollingStates[feedUi] ?: false,
-                noteCallbacks = noteCallbacks,
-                showTopZaps = true,
-                bigPillStreams = state.streams,
-                showStreamsInNewPill = true,
-                newNotesNoticeAlpha = (1 - topAppBarCollapsedFraction) * 1.0f,
-                onGoToWallet = onGoToWallet,
-                contentPadding = paddingValues,
-                shouldAnimateScrollToTop = shouldAnimateScrollToTop.value,
-                onUiError = { uiError ->
-                    uiScope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = uiError.resolveUiErrorMessage(context),
-                            duration = SnackbarDuration.Short,
-                        )
-                    }
-                },
-            )
-        }
+    val visibleFeed = activeFeed ?: state.feeds.firstOrNull()
+    if (visibleFeed != null) {
+        NoteFeedList(
+            feedSpec = visibleFeed.spec,
+            pollingEnabled = pollingStates[visibleFeed] ?: true,
+            noteCallbacks = noteCallbacks,
+            showTopZaps = true,
+            bigPillStreams = state.streams,
+            showStreamsInNewPill = true,
+            newNotesNoticeAlpha = (1 - topAppBarCollapsedFraction) * 1.0f,
+            onGoToWallet = onGoToWallet,
+            contentPadding = paddingValues,
+            shouldAnimateScrollToTop = shouldAnimateScrollToTop.value,
+            onUiError = { uiError ->
+                uiScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = uiError.resolveUiErrorMessage(context),
+                        duration = SnackbarDuration.Short,
+                    )
+                }
+            },
+        )
     } else if (state.loading) {
         HeightAdjustableLoadingLazyListPlaceholder(
             height = 128.dp,
@@ -142,7 +127,7 @@ internal fun NoteFeedTopAppBar(
     avatarCdnImage: CdnImage?,
     onAvatarClick: () -> Unit,
     onAvatarSwipeDown: (() -> Unit)? = null,
-    onFeedPickerRequest: () -> Unit,
+    onSearchClick: () -> Unit,
     activeFeed: FeedUi?,
     avatarLegendaryCustomization: LegendaryCustomization? = null,
     avatarBlossoms: List<String> = emptyList(),
@@ -156,20 +141,17 @@ internal fun NoteFeedTopAppBar(
         subtitle = activeFeed?.description?.ifBlank { null },
         titleOverride = titleOverride,
         subtitleOverride = subtitleOverride,
-        showTitleChevron = true,
+        showTitleChevron = false,
         chevronExpanded = chevronExpanded,
-        onTitleClick = {
-            if (activeFeed != null) {
-                onFeedPickerRequest()
-            }
-        },
         pagerState = pagerState,
-        pages = feeds.toAppBarPages(),
+        pages = emptyList(),
         avatarCdnImage = avatarCdnImage,
         avatarBlossoms = avatarBlossoms,
         avatarLegendaryCustomization = avatarLegendaryCustomization,
         onAvatarClick = onAvatarClick,
         onAvatarSwipeDown = onAvatarSwipeDown,
         scrollBehavior = scrollBehavior,
+        onSearchClick = onSearchClick,
+        searchPlaceholder = stringResource(id = R.string.home_search_placeholder),
     )
 }

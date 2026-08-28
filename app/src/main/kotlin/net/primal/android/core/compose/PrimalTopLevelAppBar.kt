@@ -3,6 +3,8 @@ package net.primal.android.core.compose
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +37,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -43,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlinx.coroutines.launch
+import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Search
 import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
@@ -72,6 +79,8 @@ fun PrimalTopLevelAppBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
     pagerState: PagerState? = null,
     pages: List<AppBarPage> = emptyList(),
+    onSearchClick: (() -> Unit)? = null,
+    searchPlaceholder: String? = null,
 ) {
     val effectiveTitle = titleOverride ?: title
     val effectiveSubtitle = subtitleOverride ?: subtitle
@@ -85,7 +94,12 @@ fun PrimalTopLevelAppBar(
     Column(modifier = modifier) {
         TopAppBar(
             title = {
-                if (titleOverride != null) {
+                if (onSearchClick != null && titleOverride == null) {
+                    HomeSearchBar(
+                        placeholder = searchPlaceholder.orEmpty(),
+                        onClick = onSearchClick,
+                    )
+                } else if (titleOverride != null) {
                     AppBarTitle(
                         title = effectiveTitle,
                         subtitle = effectiveSubtitle,
@@ -130,6 +144,39 @@ fun PrimalTopLevelAppBar(
         if (showDivider) {
             PrimalDivider()
         }
+    }
+}
+
+@Composable
+private fun HomeSearchBar(placeholder: String, onClick: () -> Unit) {
+    val primary = AppTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(CircleShape)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(primary.copy(alpha = 0.58f), primary.copy(alpha = 0.32f)),
+                ),
+            )
+            .border(width = 1.dp, color = Color.White.copy(alpha = 0.28f), shape = CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = PrimalIcons.Search,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.92f),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = placeholder,
+            color = Color.White.copy(alpha = 0.78f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

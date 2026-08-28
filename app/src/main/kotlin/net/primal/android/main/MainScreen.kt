@@ -3,6 +3,7 @@ package net.primal.android.main
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHost
@@ -38,6 +39,7 @@ import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.compose.AppBarPage
 import net.primal.android.core.compose.PrimalOverlay
+import net.primal.android.core.compose.PrimalTopLevelAppBar
 import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.bubble.AnchorHandle
@@ -84,6 +86,7 @@ import net.primal.android.navigation.navigateToNoteEditor
 import net.primal.android.navigation.navigateToProfile
 import net.primal.android.navigation.navigateToProfileQrCodeViewer
 import net.primal.android.navigation.navigateToSearch
+import net.primal.android.navigation.navigateToSettings
 import net.primal.android.navigation.noteCallbacksHandler
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.notifications.list.ui.NotificationUi
@@ -259,7 +262,7 @@ private fun MainScreenTopAppBar(
                 avatarBlossoms = avatarBlossoms,
                 onAvatarClick = onAvatarClick,
                 onAvatarSwipeDown = onAvatarSwipeDown,
-                onFeedPickerRequest = onFeedPickerRequest,
+                onSearchClick = onExploreSearchClick,
                 scrollBehavior = scrollBehavior,
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
@@ -287,21 +290,18 @@ private fun MainScreenTopAppBar(
         }
 
         PrimalTopLevelDestination.Explore -> {
-            ExploreTopAppBar(
-                activeSection = exploreActiveSection,
-                pagerState = explorePagerState,
-                onExploreSectionPickerRequest = onExploreSectionPickerRequest,
-                onSearchClick = onExploreSearchClick,
-                onAdvancedSearchClick = onExploreAdvancedSearchClick,
+            PrimalTopLevelAppBar(
+                title = stringResource(id = R.string.algorithm_title),
+                subtitle = stringResource(id = R.string.algorithm_subtitle),
                 avatarCdnImage = avatarCdnImage,
                 avatarLegendaryCustomization = avatarLegendaryCustomization,
                 avatarBlossoms = avatarBlossoms,
                 onAvatarClick = onAvatarClick,
                 onAvatarSwipeDown = onAvatarSwipeDown,
                 scrollBehavior = scrollBehavior,
-                chevronExpanded = chevronExpanded,
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
+                chevronExpanded = chevronExpanded,
             )
         }
 
@@ -461,27 +461,23 @@ private fun MainScreenContent(
                     navController = navController,
                 )
 
-                PrimalTopLevelDestination.Explore -> ExploreHomeContent(
-                    pagerState = sharedState.explorePagerState,
-                    paddingValues = paddingValues,
-                    noteCallbacks = noteCallbacks,
-                    snackbarHostState = sharedState.snackbarHostState,
-                    onFollowPackClick = { profileId, identifier ->
-                        navController.navigateToFollowPack(profileId, identifier)
-                    },
-                    onRecentSearchEditClick = { query ->
-                        navController.navigateToSearch(
-                            searchScope = SearchScope.Notes,
-                            initialQuery = query,
-                        )
-                    },
-                    onRecentSearchExecuteClick = { query ->
-                        navController.navigateToExploreFeed(
-                            feedSpec = buildAdvancedSearchNotesFeedSpec(query = query),
-                        )
-                    },
-                    onGoToWallet = onGoToWallet,
-                )
+                PrimalTopLevelDestination.Explore -> {
+                    val active = sharedState.homeActiveFeed.value ?: homeState.feeds.firstOrNull()
+                    if (active != null) {
+                        Box(modifier = Modifier.padding(paddingValues)) {
+                            FeedListOverlayContent(
+                                activeFeed = active,
+                                feedSpecKind = FeedSpecKind.Notes,
+                                onFeedClick = { feed ->
+                                    sharedState.homeActiveFeed.value = feed
+                                    onTabChanged(PrimalTopLevelDestination.Feeds)
+                                },
+                                onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
+                                onGoToWallet = onGoToWallet,
+                            )
+                        }
+                    }
+                }
 
                 PrimalTopLevelDestination.Alerts -> NotificationsContent(
                     pagerState = sharedState.notificationsPagerState,
@@ -564,8 +560,8 @@ private fun MainScreenScaffold(
         activeDestination = activeTab,
         onActiveDestinationClick = onActiveDestinationClick,
         onPrimaryDestinationChanged = onTabChanged,
-        onSettingsClick = { toggleOverlay(ActiveOverlay.AccountDrawer) },
-        settingsSelected = accountDrawerVisible,
+        onSettingsClick = { navController.navigateToSettings() },
+        settingsSelected = false,
         badges = mainState.badges,
         focusModeEnabled = focusModeEnabled,
         exploreAnchorHandle = exploreAnchor,
@@ -633,7 +629,7 @@ private fun MainScreenScaffold(
             AnchoredBubble(
                 anchor = exploreAnchor,
                 text = stringResource(id = R.string.explore_double_tap_hint_text),
-                visible = activeTab == PrimalTopLevelDestination.Explore && mainState.showExploreHint,
+                visible = false,
                 onDismiss = { mainEventPublisher(MainContract.UiEvent.DismissExploreHint) },
                 placement = BubblePlacement.Above,
             )

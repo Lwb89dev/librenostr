@@ -45,7 +45,7 @@ import net.primal.android.R
 import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.bubble.anchor
 import net.primal.android.core.compose.icons.PrimalIcons
-import net.primal.android.core.compose.icons.primaliconpack.ExploreFilled
+import net.primal.android.core.compose.icons.primaliconpack.Algorithm
 import net.primal.android.core.compose.icons.primaliconpack.FeedPickerFilled
 import net.primal.android.core.compose.icons.primaliconpack.LongReadFilled
 import net.primal.android.core.compose.icons.primaliconpack.NavWalletBoltFilled
@@ -231,7 +231,7 @@ private fun PrimalTopLevelDestination.imageVector(): ImageVector {
         PrimalTopLevelDestination.Reads -> PrimalIcons.LongReadFilled
         PrimalTopLevelDestination.Wallet -> PrimalIcons.NavWalletBoltFilled
         PrimalTopLevelDestination.Alerts -> PrimalIcons.NotificationsFilled
-        PrimalTopLevelDestination.Explore -> PrimalIcons.ExploreFilled
+        PrimalTopLevelDestination.Explore -> PrimalIcons.Algorithm
         PrimalTopLevelDestination.Settings -> PrimalIcons.SettingsFilled
     }
 }

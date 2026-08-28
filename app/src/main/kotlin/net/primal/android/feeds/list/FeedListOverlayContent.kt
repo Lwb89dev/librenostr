@@ -6,9 +6,16 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,8 +23,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import net.primal.android.R
+import net.primal.android.core.compose.PrimalOverlayBottomBar
+import net.primal.android.core.compose.PrimalOverlayCloseButton
+import net.primal.android.feeds.list.FeedListContract.FollowSetUi
 import net.primal.android.feeds.list.FeedListContract.UiState.FeedMarketplaceStage
+import net.primal.android.theme.AppTheme
 import net.primal.android.feeds.list.ui.DvmFeedDetails
 import net.primal.android.feeds.list.ui.DvmFeedMarketplace
 import net.primal.android.feeds.list.ui.FeedList
@@ -92,12 +105,10 @@ private fun FeedListOverlayContent(
                 onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
             )
 
-            FeedMarketplaceStage.FeedMarketplace -> DvmFeedMarketplace(
-                modifier = Modifier.fillMaxSize(),
-                dvmFeeds = state.dvmFeeds,
-                onFeedClick = { eventPublisher(FeedListContract.UiEvent.ShowFeedDetails(dvmFeed = it)) },
+            FeedMarketplaceStage.FeedMarketplace -> FollowSetPicker(
+                followSets = state.followSets,
+                onFollowSetClick = { eventPublisher(FeedListContract.UiEvent.AddFollowSetFeed(it)) },
                 onClose = { eventPublisher(FeedListContract.UiEvent.CloseFeedMarketplace) },
-                onGoToWallet = onGoToWallet,
             )
 
             FeedMarketplaceStage.FeedDetails -> FeedDetailsStage(
@@ -157,6 +168,54 @@ private fun FeedListStage(
         },
         onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
     )
+}
+
+@Composable
+private fun FollowSetPicker(
+    followSets: List<FollowSetUi>,
+    onFollowSetClick: (FollowSetUi) -> Unit,
+    onClose: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            text = stringResource(id = R.string.follow_set_picker_title),
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colorScheme.onSurface,
+        )
+        if (followSets.isEmpty()) {
+            Text(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                text = stringResource(id = R.string.follow_set_picker_empty),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
+            )
+        } else {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(followSets, key = { it.dTag }) { followSet ->
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onFollowSetClick(followSet) },
+                        headlineContent = {
+                            Text(text = followSet.title, color = AppTheme.colorScheme.onPrimary)
+                        },
+                        supportingContent = {
+                            Text(
+                                text = stringResource(
+                                    id = R.string.follow_set_picker_members,
+                                    followSet.memberCount,
+                                ),
+                            )
+                        },
+                    )
+                }
+            }
+        }
+        PrimalOverlayBottomBar(
+            trailing = { PrimalOverlayCloseButton(onClick = onClose) },
+        )
+    }
 }
 
 @Composable

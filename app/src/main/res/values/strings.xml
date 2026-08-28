@@ -130,7 +130,13 @@
     <string name="primary_destination_reads_label">Reads</string>
     <string name="primary_destination_wallet_label">Wallet</string>
     <string name="primary_destination_notifications_label">Alerts</string>
-    <string name="primary_destination_explore_label">Explore</string>
+    <string name="primary_destination_explore_label">Algorithm</string>
+    <string name="algorithm_title">Your algorithm</string>
+    <string name="algorithm_subtitle">Be your own algorhythm</string>
+    <string name="home_search_placeholder">Search</string>
+    <string name="follow_set_picker_title">Your lists</string>
+    <string name="follow_set_picker_empty">No lists yet. Create one in Listr, then add it here.</string>
+    <string name="follow_set_picker_members">%1$d people</string>
 
     <string name="drawer_destination_profile">Profile</string>
     <string name="drawer_destination_premium">Premium</string>

@@ -5,6 +5,12 @@ import net.primal.android.feeds.list.ui.model.FeedUi
 import net.primal.domain.feeds.FeedSpecKind
 
 interface FeedListContract {
+    data class FollowSetUi(
+        val dTag: String,
+        val title: String,
+        val memberCount: Int,
+    )
+
     data class UiState(
         val specKind: FeedSpecKind,
         val feeds: List<FeedUi> = emptyList(),
@@ -13,6 +19,7 @@ interface FeedListContract {
         val fetchingDvmFeeds: Boolean = false,
         val dvmFeeds: List<DvmFeedUi> = emptyList(),
         val selectedDvmFeed: DvmFeedUi? = null,
+        val followSets: List<FollowSetUi> = emptyList(),
     ) {
         enum class FeedMarketplaceStage {
             FeedList,
@@ -39,5 +46,6 @@ interface FeedListContract {
         data class RemoveFeedFromUserFeeds(val spec: String) : UiEvent()
 
         data object RestoreDefaultPrimalFeeds : UiEvent()
+        data class AddFollowSetFeed(val followSet: FollowSetUi) : UiEvent()
     }
 }
