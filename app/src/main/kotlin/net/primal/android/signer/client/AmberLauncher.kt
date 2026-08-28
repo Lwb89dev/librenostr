@@ -44,12 +44,12 @@ private fun rememberAmberLauncher(onResult: (ActivityResult) -> Unit): AmberLaun
 @Composable
 fun rememberAmberPubkeyLauncher(onFailure: ((ActivityResult) -> Unit)? = null, onSuccess: (pubkey: String) -> Unit) =
     rememberAmberLauncher { result ->
-        if (result.resultCode != Activity.RESULT_OK) {
+        if (result.resultCode != Activity.RESULT_OK || result.data?.isRejected() == true) {
             onFailure?.invoke(result)
             return@rememberAmberLauncher
         }
 
-        val pubkey = result.data?.getStringExtra("result") ?: run {
+        val pubkey = result.data?.signerResultExtra() ?: run {
             onFailure?.invoke(result)
             return@rememberAmberLauncher
         }
@@ -72,12 +72,12 @@ fun rememberAmberPubkeyLauncher(onFailure: ((ActivityResult) -> Unit)? = null, o
 @Composable
 fun rememberAmberSignerLauncher(onFailure: ((ActivityResult) -> Unit)? = null, onSuccess: (NostrEvent) -> Unit) =
     rememberAmberLauncher { result ->
-        if (result.resultCode != Activity.RESULT_OK) {
+        if (result.resultCode != Activity.RESULT_OK || result.data?.isRejected() == true) {
             onFailure?.invoke(result)
             return@rememberAmberLauncher
         }
 
-        val nostrEvent = (result.data?.getStringExtra("event"))
+        val nostrEvent = result.data?.getStringExtra("event")
             .decodeFromJsonStringOrNull<NostrEvent>()
             ?: run {
                 onFailure?.invoke(result)
@@ -101,6 +101,7 @@ fun rememberAmberSignerLauncher(onFailure: ((ActivityResult) -> Unit)? = null, o
 fun AmberLauncher.launchGetPublicKey() {
     val intent = Intent(Intent.ACTION_VIEW, URI_PREFIX.toUri())
     intent.`package` = AMBER_PACKAGE_NAME
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
     val permissions = listOf(
         Permission(
             type = SignerMethod.NIP04_ENCRYPT,
@@ -139,9 +140,15 @@ fun AmberLauncher.launchGetPublicKey() {
 fun AmberLauncher.launchSignEvent(event: NostrUnsignedEvent) {
     val intent = Intent(Intent.ACTION_VIEW, "$URI_PREFIX${event.encodeToJsonString()}".toUri())
     intent.`package` = AMBER_PACKAGE_NAME
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
     intent.putExtra("current_user", event.pubKey)
     intent.putExtra("type", SignerMethod.SIGN_EVENT.method)
 
     launch(intent)
 }
+
+private fun Intent.isRejected(): Boolean = getBooleanExtra("rejected", false)
+
+private fun Intent.signerResultExtra(): String? =
+    getStringExtra("result") ?: getStringExtra("signature")

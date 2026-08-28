@@ -5,9 +5,9 @@ import androidx.core.net.toUri
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.data.account.signer.local.model.SignerMethod
+import android.database.Cursor
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrUnsignedEvent
-import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
 private const val AMBER_PREFIX = "content://com.greenart7c3.nostrsigner."
 
@@ -38,10 +38,7 @@ fun ContentResolver.decryptNip04WithAmber(
         null,
     )?.use {
         if (it.moveToFirst()) {
-            val index = it.getColumnIndex("signature")
-            if (index < 0) return null
-
-            val decryptedText = it.getString(index)
+            val decryptedText = it.signerColumnValue() ?: return null
             onResult?.invoke(decryptedText)
             return decryptedText
         } else {
@@ -76,10 +73,7 @@ fun ContentResolver.encryptNip04WithAmber(
         null,
     )?.use {
         if (it.moveToFirst()) {
-            val index = it.getColumnIndex("signature")
-            if (index < 0) return null
-
-            val encryptedText = it.getString(index)
+            val encryptedText = it.signerColumnValue() ?: return null
             onResult?.invoke(encryptedText)
             return encryptedText
         } else {
@@ -103,23 +97,29 @@ fun ContentResolver.encryptNip04WithAmber(
 fun ContentResolver.signEventWithAmber(event: NostrUnsignedEvent): AmberSignResult =
     query(
         (AMBER_PREFIX + SignerMethod.SIGN_EVENT.method.uppercase()).toUri(),
-        arrayOf(event.encodeToJsonString(), "", event.pubKey.hexToNpubHrp()),
+        arrayOf(event.encodeToJsonString(), "", event.pubKey),
         "1",
         null,
         null,
     )?.use {
         if (it.moveToFirst()) {
-            val rejectedIndex = it.getColumnIndex("rejected")
+            if (it.getColumnIndex("rejected") >= 0) return AmberSignResult.Rejected
             val eventIndex = it.getColumnIndex("event")
-
-            if (eventIndex < 0 || rejectedIndex >= 0) return AmberSignResult.Rejected
-            val nostrEvent = it.getString(eventIndex).decodeFromJsonStringOrNull<NostrEvent>()
-
-            nostrEvent?.let { AmberSignResult.Signed(it) }
+            val eventJson = if (eventIndex >= 0) it.getString(eventIndex) else it.signerColumnValue()
+            val nostrEvent = eventJson.decodeFromJsonStringOrNull<NostrEvent>()
+            nostrEvent?.let { AmberSignResult.Signed(it) } ?: AmberSignResult.Rejected
         } else {
             AmberSignResult.Undecided
         }
     } ?: AmberSignResult.Undecided
+
+private fun Cursor.signerColumnValue(): String? {
+    val resultIndex = getColumnIndex("result")
+    if (resultIndex >= 0) return getString(resultIndex)
+    val signatureIndex = getColumnIndex("signature")
+    if (signatureIndex >= 0) return getString(signatureIndex)
+    return null
+}
 
 sealed class AmberSignResult {
     data class Signed(val nostrEvent: NostrEvent) : AmberSignResult()

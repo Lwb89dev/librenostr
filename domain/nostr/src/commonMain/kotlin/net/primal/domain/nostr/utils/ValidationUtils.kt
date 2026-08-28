@@ -2,6 +2,7 @@ package net.primal.domain.nostr.utils
 
 import io.github.aakira.napier.Napier
 import net.primal.domain.nostr.cryptography.utils.Bech32
+import net.primal.domain.nostr.cryptography.utils.bech32ToHexOrThrow
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 import net.primal.domain.nostr.cryptography.utils.hexToNsecHrp
 
@@ -10,6 +11,14 @@ private val HEXADECIMAL_PATTERN = Regex("\\p{XDigit}+")
 private const val HEX_PUBKEY_LENGTH = 64
 
 fun String.isValidHex() = this.length == HEX_PUBKEY_LENGTH && HEXADECIMAL_PATTERN.matches(this)
+
+fun String.asHexPubkeyOrNull(): String? =
+    when {
+        isValidHex() -> lowercase()
+        startsWith("npub", ignoreCase = true) ->
+            runCatching { bech32ToHexOrThrow() }.getOrNull()
+        else -> extractProfileId()
+    }
 
 fun String?.isValidNostrPrivateKey(): Boolean {
     if (this == null) return false

@@ -119,6 +119,7 @@ fun LoginScreen(
         callbacks.onClose()
     }
 
+    val context = LocalContext.current
     val signLauncher = rememberAmberSignerLauncher(
         onFailure = { eventPublisher(LoginContract.UiEvent.ResetLoginState) },
     ) { nostrEvent ->
@@ -172,7 +173,15 @@ fun LoginScreen(
             onLoginInputChanged = { eventPublisher(LoginContract.UiEvent.UpdateLoginInput(newInput = it)) },
             onLoginClick = { eventPublisher(LoginContract.UiEvent.LoginRequestEvent()) },
             onLoginWithAmberClick = {
-                pubkeyLauncher.launchGetPublicKey()
+                try {
+                    pubkeyLauncher.launchGetPublicKey()
+                } catch (_: android.content.ActivityNotFoundException) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.app_error_amber_unavailable),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
             },
         )
     }
