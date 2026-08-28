@@ -1069,7 +1069,6 @@ private fun NavGraphBuilder.welcome(route: String, navController: NavController)
             WelcomeScreen(
                 callbacks = WelcomeContract.ScreenCallbacks(
                     onSignInClick = { navController.navigateToLogin() },
-                    onCreateAccountClick = { navController.navigateToOnboarding() },
                 ),
             )
         }
