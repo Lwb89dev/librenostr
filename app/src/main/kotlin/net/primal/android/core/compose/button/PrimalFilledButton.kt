@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
@@ -66,6 +67,8 @@ fun PrimalFilledButton(
     val buttonContentColor = rememberUpdatedState(
         if (enabled) contentColor else disabledContentColor,
     )
+    val fill = buttonContainerColor.value
+    val glassy = enabled && fill.alpha > 0.05f && fill != Color.Transparent
 
     Box(
         modifier = modifier
@@ -78,8 +81,17 @@ fun PrimalFilledButton(
                 onClick = { onClick?.invoke() },
                 onLongClick = { onLongClick?.invoke() },
             )
-            .background(color = buttonContainerColor.value, shape = shape)
-            .border(border = border, shape = shape),
+            .then(
+                if (glassy) {
+                    Modifier
+                        .background(brush = fill.glassBrush(), shape = shape)
+                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.32f)), shape)
+                } else {
+                    Modifier
+                        .background(color = fill, shape = shape)
+                        .border(border = border, shape = shape)
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         CompositionLocalProvider(LocalContentColor provides buttonContentColor.value) {
@@ -96,6 +108,25 @@ fun PrimalFilledButton(
         }
     }
 }
+
+private fun Color.glassBrush(): Brush =
+    Brush.verticalGradient(
+        colors = listOf(lighten(0.22f), this, darken(0.10f)),
+    )
+
+private fun Color.lighten(amount: Float): Color =
+    copy(
+        red = (red + (1f - red) * amount).coerceIn(0f, 1f),
+        green = (green + (1f - green) * amount).coerceIn(0f, 1f),
+        blue = (blue + (1f - blue) * amount).coerceIn(0f, 1f),
+    )
+
+private fun Color.darken(amount: Float): Color =
+    copy(
+        red = (red * (1f - amount)).coerceIn(0f, 1f),
+        green = (green * (1f - amount)).coerceIn(0f, 1f),
+        blue = (blue * (1f - amount)).coerceIn(0f, 1f),
+    )
 
 data class PrimalButtonPreviewState(
     val enabled: Boolean,

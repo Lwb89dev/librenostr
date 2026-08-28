@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import net.primal.android.core.compose.MAX_COMPONENT_WIDTH
-import net.primal.android.core.compose.PrimalDarkButtonColor
 import net.primal.android.core.compose.button.PrimalLoadingButton
 
 @Composable
@@ -24,8 +23,8 @@ fun OnboardingButton(
             .widthIn(240.dp, MAX_COMPONENT_WIDTH.dp)
             .height(50.dp)
             .fillMaxWidth(),
-        containerColor = PrimalDarkButtonColor,
-        disabledContainerColor = PrimalDarkButtonColor.copy(alpha = 0.20f),
+        containerColor = Color(0xFF6B3FE8),
+        disabledContainerColor = Color(0xFF6B3FE8).copy(alpha = 0.20f),
         contentColor = Color.White,
         disabledContentColor = Color.White,
         enabled = enabled,
