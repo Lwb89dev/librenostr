@@ -30,16 +30,30 @@ class RelayNotesFeedFetcherTest {
     @Test
     fun pubkeyTagValues_readsPTags() {
         val tags = listOf(
-            buildJsonArray { add(JsonPrimitive("p")); add(JsonPrimitive("alice")) },
-            buildJsonArray { add(JsonPrimitive("e")); add(JsonPrimitive("note")) },
-            buildJsonArray { add(JsonPrimitive("p")); add(JsonPrimitive("bob")) },
+            buildJsonArray {
+                add(JsonPrimitive("p"))
+                add(JsonPrimitive("alice"))
+            },
+            buildJsonArray {
+                add(JsonPrimitive("e"))
+                add(JsonPrimitive("note"))
+            },
+            buildJsonArray {
+                add(JsonPrimitive("p"))
+                add(JsonPrimitive("bob"))
+            },
         )
         tags.pubkeyTagValues() shouldBe listOf("alice", "bob")
     }
 
     @Test
     fun hasEventIdTag_detectsReplies() {
-        val reply = listOf(buildJsonArray { add(JsonPrimitive("e")); add(JsonPrimitive("root")) })
+        val reply = listOf(
+            buildJsonArray {
+                add(JsonPrimitive("e"))
+                add(JsonPrimitive("root"))
+            },
+        )
         reply.hasEventIdTag() shouldBe true
         emptyList<kotlinx.serialization.json.JsonArray>().hasEventIdTag() shouldBe false
     }

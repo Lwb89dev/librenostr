@@ -188,6 +188,7 @@ android {
 
         create("aosp") {
             dimension = "distribution"
+            isDefault = true
         }
     }
 
