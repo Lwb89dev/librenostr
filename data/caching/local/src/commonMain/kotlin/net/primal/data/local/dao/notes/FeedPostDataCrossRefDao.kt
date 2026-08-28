@@ -20,6 +20,15 @@ interface FeedPostDataCrossRefDao {
     )
     suspend fun findLastBySpec(ownerId: String, spec: String): FeedPostDataCrossRef?
 
+    @Query(
+        """
+            SELECT * FROM FeedPostDataCrossRef 
+            WHERE feedSpec = :spec AND ownerId = :ownerId 
+            ORDER BY position ASC LIMIT 1
+        """,
+    )
+    suspend fun findFirstBySpec(ownerId: String, spec: String): FeedPostDataCrossRef?
+
     @Query("DELETE FROM FeedPostDataCrossRef WHERE feedSpec = :feedSpec AND ownerId = :ownerId")
     suspend fun deleteConnectionsByDirective(ownerId: String, feedSpec: String)
 
@@ -28,4 +37,7 @@ interface FeedPostDataCrossRefDao {
 
     @Query("DELETE FROM FeedPostDataCrossRef WHERE eventId = :eventId")
     suspend fun deletePostConnections(eventId: String)
+
+    @Query("SELECT MIN(position) FROM FeedPostDataCrossRef")
+    suspend fun findMinPosition(): Long?
 }

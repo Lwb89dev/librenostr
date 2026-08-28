@@ -58,12 +58,12 @@ Status: **done** for note threads (root by id, `#e` replies, ancestor walk, gaps
 
 ## Phase 6 — Publish path validation
 
-Status: **partial** — EVENT always goes to write relays (`cachingProxyEnabled` publish path removed). Local persist of published events is still `import_events`.
+Status: **partial** — EVENT always goes to write relays; published notes are written to Room. Restart still depends on local DB (not `import_events`). Remaining: signers, wallet, cache deletion.
 
 - Local nsec can still sign via `NostrNotary`.
 - EVENT to user/write relays without `cachingProxyEnabled`.
-- Persist published events locally instead of `import_events`.
-- Restart still shows the note from Room.
+- Persist published events locally instead of `import_events`. **done**
+- Restart still shows the note from Room. **local Room write on publish**
 
 ## Phase 7 — Remove caching-server implementation
 

@@ -2,18 +2,12 @@ package net.primal.android.nostr.publish
 
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import net.primal.android.networking.relays.RelaysSocketManager
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.user.domain.Relay
-import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.core.utils.map
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.runCatching
-import net.primal.domain.common.exception.QueryTimeoutException
 import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.ContentMetadata
 import net.primal.domain.nostr.NostrEvent
@@ -24,35 +18,23 @@ import net.primal.domain.publisher.PrimalPublishResult
 import net.primal.domain.publisher.PrimalPublisher
 
 class NostrPublisher @Inject constructor(
-    dispatcherProvider: DispatcherProvider,
     private val relaysSocketManager: RelaysSocketManager,
     private val nostrNotary: NostrNotary,
     private val cachingImportRepository: CachingImportRepository,
 ) : PrimalPublisher {
 
-    private val scope = CoroutineScope(SupervisorJob() + dispatcherProvider.io())
-
-    private fun importEvent(event: NostrEvent) {
-        scope.launch {
-            runCatching {
-                cachingImportRepository.importEvents(events = listOf(event))
-            }.onFailure { error ->
-                when (error) {
-                    // The server keeps ingesting after we stop reading, so this is not a failure.
-                    is QueryTimeoutException -> Napier.i {
-                        "Stopped waiting for import of event ${event.id} by the caching server."
-                    }
-
-                    else -> Napier.w(throwable = error) { "Failed to import event ${event.id} to caching server." }
-                }
-            }
+    private suspend fun persistEventLocally(event: NostrEvent) {
+        runCatching {
+            cachingImportRepository.cacheNostrEvents(events = listOf(event))
+        }.onFailure { error ->
+            Napier.w(throwable = error) { "Failed to persist event ${event.id} locally." }
         }
     }
 
     @Throws(NostrPublishException::class)
     private suspend fun publishAndImportEvent(signedNostrEvent: NostrEvent, outboxRelays: List<String> = emptyList()) {
         relaysSocketManager.publishEvent(signedNostrEvent)
-        importEvent(signedNostrEvent)
+        persistEventLocally(signedNostrEvent)
         if (outboxRelays.isNotEmpty()) {
             runCatching {
                 relaysSocketManager.publishEvent(
@@ -84,7 +66,7 @@ class NostrPublisher @Inject constructor(
             .unwrapOrThrow()
 
         relaysSocketManager.publishEvent(nostrEvent = signedNostrEvent)
-        importEvent(signedNostrEvent)
+        persistEventLocally(signedNostrEvent)
         return signedNostrEvent
     }
 
@@ -108,7 +90,7 @@ class NostrPublisher @Inject constructor(
     suspend fun publishRelayList(userId: String, relays: List<Relay>): NostrEvent {
         val signedNostrEvent = nostrNotary.signRelayListMetadata(userId = userId, relays = relays).unwrapOrThrow()
         relaysSocketManager.publishEvent(nostrEvent = signedNostrEvent, relays = relays)
-        importEvent(signedNostrEvent)
+        persistEventLocally(signedNostrEvent)
         return signedNostrEvent
     }
 }

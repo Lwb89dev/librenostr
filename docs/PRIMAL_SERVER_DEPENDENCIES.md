@@ -41,7 +41,7 @@ Standard Nostr can reproduce a capability only when a NIP or kind already carrie
 | Highlights | `ArticlesApiImpl` | `get_highlights` | Article highlights | kind 9802 if used | partial | sparse | INVESTIGATE |
 | Event fetch | events API | `events` | Hydrate ids with enrichment | REQ ids | yes for events; no for stats/CDN | extra round-trips for metadata | REPLACE |
 | Replaceable events | events API | `replaceable_event`, `parametrized_replaceable_event(s)` | Latest kind 0/3/10002/30000… | standard replaceable REQ | yes | need NIP-65 hints | REPLACE |
-| Import published event | `PrimalImportApi` / `NostrPublisher` | `import_events` | Push event into Primal cache so UI sees it immediately | write Room locally; relays already got EVENT | n/a | local write is enough | REMOVE after local persist |
+| Import published event | `PrimalImportApi` / `NostrPublisher` | `import_events` | Push event into Primal cache so UI sees it immediately | write Room locally; relays already got EVENT | n/a | local write is enough | REMOVE (LN-013: publish path writes Room; verb may remain unused) |
 | Broadcast via cache | `RelayPool` (removed) | `broadcast_events` | Publish through Primal instead of user relays | always EVENT to write relays | yes | depends on relay set | REMOVE (LN-012: publish path gone; verb may remain for other callers) |
 
 ## Profiles, contacts, relays

@@ -24,6 +24,7 @@ import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.repository.UserDataCleanupRepositoryImpl
 import net.primal.data.repository.feed.FeedRepositoryImpl
+import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
@@ -43,6 +44,7 @@ import net.primal.shared.data.local.db.LocalDatabaseFactory
  *  - [FeedRepositoryImpl.removeFeedSpec]
  *  - [FeedRepositoryImpl.deletePostById] (spec-blind → invalidates all)
  *  - [UserDataCleanupRepositoryImpl.clearUserData] (spec-blind → invalidates all)
+ *  - [CachingImportRepositoryImpl.cacheNostrEvents] (local persist of a published note)
  */
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalPagingApi::class)
 class FeedWritePathInvalidationTest {
@@ -125,6 +127,35 @@ class FeedWritePathInvalidationTest {
                 .clearUserData(userId = USER_ID)
 
             mainSource.awaitInvalidation(reason = "account data cleanup (spec-blind crossref delete)")
+        }
+
+    @Test
+    fun cacheNostrEvents_ofPublishedNote_invalidatesFollowingFeed() =
+        withDatabase { database, tracker ->
+            val mainSource = armedTrackedSource(database, tracker, feedSpec = MAIN_SPEC)
+            val repository = CachingImportRepositoryImpl(
+                dispatcherProvider = testDispatcherProvider(),
+                database = database,
+                importApi = mockk(relaxed = true),
+                broadcastApi = mockk(relaxed = true),
+                invalidationTracker = tracker,
+            )
+
+            repository.cacheNostrEvents(
+                events = listOf(
+                    NostrEvent(
+                        id = "published-local",
+                        pubKey = USER_ID,
+                        createdAt = 1_700_000_100L,
+                        kind = 1,
+                        tags = emptyList(),
+                        content = "just posted",
+                        sig = "sig",
+                    ),
+                ),
+            )
+
+            mainSource.awaitInvalidation(reason = "local persist of a published note onto the following feed")
         }
 
     // ---------------------------------------------------------------------------------------------

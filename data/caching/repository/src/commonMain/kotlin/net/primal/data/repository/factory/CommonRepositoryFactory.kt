@@ -97,6 +97,7 @@ abstract class CommonRepositoryFactory {
                 primalHttpApiClient = PrimalHttpApiClientFactory.getDefault(PrimalServerType.Caching),
             ),
             broadcastApi = PrimalApiServiceFactory.createBroadcastApi(cachingPrimalApiClient),
+            invalidationTracker = feedSpecInvalidationTracker,
         )
     }
 

@@ -15,6 +15,9 @@ interface ThreadConversationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun connectNoteWithReply(data: List<NoteConversationCrossRef>)
 
+    @Query("SELECT * FROM NoteConversationCrossRef WHERE noteId = :noteId")
+    suspend fun findConversationRefs(noteId: String): List<NoteConversationCrossRef>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun connectArticleWithComment(data: List<ArticleCommentCrossRef>)
 

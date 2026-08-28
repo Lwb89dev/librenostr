@@ -85,7 +85,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 
 | ID | Title | Files | Depends | Acceptance | Tests | Risk | Complexity | Status |
 |---|---|---|---|---|---|---|---|---|
-| LN-013 | Local persist instead of `import_events` | `NostrPublisher`, `CachingImportRepository` | LN-004 | Publish visible after restart without cache | unit | Medium | M | todo |
+| LN-013 | Local persist instead of `import_events` | `NostrPublisher`, `CachingImportRepository` | LN-004 | Publish visible after restart without cache | unit | Medium | M | done (Room PostData + following-feed membership; no `import_events` on publish) |
 | LN-014 | Switch profile screens off UsersApi cache | `ProfileRepositoryImpl` | LN-003 | No `user_profile` in that path | grep + tests | High | L | todo |
 | LN-015 | Switch following feed off mega_feed | `NoteFeedRemoteMediator` | LN-004 | No `multi_kind_mega_feed_directive` for that spec | grep + tests | High | L | todo |
 | LN-016 | Switch thread off `thread_view` | thread repos | LN-005 | No `thread_view` | grep + tests | High | L | todo |
