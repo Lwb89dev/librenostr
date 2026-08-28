@@ -111,11 +111,7 @@ fun AmberLauncher.launchGetPublicKey() {
         ),
         Permission(
             type = SignerMethod.SIGN_EVENT,
-            kind = NostrEventKind.PrimalWalletOperation.value,
-        ),
-        Permission(
-            type = SignerMethod.SIGN_EVENT,
-            kind = NostrEventKind.ApplicationSpecificData.value,
+            kind = NostrEventKind.ShortTextNote.value,
         ),
     )
 

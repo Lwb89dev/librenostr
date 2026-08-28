@@ -60,7 +60,7 @@ class LoginHandler @Inject constructor(
         credentialType: CredentialType,
         authorizationEvent: NostrEvent?,
     ) {
-        runCatching { relayRepository.syncUserRelaysOrBootstrap(userId) }
+        runCatching { relayRepository.ensureLocalBootstrapRelays(userId) }
 
         if (credentialType == CredentialType.ExternalSigner) {
             activateAccount(credentialType = credentialType, nostrKey = nostrKey)

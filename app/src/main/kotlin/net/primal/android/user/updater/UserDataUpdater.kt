@@ -64,11 +64,6 @@ class UserDataUpdater @AssistedInject constructor(
             }
 
             launch { runCatching { relayRepository.syncUserRelaysOrBootstrap(userId = userId) } }
-            launch { runCatching { bookmarksRepository.fetchAndPersistBookmarks(userId = userId) } }
-            launch { runCatching { pushNotificationsTokenUpdater.updateTokenForAllUsers() } }
-            launch { runCatching { pushNotificationsTokenUpdater.updateTokenForRemoteSigner() } }
-            launch { runCatching { mutedItemRepository.fetchAndPersistMuteList(userId = userId) } }
-            launch { runCatching { mutedItemRepository.fetchAndPersistStreamMuteList(userId = userId) } }
         }
 
         return Result.success(Unit)

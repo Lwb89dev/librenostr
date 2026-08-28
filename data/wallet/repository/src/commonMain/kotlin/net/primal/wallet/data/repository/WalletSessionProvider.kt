@@ -3,10 +3,7 @@ package net.primal.wallet.data.repository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
@@ -37,17 +34,7 @@ class WalletSessionProvider internal constructor(
     private var currentSparkWalletId: String? = null
 
     fun start() {
-        scope.launch {
-            activeUserId
-                .collectLatest { userIdOrNull ->
-                    disconnectCurrentSparkWallet()
-                    val userId = userIdOrNull ?: return@collectLatest
-                    coroutineScope {
-                        launch { provisionWalletOnServer(userId) }
-                        launch { observeActiveWalletAndManageSparkSdk(userId) }
-                    }
-                }
-        }
+        Napier.d { "Wallet session disabled; skipping Spark/Primal wallet provisioning." }
     }
 
     fun setActiveUserId(userId: String?) {

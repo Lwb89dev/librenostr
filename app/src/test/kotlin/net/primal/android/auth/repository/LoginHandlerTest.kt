@@ -189,7 +189,7 @@ class LoginHandlerTest {
                 authorizationEvent = null,
             )
 
-            coVerify { relayRepository.syncUserRelaysOrBootstrap(expectedUserId) }
+            coVerify { relayRepository.ensureLocalBootstrapRelays(expectedUserId) }
         }
 
     @Test
@@ -285,7 +285,7 @@ class LoginHandlerTest {
             )
 
             coVerify(exactly = 1) { authRepository.loginWithExternalSignerNpub(npub = hexPubkey) }
-            coVerify(exactly = 1) { relayRepository.syncUserRelaysOrBootstrap(expectedUserId) }
+            coVerify(exactly = 1) { relayRepository.ensureLocalBootstrapRelays(expectedUserId) }
             coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
             coVerify(exactly = 0) { nostrNotary.signAuthorizationNostrEvent(any(), any(), any()) }
             coVerify(exactly = 0) { feedsRepository.fetchAndPersistNoteFeeds(any()) }
