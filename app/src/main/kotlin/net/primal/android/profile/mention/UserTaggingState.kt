@@ -11,5 +11,5 @@ data class UserTaggingState(
 ) {
     val isUserTaggingActive: Boolean get() = userTaggingQuery != null
 
-    val recommendedUsers: List<UserProfileItemUi> get() = recentUsers + popularUsers
+    val recommendedUsers: List<UserProfileItemUi> get() = recentUsers
 }

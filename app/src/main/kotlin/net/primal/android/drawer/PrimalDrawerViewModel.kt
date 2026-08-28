@@ -3,18 +3,13 @@ package net.primal.android.drawer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Instant
 import javax.inject.Inject
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import net.primal.android.premium.legend.domain.asLegendaryCustomization
-import net.primal.android.premium.utils.isPrimalLegendTier
 import net.primal.android.user.accounts.active.ActiveAccountStore
-import net.primal.android.user.domain.UserAccount
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.domain.profile.ProfileRepository
 
@@ -48,12 +43,8 @@ class PrimalDrawerViewModel @Inject constructor(
                 setState {
                     copy(
                         activeUserAccount = it,
-                        menuItems = buildDrawerMenuItems(
-                            userId = it.pubkey,
-                            hasPremium = it.premiumMembership != null,
-                        ),
-                        showPremiumBadge = !it.premiumMembership.isPrimalLegendTier() &&
-                            it.hasNotSeenPremiumInTheLast(7.days),
+                        menuItems = buildDrawerMenuItems(userId = it.pubkey),
+                        showPremiumBadge = false,
                     )
                 }
             }
@@ -73,11 +64,6 @@ class PrimalDrawerViewModel @Inject constructor(
         }
     }
 
-    private fun UserAccount.hasNotSeenPremiumInTheLast(duration: Duration): Boolean {
-        val lastTimestamp = this.lastBuyPremiumTimestampInMillis ?: 0
-        return lastTimestamp < Instant.now().minusSeconds(duration.inWholeSeconds).epochSecond
-    }
-
     private fun subscribeToBadgesUpdates() =
         viewModelScope.launch {
             subscriptionsManager.badges.collect {
@@ -87,13 +73,11 @@ class PrimalDrawerViewModel @Inject constructor(
             }
         }
 
-    private fun buildDrawerMenuItems(hasPremium: Boolean = false, userId: String) =
+    private fun buildDrawerMenuItems(userId: String) =
         listOf(
             DrawerScreenDestination.Profile(userId = userId),
-            DrawerScreenDestination.Premium(hasPremium = hasPremium),
             DrawerScreenDestination.Messages,
             DrawerScreenDestination.Bookmarks(userId = userId),
-            DrawerScreenDestination.ScanCode,
             DrawerScreenDestination.Settings,
             DrawerScreenDestination.SignOut(userId = userId),
         )

@@ -12,7 +12,7 @@ interface SearchContract {
         val recentUsers: List<UserProfileItemUi> = emptyList(),
         val popularUsers: List<UserProfileItemUi> = emptyList(),
     ) {
-        val recommendedUsers: List<UserProfileItemUi> get() = (recentUsers + popularUsers).distinctBy { it.profileId }
+        val recommendedUsers: List<UserProfileItemUi> get() = recentUsers
     }
 
     sealed class UiEvent {

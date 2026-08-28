@@ -59,14 +59,6 @@ class UserMentionHandler @AssistedInject constructor(
 
     private fun fetchInitialUsers() {
         scope.launch {
-            try {
-                val popular = exploreRepository.fetchPopularUsers()
-                setState { copy(popularUsers = popular.map { it.mapAsUserProfileUi() }) }
-            } catch (error: NetworkException) {
-                Napier.w("Failed to fetch popular users.", error)
-            }
-        }
-        scope.launch {
             userRepository.observeRecentUsers(ownerId = userId)
                 .collect { users ->
                     setState { copy(recentUsers = users) }

@@ -376,11 +376,8 @@ fun PrimalDrawerPreview() {
             state = PrimalDrawerContract.UiState(
                 menuItems = listOf(
                     DrawerScreenDestination.Profile(userId = "none"),
-                    DrawerScreenDestination.Premium(hasPremium = false),
                     DrawerScreenDestination.Messages,
                     DrawerScreenDestination.Bookmarks(userId = "none"),
-                    DrawerScreenDestination.ScanCode,
-                    DrawerScreenDestination.RemoteLogin,
                     DrawerScreenDestination.Settings,
                     DrawerScreenDestination.SignOut(userId = "none"),
                 ),
