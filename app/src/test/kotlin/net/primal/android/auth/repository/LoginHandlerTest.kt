@@ -15,6 +15,7 @@ import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.Credential
 import net.primal.android.user.domain.CredentialType
+import net.primal.android.user.repository.RelayRepository
 import net.primal.android.user.repository.UserRepository
 import net.primal.core.testing.CoroutinesTestRule
 import net.primal.core.testing.FakeDataStore
@@ -25,7 +26,6 @@ import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.SignResult
-import net.primal.domain.usecase.EnsurePrimalWalletExistsUseCase
 import org.junit.Rule
 import org.junit.Test
 
@@ -48,9 +48,9 @@ class LoginHandlerTest {
         mutedItemRepository: MutedItemRepository = mockk(relaxed = true),
         bookmarksRepository: PublicBookmarksRepository = mockk(relaxed = true),
         feedsRepository: FeedsRepository = mockk(relaxed = true),
-        ensurePrimalWalletExistsUseCase: EnsurePrimalWalletExistsUseCase = mockk(relaxed = true),
         credentialsStore: CredentialsStore = mockk(relaxed = true),
         nostrNotary: NostrNotary = mockk(relaxed = true),
+        relayRepository: RelayRepository = mockk(relaxed = true),
     ): LoginHandler =
         LoginHandler(
             settingsRepository = settingsRepository,
@@ -62,7 +62,7 @@ class LoginHandlerTest {
             dispatchers = coroutinesTestRule.dispatcherProvider,
             credentialsStore = credentialsStore,
             nostrNotary = nostrNotary,
-            ensurePrimalWalletExistsUseCase = ensurePrimalWalletExistsUseCase,
+            relayRepository = relayRepository,
         )
 
     private fun createDummyNostrEvent(
@@ -173,15 +173,15 @@ class LoginHandlerTest {
         }
 
     @Test
-    fun login_callsEnsurePrimalWalletExistsUseCase() =
+    fun login_syncsUserRelaysOrBootstrap() =
         runTest {
             val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
                 coEvery { saveNsec(any()) } returns expectedUserId
             }
-            val ensurePrimalWalletExistsUseCase = mockk<EnsurePrimalWalletExistsUseCase>(relaxed = true)
+            val relayRepository = mockk<RelayRepository>(relaxed = true)
             val loginHandler = createLoginHandler(
-                ensurePrimalWalletExistsUseCase = ensurePrimalWalletExistsUseCase,
                 credentialsStore = credentialsStore,
+                relayRepository = relayRepository,
             )
             loginHandler.login(
                 nostrKey = nsec,
@@ -189,9 +189,7 @@ class LoginHandlerTest {
                 authorizationEvent = null,
             )
 
-            coVerify {
-                ensurePrimalWalletExistsUseCase.invoke(expectedUserId, setAsActive = true)
-            }
+            coVerify { relayRepository.syncUserRelaysOrBootstrap(expectedUserId) }
         }
 
     @Test
@@ -270,12 +268,14 @@ class LoginHandlerTest {
             val feedsRepository = mockk<FeedsRepository>(relaxed = true)
             val nostrNotary = mockk<NostrNotary>(relaxed = true)
             val authRepository = mockk<AuthRepository>(relaxed = true)
+            val relayRepository = mockk<RelayRepository>(relaxed = true)
             val loginHandler = createLoginHandler(
                 authRepository = authRepository,
                 userRepository = userRepository,
                 feedsRepository = feedsRepository,
                 credentialsStore = credentialsStore,
                 nostrNotary = nostrNotary,
+                relayRepository = relayRepository,
             )
 
             loginHandler.login(
@@ -285,6 +285,7 @@ class LoginHandlerTest {
             )
 
             coVerify(exactly = 1) { authRepository.loginWithExternalSignerNpub(npub = hexPubkey) }
+            coVerify(exactly = 1) { relayRepository.syncUserRelaysOrBootstrap(expectedUserId) }
             coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
             coVerify(exactly = 0) { nostrNotary.signAuthorizationNostrEvent(any(), any(), any()) }
             coVerify(exactly = 0) { feedsRepository.fetchAndPersistNoteFeeds(any()) }

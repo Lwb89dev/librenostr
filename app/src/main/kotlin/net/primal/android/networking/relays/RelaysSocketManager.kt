@@ -46,6 +46,7 @@ class RelaysSocketManager @Inject constructor(
     private val fallbackRelaysPool: RelayPool = buildRelayPool()
 
     val userRelayPoolStatus = userRelaysPool.relayPoolStatus
+    val fallbackRelayPoolStatus = fallbackRelaysPool.relayPoolStatus
 
     init {
         initFallbackRelaysPool()

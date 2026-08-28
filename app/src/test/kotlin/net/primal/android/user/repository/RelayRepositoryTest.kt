@@ -264,7 +264,7 @@ class RelayRepositoryTest {
         }
 
     @Test
-    fun `fetchAndUpdateUserRelays clears user relays if cached NIP-65 has empty tags`() =
+    fun `fetchAndUpdateUserRelays keeps existing relays if NIP-65 has empty tags`() =
         runTest {
             val userId = "random"
             val relayDao = buildRelayDao()
@@ -281,12 +281,8 @@ class RelayRepositoryTest {
 
             repository.fetchAndUpdateUserRelays(userId = userId)
 
-            coVerify { relayDao.deleteAll(userId = userId, kind = RelayKind.UserRelay) }
-            coVerify {
-                relayDao.upsertAll(
-                    relays = withArg { it shouldBe emptyList() },
-                )
-            }
+            coVerify(exactly = 0) { relayDao.deleteAll(userId = userId, kind = RelayKind.UserRelay) }
+            coVerify(exactly = 0) { relayDao.upsertAll(any()) }
         }
 
     @Test

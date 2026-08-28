@@ -76,8 +76,19 @@ class RelayRepository @Inject constructor(
     }
 
     private suspend fun fetchUserRelays(userId: String): List<RelayDO>? {
-        fetchUserRelaysFromRelays(userId)?.let { return it }
-        return fetchUserRelaysFromCache(userId)
+        fetchUserRelaysFromRelays(userId)?.takeIf { it.isNotEmpty() }?.let { return it }
+        return fetchUserRelaysFromCache(userId)?.takeIf { it.isNotEmpty() }
+    }
+
+    suspend fun syncUserRelaysOrBootstrap(userId: String) {
+        val fromRelays = fetchUserRelaysFromRelays(userId)?.takeIf { it.isNotEmpty() }
+        if (fromRelays != null) {
+            replaceUserRelays(userId, fromRelays)
+            return
+        }
+        if (findRelays(userId, RelayKind.UserRelay).isEmpty()) {
+            replaceUserRelays(userId, FALLBACK_RELAYS)
+        }
     }
 
     private suspend fun currentUserRelays(userId: String): List<RelayDO> {

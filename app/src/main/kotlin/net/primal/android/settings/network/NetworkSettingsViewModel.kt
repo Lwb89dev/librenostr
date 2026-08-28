@@ -12,15 +12,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
-import net.primal.android.networking.di.PrimalCacheApiClient
 import net.primal.android.networking.relays.RelaysSocketManager
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.settings.network.NetworkSettingsContract.UiEvent
 import net.primal.android.settings.network.NetworkSettingsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.RelayRepository
-import net.primal.core.config.AppConfigHandler
-import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.cryptography.SignatureException
 
@@ -28,9 +25,7 @@ import net.primal.domain.nostr.cryptography.SignatureException
 class NetworkSettingsViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val relaysSocketManager: RelaysSocketManager,
-    @PrimalCacheApiClient private val primalApiClient: PrimalApiClient,
     private val relayRepository: RelayRepository,
-    private val appConfigHandler: AppConfigHandler,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -46,7 +41,6 @@ class NetworkSettingsViewModel @Inject constructor(
         observeEvents()
         ensureRelayPoolUpdatedAndConnected()
         observeRelayPoolConnections()
-        observeCachingServiceConnection()
         observeUserRelays()
     }
 
@@ -74,11 +68,11 @@ class NetworkSettingsViewModel @Inject constructor(
             events.collect {
                 when (it) {
                     UiEvent.RestoreDefaultRelays -> restoreDefaultRelays()
-                    UiEvent.RestoreDefaultCachingService -> restoreDefaultCachingService()
+                    UiEvent.RestoreDefaultCachingService -> Unit
                     is UiEvent.DeleteRelay -> deleteRelay(url = it.url)
                     is UiEvent.ConfirmRelayInsert -> addRelay(url = it.url)
                     is UiEvent.UpdateNewRelayUrl -> setState { copy(newRelayUrl = it.url) }
-                    is UiEvent.ConfirmCachingServiceChange -> changeCachingService(url = it.url)
+                    is UiEvent.ConfirmCachingServiceChange -> Unit
                     is UiEvent.UpdateNewCachingServiceUrl -> setState { copy(newCachingServiceUrl = it.url) }
                     is UiEvent.UpdateRelayRead -> updateRelayPermissions(url = it.url, read = it.read, write = null)
                     is UiEvent.UpdateRelayWrite -> updateRelayPermissions(url = it.url, read = null, write = it.write)
@@ -90,7 +84,7 @@ class NetworkSettingsViewModel @Inject constructor(
     private fun ensureRelayPoolUpdatedAndConnected() =
         viewModelScope.launch {
             try {
-                relayRepository.fetchAndUpdateUserRelays(userId = activeAccountStore.activeUserId())
+                relayRepository.syncUserRelaysOrBootstrap(userId = activeAccountStore.activeUserId())
             } catch (error: NetworkException) {
                 Napier.w(throwable = error) { "Failed to fetch and update user relays." }
             }
@@ -102,13 +96,6 @@ class NetworkSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             delay(1.seconds)
             relaysSocketManager.tryConnectingToUserRelay(url)
-        }
-
-    private fun observeCachingServiceConnection() =
-        viewModelScope.launch {
-            primalApiClient.connectionStatus.collect {
-                setState { copy(cachingService = SocketDestinationUiState(url = it.url, it.connected)) }
-            }
         }
 
     private fun observeRelayPoolConnections() =
@@ -190,15 +177,4 @@ class NetworkSettingsViewModel @Inject constructor(
             setState { copy(updatingRelays = false) }
         }
     }
-
-    private fun changeCachingService(url: String) =
-        viewModelScope.launch {
-            appConfigHandler.overrideCacheUrl(url = url)
-            setState { copy(newCachingServiceUrl = "") }
-        }
-
-    private fun restoreDefaultCachingService() =
-        viewModelScope.launch {
-            appConfigHandler.restoreDefaultCacheUrl()
-        }
 }

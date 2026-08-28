@@ -10,6 +10,7 @@ import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.settings.repository.SettingsRepository
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.CredentialType
+import net.primal.android.user.repository.RelayRepository
 import net.primal.android.user.repository.UserRepository
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.onFailure
@@ -20,7 +21,6 @@ import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.cryptography.utils.assureValidNsec
 import net.primal.domain.nostr.cryptography.utils.getOrNull
-import net.primal.domain.usecase.EnsurePrimalWalletExistsUseCase
 
 @Suppress("LongParameterList")
 class LoginHandler @Inject constructor(
@@ -30,10 +30,10 @@ class LoginHandler @Inject constructor(
     private val mutedItemRepository: MutedItemRepository,
     private val bookmarksRepository: PublicBookmarksRepository,
     private val feedsRepository: FeedsRepository,
-    private val ensurePrimalWalletExistsUseCase: EnsurePrimalWalletExistsUseCase,
     private val dispatchers: DispatcherProvider,
     private val credentialsStore: CredentialsStore,
     private val nostrNotary: NostrNotary,
+    private val relayRepository: RelayRepository,
 ) {
     suspend fun login(
         nostrKey: String,
@@ -60,6 +60,8 @@ class LoginHandler @Inject constructor(
         credentialType: CredentialType,
         authorizationEvent: NostrEvent?,
     ) {
+        runCatching { relayRepository.syncUserRelaysOrBootstrap(userId) }
+
         if (credentialType == CredentialType.ExternalSigner) {
             activateAccount(credentialType = credentialType, nostrKey = nostrKey)
             return
@@ -84,7 +86,6 @@ class LoginHandler @Inject constructor(
         ).getOrNull()
 
         userRepository.fetchAndUpdateUserAccount(userId = userId)
-        ensurePrimalWalletExistsUseCase.invoke(userId = userId, setAsActive = true)
         bookmarksRepository.fetchAndPersistBookmarks(userId = userId)
         authorizationEvent?.let { settingsRepository.fetchAndPersistAppSettings(it) }
         mutedItemRepository.fetchAndPersistMuteList(userId = userId)
