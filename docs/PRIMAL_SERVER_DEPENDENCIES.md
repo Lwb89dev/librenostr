@@ -42,7 +42,7 @@ Standard Nostr can reproduce a capability only when a NIP or kind already carrie
 | Event fetch | events API | `events` | Hydrate ids with enrichment | REQ ids | yes for events; no for stats/CDN | extra round-trips for metadata | REPLACE |
 | Replaceable events | events API | `replaceable_event`, `parametrized_replaceable_event(s)` | Latest kind 0/3/10002/30000… | standard replaceable REQ | yes | need NIP-65 hints | REPLACE |
 | Import published event | `PrimalImportApi` / `NostrPublisher` | `import_events` | Push event into Primal cache so UI sees it immediately | write Room locally; relays already got EVENT | n/a | local write is enough | REMOVE after local persist |
-| Broadcast via cache | `RelayPool` when `cachingProxyEnabled` | `broadcast_events` | Publish through Primal instead of user relays | always EVENT to relays | yes | depends on relay set | REMOVE |
+| Broadcast via cache | `RelayPool` (removed) | `broadcast_events` | Publish through Primal instead of user relays | always EVENT to write relays | yes | depends on relay set | REMOVE (LN-012: publish path gone; verb may remain for other callers) |
 
 ## Profiles, contacts, relays
 
@@ -54,8 +54,8 @@ Standard Nostr can reproduce a capability only when a NIP or kind already carrie
 | Followers | same | `user_followers` | Follower list | not on protocol | no | n/a | REMOVE (or optional NIP-50) |
 | Contact list | same | `contact_list` | Kind 3 + metadata | kind 3 | yes | one replaceable event | REPLACE |
 | Is following | same | `is_user_following` | Boolean | inspect local kind 3 | yes | local | REPLACE |
-| User relays | same | `get_user_relays_2` | Relay list | kind 10002 NIP-65 | yes | | REPLACE |
-| Default relays | same | `get_default_relays` | Primal-recommended relays | LibreNostr static defaults + user config | n/a | n/a | REPLACE |
+| User relays | same | `get_user_relays_2` | Relay list | kind 10002 NIP-65 | yes | | REPLACE (LN-011: current-user path is relay-first; cache fallback; batch still cache) |
+| Default relays | same | `get_default_relays` | Primal-recommended relays | LibreNostr static defaults + user config | n/a | n/a | REPLACE (LN-011: `FALLBACK_RELAYS` used for bootstrap/onboarding) |
 | Bookmarks | same | `get_bookmarks` | Bookmark list | kind 10003 / 30001 | yes | | REPLACE |
 | Mutes | `SettingsApiImpl` | `mutelist`, `mutelists` | Mute lists | kind 10000 / 30000 | yes | | REPLACE |
 

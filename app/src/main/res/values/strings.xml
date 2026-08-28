@@ -1086,8 +1086,8 @@
     <string name="settings_network_dialog_confirm">Confirm</string>
     <string name="settings_network_dialog_dismiss">Dismiss</string>
     <string name="settings_network_add_relay_error">Unable to add relay. Please try again in few moments.</string>
-    <string name="settings_network_enhanced_privacy_title">Enhanced Privacy</string>
-    <string name="settings_network_enhanced_privacy_description">When enabled, your IP address will be visible to the caching service, but not to relays. Your content will be published to your specified relays using the caching service as a proxy.</string>
+    <string name="settings_network_relay_read">Read</string>
+    <string name="settings_network_relay_write">Write</string>
 
     <string name="settings_zaps_title">Zaps</string>
     <string name="settings_zaps_description">Single tap zaps send the default amount &amp; message. Configure custom zap presets below:</string>

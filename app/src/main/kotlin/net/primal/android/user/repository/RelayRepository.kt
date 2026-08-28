@@ -14,18 +14,22 @@ import net.primal.android.user.domain.Relay as RelayDO
 import net.primal.android.user.domain.RelayKind
 import net.primal.android.user.domain.UserRelays
 import net.primal.android.user.domain.cleanWebSocketUrl
+import net.primal.android.user.domain.mapToRelayDO
 import net.primal.android.user.domain.mapToRelayPO
 import net.primal.android.user.domain.toRelay
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.data.remote.api.users.UsersApi
-import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.SignatureException
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 
 class RelayRepository @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val usersDatabase: UsersDatabase,
     private val usersApi: UsersApi,
     private val nostrPublisher: NostrPublisher,
+    private val relayEventQuerier: RelayEventQuerier,
 ) {
     fun observeUserRelays(userId: String) =
         usersDatabase.relays().observeRelays(userId)
@@ -44,20 +48,41 @@ class RelayRepository @Inject constructor(
     @Throws(NostrPublishException::class, SignatureException::class)
     suspend fun bootstrapDefaultUserRelays(userId: String) =
         withContext(dispatchers.io()) {
-            val relays = try {
-                usersApi.getDefaultRelays().map { it.toRelay() }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to fetch default relays." }
-                FALLBACK_RELAYS
-            }
-            replaceUserRelays(userId, relays)
-            nostrPublisher.publishRelayList(userId, relays)
+            replaceUserRelays(userId, FALLBACK_RELAYS)
+            nostrPublisher.publishRelayList(userId, FALLBACK_RELAYS)
         }
 
-    private suspend fun fetchUserRelays(userId: String): List<RelayDO>? {
+    private suspend fun fetchUserRelaysFromRelays(userId: String): List<RelayDO>? {
+        val events = runCatching {
+            relayEventQuerier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.RelayListMetadata.value),
+                    authors = listOf(userId),
+                    limit = 5,
+                ),
+            )
+        }.getOrNull() ?: return null
+        val latest = events.maxByOrNull { it.createdAt } ?: return null
+        Napier.i {
+            "Relay kind-10002 for $userId: events=${events.size} createdAt=${latest.createdAt}"
+        }
+        return latest.tags.parseNip65Relays()
+    }
+
+    private suspend fun fetchUserRelaysFromCache(userId: String): List<RelayDO>? {
         val response = withContext(dispatchers.io()) { usersApi.getUserRelays(listOf(userId)) }
         val cachedNip65Event = response.cachedRelayListEvents.firstOrNull() ?: return null
         return cachedNip65Event.tags.parseNip65Relays()
+    }
+
+    private suspend fun fetchUserRelays(userId: String): List<RelayDO>? {
+        fetchUserRelaysFromRelays(userId)?.let { return it }
+        return fetchUserRelaysFromCache(userId)
+    }
+
+    private suspend fun currentUserRelays(userId: String): List<RelayDO> {
+        fetchUserRelays(userId)?.let { return it }
+        return findRelays(userId, RelayKind.UserRelay).map { it.mapToRelayDO() }
     }
 
     suspend fun fetchAndUpdateUserRelays(userId: String) {
@@ -109,9 +134,28 @@ class RelayRepository @Inject constructor(
         }
     }
 
+    @Throws(NostrPublishException::class)
+    suspend fun updateRelayPermissionsAndPublishRelayList(
+        userId: String,
+        url: String,
+        read: Boolean,
+        write: Boolean,
+    ) {
+        val cleaned = url.cleanWebSocketUrl()
+        if (!read && !write) {
+            removeRelayAndPublishRelayList(userId, cleaned)
+            return
+        }
+        updateRelayList(userId = userId) {
+            map { relay ->
+                if (relay.url.cleanWebSocketUrl() == cleaned) relay.copy(read = read, write = write) else relay
+            }
+        }
+    }
+
     private suspend fun updateRelayList(userId: String, reducer: List<RelayDO>.() -> List<RelayDO>) =
         withContext(dispatchers.io()) {
-            val latestRelayList = fetchUserRelays(userId = userId) ?: emptyList()
+            val latestRelayList = currentUserRelays(userId)
             val newRelayList = latestRelayList.reducer()
             nostrPublisher.publishRelayList(userId = userId, relays = newRelayList)
             replaceUserRelays(userId = userId, relays = newRelayList)

@@ -4,7 +4,6 @@ interface NetworkSettingsContract {
     data class UiState(
         val relays: List<SocketDestinationUiState> = emptyList(),
         val cachingService: SocketDestinationUiState? = null,
-        val cachingProxyEnabled: Boolean = false,
         val updatingRelays: Boolean = false,
         val updatingCachingService: Boolean = false,
         val newRelayUrl: String = "",
@@ -25,6 +24,7 @@ interface NetworkSettingsContract {
         data class ConfirmCachingServiceChange(val url: String) : UiEvent()
         data class UpdateNewRelayUrl(val url: String) : UiEvent()
         data class UpdateNewCachingServiceUrl(val url: String) : UiEvent()
-        data class UpdateCachingProxyFlag(val enabled: Boolean) : UiEvent()
+        data class UpdateRelayRead(val url: String, val read: Boolean) : UiEvent()
+        data class UpdateRelayWrite(val url: String, val write: Boolean) : UiEvent()
     }
 }

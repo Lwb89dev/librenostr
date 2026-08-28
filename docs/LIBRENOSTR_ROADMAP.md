@@ -24,7 +24,7 @@ Status: **this document set**.
 
 ## Phase 2 — Relay infrastructure
 
-Status: **done** (`RelayPool.query`, EOSE/timeout/dedupe/CLOSE, `lastQueryStats`). Publish unchanged.
+Status: **done** (`RelayPool.query`, EOSE/timeout/dedupe/CLOSE, `lastQueryStats`, write-only publish, NIP-65 user relay model).
 
 - Extend `RelayPool` with REQ / EOSE / CLOSE / timeout / event-id dedupe / merge.
 - Expose connection state and safe debug counts (no secrets).
@@ -33,7 +33,7 @@ Status: **done** (`RelayPool.query`, EOSE/timeout/dedupe/CLOSE, `lastQueryStats`
 
 ## Phase 3 — Profile / contact data from relays
 
-Status: **partial** — kind 3 and kind 0 are relay-first with cache fallback. NIP-65 still cache.
+Status: **done** for kind 3, kind 0, and kind 10002 (all relay-first with cache fallback).
 
 - Kind 3 contact list → Room.
 - Kind 0 metadata for those pubkeys → Room (respect local cache; do not re-query unchanged profiles forever).
@@ -57,6 +57,8 @@ Status: **done** for note threads (root by id, `#e` replies, ancestor walk, gaps
 - Open a note without `thread_view`.
 
 ## Phase 6 — Publish path validation
+
+Status: **partial** — EVENT always goes to write relays (`cachingProxyEnabled` publish path removed). Local persist of published events is still `import_events`.
 
 - Local nsec can still sign via `NostrNotary`.
 - EVENT to user/write relays without `cachingProxyEnabled`.

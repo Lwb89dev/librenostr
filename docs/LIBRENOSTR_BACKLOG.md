@@ -78,8 +78,8 @@ These are the next implementation slice after Phase 0. Do them in order.
 | ID | Title | Files | Depends | Acceptance | Tests | Risk | Complexity | Status |
 |---|---|---|---|---|---|---|---|---|
 | LN-010 | Relay observability (debug) | `RelayPool`, logging | LN-001 | Connected relays, active subs, timeouts, event/dup counts; never log nsec | unit | Low | S | done |
-| LN-011 | Default + user relay model | `FallbackRelays`, `settings/network`, NIP-65 | LN-002 | Add/remove/enable relays; read/write; not a single vendor | UI + unit | Medium | M | todo |
-| LN-012 | Disable `cachingProxyEnabled` publish | `RelaysSocketManager`, `RelayPool` | LN-006 | EVENT only to relays | publish still OK | Medium | S | todo |
+| LN-011 | Default + user relay model | `FallbackRelays`, `settings/network`, NIP-65 | LN-002 | Add/remove/enable relays; read/write; not a single vendor | UI + unit | Medium | M | done (kind 10002 relay-first + cache fallback; read/write in Network settings; defaults from `FALLBACK_RELAYS`) |
+| LN-012 | Disable `cachingProxyEnabled` publish | `RelaysSocketManager`, `RelayPool` | LN-006 | EVENT only to relays | publish still OK | Medium | S | done (EVENT to write relays only; cache broadcast path removed) |
 
 ## Phase 6–7
 

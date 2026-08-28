@@ -18,7 +18,6 @@ import net.primal.android.user.domain.RelayKind
 import net.primal.android.user.domain.mapToRelayDO
 import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
@@ -27,7 +26,6 @@ import net.primal.domain.nostr.relay.RelayFilter
 class RelaysSocketManager @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val nostrSocketClientFactory: NostrSocketClientFactory,
-    private val cachingImportRepository: CachingImportRepository,
     private val activeAccountStore: ActiveAccountStore,
     private val usersDatabase: UsersDatabase,
 ) : RelayEventQuerier {
@@ -41,7 +39,6 @@ class RelaysSocketManager @Inject constructor(
         RelayPool(
             dispatchers = dispatchers,
             nostrSocketClientFactory = nostrSocketClientFactory,
-            cachingImportRepository = cachingImportRepository,
         )
 
     private val userRelaysPool: RelayPool = buildRelayPool()
@@ -74,8 +71,6 @@ class RelaysSocketManager @Inject constructor(
                 }
             }
         }
-
-    private suspend fun isCachingProxyEnabled() = activeAccountStore.activeUserAccount().cachingProxyEnabled
 
     private fun observeRelays(userId: String): Job =
         scope.launch {
@@ -113,9 +108,9 @@ class RelaysSocketManager @Inject constructor(
     @Throws(NostrPublishException::class)
     suspend fun publishEvent(nostrEvent: NostrEvent) {
         if (userRelaysPool.hasRelays()) {
-            userRelaysPool.publishEvent(nostrEvent = nostrEvent, cachingProxyEnabled = isCachingProxyEnabled())
+            userRelaysPool.publishEvent(nostrEvent = nostrEvent)
         } else {
-            fallbackRelaysPool.publishEvent(nostrEvent = nostrEvent, cachingProxyEnabled = isCachingProxyEnabled())
+            fallbackRelaysPool.publishEvent(nostrEvent = nostrEvent)
         }
     }
 
@@ -123,7 +118,7 @@ class RelaysSocketManager @Inject constructor(
     suspend fun publishEvent(nostrEvent: NostrEvent, relays: List<Relay>) {
         val customPool = buildRelayPool()
         customPool.changeRelays(relays = relays)
-        customPool.publishEvent(nostrEvent = nostrEvent, cachingProxyEnabled = isCachingProxyEnabled())
+        customPool.publishEvent(nostrEvent = nostrEvent)
         customPool.closePool()
     }
 
@@ -133,7 +128,7 @@ class RelaysSocketManager @Inject constructor(
             throw NostrPublishException(cause = IllegalStateException("nwc relay not found"))
         }
 
-        nwcRelaysPool.publishEvent(nostrEvent = nostrEvent, cachingProxyEnabled = isCachingProxyEnabled())
+        nwcRelaysPool.publishEvent(nostrEvent = nostrEvent)
     }
 
     fun tryConnectingToAllUserRelays() {

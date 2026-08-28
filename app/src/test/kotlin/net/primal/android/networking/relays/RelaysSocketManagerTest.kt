@@ -21,7 +21,6 @@ import net.primal.android.user.domain.UserAccount
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.testing.CoroutinesTestRule
-import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.NostrEvent
 import org.junit.After
 import org.junit.Before
@@ -84,12 +83,10 @@ class RelaysSocketManagerTest {
     private fun buildRelaysSocketManager(
         activeAccountStore: ActiveAccountStore = buildActiveAccountStore(),
         usersDatabase: UsersDatabase = buildUsersDatabase(),
-        cachingImportRepository: CachingImportRepository = mockk(relaxed = true),
     ): RelaysSocketManager {
         return RelaysSocketManager(
             dispatchers = coroutinesTestRule.dispatcherProvider,
             nostrSocketClientFactory = NostrSocketClientFactory,
-            cachingImportRepository = cachingImportRepository,
             activeAccountStore = activeAccountStore,
             usersDatabase = usersDatabase,
         )

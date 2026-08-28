@@ -33,19 +33,15 @@ import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.networking.sockets.SocketConnectionClosedCallback
 import net.primal.core.networking.sockets.SocketConnectionOpenedCallback
 import net.primal.core.networking.sockets.filterBySubscriptionId
-import net.primal.core.networking.sockets.parseIncomingMessage
 import net.primal.core.networking.sockets.publishEventAndAwaitResponse
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
-import net.primal.domain.common.exception.NetworkException
-import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.serialization.toNostrJsonObject
 
 class RelayPool(
     dispatchers: DispatcherProvider,
     private val nostrSocketClientFactory: NostrSocketClientFactory,
-    private val cachingImportRepository: CachingImportRepository,
 ) {
 
     companion object {
@@ -64,8 +60,8 @@ class RelayPool(
 
     fun activeSubscriptionCount(): Int = activeSubscriptions.get()
 
+    @VisibleForTesting
     var relays: List<Relay> = emptyList()
-        private set
 
     @VisibleForTesting
     var socketClients = listOf<NostrSocketClient>()
@@ -135,38 +131,12 @@ class RelayPool(
         }
 
     @Throws(NostrPublishException::class)
-    suspend fun publishEvent(nostrEvent: NostrEvent, cachingProxyEnabled: Boolean = false) {
-        if (cachingProxyEnabled) {
-            handleBroadcastEventThroughCachingProxy(relays.map { it.url }, nostrEvent)
-        } else {
-            handlePublishEventToRelays(socketClients, nostrEvent)
+    suspend fun publishEvent(nostrEvent: NostrEvent) {
+        val clients = writeClients()
+        if (clients.isEmpty()) {
+            throw NostrPublishException(cause = IllegalStateException("no write relays"))
         }
-    }
-
-    private suspend fun handleBroadcastEventThroughCachingProxy(relayUrls: List<String>, nostrEvent: NostrEvent) {
-        val result =
-            cachingImportRepository.broadcastEvents(
-                events = listOf(nostrEvent),
-                relays = relayUrls,
-            ).getOrNull()
-                ?: throw NostrPublishException(
-                    cause = NetworkException(message = "Primal NostrEvent 10_000_149 not found or invalid."),
-                )
-
-        result.find { response -> response.eventId == nostrEvent.id }?.responses
-            ?.mapNotNull { relayResponse ->
-                val relay = relayResponse.firstOrNull()
-                val responseMessage = relayResponse.getOrNull(index = 1)?.parseIncomingMessage()
-                if (relay != null && responseMessage != null) {
-                    relay to responseMessage
-                } else {
-                    null
-                }
-            }
-            ?.find { (_, relayMessage) -> relayMessage is NostrIncomingMessage.OkMessage && relayMessage.success }
-            ?: throw NostrPublishException(
-                cause = NetworkException("Event broadcast failed. Could not find success response from relays."),
-            )
+        handlePublishEventToRelays(clients, nostrEvent)
     }
 
     @OptIn(FlowPreview::class)
@@ -232,11 +202,15 @@ class RelayPool(
         }
     }
 
-    private fun readClients(): List<NostrSocketClient> {
+    private fun readClients(): List<NostrSocketClient> = clientsFor { it.read }
+
+    private fun writeClients(): List<NostrSocketClient> = clientsFor { it.write }
+
+    private fun clientsFor(predicate: (Relay) -> Boolean): List<NostrSocketClient> {
         if (relays.isEmpty()) return socketClients
-        val readUrls = relays.filter { it.read }.map { it.url }.toSet()
-        if (readUrls.isEmpty()) return socketClients
-        return socketClients.filter { it.socketUrl in readUrls }
+        val urls = relays.filter(predicate).map { it.url }.toSet()
+        if (urls.isEmpty()) return emptyList()
+        return socketClients.filter { it.socketUrl in urls }
     }
 
     private suspend fun collectUntilEose(

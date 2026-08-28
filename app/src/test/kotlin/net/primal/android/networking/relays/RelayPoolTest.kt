@@ -1,7 +1,6 @@
 package net.primal.android.networking.relays
 
 import io.kotest.matchers.shouldBe
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -16,17 +15,14 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import net.primal.android.networking.relays.errors.NostrPublishException
+import net.primal.android.user.domain.Relay
 import net.primal.core.networking.sockets.NostrIncomingMessage
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.testing.CoroutinesTestRule
-import net.primal.core.utils.Result
-import net.primal.domain.global.BroadcastEventResponse
-import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.NostrEvent
 import org.junit.Rule
 import org.junit.Test
@@ -50,11 +46,9 @@ class RelayPoolTest {
 
     private fun buildRelayPool(
         nostrSocketClientFactory: NostrSocketClientFactory = mockk(relaxed = true),
-        cachingImportRepository: CachingImportRepository = mockk(relaxed = true),
     ) = RelayPool(
         dispatchers = coroutinesTestRule.dispatcherProvider,
         nostrSocketClientFactory = nostrSocketClientFactory,
-        cachingImportRepository = cachingImportRepository,
     )
 
     private fun buildSocketClientReturningOkMessageSuccessFalse(
@@ -243,160 +237,63 @@ class RelayPoolTest {
         }
 
     @Test
-    fun publishEvent_ifCachingProxyEnabled_socketClientsAreNotUsed() =
+    fun publishEvent_sendsOnlyToWriteRelays() =
         runTest {
-            val eventId = "helloProxy"
-            val cachingImportRepository = mockk<CachingImportRepository>(relaxed = true) {
-                coEvery { broadcastEvents(any(), any()) } returns Result.success(
-                    listOf(
-                        BroadcastEventResponse(
-                            eventId = eventId,
-                            responses = listOf(
-                                listOf("wss://relay.example.com", """["OK","$eventId",true,""]"""),
-                            ),
-                        ),
-                    ),
-                )
+            val eventId = "write-only"
+            val writeIncoming = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 8)
+            val readSocket = mockk<NostrSocketClient>(relaxed = true) {
+                every { socketUrl } returns "wss://read.example"
+                every { incomingMessages } returns MutableSharedFlow()
+                every { connectionGeneration } returns MutableStateFlow(0L)
             }
-            val relayPool = buildRelayPool(cachingImportRepository = cachingImportRepository).apply {
-                socketClients = listOf(
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                )
+            val writeSocket = mockk<NostrSocketClient>(relaxed = true) {
+                every { socketUrl } returns "wss://write.example"
+                every { incomingMessages } returns writeIncoming
+                every { connectionGeneration } returns MutableStateFlow(0L)
             }
-
-            relayPool.publishEvent(
-                nostrEvent = buildNostrEvent(eventId = eventId),
-                cachingProxyEnabled = true,
+            val relayPool = buildRelayPool()
+            relayPool.relays = listOf(
+                Relay(url = "wss://read.example", read = true, write = false),
+                Relay(url = "wss://write.example", read = false, write = true),
             )
-            advanceUntilIdle()
+            relayPool.socketClients = listOf(readSocket, writeSocket)
 
-            coVerify {
-                relayPool.socketClients.forEach { socketClient ->
-                    socketClient wasNot Called
-                }
-            }
-        }
+            val job = launch { relayPool.publishEvent(buildNostrEvent(eventId)) }
+            runCurrent()
+            writeIncoming.emit(NostrIncomingMessage.OkMessage(eventId = eventId, success = true))
+            runCurrent()
+            job.join()
 
-    @Test(expected = NostrPublishException::class)
-    fun publishEvent_ifCachingProxyEnabled_throwsExceptionIfBroadcastResultIsNotFound() =
-        runTest {
-            val cachingImportRepository = mockk<CachingImportRepository>(relaxed = true) {
-                coEvery { broadcastEvents(any(), any()) } returns Result.failure(Exception("Not found"))
-            }
-            val relayPool = buildRelayPool(cachingImportRepository = cachingImportRepository).apply {
-                socketClients = listOf(
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                )
-            }
-
-            relayPool.publishEvent(
-                nostrEvent = buildNostrEvent(eventId = "helloProxy"),
-                cachingProxyEnabled = true,
-            )
-        }
-
-    @Test(expected = NostrPublishException::class)
-    fun publishEvent_ifCachingProxyEnabled_throwsExceptionIfBroadcastResultDoesNotHaveOKMessage() =
-        runTest {
-            val eventId = "eventId"
-            val cachingImportRepository = mockk<CachingImportRepository>(relaxed = true) {
-                coEvery { broadcastEvents(any(), any()) } returns Result.success(
-                    listOf(
-                        BroadcastEventResponse(
-                            eventId = eventId,
-                            responses = listOf(
-                                listOf("wss://relay.example.com", """["NOTICE","some notice"]"""),
-                            ),
-                        ),
-                    ),
-                )
-            }
-            val relayPool = buildRelayPool(cachingImportRepository = cachingImportRepository).apply {
-                socketClients = listOf(
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                )
-            }
-
-            relayPool.publishEvent(
-                nostrEvent = buildNostrEvent(eventId = eventId),
-                cachingProxyEnabled = true,
-            )
-        }
-
-    @Test(expected = NostrPublishException::class)
-    fun publishEvent_ifCachingProxyEnabled_throwsExceptionIfBroadcastResultHasOKMessageButSuccessIsFalse() =
-        runTest {
-            val eventId = "eventId"
-            val cachingImportRepository = mockk<CachingImportRepository>(relaxed = true) {
-                coEvery { broadcastEvents(any(), any()) } returns Result.success(
-                    listOf(
-                        BroadcastEventResponse(
-                            eventId = eventId,
-                            responses = listOf(
-                                listOf("wss://relay.example.com", """["OK","$eventId",false,"error"]"""),
-                            ),
-                        ),
-                    ),
-                )
-            }
-            val relayPool = buildRelayPool(cachingImportRepository = cachingImportRepository).apply {
-                socketClients = listOf(
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                )
-            }
-
-            relayPool.publishEvent(
-                nostrEvent = buildNostrEvent(eventId = eventId),
-                cachingProxyEnabled = true,
-            )
+            coVerify { writeSocket.sendEVENT(any()) }
+            coVerify(exactly = 0) { readSocket.sendEVENT(any()) }
         }
 
     @Test
-    fun publishEvent_ifCachingProxyEnabled_doesNotThrowIfWeHaveSuccessInBroadcastResult() =
+    fun query_sendsOnlyToReadRelays() =
         runTest {
-            val eventId = "eventId"
-            val cachingImportRepository = mockk<CachingImportRepository>(relaxed = true) {
-                coEvery { broadcastEvents(any(), any()) } returns Result.success(
-                    listOf(
-                        BroadcastEventResponse(
-                            eventId = eventId,
-                            responses = listOf(
-                                listOf("wss://relay.example.com", """["OK","$eventId",true,""]"""),
-                            ),
-                        ),
-                    ),
-                )
-            }
-            val relayPool = buildRelayPool(cachingImportRepository = cachingImportRepository).apply {
-                socketClients = listOf(
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                    mockk(relaxed = true),
-                )
-            }
-
-            relayPool.publishEvent(
-                nostrEvent = buildNostrEvent(eventId = eventId),
-                cachingProxyEnabled = true,
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-read" }
+            val event = buildNostrEvent("from-read")
+            val readIncoming = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val writeIncoming = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val readSocket = buildQuerySocket("wss://read.example", readIncoming)
+            val writeSocket = buildQuerySocket("wss://write.example", writeIncoming)
+            relayPool.relays = listOf(
+                Relay(url = "wss://read.example", read = true, write = false),
+                Relay(url = "wss://write.example", read = false, write = true),
             )
+            relayPool.socketClients = listOf(readSocket, writeSocket)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1))) }
+            runCurrent()
+            readIncoming.emit(NostrIncomingMessage.EventMessage(subscriptionId = "sub-read", nostrEvent = event))
+            readIncoming.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-read"))
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id } shouldBe listOf("from-read")
+            coVerify { readSocket.sendREQ("sub-read", any()) }
+            coVerify(exactly = 0) { writeSocket.sendREQ(any(), any()) }
         }
 
     private fun buildQuerySocket(

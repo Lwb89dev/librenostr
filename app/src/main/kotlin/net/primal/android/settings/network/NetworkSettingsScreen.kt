@@ -4,12 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -40,14 +42,12 @@ import net.primal.android.core.compose.ConfirmActionAlertDialog
 import net.primal.android.core.compose.DeleteListItemImage
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.PrimalScaffold
-import net.primal.android.core.compose.PrimalSwitch
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.settings.DecoratedSettingsOutlinedTextField
-import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -186,34 +186,7 @@ private fun NetworkLazyColumn(
             eventsPublisher = eventsPublisher,
         )
 
-        item { PrimalDivider() }
-
-        enhancedPrivacyItem(
-            checked = state.cachingProxyEnabled,
-            onCheckedChanged = { enabled ->
-                eventsPublisher(NetworkSettingsContract.UiEvent.UpdateCachingProxyFlag(enabled = enabled))
-            },
-        )
-
         item { Spacer(modifier = Modifier.height(32.dp)) }
-    }
-}
-
-private fun LazyListScope.enhancedPrivacyItem(checked: Boolean, onCheckedChanged: (Boolean) -> Unit) {
-    item {
-        Column {
-            SettingsItem(
-                modifier = Modifier.padding(vertical = 8.dp),
-                headlineText = stringResource(id = R.string.settings_network_enhanced_privacy_title),
-                supportText = stringResource(id = R.string.settings_network_enhanced_privacy_description),
-                trailingContent = {
-                    PrimalSwitch(checked = checked, onCheckedChange = onCheckedChanged)
-                },
-                onClick = {
-                    onCheckedChanged(!checked)
-                },
-            )
-        }
     }
 }
 
@@ -235,12 +208,28 @@ private fun LazyListScope.relaysSectionItems(
         }
     }
 
-    items(items = state.relays, key = { it.url }) {
+    items(items = state.relays, key = { it.url }) { relay ->
         Column {
             NetworkDestinationListItem(
-                destinationUrl = it.url,
-                connected = it.connected,
-                onRemoveClick = { onRemoveRelayClick(it.url) },
+                destinationUrl = relay.url,
+                connected = relay.connected,
+                onRemoveClick = { onRemoveRelayClick(relay.url) },
+                trailingPermissions = {
+                    RelayPermissionToggles(
+                        read = relay.read,
+                        write = relay.write,
+                        onReadChanged = { read ->
+                            eventsPublisher(
+                                NetworkSettingsContract.UiEvent.UpdateRelayRead(url = relay.url, read = read),
+                            )
+                        },
+                        onWriteChanged = { write ->
+                            eventsPublisher(
+                                NetworkSettingsContract.UiEvent.UpdateRelayWrite(url = relay.url, write = write),
+                            )
+                        },
+                    )
+                },
             )
             PrimalDivider()
         }
@@ -346,6 +335,7 @@ fun NetworkDestinationListItem(
     destinationUrl: String,
     connected: Boolean,
     onRemoveClick: (() -> Unit)? = null,
+    trailingPermissions: (@Composable () -> Unit)? = null,
     colors: ListItemColors = ListItemDefaults.colors(
         containerColor = AppTheme.colorScheme.surfaceVariant,
     ),
@@ -369,13 +359,61 @@ fun NetworkDestinationListItem(
             Text(text = destinationUrl)
         },
         trailingContent = {
-            if (onRemoveClick != null) {
-                DeleteListItemImage(
-                    modifier = Modifier.clickable { onRemoveClick() },
-                )
+            Row {
+                trailingPermissions?.invoke()
+                if (onRemoveClick != null) {
+                    DeleteListItemImage(
+                        modifier = Modifier.clickable { onRemoveClick() },
+                    )
+                }
             }
         },
         colors = colors,
+    )
+}
+
+@Composable
+private fun RelayPermissionToggles(
+    read: Boolean,
+    write: Boolean,
+    onReadChanged: (Boolean) -> Unit,
+    onWriteChanged: (Boolean) -> Unit,
+) {
+    Row {
+        PermissionLabel(
+            text = stringResource(id = R.string.settings_network_relay_read),
+            enabled = read,
+            onClick = { onReadChanged(!read) },
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        PermissionLabel(
+            text = stringResource(id = R.string.settings_network_relay_write),
+            enabled = write,
+            onClick = { onWriteChanged(!write) },
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+    }
+}
+
+@Composable
+private fun PermissionLabel(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val color = if (enabled) {
+        AppTheme.colorScheme.primary
+    } else {
+        AppTheme.extraColorScheme.onSurfaceVariantAlt1
+    }
+    Text(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        text = text,
+        style = AppTheme.typography.labelMedium,
+        color = color,
+        fontWeight = if (enabled) FontWeight.SemiBold else FontWeight.Normal,
     )
 }
 
@@ -391,8 +429,10 @@ private fun PreviewNetworksScreen() {
             state = NetworkSettingsContract.UiState(
                 relays = listOf(
                     SocketDestinationUiState(
-                        url = "wss://primal.relay.net",
+                        url = "wss://relay.damus.io",
                         connected = false,
+                        read = true,
+                        write = true,
                     ),
                 ),
                 cachingService = SocketDestinationUiState(

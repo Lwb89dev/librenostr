@@ -19,7 +19,6 @@ import net.primal.android.settings.network.NetworkSettingsContract.UiEvent
 import net.primal.android.settings.network.NetworkSettingsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.RelayRepository
-import net.primal.android.user.repository.UserRepository
 import net.primal.core.config.AppConfigHandler
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.domain.common.exception.NetworkException
@@ -32,7 +31,6 @@ class NetworkSettingsViewModel @Inject constructor(
     @PrimalCacheApiClient private val primalApiClient: PrimalApiClient,
     private val relayRepository: RelayRepository,
     private val appConfigHandler: AppConfigHandler,
-    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -50,31 +48,23 @@ class NetworkSettingsViewModel @Inject constructor(
         observeRelayPoolConnections()
         observeCachingServiceConnection()
         observeUserRelays()
-        observeCachingProxy()
     }
 
     private fun observeUserRelays() =
         viewModelScope.launch {
             val userId = activeAccountStore.activeUserId()
-            relayRepository.observeUserRelays(userId).collect {
+            relayRepository.observeUserRelays(userId).collect { relays ->
                 setState {
                     copy(
-                        relays = it.map {
+                        relays = relays.map { relay ->
                             SocketDestinationUiState(
-                                url = it.url,
-                                connected = latestRelaysPoolStatus[it.url] ?: false,
+                                url = relay.url,
+                                connected = latestRelaysPoolStatus[relay.url] ?: false,
+                                read = relay.read,
+                                write = relay.write,
                             )
                         },
                     )
-                }
-            }
-        }
-
-    private fun observeCachingProxy() =
-        viewModelScope.launch {
-            activeAccountStore.activeUserAccount.collect { userAccount ->
-                setState {
-                    copy(cachingProxyEnabled = userAccount.cachingProxyEnabled)
                 }
             }
         }
@@ -90,7 +80,8 @@ class NetworkSettingsViewModel @Inject constructor(
                     is UiEvent.UpdateNewRelayUrl -> setState { copy(newRelayUrl = it.url) }
                     is UiEvent.ConfirmCachingServiceChange -> changeCachingService(url = it.url)
                     is UiEvent.UpdateNewCachingServiceUrl -> setState { copy(newCachingServiceUrl = it.url) }
-                    is UiEvent.UpdateCachingProxyFlag -> updateCachingServiceFlag(enabled = it.enabled)
+                    is UiEvent.UpdateRelayRead -> updateRelayPermissions(url = it.url, read = it.read, write = null)
+                    is UiEvent.UpdateRelayWrite -> updateRelayPermissions(url = it.url, read = null, write = it.write)
                     UiEvent.DismissError -> setState { copy(error = null) }
                 }
             }
@@ -166,6 +157,21 @@ class NetworkSettingsViewModel @Inject constructor(
             }
         }
 
+    private fun updateRelayPermissions(url: String, read: Boolean?, write: Boolean?) =
+        viewModelScope.launch {
+            val current = _uiState.value.relays.find { it.url == url } ?: return@launch
+            val newRead = read ?: current.read
+            val newWrite = write ?: current.write
+            changeRelayList { userId ->
+                relayRepository.updateRelayPermissionsAndPublishRelayList(
+                    userId = userId,
+                    url = url,
+                    read = newRead,
+                    write = newWrite,
+                )
+            }
+        }
+
     private suspend fun changeRelayList(block: suspend (String) -> Unit) {
         try {
             setState { copy(updatingRelays = true) }
@@ -194,14 +200,5 @@ class NetworkSettingsViewModel @Inject constructor(
     private fun restoreDefaultCachingService() =
         viewModelScope.launch {
             appConfigHandler.restoreDefaultCacheUrl()
-        }
-
-    private fun updateCachingServiceFlag(enabled: Boolean) =
-        viewModelScope.launch {
-            userRepository.updateCachingProxyEnabled(
-                userId = activeAccountStore.activeUserId(),
-                enabled = enabled,
-            )
-            setState { copy(cachingProxyEnabled = enabled) }
         }
 }
