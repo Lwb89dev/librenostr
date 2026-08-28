@@ -77,7 +77,9 @@ private fun SettingsHomeScreen(
                 modifier = Modifier.padding(paddingValues),
             ) {
                 items(
-                    items = PrimalSettingsSection.entries,
+                    items = PrimalSettingsSection.entries.filter {
+                        it != PrimalSettingsSection.Wallet && it != PrimalSettingsSection.ConnectedApps
+                    },
                     key = { it.name },
                 ) {
                     SettingsListItem(

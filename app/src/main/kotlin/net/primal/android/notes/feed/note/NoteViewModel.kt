@@ -27,7 +27,6 @@ import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.UserRepository
 import net.primal.android.wallet.zaps.ZapHandler
 import net.primal.core.utils.onFailure
-import net.primal.domain.account.WalletAccountRepository
 import net.primal.domain.bookmarks.BookmarkType
 import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.common.exception.NetworkException
@@ -62,7 +61,6 @@ class NoteViewModel @AssistedInject constructor(
     private val bookmarksRepository: PublicBookmarksRepository,
     private val relayHintsRepository: EventRelayHintsRepository,
     private val userRepository: UserRepository,
-    private val walletAccountRepository: WalletAccountRepository,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -182,12 +180,8 @@ class NoteViewModel @AssistedInject constructor(
                 return@launch
             }
 
-            val walletId = walletAccountRepository.getActiveWallet(userId = activeAccountStore.activeUserId())
-                ?.wallet?.walletId ?: return@launch
-
             val result = zapHandler.zap(
                 userId = activeAccountStore.activeUserId(),
-                walletId = walletId,
                 comment = zapAction.zapDescription,
                 amountInSats = zapAction.zapAmount,
                 target = ZapTarget.Event(
@@ -494,10 +488,6 @@ class NoteViewModel @AssistedInject constructor(
                 return@launch
             }
 
-            val walletId = walletAccountRepository.getActiveWallet(
-                userId = activeAccountStore.activeUserId(),
-            )?.wallet?.walletId ?: return@launch
-
             pollsRepository.validateZapPollVote(
                 userId = activeAccountStore.activeUserId(),
                 pollEventId = action.postId,
@@ -521,7 +511,6 @@ class NoteViewModel @AssistedInject constructor(
 
             val result = zapHandler.zap(
                 userId = activeAccountStore.activeUserId(),
-                walletId = walletId,
                 comment = action.zapComment ?: "",
                 amountInSats = action.zapAmount.toULong(),
                 target = ZapTarget.PollEvent(

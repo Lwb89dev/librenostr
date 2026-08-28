@@ -104,13 +104,7 @@ class WalletNoticeSheetViewModel @Inject constructor(
         }
     }
 
-    private fun refreshNoticeFromServer() {
-        viewModelScope.launch {
-            val userId = activeAccountStore.activeUserId()
-            if (userId.isEmpty()) return@launch
-            fetchAndUpdateNoticeType(userId)
-        }
-    }
+    private fun refreshNoticeFromServer() = Unit
 
     private suspend fun fetchAndUpdateNoticeType(userId: String) {
         primalWalletAccountRepository.fetchWalletStatus(userId = userId)
@@ -147,8 +141,6 @@ class WalletNoticeSheetViewModel @Inject constructor(
 
                 setState { copy(noticeType = null, shouldShowNotice = false) }
                 showDelayJob?.cancel()
-
-                fetchAndUpdateNoticeType(userId)
             }
         }
 

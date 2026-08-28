@@ -37,7 +37,6 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
-import net.primal.domain.account.WalletAccountRepository
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.feeds.FEED_KIND_USER
 import net.primal.domain.feeds.FeedSpecKind
@@ -69,7 +68,6 @@ class ProfileDetailsViewModel @Inject constructor(
     private val zapHandler: ZapHandler,
     private val profileFollowsHandler: ProfileFollowsHandler,
     private val streamRepository: StreamRepository,
-    private val walletAccountRepository: WalletAccountRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -177,12 +175,8 @@ class ProfileDetailsViewModel @Inject constructor(
             return@launch
         }
 
-        val walletId = walletAccountRepository.getActiveWallet(userId = activeAccountStore.activeUserId())
-            ?.wallet?.walletId ?: return@launch
-
         val result = zapHandler.zap(
             userId = activeAccountStore.activeUserId(),
-            walletId = walletId,
             target = ZapTarget.Profile(
                 recipientUserId = profileId,
                 recipientLnUrlDecoded = profileLnUrlDecoded,

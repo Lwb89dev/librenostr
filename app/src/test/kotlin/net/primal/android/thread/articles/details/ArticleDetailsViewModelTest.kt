@@ -97,7 +97,6 @@ class ArticleDetailsViewModelTest {
             },
             eventInteractionRepository = mockk(relaxed = true),
             zapHandler = mockk(relaxed = true),
-            walletAccountRepository = mockk(relaxed = true),
             dispatcherProvider = coroutinesTestRule.dispatcherProvider,
         )
     }

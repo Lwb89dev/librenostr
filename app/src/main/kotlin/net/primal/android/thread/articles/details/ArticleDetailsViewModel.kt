@@ -40,7 +40,6 @@ import net.primal.android.wallet.zaps.ZapHandler
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
-import net.primal.domain.account.WalletAccountRepository
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.events.EventInteractionRepository
 import net.primal.domain.nostr.Naddr
@@ -82,7 +81,6 @@ class ArticleDetailsViewModel @Inject constructor(
     private val profileFollowsHandler: ProfileFollowsHandler,
     private val eventInteractionRepository: EventInteractionRepository,
     private val zapHandler: ZapHandler,
-    private val walletAccountRepository: WalletAccountRepository,
     private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
 
@@ -252,12 +250,8 @@ class ArticleDetailsViewModel @Inject constructor(
                 return@launch
             }
 
-            val walletId = walletAccountRepository.getActiveWallet(userId = activeAccountStore.activeUserId())
-                ?.wallet?.walletId ?: return@launch
-
             val result = zapHandler.zap(
                 userId = activeAccountStore.activeUserId(),
-                walletId = walletId,
                 comment = zapAction.zapDescription,
                 amountInSats = zapAction.zapAmount,
                 target = ZapTarget.ReplaceableEvent(

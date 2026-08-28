@@ -8,6 +8,7 @@ import javax.inject.Singleton
 import net.primal.android.networking.di.PrimalWalletApiClient
 import net.primal.android.nostr.notary.NostrNotary
 import net.primal.core.lightning.LightningAddressChecker
+import net.primal.core.lightning.LightningPayHelper
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.events.EventRepository
@@ -32,6 +33,11 @@ object WalletUtilitiesModule {
         LightningAddressChecker(
             dispatcherProvider = dispatcherProvider,
         )
+
+    @Provides
+    @Singleton
+    fun providesLightningPayHelper(dispatcherProvider: DispatcherProvider): LightningPayHelper =
+        LightningPayHelper(dispatcherProvider = dispatcherProvider)
 
     @Provides
     @Singleton

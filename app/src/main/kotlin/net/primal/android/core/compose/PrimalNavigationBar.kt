@@ -82,8 +82,11 @@ fun PrimalNavigationBar(
                 val horizontalPadding = 12.dp
                 val topPadding = 4.dp
                 val pillWidth = 72.dp
-                val itemWidth = (maxWidth - horizontalPadding * 2) / PrimalTopLevelDestination.entries.size
-                val selectedIndex = PrimalTopLevelDestination.entries.indexOf(activeDestination)
+                val destinations = PrimalTopLevelDestination.entries.filter {
+                    it != PrimalTopLevelDestination.Wallet
+                }
+                val itemWidth = (maxWidth - horizontalPadding * 2) / destinations.size
+                val selectedIndex = destinations.indexOf(activeDestination).coerceAtLeast(0)
 
                 val pillOffset by animateDpAsState(
                     targetValue = horizontalPadding + itemWidth * selectedIndex + (itemWidth - pillWidth) / 2,
@@ -117,7 +120,7 @@ fun PrimalNavigationBar(
                         .padding(horizontal = horizontalPadding)
                         .fillMaxSize(),
                 ) {
-                    PrimalTopLevelDestination.entries.forEach { destination ->
+                    destinations.forEach { destination ->
                         PrimalNavigationBarItem(
                             modifier = Modifier
                                 .weight(1f)

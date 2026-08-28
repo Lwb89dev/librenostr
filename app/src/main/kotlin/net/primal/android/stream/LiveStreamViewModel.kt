@@ -52,7 +52,6 @@ import net.primal.android.user.repository.UserRepository
 import net.primal.android.wallet.zaps.ZapHandler
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
-import net.primal.domain.account.WalletAccountRepository
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.events.EventInteractionRepository
 import net.primal.domain.events.EventRelayHintsRepository
@@ -95,7 +94,6 @@ class LiveStreamViewModel @AssistedInject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val profileFollowsHandler: ProfileFollowsHandler,
     private val zapHandler: ZapHandler,
-    private val walletAccountRepository: WalletAccountRepository,
     private val mutedItemRepository: MutedItemRepository,
     private val eventInteractionRepository: EventInteractionRepository,
     private val eventRepository: EventRepository,
@@ -653,9 +651,6 @@ class LiveStreamViewModel @AssistedInject constructor(
                 return@launch
             }
 
-            val walletId = walletAccountRepository.getActiveWallet(userId = activeAccountStore.activeUserId())
-                ?.wallet?.walletId ?: return@launch
-
             val tempZapId = addZapOptimistically(zapAction = zapAction, activeAccount = activeAccount)
 
             val result = zapHandler.zap(
@@ -668,7 +663,6 @@ class LiveStreamViewModel @AssistedInject constructor(
                     recipientUserId = authorProfile.pubkey,
                     recipientLnUrlDecoded = lnUrlDecoded,
                 ),
-                walletId = walletId,
             )
 
             if (result is ZapResult.Failure) {

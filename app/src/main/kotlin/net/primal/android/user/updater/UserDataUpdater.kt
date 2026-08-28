@@ -49,16 +49,6 @@ class UserDataUpdater @AssistedInject constructor(
 
     override suspend fun doUpdate(): Result<Unit> {
         coroutineScope {
-            // Wallet chain — migrate (conditional) must not overlap ensurePrimalWallet (same wallet rows).
-            launch {
-                activeAccountStore.activeUserAccount().let { activeAccount ->
-                    if (activeAccount.nostrWallet != null || activeAccount.primalWallet != null) {
-                        runCatching { migrateWalletData(userAccount = activeAccount) }
-                    }
-                }
-                runCatching { ensurePrimalWalletExistsUseCase.invoke(userId = userId) }
-            }
-
             // Profile chain — user account fetched before profile lookup + eager verification.
             launch {
                 runCatching { userRepository.fetchAndUpdateUserAccount(userId = userId) }
@@ -73,31 +63,11 @@ class UserDataUpdater @AssistedInject constructor(
                 }
             }
 
-            // Settings block — ensureZapConfig reads the settings fetchAndPersistAppSettings just wrote.
-            launch {
-                runCatching {
-                    val authorizationEvent = nostrNotary.signAuthorizationNostrEvent(
-                        userId = userId,
-                        description = "Sync app settings",
-                    ).unwrapOrThrow()
-                    settingsRepository.fetchAndPersistAppSettings(authorizationEvent)
-                    settingsRepository.ensureZapConfig(authorizationEvent) { appSettings ->
-                        nostrNotary.signAppSettingsNostrEvent(
-                            userId = userId,
-                            appSettings = appSettings,
-                        ).unwrapOrThrow()
-                    }
-                }
-            }
-
-            launch { runCatching { premiumRepository.fetchMembershipStatus(userId = userId) } }
-            launch { runCatching { relayRepository.fetchAndUpdateUserRelays(userId = userId) } }
+            launch { runCatching { relayRepository.syncUserRelaysOrBootstrap(userId = userId) } }
             launch { runCatching { bookmarksRepository.fetchAndPersistBookmarks(userId = userId) } }
             launch { runCatching { pushNotificationsTokenUpdater.updateTokenForAllUsers() } }
             launch { runCatching { pushNotificationsTokenUpdater.updateTokenForRemoteSigner() } }
-            launch { runCatching { pushNotificationsTokenUpdater.updateTokenForNwcService() } }
             launch { runCatching { mutedItemRepository.fetchAndPersistMuteList(userId = userId) } }
-            launch { runCatching { walletRepository.enrichUnenrichedTransactions() } }
             launch { runCatching { mutedItemRepository.fetchAndPersistStreamMuteList(userId = userId) } }
         }
 
