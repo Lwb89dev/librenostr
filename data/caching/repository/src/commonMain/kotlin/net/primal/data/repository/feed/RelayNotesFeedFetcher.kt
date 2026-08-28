@@ -1,5 +1,8 @@
 package net.primal.data.repository.feed
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
@@ -26,22 +29,16 @@ internal class RelayNotesFeedFetcher(
         val authors = loadFollows(userId) + userId
         if (authors.isEmpty()) return emptyFeedResponse()
 
-        val noteEvents = authors.chunked(AUTHOR_CHUNK).flatMap { chunk ->
-            runCatching {
-                querier.query(
-                    RelayFilter(
-                        kinds = listOf(
-                            NostrEventKind.ShortTextNote.value,
-                            NostrEventKind.ShortTextNoteRepost.value,
-                        ),
-                        authors = chunk,
-                        limit = limit,
-                        until = until,
-                        since = since,
-                    ),
-                )
-            }.getOrDefault(emptyList())
-        }
+        val noteEvents = queryInChunks(
+            authors = authors,
+            kinds = listOf(
+                NostrEventKind.ShortTextNote.value,
+                NostrEventKind.ShortTextNoteRepost.value,
+            ),
+            limit = limit,
+            until = until,
+            since = since,
+        )
 
         val unique = noteEvents.distinctBy { it.id }.sortedByDescending { it.createdAt }
         val notes = unique.filter { it.kind == NostrEventKind.ShortTextNote.value }
@@ -50,20 +47,55 @@ internal class RelayNotesFeedFetcher(
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
 
         val authorIds = page.map { it.pubKey }.distinct()
-        val metadata = authorIds.chunked(AUTHOR_CHUNK).flatMap { chunk ->
-            runCatching {
-                querier.query(
-                    RelayFilter(
-                        kinds = listOf(NostrEventKind.Metadata.value),
-                        authors = chunk,
-                        limit = chunk.size,
-                    ),
-                )
-            }.getOrDefault(emptyList())
-        }.latestMetadataByPubkey()
+        val metadata = queryInChunks(
+            authors = authorIds,
+            kinds = listOf(NostrEventKind.Metadata.value),
+        ).latestMetadataByPubkey()
 
         return page.toFeedResponse(metadata)
     }
+
+    private suspend fun queryInChunks(
+        authors: List<String>,
+        kinds: List<Int>,
+        limit: Int? = null,
+        until: Long? = null,
+        since: Long? = null,
+    ): List<NostrEvent> {
+        if (authors.isEmpty()) return emptyList()
+        return coroutineScope {
+            authors.chunked(AUTHOR_CHUNK).map { chunk ->
+                async {
+                    queryChunk(
+                        authors = chunk,
+                        kinds = kinds,
+                        limit = limit ?: chunk.size,
+                        until = until,
+                        since = since,
+                    )
+                }
+            }.awaitAll().flatten()
+        }
+    }
+
+    private suspend fun queryChunk(
+        authors: List<String>,
+        kinds: List<Int>,
+        limit: Int,
+        until: Long?,
+        since: Long?,
+    ): List<NostrEvent> =
+        runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = kinds,
+                    authors = authors,
+                    limit = limit,
+                    until = until,
+                    since = since,
+                ),
+            )
+        }.getOrDefault(emptyList())
 
     private suspend fun loadFollows(userId: String): List<String> {
         val events = runCatching {

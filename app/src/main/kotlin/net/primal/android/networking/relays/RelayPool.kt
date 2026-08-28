@@ -6,10 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,9 +24,11 @@ import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.domain.Relay
@@ -47,6 +52,7 @@ class RelayPool(
     companion object {
         const val PUBLISH_TIMEOUT = 10_000
         const val SUBSCRIBE_TIMEOUT = 8_000
+        const val FIRST_EOSE_GRACE_MS = 400L
     }
 
     private val scope = CoroutineScope(dispatchers.io())
@@ -224,31 +230,29 @@ class RelayPool(
         val failedRelays = mutableMapOf<String, String>()
         var duplicates = 0
         val mutex = Mutex()
+        val firstEoseOrAllFailed = CompletableDeferred<Boolean>()
 
-        coroutineScope {
+        supervisorScope {
             clients.forEach { client ->
                 launch {
-                    queryOneRelay(
+                    queryOneRelayInto(
                         client = client,
                         subscriptionId = subscriptionId,
                         filter = filter,
                         timeoutMs = timeoutMs,
-                        onEvent = { event ->
-                            mutex.withLock {
-                                if (eventsById.containsKey(event.id)) {
-                                    duplicates += 1
-                                } else {
-                                    eventsById[event.id] = event
-                                }
-                            }
-                        },
-                        onEose = { mutex.withLock { eoseRelays += client.socketUrl } },
-                        onFailure = { reason ->
-                            mutex.withLock { failedRelays[client.socketUrl] = reason }
-                        },
+                        mutex = mutex,
+                        eventsById = eventsById,
+                        eoseRelays = eoseRelays,
+                        failedRelays = failedRelays,
+                        clientCount = clients.size,
+                        firstEoseOrAllFailed = firstEoseOrAllFailed,
+                        onDuplicate = { duplicates += 1 },
                     )
                 }
             }
+            val hadEose = withTimeoutOrNull(timeoutMs) { firstEoseOrAllFailed.await() } ?: false
+            if (hadEose) delay(FIRST_EOSE_GRACE_MS)
+            coroutineContext.cancelChildren()
         }
 
         return RelayPoolQueryResult(
@@ -256,6 +260,43 @@ class RelayPool(
             eoseRelays = eoseRelays.toSet(),
             failedRelays = failedRelays.toMap(),
             duplicateCount = duplicates,
+        )
+    }
+
+    private suspend fun queryOneRelayInto(
+        client: NostrSocketClient,
+        subscriptionId: String,
+        filter: JsonObject,
+        timeoutMs: Long,
+        mutex: Mutex,
+        eventsById: MutableMap<String, NostrEvent>,
+        eoseRelays: MutableSet<String>,
+        failedRelays: MutableMap<String, String>,
+        clientCount: Int,
+        firstEoseOrAllFailed: CompletableDeferred<Boolean>,
+        onDuplicate: () -> Unit,
+    ) {
+        queryOneRelay(
+            client = client,
+            subscriptionId = subscriptionId,
+            filter = filter,
+            timeoutMs = timeoutMs,
+            onEvent = { event ->
+                mutex.withLock {
+                    if (eventsById.containsKey(event.id)) onDuplicate() else eventsById[event.id] = event
+                }
+            },
+            onEose = {
+                mutex.withLock { eoseRelays += client.socketUrl }
+                firstEoseOrAllFailed.complete(true)
+            },
+            onFailure = { reason ->
+                val allFailed = mutex.withLock {
+                    failedRelays[client.socketUrl] = reason
+                    eoseRelays.isEmpty() && failedRelays.size >= clientCount
+                }
+                if (allFailed) firstEoseOrAllFailed.complete(false)
+            },
         )
     }
 

@@ -363,7 +363,7 @@ class RelayPoolTest {
         }
 
     @Test
-    fun query_timeoutsDeadRelayWithoutBlockingOthers() =
+    fun query_returnsAfterFirstEoseWithoutWaitingForSlowRelay() =
         runTest {
             val relayPool = buildRelayPool()
             relayPool.subscriptionIdFactory = { "sub-timeout" }
@@ -379,14 +379,33 @@ class RelayPoolTest {
             incomingAlive.emit(NostrIncomingMessage.EventMessage(subscriptionId = "sub-timeout", nostrEvent = event))
             incomingAlive.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-timeout"))
             runCurrent()
-            testScheduler.advanceTimeBy(RelayPool.SUBSCRIBE_TIMEOUT.toLong())
+            testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS)
             runCurrent()
 
             val result = deferred.await()
             result.events.map { it.id } shouldBe listOf("alive")
-            result.failedRelays["wss://dead"] shouldBe "timeout"
+            result.eoseRelays shouldBe setOf("wss://alive")
             coVerify { alive.sendCLOSE("sub-timeout") }
             coVerify { dead.sendCLOSE("sub-timeout") }
+        }
+
+    @Test
+    fun query_timesOutWhenNoRelayReplies() =
+        runTest {
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-empty" }
+            val incoming = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val dead = buildQuerySocket("wss://dead", incoming)
+            relayPool.socketClients = listOf(dead)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1))) }
+            runCurrent()
+            testScheduler.advanceTimeBy(RelayPool.SUBSCRIBE_TIMEOUT.toLong())
+            runCurrent()
+
+            val result = deferred.await()
+            result.events shouldBe emptyList()
+            result.failedRelays["wss://dead"] shouldBe "timeout"
         }
 
     @Test
