@@ -146,7 +146,7 @@ internal class NwcRepositoryImpl(
         }
 
     companion object {
-        private const val DEFAULT_NWC_RELAY = "wss://relay.primal.net"
+        private const val DEFAULT_NWC_RELAY = "wss://relay.damus.io"
 
         private const val NWC_PROTOCOL = "nostr+walletconnect://"
         private const val RELAY_PARAM = "relay"

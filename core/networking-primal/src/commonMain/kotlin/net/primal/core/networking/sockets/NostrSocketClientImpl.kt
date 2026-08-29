@@ -141,14 +141,22 @@ internal class NostrSocketClientImpl(
                 when (frame) {
                     is Frame.Text -> {
                         val text = frame.readText()
-                        logLargeText(text = text, url = socketUrl, incoming = true)
-                        processIncomingMessage(text = text)
+                        if (text.length > MAX_SOCKET_MESSAGE_CHARS) {
+                            Napier.w { "Dropping oversized WS text frame from $socketUrl (${text.length} chars)." }
+                        } else {
+                            processIncomingMessage(text = text)
+                        }
                     }
 
                     is Frame.Binary -> {
-                        val decompressedMessage = decompressMessage(frame.data)
-                        logLargeText(text = decompressedMessage, url = socketUrl, incoming = true)
-                        processIncomingMessage(text = decompressedMessage)
+                        if (!incomingCompressionEnabled) {
+                            Napier.w { "Ignoring unsolicited binary WS frame from $socketUrl." }
+                        } else if (frame.data.size > MAX_SOCKET_MESSAGE_CHARS) {
+                            Napier.w { "Dropping oversized WS binary frame from $socketUrl (${frame.data.size} bytes)." }
+                        } else {
+                            val decompressedMessage = decompressMessage(frame.data)
+                            processIncomingMessage(text = decompressedMessage)
+                        }
                     }
 
                     is Frame.Close -> {
@@ -198,22 +206,18 @@ internal class NostrSocketClientImpl(
         wsSession = null
     }
 
-    private fun processIncomingMessage(text: String) {
-        text.parseIncomingMessage()?.let {
-            scope.launch {
-                if (it is NostrIncomingMessage.EoseMessage) {
-                    delay(75.milliseconds)
-                }
-                _incomingMessages.emit(value = it)
-            }
+    private suspend fun processIncomingMessage(text: String) {
+        val parsed = text.parseIncomingMessage() ?: return
+        if (parsed is NostrIncomingMessage.EoseMessage) {
+            delay(75.milliseconds)
         }
+        _incomingMessages.emit(value = parsed)
     }
 
     private suspend fun sendMessage(text: String, ensureSessionBeforeSend: Boolean = true) {
         if (ensureSessionBeforeSend) {
             ensureSocketConnectionOrThrow()
         }
-        logLargeText(text = text, url = socketUrl, incoming = false)
         wsSession?.let { session ->
             session.send(Frame.Text(text = text))
             lastSentMark = timeSource.markNow()
@@ -238,21 +242,8 @@ internal class NostrSocketClientImpl(
 
     override suspend fun sendAUTH(signedEvent: JsonObject) = sendMessage(text = signedEvent.buildNostrAUTHMessage())
 
-    private fun logLargeText(
-        text: String,
-        url: String,
-        incoming: Boolean,
-    ) {
-        val chunks = text.chunked(size = 3_500)
-        val chunksCount = chunks.size
-        chunks.forEachIndexed { index, chunk ->
-            val prefix = if (incoming) "<--" else "-->"
-            val suffix = if (index == chunksCount - 1) "[$url]" else ""
-            Napier.d(
-                tag = if (incoming) "NostrSocketClientIncoming" else "NostrSocketClientOutgoing",
-                message = "$prefix $chunk $suffix",
-            )
-        }
+    companion object {
+        private const val MAX_SOCKET_MESSAGE_CHARS = 256 * 1024
     }
 
     @Suppress("unused")
@@ -268,7 +259,12 @@ internal class NostrSocketClientImpl(
     private fun decompressMessage(compressedMessage: ByteArray): String {
         val buffer = Buffer().write(compressedMessage)
         InflaterSource(buffer, Inflater(false)).buffer().use { source ->
-            return source.readUtf8()
+            val bytes = source.readByteArray((MAX_SOCKET_MESSAGE_CHARS + 1).toLong())
+            if (bytes.size > MAX_SOCKET_MESSAGE_CHARS) {
+                Napier.w { "Dropping decompressed WS payload exceeding cap from $socketUrl." }
+                return ""
+            }
+            return bytes.decodeToString()
         }
     }
 

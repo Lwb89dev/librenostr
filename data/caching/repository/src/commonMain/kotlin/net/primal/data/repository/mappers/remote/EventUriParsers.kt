@@ -226,14 +226,22 @@ private fun detectEventUriTypeByMimeType(mimeType: String): EventUriType {
 }
 
 private fun detectEventUriTypeByUrl(url: String): EventUriType {
+    val host = hostOf(url) ?: return EventUriType.Other
     return when {
-        url.contains(".youtube.com") -> EventUriType.YouTube
-        url.contains("/youtube.com") -> EventUriType.YouTube
-        url.contains("/youtu.be") -> EventUriType.YouTube
-        url.contains(".rumble.com") || url.contains("/rumble.com") -> EventUriType.Rumble
-        url.contains("/open.spotify.com/") -> EventUriType.Spotify
-        url.contains("/listen.tidal.com/") -> EventUriType.Tidal
-        url.contains("/github.com/") -> EventUriType.GitHub
+        host == "youtu.be" || host == "youtube.com" || host.endsWith(".youtube.com") -> EventUriType.YouTube
+        host == "rumble.com" || host.endsWith(".rumble.com") -> EventUriType.Rumble
+        host == "open.spotify.com" || host == "play.spotify.com" -> EventUriType.Spotify
+        host == "listen.tidal.com" || host == "embed.tidal.com" || host == "tidal.com" -> EventUriType.Tidal
+        host == "github.com" || host.endsWith(".github.com") -> EventUriType.GitHub
         else -> EventUriType.Other
     }
+}
+
+private fun hostOf(url: String): String? {
+    val schemeSplit = url.indexOf("://")
+    if (schemeSplit < 0) return null
+    val rest = url.substring(schemeSplit + 3)
+    val hostPort = rest.substringBefore('/').substringBefore('?').substringBefore('#')
+    val host = hostPort.substringBefore(':').trim().lowercase()
+    return host.takeIf { it.contains('.') }
 }

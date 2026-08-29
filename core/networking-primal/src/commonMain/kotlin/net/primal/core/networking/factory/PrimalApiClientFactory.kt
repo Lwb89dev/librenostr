@@ -9,9 +9,13 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.coroutines.createDispatcherProvider
 import net.primal.domain.global.PrimalServerType
 
+private const val MAX_WEBSOCKET_FRAME_BYTES = 256L * 1024
+
 internal val defaultSocketsHttpClient by lazy {
     HttpClientFactory.createHttpClientWithDefaultConfig {
-        install(WebSockets)
+        install(WebSockets) {
+            maxFrameSize = MAX_WEBSOCKET_FRAME_BYTES
+        }
     }
 }
 
@@ -19,6 +23,7 @@ internal val keepAliveSocketsHttpClient by lazy {
     HttpClientFactory.createHttpClientWithDefaultConfig {
         install(WebSockets) {
             pingIntervalMillis = 20_000
+            maxFrameSize = MAX_WEBSOCKET_FRAME_BYTES
         }
     }
 }

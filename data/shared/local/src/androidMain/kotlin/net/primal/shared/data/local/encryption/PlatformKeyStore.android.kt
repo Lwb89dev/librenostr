@@ -12,7 +12,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import kotlin.random.Random
+import java.security.SecureRandom
 
 object AndroidPlatformKeyStore : PlatformKeyStore {
 
@@ -38,7 +38,7 @@ object AndroidPlatformKeyStore : PlatformKeyStore {
         return if (encryptedKey != null && encodedIv != null) {
             decryptRawKey(secretKey, encryptedKey, encodedIv)
         } else {
-            val rawKey = ByteArray(32).also { Random.Default.nextBytes(it) }
+            val rawKey = ByteArray(32).also { SecureRandom().nextBytes(it) }
             val (encKey, iv) = encryptRawKey(secretKey, rawKey)
 
             prefs.edit {

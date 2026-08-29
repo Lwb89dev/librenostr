@@ -123,7 +123,9 @@ fun NoteEmbeddedWebPagePreview(
                     }
                 }
 
-                loadUrl(url)
+                if (isSafeEmbedUrl(url)) {
+                    loadUrl(url)
+                }
             }
         },
         onReset = { it.release() },
@@ -179,4 +181,18 @@ enum class EmbeddedWebPageState {
     Idle,
     Initializing,
     Ready,
+}
+
+private val SAFE_EMBED_HOSTS = setOf(
+    "www.youtube.com",
+    "youtube.com",
+    "open.spotify.com",
+    "embed.tidal.com",
+)
+
+internal fun isSafeEmbedUrl(url: String): Boolean {
+    val uri = android.net.Uri.parse(url)
+    if (uri.scheme != "https") return false
+    val host = uri.host?.lowercase() ?: return false
+    return host in SAFE_EMBED_HOSTS
 }

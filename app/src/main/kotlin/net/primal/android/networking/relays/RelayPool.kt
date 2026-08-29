@@ -53,6 +53,8 @@ class RelayPool(
         const val PUBLISH_TIMEOUT = 10_000
         const val SUBSCRIBE_TIMEOUT = 8_000
         const val FIRST_EOSE_GRACE_MS = 150L
+        const val MAX_EVENTS_PER_QUERY = 500
+        const val MAX_RELAYS = 30
     }
 
     private val scope = CoroutineScope(dispatchers.io())
@@ -90,11 +92,15 @@ class RelayPool(
     }
 
     fun changeRelays(relays: List<Relay>) {
+        val sanitized = relays
+            .distinctBy { it.url }
+            .filter { it.url.isValidRelayUrl() }
+            .take(MAX_RELAYS)
         val existingRelayUrls = socketClients.map { it.socketUrl }
-        val newRelayUrls = relays.map { it.url }
+        val newRelayUrls = sanitized.map { it.url }
 
         val toAddRelayUrls = newRelayUrls.filter { it !in existingRelayUrls }
-        val toAddSocketClients = relays.filter { it.url in toAddRelayUrls }.mapAsNostrSocketClient()
+        val toAddSocketClients = sanitized.filter { it.url in toAddRelayUrls }.mapAsNostrSocketClient()
         val toRemoveSocketClients = socketClients.filter { it.socketUrl !in newRelayUrls }
 
         val newSocketClients = socketClients.toMutableList().apply {
@@ -107,7 +113,7 @@ class RelayPool(
             updateRelayStatus(url = client.socketUrl, connected = false)
             scope.launch { client.close() }
         }
-        this.relays = relays
+        this.relays = sanitized
     }
 
     fun closePool() {
@@ -283,7 +289,11 @@ class RelayPool(
             timeoutMs = timeoutMs,
             onEvent = { event ->
                 mutex.withLock {
-                    if (eventsById.containsKey(event.id)) onDuplicate() else eventsById[event.id] = event
+                    when {
+                        eventsById.containsKey(event.id) -> onDuplicate()
+                        eventsById.size >= MAX_EVENTS_PER_QUERY -> Unit
+                        else -> eventsById[event.id] = event
+                    }
                 }
             },
             onEose = {

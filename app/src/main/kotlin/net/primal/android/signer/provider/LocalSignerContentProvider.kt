@@ -48,7 +48,7 @@ class LocalSignerContentProvider : ContentProvider() {
         return SignerContentProviderParser()
             .parse(uri = p0, params = p1?.filterNotNull() ?: emptyList(), callingPackage = callingPackage)
             .mapCatching {
-                Napier.d(tag = TAG) { "We got $it." }
+                Napier.d(tag = TAG) { "Signer request from $callingPackage" }
                 val appContext = context?.applicationContext ?: error("Couldn't get application context.")
 
                 val hiltEntryPoint = EntryPointAccessors.fromApplication(
@@ -66,7 +66,7 @@ class LocalSignerContentProvider : ContentProvider() {
             }
             .fold(
                 onSuccess = { response ->
-                    Napier.d(tag = TAG) { "Success! Response: $response" }
+                    Napier.d(tag = TAG) { "Signer request completed." }
                     MatrixCursor(response.getColumnNames()).apply {
                         addRow(response.getColumnValues())
                     }

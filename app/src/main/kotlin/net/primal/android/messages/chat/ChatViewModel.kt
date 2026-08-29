@@ -40,7 +40,6 @@ import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.messages.DirectMessage
 import net.primal.domain.nostr.cryptography.MessageEncryptException
-import net.primal.domain.nostr.cryptography.SignResult
 import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.publisher.MissingRelaysException
 import net.primal.domain.profile.ProfileRepository
@@ -53,6 +52,7 @@ class ChatViewModel @Inject constructor(
     private val subscriptionsManager: SubscriptionsManager,
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
+    @Suppress("UnusedPrivateProperty")
     private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
@@ -128,31 +128,9 @@ class ChatViewModel @Inject constructor(
                 }
         }
 
-    private fun markConversationAsRead() =
-        viewModelScope.launch {
-            try {
-                val signResult = nostrNotary.signAuthorizationNostrEvent(
-                    userId = userId,
-                    description = "Mark conversation with $participantId as read.",
-                )
-
-                when (signResult) {
-                    is SignResult.Rejected -> {
-                        Napier.w(throwable = signResult.error) { "Signing rejected for marking conversation as read." }
-                        setErrorState(error = UiState.ChatError.PublishError(signResult.error))
-                    }
-
-                    is SignResult.Signed -> {
-                        chatRepository.markConversationAsRead(
-                            authorization = signResult.event,
-                            conversationUserId = participantId,
-                        )
-                    }
-                }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to mark conversation as read due to network error." }
-            }
-        }
+    private fun markConversationAsRead() {
+        Napier.d { "Skipping Primal cache mark-as-read AUTH" }
+    }
 
     private fun sendMessage() =
         viewModelScope.launch {

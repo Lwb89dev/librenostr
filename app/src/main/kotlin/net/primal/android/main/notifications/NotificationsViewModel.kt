@@ -10,7 +10,6 @@ import io.github.aakira.napier.Napier
 import java.time.Instant
 import javax.inject.Inject
 import kotlin.time.toJavaInstant
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,9 +36,7 @@ import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.links.ReferencedStream
-import net.primal.domain.nostr.cryptography.SignResult
 import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.domain.notifications.Notification
 import net.primal.domain.notifications.NotificationGroup
@@ -53,6 +50,7 @@ class NotificationsViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val notificationRepository: NotificationRepository,
     private val subscriptionsManager: SubscriptionsManager,
+    @Suppress("UnusedPrivateProperty")
     private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
@@ -112,24 +110,7 @@ class NotificationsViewModel @Inject constructor(
 
     private fun handleNotificationsSeen(group: NotificationGroup) {
         if (group != NotificationGroup.ALL) return
-        // Launching in a new scope to survive view model destruction
-        CoroutineScope(dispatcherProvider.io()).launch {
-            try {
-                val signResult = nostrNotary.signAuthorizationNostrEvent(
-                    userId = activeAccountStore.activeUserId(),
-                    description = "Update notifications last seen timestamp.",
-                )
-
-                when (signResult) {
-                    is SignResult.Rejected -> Napier.w(throwable = signResult.error) {
-                        "Sign rejected while updating notifications last seen."
-                    }
-                    is SignResult.Signed -> notificationRepository.markAllNotificationsAsSeen(signResult.event)
-                }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to mark notifications as seen due to network error." }
-            }
-        }
+        Napier.d { "Skipping Primal cache notifications last-seen AUTH" }
     }
 
     @Suppress("NestedBlockDepth")

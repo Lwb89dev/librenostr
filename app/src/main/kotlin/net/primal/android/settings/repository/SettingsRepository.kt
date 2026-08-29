@@ -2,6 +2,7 @@ package net.primal.android.settings.repository
 
 import javax.inject.Inject
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
 import net.primal.android.user.accounts.UserAccountsStore
 import net.primal.android.user.domain.UserAccount
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -17,6 +18,16 @@ class SettingsRepository @Inject constructor(
     private val settingsApi: SettingsApi,
     private val accountsStore: UserAccountsStore,
 ) {
+
+    suspend fun updateAppSettingsLocally(
+        userId: String,
+        transform: ContentAppSettings.() -> ContentAppSettings,
+    ) {
+        withContext(dispatcherProvider.io()) {
+            val current = accountsStore.findByIdOrNull(userId)?.appSettings ?: defaultLocalAppSettings()
+            persistAppSettingsLocally(userId = userId, appSettings = current.transform())
+        }
+    }
 
     suspend fun fetchAndPersistAppSettings(authorizationEvent: NostrEvent) {
         val userId = authorizationEvent.pubKey
@@ -110,6 +121,13 @@ class SettingsRepository @Inject constructor(
 
         accountsStore.upsertAccount(userAccount = currentUserAccount.copy(appSettings = appSettings))
     }
+
+    private fun defaultLocalAppSettings(): ContentAppSettings =
+        ContentAppSettings(
+            notifications = buildJsonObject {},
+            zapDefault = DEFAULT_ZAP_DEFAULT,
+            zapsConfig = DEFAULT_ZAP_CONFIG,
+        )
 
     private fun NostrEvent.getContentAppSettings(): ContentAppSettings? {
         return this.content.decodeFromJsonStringOrNull<ContentAppSettings>()

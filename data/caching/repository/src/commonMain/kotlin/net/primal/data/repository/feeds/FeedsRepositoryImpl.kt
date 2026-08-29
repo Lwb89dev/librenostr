@@ -7,23 +7,19 @@ import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.asMapByKey
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.core.utils.createAppBuildHelper
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
-import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.data.local.dao.feeds.Feed
 import net.primal.data.local.dao.feeds.asSpecKindFilter
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.feeds.FeedsApi
 import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
 import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
-import net.primal.data.remote.model.ContentAppSubSettings
 import net.primal.data.remote.model.ContentDvmFeedFollowsAction
 import net.primal.data.remote.model.ContentDvmFeedMetadata
 import net.primal.data.remote.model.ContentPrimalDvmFeedMetadata
 import net.primal.data.remote.model.ContentPrimalEventStats
 import net.primal.data.remote.model.ContentPrimalEventUserStats
 import net.primal.data.remote.model.ContentPrimalFeedData
-import net.primal.data.repository.mappers.local.asContentPrimalFeedData
 import net.primal.data.repository.mappers.local.asDvmFeedDO
 import net.primal.data.repository.mappers.local.asDvmFeedPO
 import net.primal.data.repository.mappers.local.asFeaturedCrossRefs
@@ -49,10 +45,7 @@ import net.primal.domain.feeds.FeedsRepository
 import net.primal.domain.feeds.PrimalFeed
 import net.primal.domain.feeds.buildSpec
 import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.nostr.NostrUnsignedEvent
-import net.primal.domain.nostr.asIdentifierTag
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
-import net.primal.domain.nostr.cryptography.utils.unwrapOrThrow
 import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.utils.parseAsLNUrlOrNull
 import net.primal.shared.data.local.db.withTransaction
@@ -62,11 +55,10 @@ class FeedsRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val feedsApi: FeedsApi,
     private val database: CachingDatabase,
+    @Suppress("UnusedPrivateProperty")
     private val signatureHandler: NostrEventSignatureHandler,
     private val mediaCacher: MediaCacher? = null,
 ) : FeedsRepository {
-
-    private val appBuildHelper = createAppBuildHelper()
 
     override fun observeAllFeeds(userId: String) =
         database.feeds().observeAllFeeds(ownerId = userId)
@@ -97,29 +89,8 @@ class FeedsRepositoryImpl(
     override suspend fun fetchAndPersistNoteFeeds(userId: String) =
         fetchAndPersistFeeds(userId = userId, specKind = FeedSpecKind.Notes)
 
-    private suspend fun fetchAndPersistFeeds(userId: String, specKind: FeedSpecKind) {
-        withContext(dispatcherProvider.io()) {
-            val authorization = signatureHandler.signNostrEvent(
-                unsignedNostrEvent = NostrUnsignedEvent(
-                    pubKey = userId,
-                    kind = NostrEventKind.ApplicationSpecificData.value,
-                    tags = listOf("${appBuildHelper.getAppName()} App".asIdentifierTag()),
-                    content = ContentAppSubSettings<String>(key = specKind.settingsKey).encodeToJsonString(),
-                ),
-            ).unwrapOrThrow()
-
-            val response = feedsApi.getUserFeeds(authorization = authorization, specKind = specKind)
-            val content = response.articleFeeds.content.decodeFromJsonStringOrNull<List<ContentPrimalFeedData>>()
-            val feeds = content?.map { it.asFeedPO(ownerId = userId, specKind = specKind) }
-
-            if (feeds != null) {
-                database.withTransaction {
-                    database.feeds().deleteAllByOwnerIdAndSpecKind(ownerId = userId, specKind = specKind)
-                    database.feeds().upsertAll(data = feeds)
-                }
-            }
-        }
-    }
+    @Suppress("UNUSED_PARAMETER")
+    private suspend fun fetchAndPersistFeeds(userId: String, specKind: FeedSpecKind) = Unit
 
     override suspend fun persistNewDefaultFeeds(
         userId: String,
@@ -162,26 +133,8 @@ class FeedsRepositoryImpl(
         persistRemotelyLocalUserFeedsBySpecKind(userId = userId, specKind = FeedSpecKind.Reads)
     }
 
-    private suspend fun persistRemotelyLocalUserFeedsBySpecKind(userId: String, specKind: FeedSpecKind) =
-        withContext(dispatcherProvider.io()) {
-            val feeds = database.feeds()
-                .getAllFeedsBySpecKind(ownerId = userId, specKind = specKind)
-                .map { it.asPrimalFeedDO() }
-
-            val signedEvent = signatureHandler.signNostrEvent(
-                unsignedNostrEvent = NostrUnsignedEvent(
-                    pubKey = userId,
-                    kind = NostrEventKind.ApplicationSpecificData.value,
-                    tags = listOf("${appBuildHelper.getAppName()} App".asIdentifierTag()),
-                    content = ContentAppSubSettings(
-                        key = specKind.settingsKey,
-                        settings = feeds.map { it.asContentPrimalFeedData() },
-                    ).encodeToJsonString(),
-                ),
-            ).unwrapOrThrow()
-
-            feedsApi.setUserFeeds(userFeedsNostrEvent = signedEvent)
-        }
+    @Suppress("UNUSED_PARAMETER")
+    private suspend fun persistRemotelyLocalUserFeedsBySpecKind(userId: String, specKind: FeedSpecKind) = Unit
 
     override suspend fun persistLocalUserFeeds(
         userId: String,
@@ -200,20 +153,6 @@ class FeedsRepositoryImpl(
         feeds: List<PrimalFeed>,
     ) = withContext(dispatcherProvider.io()) {
         persistLocalUserFeeds(userId = userId, specKind = specKind, feeds = feeds)
-
-        val signedEvent = signatureHandler.signNostrEvent(
-            unsignedNostrEvent = NostrUnsignedEvent(
-                pubKey = userId,
-                kind = NostrEventKind.ApplicationSpecificData.value,
-                tags = listOf("${appBuildHelper.getAppName()} App".asIdentifierTag()),
-                content = ContentAppSubSettings(
-                    key = specKind.settingsKey,
-                    settings = feeds.map { it.asContentPrimalFeedData() },
-                ).encodeToJsonString(),
-            ),
-        ).unwrapOrThrow()
-
-        feedsApi.setUserFeeds(userFeedsNostrEvent = signedEvent)
     }
 
     override suspend fun fetchAndPersistDefaultFeeds(

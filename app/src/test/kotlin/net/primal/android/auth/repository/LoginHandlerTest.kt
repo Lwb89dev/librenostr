@@ -4,13 +4,9 @@ import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import net.primal.android.nostr.notary.NostrNotary
-import net.primal.android.settings.repository.SettingsRepository
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.Credential
@@ -21,11 +17,7 @@ import net.primal.core.testing.CoroutinesTestRule
 import net.primal.core.testing.FakeDataStore
 import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.common.exception.NetworkException
-import net.primal.domain.feeds.FeedsRepository
 import net.primal.domain.mutes.MutedItemRepository
-import net.primal.domain.nostr.NostrEvent
-import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.nostr.cryptography.SignResult
 import org.junit.Rule
 import org.junit.Test
 
@@ -42,40 +34,21 @@ class LoginHandlerTest {
     val coroutinesTestRule = CoroutinesTestRule()
 
     private fun createLoginHandler(
-        settingsRepository: SettingsRepository = mockk(relaxed = true),
         authRepository: AuthRepository = mockk(relaxed = true),
         userRepository: UserRepository = mockk(relaxed = true),
         mutedItemRepository: MutedItemRepository = mockk(relaxed = true),
         bookmarksRepository: PublicBookmarksRepository = mockk(relaxed = true),
-        feedsRepository: FeedsRepository = mockk(relaxed = true),
         credentialsStore: CredentialsStore = mockk(relaxed = true),
-        nostrNotary: NostrNotary = mockk(relaxed = true),
         relayRepository: RelayRepository = mockk(relaxed = true),
     ): LoginHandler =
         LoginHandler(
-            settingsRepository = settingsRepository,
             authRepository = authRepository,
             userRepository = userRepository,
             mutedItemRepository = mutedItemRepository,
             bookmarksRepository = bookmarksRepository,
-            feedsRepository = feedsRepository,
             dispatchers = coroutinesTestRule.dispatcherProvider,
             credentialsStore = credentialsStore,
-            nostrNotary = nostrNotary,
             relayRepository = relayRepository,
-        )
-
-    private fun createDummyNostrEvent(
-        userId: String,
-        kind: Int = NostrEventKind.ApplicationSpecificData.value,
-    ): NostrEvent =
-        NostrEvent(
-            id = "",
-            pubKey = userId,
-            createdAt = 0,
-            kind = kind,
-            content = "",
-            sig = "",
         )
 
     @Test
@@ -118,23 +91,12 @@ class LoginHandlerTest {
         }
 
     @Test
-    fun login_callsFetchAndPersistAppSettings() =
+    fun login_doesNotFetchAppSettingsFromPrimalCache() =
         runTest {
             val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
                 coEvery { saveNsec(any()) } returns expectedUserId
             }
-            val settingsRepository = mockk<SettingsRepository>(relaxed = true)
-            val expectedNostrEvent = createDummyNostrEvent(userId = expectedUserId)
-
-            val loginHandler = createLoginHandler(
-                settingsRepository = settingsRepository,
-                credentialsStore = credentialsStore,
-                nostrNotary = mockk(relaxed = true) {
-                    coEvery {
-                        signAuthorizationNostrEvent(expectedUserId, any(), any())
-                    } returns SignResult.Signed(expectedNostrEvent)
-                },
-            )
+            val loginHandler = createLoginHandler(credentialsStore = credentialsStore)
 
             loginHandler.login(
                 nostrKey = nsec,
@@ -143,11 +105,7 @@ class LoginHandlerTest {
             )
             advanceUntilIdle()
 
-            coVerify {
-                settingsRepository.fetchAndPersistAppSettings(
-                    withArg { it.pubKey shouldBe expectedUserId },
-                )
-            }
+            coVerify(exactly = 1) { credentialsStore.saveNsec(nsec) }
         }
 
     @Test
@@ -235,16 +193,12 @@ class LoginHandlerTest {
         }
 
     @Test
-    fun login_prefetchesNoteFeeds_forPrivateKeyCredential() =
+    fun login_doesNotPrefetchNoteFeedsFromPrimalCache() =
         runTest {
             val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
                 coEvery { saveNsec(any()) } returns expectedUserId
             }
-            val feedsRepository = mockk<FeedsRepository>(relaxed = true)
-            val loginHandler = createLoginHandler(
-                feedsRepository = feedsRepository,
-                credentialsStore = credentialsStore,
-            )
+            val loginHandler = createLoginHandler(credentialsStore = credentialsStore)
 
             loginHandler.login(
                 nostrKey = nsec,
@@ -252,9 +206,7 @@ class LoginHandlerTest {
                 authorizationEvent = null,
             )
 
-            coVerify(exactly = 1) {
-                feedsRepository.fetchAndPersistNoteFeeds(userId = expectedUserId)
-            }
+            coVerify(exactly = 1) { credentialsStore.saveNsec(nsec) }
         }
 
     @Test
@@ -265,16 +217,12 @@ class LoginHandlerTest {
                 coEvery { saveExternalSignerNpub(any()) } returns expectedUserId
             }
             val userRepository = mockk<UserRepository>(relaxed = true)
-            val feedsRepository = mockk<FeedsRepository>(relaxed = true)
-            val nostrNotary = mockk<NostrNotary>(relaxed = true)
             val authRepository = mockk<AuthRepository>(relaxed = true)
             val relayRepository = mockk<RelayRepository>(relaxed = true)
             val loginHandler = createLoginHandler(
                 authRepository = authRepository,
                 userRepository = userRepository,
-                feedsRepository = feedsRepository,
                 credentialsStore = credentialsStore,
-                nostrNotary = nostrNotary,
                 relayRepository = relayRepository,
             )
 
@@ -287,80 +235,5 @@ class LoginHandlerTest {
             coVerify(exactly = 1) { authRepository.loginWithExternalSignerNpub(npub = hexPubkey) }
             coVerify(exactly = 1) { relayRepository.ensureLocalBootstrapRelays(expectedUserId) }
             coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
-            coVerify(exactly = 0) { nostrNotary.signAuthorizationNostrEvent(any(), any(), any()) }
-            coVerify(exactly = 0) { feedsRepository.fetchAndPersistNoteFeeds(any()) }
-        }
-
-    @Test
-    fun login_doesNotPrefetchNoteFeeds_forPublicKeyCredential() =
-        runTest {
-            val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
-                coEvery { saveNpub(any()) } returns expectedUserId
-            }
-            val feedsRepository = mockk<FeedsRepository>(relaxed = true)
-            val loginHandler = createLoginHandler(
-                feedsRepository = feedsRepository,
-                credentialsStore = credentialsStore,
-            )
-
-            loginHandler.login(
-                nostrKey = "npub1p64ty2pgcj6k2c6v7u9dwu7aesle8v9qelnpgx4zrfa37av8f24q9jxt7c",
-                credentialType = CredentialType.PublicKey,
-                authorizationEvent = null,
-            )
-
-            coVerify(exactly = 0) {
-                feedsRepository.fetchAndPersistNoteFeeds(any())
-            }
-        }
-
-    @Test
-    fun login_completes_whenNoteFeedsPrefetchFails() =
-        runTest {
-            val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
-                coEvery { saveNsec(any()) } returns expectedUserId
-            }
-            val feedsRepository = mockk<FeedsRepository>(relaxed = true) {
-                coEvery { fetchAndPersistNoteFeeds(any()) } throws NetworkException()
-            }
-            val authRepository = mockk<AuthRepository>(relaxed = true)
-            val loginHandler = createLoginHandler(
-                authRepository = authRepository,
-                feedsRepository = feedsRepository,
-                credentialsStore = credentialsStore,
-            )
-
-            loginHandler.login(
-                nostrKey = nsec,
-                credentialType = CredentialType.PrivateKey,
-                authorizationEvent = null,
-            )
-
-            coVerify { authRepository.loginWithNsec(nostrKey = nsec) }
-        }
-
-    @Test
-    fun login_completes_whenNoteFeedsPrefetchTimesOut() =
-        runTest {
-            val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
-                coEvery { saveNsec(any()) } returns expectedUserId
-            }
-            val feedsRepository = mockk<FeedsRepository>(relaxed = true) {
-                coEvery { fetchAndPersistNoteFeeds(any()) } coAnswers { delay(10.minutes) }
-            }
-            val authRepository = mockk<AuthRepository>(relaxed = true)
-            val loginHandler = createLoginHandler(
-                authRepository = authRepository,
-                feedsRepository = feedsRepository,
-                credentialsStore = credentialsStore,
-            )
-
-            loginHandler.login(
-                nostrKey = nsec,
-                credentialType = CredentialType.PrivateKey,
-                authorizationEvent = null,
-            )
-
-            coVerify { authRepository.loginWithNsec(nostrKey = nsec) }
         }
 }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
@@ -74,9 +73,7 @@ import net.primal.android.main.reads.ReadsContent
 import net.primal.android.main.reads.ReadsScreenContract
 import net.primal.android.main.reads.ReadsViewModel
 import net.primal.android.main.wallet.WalletDashboardContent
-import net.primal.android.main.wallet.WalletDashboardContract
 import net.primal.android.main.wallet.WalletDashboardTopAppBar
-import net.primal.android.main.wallet.WalletDashboardViewModel
 import net.primal.android.navigation.accountSwitcherCallbacksHandler
 import net.primal.android.navigation.navigateToAdvancedSearch
 import net.primal.android.navigation.navigateToExploreFeed
@@ -161,8 +158,6 @@ fun MainScreen(
         onErrorDismiss = { noteFeedsViewModel.setEvent(NoteFeedsContract.UiEvent.DismissError) },
     )
 
-    WalletErrorHandler(navBackStackEntry, sharedState.snackbarHostState)
-
     val onActiveDestinationClick: () -> Unit = {
         if (activeTab == PrimalTopLevelDestination.Explore) {
             navController.navigateToSearch(searchScope = SearchScope.Notes)
@@ -172,7 +167,7 @@ fun MainScreen(
     }
 
     val onTabChanged: (PrimalTopLevelDestination) -> Unit = { destination ->
-        if (destination != activeTab) {
+        if (destination != PrimalTopLevelDestination.Wallet && destination != activeTab) {
             activeTab = destination
         }
     }
@@ -431,7 +426,7 @@ private fun MainScreenContent(
     navController: NavController,
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
 ) {
-    val onGoToWallet = { onTabChanged(PrimalTopLevelDestination.Wallet) }
+    val onGoToWallet = {}
     Box {
         saveableStateHolder.SaveableStateProvider(activeTab.name) {
             when (activeTab) {
@@ -698,7 +693,7 @@ private fun MainScreenOverlays(
                     sharedState.homeScrollToFeed.value = feed
                 },
                 onDismiss = onDismissOverlay,
-                onGoToWallet = { onTabChanged(PrimalTopLevelDestination.Wallet) },
+                onGoToWallet = {},
                 onEditAdvancedSearchFeedClick = { feedSpec ->
                     onDismissOverlay()
                     navController.navigateToAdvancedSearch(editingFeedSpec = feedSpec)
@@ -824,33 +819,6 @@ private fun MainScreenHomeEffects(noteFeedsViewModel: NoteFeedsViewModel) {
             }
         }
     }
-}
-
-@Composable
-private fun WalletErrorHandler(navBackStackEntry: NavBackStackEntry, snackbarHostState: SnackbarHostState) {
-    val walletViewModel = hiltViewModel<WalletDashboardViewModel>(navBackStackEntry)
-    val walletState by walletViewModel.state.collectAsState()
-    val context = LocalContext.current
-    SnackbarErrorHandler(
-        error = walletState.error,
-        snackbarHostState = snackbarHostState,
-        errorMessageResolver = {
-            when (it) {
-                is WalletDashboardContract.UiState.DashboardError.InAppPurchaseNoticeError ->
-                    it.message ?: context.getString(R.string.app_generic_error)
-
-                is WalletDashboardContract.UiState.DashboardError.InAppPurchaseConfirmationFailed ->
-                    context.getString(R.string.wallet_in_app_purchase_error_confirmation_failed)
-
-                is WalletDashboardContract.UiState.DashboardError.WalletCreationFailed ->
-                    context.getString(R.string.wallet_dashboard_create_wallet_error)
-
-                is WalletDashboardContract.UiState.DashboardError.RefreshFailed ->
-                    context.getString(R.string.wallet_dashboard_refresh_error)
-            }
-        },
-        onErrorDismiss = { walletViewModel.setEvents(WalletDashboardContract.UiEvent.DismissError) },
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -22,7 +22,11 @@ fun verifyBiometricIdentity(
             onAuthError = onAuthError,
         )
     } else {
-        onAuthSucceed()
+        onAuthFailed?.invoke()
+        onAuthError?.invoke(
+            BiometricPrompt.ERROR_HW_NOT_PRESENT,
+            "Device credential is required to reveal secrets.",
+        )
     }
 }
 

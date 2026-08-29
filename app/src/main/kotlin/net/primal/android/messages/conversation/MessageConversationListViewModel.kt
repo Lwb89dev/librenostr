@@ -33,7 +33,6 @@ import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.messages.ConversationRelation
 import net.primal.domain.messages.DMConversation
-import net.primal.domain.nostr.cryptography.SignResult
 
 @HiltViewModel
 class MessageConversationListViewModel @Inject constructor(
@@ -41,6 +40,7 @@ class MessageConversationListViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val subscriptionsManager: SubscriptionsManager,
     private val chatRepository: ChatRepository,
+    @Suppress("UnusedPrivateProperty")
     private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
@@ -126,23 +126,9 @@ class MessageConversationListViewModel @Inject constructor(
         }
     }
 
-    private fun markAllConversationAsRead() =
-        viewModelScope.launch {
-            try {
-                val signResult = nostrNotary.signAuthorizationNostrEvent(
-                    userId = activeAccountStore.activeUserId(),
-                    description = "Mark all messages as read.",
-                )
-
-                when (signResult) {
-                    is SignResult.Rejected -> Napier.w(throwable = signResult.error) { "Sign rejected" }
-                    is SignResult.Signed ->
-                        chatRepository.markAllMessagesAsRead(authorization = signResult.event)
-                }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to mark all conversations as read" }
-            }
-        }
+    private fun markAllConversationAsRead() {
+        Napier.d { "Skipping Primal cache mark-all-as-read AUTH" }
+    }
 
     private fun Flow<PagingData<DMConversation>>.mapAsPagingDataOfMessageConversationUi() =
         map { pagingData -> pagingData.map { it.mapAsMessageConversationUi() } }

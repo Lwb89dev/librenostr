@@ -44,6 +44,7 @@ class NostrIncomingMessageParserTest {
 
         val actual = jsonMessage.toString().parseIncomingMessage()
         actual should beInstanceOf<NostrIncomingMessage.EventMessage>()
+        (actual as NostrIncomingMessage.EventMessage).nostrEvent shouldBe null
     }
 
     @org.junit.Test

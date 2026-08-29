@@ -40,7 +40,9 @@ class SubscriptionsManager @Inject constructor(
     dispatcherProvider: DispatcherProvider,
     private val activeAccountStore: ActiveAccountStore,
     private val streamRepository: StreamRepository,
+    @Suppress("UnusedPrivateProperty")
     @PrimalCacheApiClient private val cacheApiClient: PrimalApiClient,
+    @Suppress("UnusedPrivateProperty")
     private val activeWalletBalanceSyncerFactory: ActiveWalletBalanceSyncerFactory,
 ) {
 
@@ -124,9 +126,6 @@ class SubscriptionsManager @Inject constructor(
     private fun subscribeAll(userId: String) {
         subscriptionsActive = true
         streamsFromFollowsSubscription = launchStreamsFromFollowsSubscription(userId = userId)
-        notificationsSummarySubscription = launchNotificationsSummarySubscription(userId = userId)
-        messagesUnreadCountSubscription = launchMessagesUnreadCountSubscription(userId = userId)
-        activeWalletBalanceSyncer = activeWalletBalanceSyncerFactory.create(userId = userId).also { it.start() }
     }
 
     private suspend fun unsubscribeAll() {
@@ -141,35 +140,5 @@ class SubscriptionsManager @Inject constructor(
         scope.launch {
             runCatching { streamRepository.fetchLiveEventsFromFollows(userId = userId) }
             streamRepository.startLiveEventsFromFollowsSubscription(userId = userId)
-        }
-
-    private fun launchNotificationsSummarySubscription(userId: String) =
-        PrimalSocketSubscription.launch(
-            scope = scope,
-            primalApiClient = cacheApiClient,
-            cacheFilter = PrimalCacheFilter(
-                primalVerb = net.primal.data.remote.PrimalVerb.NEW_NOTIFICATIONS_COUNT.id,
-                optionsJson = PubkeyRequestBody(pubkey = userId).encodeToJsonString(),
-            ),
-            transformer = { primalEvent?.asNotificationSummary() },
-        ) {
-            emitBadgesUpdate { currentState ->
-                currentState.copy(unreadNotificationsCount = it.count)
-            }
-        }
-
-    private fun launchMessagesUnreadCountSubscription(userId: String) =
-        PrimalSocketSubscription.launch(
-            scope = scope,
-            primalApiClient = cacheApiClient,
-            cacheFilter = PrimalCacheFilter(
-                primalVerb = net.primal.data.remote.PrimalVerb.NEW_DMS_COUNT.id,
-                optionsJson = PubkeyRequestBody(pubkey = userId).encodeToJsonString(),
-            ),
-            transformer = { primalEvent?.asMessagesTotalCount() },
-        ) {
-            emitBadgesUpdate { currentState ->
-                currentState.copy(unreadMessagesCount = it.count)
-            }
         }
 }

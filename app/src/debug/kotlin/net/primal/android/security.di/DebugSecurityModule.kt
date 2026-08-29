@@ -6,15 +6,17 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import net.primal.android.BuildConfig
+import net.primal.android.security.AESEncryption
 import net.primal.android.security.Encryption
-import net.primal.android.security.NoEncryption
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DebugSecurityModule {
 
     @Provides
-    fun provideEncryption(): Encryption = NoEncryption()
+    fun provideEncryption(): Encryption =
+        AESEncryption(keyAlias = BuildConfig.LOCAL_STORAGE_KEY_ALIAS)
 
     @Provides
     fun provideDatabaseOpenHelper(): SupportSQLiteOpenHelper.Factory {

@@ -16,11 +16,18 @@ import net.primal.core.utils.serialization.decodeFromStringOrNull
 import net.primal.domain.common.PrimalEvent
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.cryptography.hasValidIdAndSignature
 import net.primal.domain.nostr.isNotPrimalEventKind
 import net.primal.domain.nostr.isNotUnknown
 import net.primal.domain.nostr.isPrimalEventKind
 
+private const val MAX_INCOMING_MESSAGE_CHARS = 256 * 1024
+
 fun String.parseIncomingMessage(): NostrIncomingMessage? {
+    if (length > MAX_INCOMING_MESSAGE_CHARS) {
+        Napier.w { "Dropping oversized incoming message ($length chars)." }
+        return null
+    }
     val jsonArray = SocketsJson.decodeFromStringOrNull<JsonArray>(this)
     val verbElement = jsonArray?.elementAtOrNull(0) ?: return null
 
@@ -79,7 +86,7 @@ private fun JsonArray.takeAsEventIncomingMessage(): NostrIncomingMessage? {
     if (subscriptionId == null || kind == null) return null
 
     val nostrEvent = if (kind.isNotUnknown() && kind.isNotPrimalEventKind()) {
-        event.asNostrEventOrNull()
+        event.asNostrEventOrNull()?.takeIf { it.hasValidIdAndSignature() }
     } else {
         null
     }
@@ -110,11 +117,9 @@ private fun JsonArray.takeAsEventsIncomingMessage(): NostrIncomingMessage? {
         val kind = jsonEvent.getMessageNostrEventKind()
         when {
             kind.isNotUnknown() && kind.isNotPrimalEventKind() -> {
-                val nostrEvent = jsonEvent.asNostrEventOrNull()
+                val nostrEvent = jsonEvent.asNostrEventOrNull()?.takeIf { it.hasValidIdAndSignature() }
                 if (nostrEvent != null) {
                     nostrEvents.add(nostrEvent)
-                } else {
-                    Napier.w("Unable to process as nostr event: $jsonEvent")
                 }
             }
 

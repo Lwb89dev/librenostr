@@ -409,6 +409,47 @@ class RelayPoolTest {
         }
 
     @Test
+    fun isValidRelayUrl_acceptsWssHostsAndRejectsCleartextAndJunk() {
+        "wss://relay.damus.io".isValidRelayUrl() shouldBe true
+        "wss://relay.damus.io/".isValidRelayUrl() shouldBe true
+        "ws://relay.damus.io".isValidRelayUrl() shouldBe false
+        "https://relay.damus.io".isValidRelayUrl() shouldBe false
+        "wss://localhost".isValidRelayUrl() shouldBe false
+        "not-a-url".isValidRelayUrl() shouldBe false
+    }
+
+    @Test
+    fun changeRelays_capsPoolAndDropsInvalidUrls() =
+        runTest {
+            val factory = mockk<NostrSocketClientFactory>(relaxed = true)
+            every {
+                factory.create(
+                    wssUrl = any(),
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            } answers {
+                val url = firstArg<String>()
+                mockk<NostrSocketClient>(relaxed = true) {
+                    every { socketUrl } returns url
+                }
+            }
+            val relayPool = buildRelayPool(nostrSocketClientFactory = factory)
+            val relays = (1..RelayPool.MAX_RELAYS + 10).map { index ->
+                Relay(url = "wss://relay$index.example.com", read = true, write = true)
+            } + listOf(
+                Relay(url = "ws://cleartext.example.com", read = true, write = true),
+                Relay(url = "https://not-a-relay.example", read = true, write = true),
+            )
+
+            relayPool.changeRelays(relays)
+
+            relayPool.relays.size shouldBe RelayPool.MAX_RELAYS
+            relayPool.socketClients.size shouldBe RelayPool.MAX_RELAYS
+            relayPool.relays.all { it.url.isValidRelayUrl() } shouldBe true
+        }
+
+    @Test
     fun query_emptyPoolReturnsEmptyResult() =
         runTest {
             val relayPool = buildRelayPool()

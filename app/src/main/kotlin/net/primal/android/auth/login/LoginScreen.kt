@@ -58,6 +58,7 @@ import net.primal.android.core.compose.AppBarIcon
 import net.primal.android.core.compose.ColumnWithBackground
 import net.primal.android.core.compose.PrimalDarkTextColor
 import net.primal.android.core.compose.PrimalDefaults
+import net.primal.android.core.compose.SecureScreen
 import net.primal.android.core.compose.PrimalGradientAlpha
 import net.primal.android.core.compose.PrimalGradientBackgroundColor
 import net.primal.android.core.compose.UiDensityMode
@@ -110,6 +111,7 @@ fun LoginScreen(
     eventPublisher: (LoginContract.UiEvent) -> Unit,
     callbacks: LoginContract.ScreenCallbacks,
 ) {
+    SecureScreen()
     val keyboardController = LocalSoftwareKeyboardController.current
     val onClose = {
         keyboardController?.hide()
@@ -200,8 +202,6 @@ fun LoginContent(
             keyboardController?.hide()
         }
     }
-
-    LaunchedEffect(Unit) { pasteFromClipboard() }
 
     Column(
         modifier = modifier,
@@ -380,11 +380,7 @@ private fun LoginInputField(
                     }
                 },
             ),
-            visualTransformation = if (keyboardVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
+            visualTransformation = PasswordVisualTransformation(),
             textStyle = AppTheme.typography.titleLarge.copy(
                 fontSize = if (keyboardVisible) 16.sp else 28.sp,
                 lineHeight = if (keyboardVisible) 16.sp else 28.sp,

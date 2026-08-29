@@ -65,25 +65,7 @@ class PrimalWalletApiImpl(
 ) : PrimalWalletApi {
 
     override suspend fun getWalletStatus(userId: String): WalletStatusResponse {
-        val queryResult = primalApiClient.query(
-            message = PrimalCacheFilter(
-                primalVerb = PrimalWalletVerb.GET_WALLET_STATUS.id,
-                optionsJson = AppSpecificDataRequest(
-                    eventFromUser = signatureHandler.signNostrEvent(
-                        NostrUnsignedEvent(
-                            pubKey = userId,
-                            kind = NostrEventKind.ApplicationSpecificData.value,
-                            tags = emptyList(),
-                            content = "GetWalletStatus",
-                        ),
-                    ).unwrapOrThrow(),
-                ).encodeToWalletJsonString(),
-            ),
-        )
-
-        val nostrEvent = queryResult.findPrimalEvent(NostrEventKind.PrimalWalletStatusInfo)
-        return nostrEvent?.content?.decodeFromJsonStringOrNull<WalletStatusResponse>()
-            ?: throw NetworkException("Missing or invalid content in response.")
+        throw NetworkException("Primal wallet is disabled")
     }
 
     override suspend fun getWalletUserKycLevel(userId: String): Int {

@@ -17,14 +17,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import net.primal.android.core.errors.asSignatureUiError
 import net.primal.android.core.push.PushNotificationsTokenUpdater
-import net.primal.android.networking.UserAgentProvider
-import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.settings.notifications.NotificationsSettingsContract.UiEvent.DismissErrors
 import net.primal.android.settings.notifications.NotificationsSettingsContract.UiEvent.NotificationSettingsChanged
 import net.primal.android.settings.notifications.NotificationsSettingsContract.UiState
-import net.primal.android.settings.notifications.NotificationsSettingsContract.UiState.ApiError.FetchAppSettingsError
 import net.primal.android.settings.notifications.NotificationsSettingsContract.UiState.ApiError.UpdateAppSettingsError
 import net.primal.android.settings.notifications.ui.NotificationSwitchUi
 import net.primal.android.settings.notifications.ui.mapAsNotificationsPreferences
@@ -34,18 +30,11 @@ import net.primal.android.settings.repository.SettingsRepository
 import net.primal.android.user.accounts.UserAccountsStore
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.domain.common.exception.NetworkException
-import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.nostr.NostrUnsignedEvent
-import net.primal.domain.nostr.asIdentifierTag
-import net.primal.domain.nostr.cryptography.SignResult
-import net.primal.domain.nostr.cryptography.utils.unwrapOrThrow
 import net.primal.domain.notifications.NotificationSettingsType
 import net.primal.domain.notifications.NotificationSettingsType.Preferences
 import net.primal.domain.notifications.NotificationSettingsType.PushNotifications
 import net.primal.domain.notifications.NotificationSettingsType.TabNotifications
-import net.primal.domain.settings.AppSettingsDescription
 
 @HiltViewModel
 class NotificationsSettingsViewModel @Inject constructor(
@@ -54,7 +43,6 @@ class NotificationsSettingsViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val pushNotificationsTokenUpdater: PushNotificationsTokenUpdater,
     private val accountsStore: UserAccountsStore,
-    private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -70,7 +58,6 @@ class NotificationsSettingsViewModel @Inject constructor(
         }
 
     init {
-        fetchLatestAppSettings()
         observeEvents()
         observeActiveAccount()
         observeDebouncedNotificationSettingsChanges()
@@ -156,37 +143,6 @@ class NotificationsSettingsViewModel @Inject constructor(
                 }
         }
 
-    private fun fetchLatestAppSettings() =
-        viewModelScope.launch {
-            try {
-                val userId = activeAccountStore.activeUserId()
-                val signResult = nostrNotary.signNostrEvent(
-                    unsignedNostrEvent = NostrUnsignedEvent(
-                        pubKey = userId,
-                        kind = NostrEventKind.ApplicationSpecificData.value,
-                        tags = listOf("${UserAgentProvider.APP_NAME} App".asIdentifierTag()),
-                        content = AppSettingsDescription(description = "Sync app settings").encodeToJsonString(),
-                    ),
-                )
-
-                when (signResult) {
-                    is SignResult.Rejected -> {
-                        Napier.w(throwable = signResult.error) { "Failed to sign event for fetching app settings" }
-                        setState { copy(signatureError = signResult.error.asSignatureUiError()) }
-                    }
-
-                    is SignResult.Signed -> {
-                        withContext(dispatcherProvider.io()) {
-                            settingsRepository.fetchAndPersistAppSettings(signResult.event)
-                        }
-                    }
-                }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to fetch latest app settings" }
-                setState { copy(error = FetchAppSettingsError(cause = error)) }
-            }
-        }
-
     private fun updateNotificationsSettings(
         tabNotificationsSettings: List<NotificationSwitchUi<TabNotifications>>,
         pushNotificationsSettings: List<NotificationSwitchUi<PushNotifications>>,
@@ -197,33 +153,12 @@ class NotificationsSettingsViewModel @Inject constructor(
         val preferencesJsonObject = preferencesSettings.mapToRemoteJsonObject()
 
         try {
-            val userId = activeAccountStore.activeUserId()
-            val signResult = nostrNotary.signAuthorizationNostrEvent(
-                userId = userId,
-                description = "Sync app settings",
-            )
-
-            when (signResult) {
-                is SignResult.Rejected -> {
-                    setState { copy(error = UpdateAppSettingsError(cause = signResult.error)) }
-                }
-
-                is SignResult.Signed -> {
-                    settingsRepository.fetchAndUpdateAndPublishAppSettings(signResult.event) {
-                        val newAppSettings = this.copy(
-                            notifications = tabNotificationsJsonObject,
-                            pushNotifications = pushNotificationsJsonObject,
-                            notificationsAdditional = preferencesJsonObject,
-                        )
-
-                        nostrNotary.signAppSettingsNostrEvent(
-                            userId = userId,
-                            appSettings = newAppSettings,
-                        ).unwrapOrThrow { error ->
-                            setState { copy(signatureError = error.asSignatureUiError()) }
-                        }
-                    }
-                }
+            settingsRepository.updateAppSettingsLocally(activeAccountStore.activeUserId()) {
+                copy(
+                    notifications = tabNotificationsJsonObject,
+                    pushNotifications = pushNotificationsJsonObject,
+                    notificationsAdditional = preferencesJsonObject,
+                )
             }
         } catch (error: NetworkException) {
             setState { copy(error = UpdateAppSettingsError(cause = error)) }

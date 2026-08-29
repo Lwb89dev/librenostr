@@ -21,20 +21,24 @@ import net.primal.android.theme.AppTheme
 import net.primal.core.utils.runCatching
 import net.primal.domain.links.EventUriType
 
+private val SPOTIFY_HOSTS = setOf("open.spotify.com", "play.spotify.com")
+private val SPOTIFY_TYPES = setOf("track", "album", "playlist", "episode", "show", "artist")
+private val SPOTIFY_ID = Regex("^[a-zA-Z0-9]+$")
+
 private fun String.convertToSpotifyEmbedUrl(): String? =
     runCatching {
         val urlComponents = URL(this)
+        val host = urlComponents.host.lowercase()
+        if (host !in SPOTIFY_HOSTS) return null
         val pathComponents = urlComponents.path
             ?.split("/")
             ?.filter { it.isNotBlank() }
-
-        return if (pathComponents != null && pathComponents.size >= 2) {
-            val type = pathComponents[0]
-            val id = pathComponents[1]
-            "https://open.spotify.com/embed/$type/$id?autoplay=1"
-        } else {
-            ""
-        }
+            ?: return null
+        if (pathComponents.size < 2) return null
+        val type = pathComponents[0]
+        val id = pathComponents[1]
+        if (type !in SPOTIFY_TYPES || !SPOTIFY_ID.matches(id)) return null
+        "https://open.spotify.com/embed/$type/$id?autoplay=1"
     }.getOrNull()
 
 @Composable

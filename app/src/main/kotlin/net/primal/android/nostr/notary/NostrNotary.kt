@@ -25,14 +25,12 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
-import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.domain.global.ContentAppSettings
 import net.primal.domain.nostr.ContentMetadata
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asClientTag
-import net.primal.domain.nostr.asIdentifierTag
 import net.primal.domain.nostr.asPubkeyTag
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
 import net.primal.domain.nostr.cryptography.SignResult
@@ -44,7 +42,6 @@ import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 import net.primal.domain.nostr.cryptography.utils.toNpub
 import net.primal.domain.nostr.zaps.ZapTarget
 import net.primal.domain.nostr.zaps.toTags
-import net.primal.domain.settings.AppSettingsDescription
 
 @Singleton
 class NostrNotary @Inject constructor(
@@ -64,6 +61,11 @@ class NostrNotary @Inject constructor(
     private fun setResponse(response: SignResult) = scope.launch { _responses.send(response) }
 
     override suspend fun signNostrEvent(unsignedNostrEvent: NostrUnsignedEvent): SignResult {
+        if (unsignedNostrEvent.kind in BLOCKED_PRIMAL_AUTH_KINDS) {
+            Napier.d { "Skipping leftover Primal cache/wallet kind ${unsignedNostrEvent.kind}" }
+            return SignResult.Rejected(SigningRejectedException())
+        }
+
         if (isExternalSigner(unsignedNostrEvent.pubKey) &&
             unsignedNostrEvent.kind !in AMBER_ALLOWED_KINDS
         ) {
@@ -143,36 +145,18 @@ class NostrNotary @Inject constructor(
         description: String,
         tags: List<JsonArray> = emptyList(),
     ): SignResult {
-        return signNostrEvent(
-            unsignedNostrEvent = NostrUnsignedEvent(
-                pubKey = userId,
-                kind = NostrEventKind.ApplicationSpecificData.value,
-                tags = listOf("${UserAgentProvider.APP_NAME} App".asIdentifierTag()) + tags,
-                content = AppSettingsDescription(description = description).encodeToJsonString(),
-            ),
-        )
+        Napier.d { "Primal cache AUTH disabled (userId=$userId, description=$description)" }
+        return SignResult.Rejected(SigningRejectedException())
     }
 
     suspend fun signAppSettingsNostrEvent(userId: String, appSettings: ContentAppSettings): SignResult {
-        return signNostrEvent(
-            unsignedNostrEvent = NostrUnsignedEvent(
-                pubKey = userId,
-                kind = NostrEventKind.ApplicationSpecificData.value,
-                tags = listOf("${UserAgentProvider.APP_NAME} App".asIdentifierTag()),
-                content = appSettings.encodeToJsonString(),
-            ),
-        )
+        Napier.d { "Primal cache app-settings AUTH disabled (userId=$userId)" }
+        return SignResult.Rejected(SigningRejectedException())
     }
 
     suspend fun signAppSpecificDataNostrEvent(userId: String, content: String): SignResult {
-        return signNostrEvent(
-            unsignedNostrEvent = NostrUnsignedEvent(
-                pubKey = userId,
-                kind = NostrEventKind.ApplicationSpecificData.value,
-                tags = listOf("${UserAgentProvider.APP_NAME} App".asIdentifierTag()),
-                content = content,
-            ),
-        )
+        Napier.d { "Primal cache app-specific AUTH disabled (userId=$userId)" }
+        return SignResult.Rejected(SigningRejectedException())
     }
 
     suspend fun signFollowListNostrEvent(
@@ -247,6 +231,11 @@ class NostrNotary @Inject constructor(
     }
 
     private companion object {
+        val BLOCKED_PRIMAL_AUTH_KINDS = setOf(
+            NostrEventKind.ApplicationSpecificData.value,
+            NostrEventKind.PrimalWalletOperation.value,
+        )
+
         val AMBER_ALLOWED_KINDS = setOf(
             NostrEventKind.Metadata.value,
             NostrEventKind.ShortTextNote.value,

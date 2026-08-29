@@ -1,8 +1,10 @@
 package net.primal.android.core.utils
 
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
 import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
@@ -16,6 +18,17 @@ import net.primal.core.utils.runCatching
 fun Context.copyText(text: String, label: String = "") {
     val clipboard = getSystemService(ClipboardManager::class.java)
     val clip = ClipData.newPlainText(label, text)
+    clipboard.setPrimaryClip(clip)
+}
+
+fun Context.copySensitiveText(text: String, label: String = "") {
+    val clipboard = getSystemService(ClipboardManager::class.java)
+    val clip = ClipData.newPlainText(label, text)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        clip.description.extras = android.os.PersistableBundle().apply {
+            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+        }
+    }
     clipboard.setPrimaryClip(clip)
 }
 

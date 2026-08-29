@@ -44,6 +44,7 @@ import net.primal.android.R
 import net.primal.android.core.compose.BiometricPrompt
 import net.primal.android.core.compose.IconText
 import net.primal.android.core.compose.PrimalDivider
+import net.primal.android.core.compose.SecureScreen
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.UniversalAvatarThumbnail
@@ -52,6 +53,7 @@ import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.Key
 import net.primal.android.core.compose.preview.PrimalPreview
+import net.primal.android.core.utils.copySensitiveText
 import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
@@ -70,6 +72,7 @@ fun AccountSettingsScreen(viewModel: AccountSettingsViewModel, onClose: () -> Un
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSettingsScreen(state: AccountSettingsContract.UiState, onClose: () -> Unit) {
+    if (state.nsec != null) SecureScreen()
     PrimalScaffold(
         modifier = Modifier,
         topBar = {
@@ -236,9 +239,7 @@ private fun PrivateKeyCopyButton(
         if (showCopyBiometricPrompt) {
             BiometricPrompt(
                 onAuthSuccess = {
-                    val clipboard = context.getSystemService(ClipboardManager::class.java)
-                    val clip = ClipData.newPlainText("", nsec)
-                    clipboard.setPrimaryClip(clip)
+                    context.copySensitiveText(text = nsec)
                     keyCopied = true
                     onAuthenticated()
                     showCopyBiometricPrompt = false
@@ -260,9 +261,7 @@ private fun PrivateKeyCopyButton(
             },
             onClick = {
                 if (authenticated) {
-                    val clipboard = context.getSystemService(ClipboardManager::class.java)
-                    val clip = ClipData.newPlainText("", nsec)
-                    clipboard.setPrimaryClip(clip)
+                    context.copySensitiveText(text = nsec)
                     keyCopied = true
                 } else {
                     showCopyBiometricPrompt = true

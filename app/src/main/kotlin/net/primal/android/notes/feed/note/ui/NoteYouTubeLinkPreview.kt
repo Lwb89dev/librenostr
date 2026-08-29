@@ -73,24 +73,24 @@ fun NoteYouTubeLinkPreview(
     }
 }
 
+private val YOUTUBE_HOSTS = setOf(
+    "youtube.com",
+    "www.youtube.com",
+    "m.youtube.com",
+    "music.youtube.com",
+    "youtu.be",
+)
+
+private val YOUTUBE_VIDEO_ID = Regex("^[a-zA-Z0-9_-]{11}$")
+
 private fun String.extractYouTubeVideoId(): String? {
     val uri = Uri.parse(this)
-    val path = uri.path ?: return null
-
-    return when {
-        path.contains("/shorts/") || path.contains("/live/") -> {
-            uri.lastPathSegment
-        }
-
-        uri.host?.contains("youtube.com") == true -> {
-            val queryParameters = uri.getQueryParameter("v")
-            queryParameters
-        }
-
-        uri.host == "youtu.be" -> {
-            uri.pathSegments.firstOrNull()
-        }
-
-        else -> null
+    val host = uri.host?.lowercase() ?: return null
+    if (host !in YOUTUBE_HOSTS) return null
+    val candidate = when {
+        uri.path?.contains("/shorts/") == true || uri.path?.contains("/live/") == true -> uri.lastPathSegment
+        host == "youtu.be" -> uri.pathSegments.firstOrNull()
+        else -> uri.getQueryParameter("v")
     }
+    return candidate?.takeIf { YOUTUBE_VIDEO_ID.matches(it) }
 }

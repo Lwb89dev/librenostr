@@ -3,6 +3,8 @@ package net.primal.data.repository.feed
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
@@ -74,7 +76,7 @@ internal class RelayNotesFeedFetcher(
             .filter { it.tags.findFirstIdentifier() == dTag }
             .maxByOrNull { it.createdAt }
             ?: return emptyList()
-        return latest.tags.pubkeyTagValues().distinct()
+        return latest.tags.pubkeyTagValues().distinct().take(MAX_FOLLOW_AUTHORS)
     }
 
     private suspend fun queryInChunks(
@@ -85,20 +87,35 @@ internal class RelayNotesFeedFetcher(
         since: Long? = null,
     ): List<NostrEvent> {
         if (authors.isEmpty()) return emptyList()
+        val capped = authors.take(MAX_FOLLOW_AUTHORS)
+        val chunks = capped.chunked(AUTHOR_CHUNK)
+        val semaphore = Semaphore(MAX_PARALLEL_CHUNKS)
         return coroutineScope {
-            authors.chunked(AUTHOR_CHUNK).map { chunk ->
+            chunks.map { chunk ->
                 async {
-                    queryChunk(
-                        authors = chunk,
-                        kinds = kinds,
-                        limit = limit ?: chunk.size,
-                        until = until,
-                        since = since,
-                    )
+                    queryChunkLimited(semaphore, chunk, kinds, limit, until, since)
                 }
             }.awaitAll().flatten()
         }
     }
+
+    private suspend fun queryChunkLimited(
+        semaphore: Semaphore,
+        chunk: List<String>,
+        kinds: List<Int>,
+        limit: Int?,
+        until: Long?,
+        since: Long?,
+    ): List<NostrEvent> =
+        semaphore.withPermit {
+            queryChunk(
+                authors = chunk,
+                kinds = kinds,
+                limit = limit ?: chunk.size,
+                until = until,
+                since = since,
+            )
+        }
 
     private suspend fun queryChunk(
         authors: List<String>,
@@ -130,11 +147,13 @@ internal class RelayNotesFeedFetcher(
             )
         }.getOrDefault(emptyList())
         val latest = events.maxByOrNull { it.createdAt } ?: return emptyList()
-        return latest.tags.pubkeyTagValues().distinct()
+        return latest.tags.pubkeyTagValues().distinct().take(MAX_FOLLOW_AUTHORS)
     }
 
     companion object {
         private const val AUTHOR_CHUNK = 100
+        private const val MAX_FOLLOW_AUTHORS = 2_000
+        private const val MAX_PARALLEL_CHUNKS = 4
     }
 }
 

@@ -10,11 +10,9 @@ import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import io.github.aakira.napier.Napier
 import net.primal.android.BuildConfig
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 
 class PrimalCrashReporter @Inject constructor(
     okHttpClient: OkHttpClient,
@@ -90,12 +88,8 @@ class PrimalCrashReporter @Inject constructor(
         return stringWriter.toString()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun uploadCrashReport(report: String) {
-        okHttpClient.newCall(
-            Request.Builder()
-                .url("https://dev.primal.net/crash-report")
-                .post(report.toRequestBody(contentType = "text/plain".toMediaType()))
-                .build(),
-        ).execute()
+        Napier.w { "Crash reporter upload is disabled." }
     }
 }

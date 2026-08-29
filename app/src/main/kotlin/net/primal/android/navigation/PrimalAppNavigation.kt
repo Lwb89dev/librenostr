@@ -238,7 +238,7 @@ fun NavController.navigateToHome() {
     navigate(route = "main", navOptions = navOptions { clearBackStack() })
 }
 
-fun NavController.navigateToWallet() = navigateToMain(PrimalTopLevelDestination.Wallet)
+fun NavController.navigateToWallet() = Unit
 
 fun NavController.navigateToFollowPack(profileId: String, followPackId: String) =
     navigate(route = "explore/followPack/$profileId/$followPackId")

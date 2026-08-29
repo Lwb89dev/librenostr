@@ -34,7 +34,7 @@ internal fun HttpClientConfig<*>.installDefaultHttpClientConfiguration(
                     Napier.v(tag = loggingTag) { message }
                 }
             }
-            level = LogLevel.ALL
+            level = LogLevel.NONE
         }
     }
 

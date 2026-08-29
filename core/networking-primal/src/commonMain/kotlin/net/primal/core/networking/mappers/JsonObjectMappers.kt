@@ -12,7 +12,6 @@ fun JsonObject?.asNostrEventOrNull(): NostrEvent? {
         if (this != null) SocketsJson.decodeFromJsonElement(this) else null
     } catch (error: IllegalArgumentException) {
         Napier.w(error) { "Unable to map as NostrEvent." }
-        this?.let(SocketsJson::encodeToString)?.let { Napier.w { it } }
         null
     }
 }
@@ -22,7 +21,6 @@ fun JsonObject?.asPrimalEventOrNull(): PrimalEvent? {
         if (this != null) SocketsJson.decodeFromJsonElement(this) else null
     } catch (error: IllegalArgumentException) {
         Napier.w(error) { "Unable map as PrimalEvent." }
-        this?.let(SocketsJson::encodeToString)?.let { Napier.w { it } }
         null
     }
 }

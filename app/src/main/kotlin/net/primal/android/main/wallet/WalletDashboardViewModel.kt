@@ -65,10 +65,13 @@ class WalletDashboardViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val primalBillingClient: PrimalBillingClient,
     private val billingRepository: BillingRepository,
+    @Suppress("UnusedPrivateProperty")
     private val exchangeRateHandler: ExchangeRateHandler,
     private val ensureSparkWalletExistsUseCase: EnsureSparkWalletExistsUseCase,
     private val sparkWalletAccountRepository: SparkWalletAccountRepository,
+    @Suppress("UnusedPrivateProperty")
     private val primalWalletAccountRepository: PrimalWalletAccountRepository,
+    @Suppress("UnusedPrivateProperty")
     private val migratePrimalTransactionsHandler: MigratePrimalTransactionsHandler,
 ) : ViewModel() {
 
@@ -94,14 +97,11 @@ class WalletDashboardViewModel @Inject constructor(
     fun setEvents(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
     init {
-        fetchExchangeRate()
         subscribeToEvents()
         subscribeToActiveWalletData()
         subscribeToActiveAccount()
         subscribeToPurchases()
         checkForPersistedSparkWallet()
-        migratePrimalTransactionsIfNeeded()
-        resolveDashboardState()
         bindToProcessLifecycle(pendingDepositsSyncer)
     }
 
@@ -109,34 +109,6 @@ class WalletDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             val hasWallet = sparkWalletAccountRepository.hasPersistedSparkWallet(activeUserId)
             setState { copy(hasPersistedSparkWallet = hasWallet) }
-        }
-
-    private fun resolveDashboardState() =
-        viewModelScope.launch {
-            if (isNpubLogin) return@launch
-
-            val hasLocalWallet = sparkWalletAccountRepository.hasPersistedSparkWallet(activeUserId)
-            if (hasLocalWallet) return@launch
-
-            val status = primalWalletAccountRepository.fetchWalletStatus(activeUserId).getOrNull()
-                ?: return@launch
-
-            val dashboardState = when {
-                status.hasMigratedToSparkWallet -> WalletDashboardState.WalletDetected
-                status.hasCustodialWallet && status.primalWalletDeprecated -> WalletDashboardState.WalletDiscontinued
-                status.hasCustodialWallet -> return@launch
-                else -> WalletDashboardState.NoWallet
-            }
-            setState { copy(dashboardState = dashboardState) }
-        }
-
-    private fun migratePrimalTransactionsIfNeeded() =
-        viewModelScope.launch {
-            val sparkWalletId = sparkWalletAccountRepository.findRegisteredSparkWalletId(activeUserId) ?: return@launch
-            migratePrimalTransactionsHandler.invoke(
-                userId = activeUserId,
-                targetSparkWalletId = sparkWalletId,
-            )
         }
 
     private fun subscribeToEvents() =
@@ -270,13 +242,6 @@ class WalletDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { walletRepository.enrichUnenrichedTransactions() }
                 .onFailure { Napier.w(throwable = it) { "Failed to enrich transactions." } }
-        }
-
-    private fun fetchExchangeRate() =
-        viewModelScope.launch {
-            exchangeRateHandler.updateExchangeRate(
-                userId = activeAccountStore.activeUserId(),
-            )
         }
 
     private fun confirmPurchase(purchase: SatsPurchase) =

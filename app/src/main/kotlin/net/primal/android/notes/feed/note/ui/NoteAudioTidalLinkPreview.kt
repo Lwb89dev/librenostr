@@ -17,11 +17,19 @@ import kotlin.time.Duration.Companion.milliseconds
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.EventUriType
 
-private fun String.convertToTidalEmbedUrl(): String {
-    var embedString = this
-    embedString = embedString.replace("listen.tidal.com", "embed.tidal.com")
-    embedString = embedString.replace("/playlist/", "/playlists/")
-    return embedString
+private val TIDAL_HOSTS = setOf("listen.tidal.com", "tidal.com", "embed.tidal.com")
+private val TIDAL_ID = Regex("^[a-zA-Z0-9_-]+$")
+
+private fun String.convertToTidalEmbedUrl(): String? {
+    val uri = android.net.Uri.parse(this)
+    val host = uri.host?.lowercase() ?: return null
+    if (host !in TIDAL_HOSTS) return null
+    val segments = uri.pathSegments.filter { it.isNotBlank() }
+    if (segments.size < 2) return null
+    val type = if (segments[0] == "playlist") "playlists" else segments[0]
+    val id = segments[1]
+    if (!TIDAL_ID.matches(id)) return null
+    return "https://embed.tidal.com/$type/$id"
 }
 
 @Composable
@@ -39,7 +47,9 @@ fun NoteAudioTidalLinkPreview(
         var embeddedWebState by remember { mutableStateOf(EmbeddedWebPageState.Idle) }
         var previewSize by remember { mutableStateOf(DpSize(width = 0.dp, height = 0.dp)) }
 
-        if (embeddedWebState == EmbeddedWebPageState.Ready || embeddedWebState == EmbeddedWebPageState.Initializing) {
+        val readyToEmbed = embeddedWebState == EmbeddedWebPageState.Ready ||
+            embeddedWebState == EmbeddedWebPageState.Initializing
+        if (embedUrl != null && readyToEmbed) {
             NoteEmbeddedWebPagePreview(
                 modifier = Modifier
                     .clip(AppTheme.shapes.medium)

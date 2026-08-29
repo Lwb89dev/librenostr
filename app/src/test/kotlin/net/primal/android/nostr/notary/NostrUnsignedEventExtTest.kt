@@ -5,6 +5,7 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.cryptography.calculateEventId
+import net.primal.domain.nostr.cryptography.hasValidIdAndSignature
 import net.primal.domain.nostr.cryptography.signOrThrow
 import net.primal.domain.nostr.cryptography.utils.toHex
 import org.junit.Test
@@ -53,4 +54,34 @@ class NostrUnsignedEventExtTest {
         )
         signedEvent.sig shouldBe expectedSig
     }
+
+    @Test
+    fun `valid signed event passes id and signature check`() {
+        val signedEvent = unsignedFixture().signOrThrow(
+            "nsec18c2dg4s9j7ndlujesf4fq5m3ty6u92jpqffuckf75xyyxqsqy4pstyzq4l",
+        )
+        signedEvent.hasValidIdAndSignature() shouldBe true
+    }
+
+    @Test
+    fun `tampered content fails signature check`() {
+        val signedEvent = unsignedFixture().signOrThrow(
+            "nsec18c2dg4s9j7ndlujesf4fq5m3ty6u92jpqffuckf75xyyxqsqy4pstyzq4l",
+        )
+        signedEvent.copy(content = "tampered").hasValidIdAndSignature() shouldBe false
+    }
+
+    private fun unsignedFixture() =
+        NostrUnsignedEvent(
+            content = "{\"description\":\"Sync app settings\"}",
+            kind = 30078,
+            tags = listOf(
+                buildJsonArray {
+                    add("d")
+                    add("Primal-Android App")
+                },
+            ),
+            createdAt = 1687881599,
+            pubKey = "9b46c3f4a8dcdafdfff12a97c59758f38ff55002370fcfa7d14c8c857e9b5812",
+        )
 }

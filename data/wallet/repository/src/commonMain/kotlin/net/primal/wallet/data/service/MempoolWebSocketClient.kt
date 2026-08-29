@@ -16,7 +16,9 @@ import net.primal.core.utils.runCatching
 
 internal class MempoolWebSocketClient(
     private val httpClient: HttpClient = HttpClientFactory.createHttpClientWithDefaultConfig {
-        install(WebSockets)
+        install(WebSockets) {
+            maxFrameSize = 256L * 1024
+        }
     },
 ) {
 

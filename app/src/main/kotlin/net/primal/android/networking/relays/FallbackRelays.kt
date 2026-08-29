@@ -12,3 +12,13 @@ val FALLBACK_RELAY_URLS = listOf(
 )
 
 val FALLBACK_RELAYS = FALLBACK_RELAY_URLS.map { it.toRelay() }
+
+internal fun String.isValidRelayUrl(): Boolean {
+    val url = trim().lowercase()
+    if (!url.startsWith("wss://")) return false
+    val host = url.removePrefix("wss://").substringBefore("/").substringBefore(":")
+    return host.contains('.') &&
+        !host.startsWith('.') &&
+        !host.endsWith('.') &&
+        host.none { it.isWhitespace() }
+}

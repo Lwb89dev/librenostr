@@ -7,6 +7,7 @@ import net.primal.core.utils.createAppBuildHelper
 import net.primal.core.utils.runCatching
 import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.domain.account.PrimalWalletAccountRepository
+import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.account.PrimalWalletStatus
 import net.primal.domain.account.PromoCodeDetails
 import net.primal.domain.nostr.NostrEventKind
@@ -96,34 +97,5 @@ internal class PrimalWalletAccountRepositoryImpl(
         }
 
     override suspend fun fetchWalletStatus(userId: String): Result<PrimalWalletStatus> =
-        withContext(dispatcherProvider.io()) {
-            runCatching {
-                val response = primalWalletApi.getWalletStatus(userId)
-
-                val sparkWalletId = response.sparkPubkey
-                val lightningAddress = response.lightningAddress
-
-                if (sparkWalletId != null) {
-                    walletDatabase.wallet().insertWalletUserLink(
-                        userId = userId,
-                        walletId = sparkWalletId,
-                    )
-                    if (lightningAddress != null) {
-                        walletDatabase.wallet().assignLightningAddress(
-                            userId = userId,
-                            walletId = sparkWalletId,
-                            lightningAddress = lightningAddress.asEncryptable(),
-                        )
-                    }
-                }
-
-                PrimalWalletStatus(
-                    hasCustodialWallet = response.hasCustodialWallet,
-                    hasMigratedToSparkWallet = response.hasSparkWallet,
-                    lightningAddress = response.lightningAddress,
-                    primalWalletDeprecated = response.mustMigrate,
-                    registeredSparkWalletId = response.sparkPubkey,
-                )
-            }
-        }
+        Result.failure(NetworkException("Primal wallet is disabled"))
 }

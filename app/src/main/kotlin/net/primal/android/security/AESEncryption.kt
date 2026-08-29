@@ -27,6 +27,7 @@ class AESEncryption(
     override fun decrypt(inputStream: InputStream): String {
         val decryptedBytes = inputStream.use {
             val ivSize = it.read()
+            require(ivSize == 16) { "Invalid AES IV size." }
             val iv = ByteArray(ivSize)
             it.read(iv)
 
