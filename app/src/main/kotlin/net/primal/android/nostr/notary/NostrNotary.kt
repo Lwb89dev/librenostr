@@ -2,6 +2,7 @@ package net.primal.android.nostr.notary
 
 import android.content.ContentResolver
 import fr.acinq.secp256k1.Hex
+import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -63,6 +64,13 @@ class NostrNotary @Inject constructor(
     private fun setResponse(response: SignResult) = scope.launch { _responses.send(response) }
 
     override suspend fun signNostrEvent(unsignedNostrEvent: NostrUnsignedEvent): SignResult {
+        if (isExternalSigner(unsignedNostrEvent.pubKey) &&
+            unsignedNostrEvent.kind !in AMBER_ALLOWED_KINDS
+        ) {
+            Napier.d { "Skipping Amber prompt for leftover kind ${unsignedNostrEvent.kind}" }
+            return SignResult.Rejected(SigningRejectedException())
+        }
+
         val result = try {
             signNostrEvent(userId = unsignedNostrEvent.pubKey, event = unsignedNostrEvent)
         } catch (error: SignatureException) {
@@ -97,12 +105,13 @@ class NostrNotary @Inject constructor(
             credentialsStore.findOrThrow(npub = npub).nsec
         }.getOrNull() ?: throw SigningKeyNotFoundException()
 
-    private fun signNostrEvent(userId: String, event: NostrUnsignedEvent): NostrEvent? {
-        val isExternalSignerLogin = runCatching {
+    private fun isExternalSigner(userId: String): Boolean =
+        runCatching {
             credentialsStore.isExternalSignerCredential(npub = userId.hexToNpubHrp())
         }.getOrDefault(false)
 
-        if (isExternalSignerLogin) {
+    private fun signNostrEvent(userId: String, event: NostrUnsignedEvent): NostrEvent? {
+        if (isExternalSigner(userId)) {
             val result = contentResolver.signEventWithAmber(event = event)
             return when (result) {
                 AmberSignResult.Rejected -> throw SigningRejectedException()
@@ -235,5 +244,27 @@ class NostrNotary @Inject constructor(
 
     sealed class NotarySideEffect {
         data class RequestSignature(val unsignedEvent: NostrUnsignedEvent) : NotarySideEffect()
+    }
+
+    private companion object {
+        val AMBER_ALLOWED_KINDS = setOf(
+            NostrEventKind.Metadata.value,
+            NostrEventKind.ShortTextNote.value,
+            NostrEventKind.FollowList.value,
+            NostrEventKind.EncryptedDirectMessages.value,
+            NostrEventKind.EventDeletion.value,
+            NostrEventKind.ShortTextNoteRepost.value,
+            NostrEventKind.Reaction.value,
+            NostrEventKind.GenericRepost.value,
+            NostrEventKind.PictureNote.value,
+            NostrEventKind.ZapRequest.value,
+            NostrEventKind.MuteList.value,
+            NostrEventKind.RelayListMetadata.value,
+            NostrEventKind.BookmarksList.value,
+            NostrEventKind.BlossomServerList.value,
+            NostrEventKind.ClientAuthentication.value,
+            NostrEventKind.CategorizedPeopleList.value,
+            NostrEventKind.LongFormContent.value,
+        )
     }
 }
