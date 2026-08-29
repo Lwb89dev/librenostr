@@ -6,111 +6,106 @@
 
 <p align="center">
   <strong>A relay-first Nostr client for Android.</strong><br>
-  Talks to ordinary relays. Stores data on the device. Does not need Primal’s cache servers.
+  Connects to Nostr relays directly, keeps local state on the device, and is being freed from Primal's proprietary infrastructure.
 </p>
 
 <p align="center">
   <a href="https://github.com/Lwb89dev/librenostr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-6430D5?style=for-the-badge" alt="MIT License"></a>
-  <a href="https://github.com/Lwb89dev/librenostr"><img src="https://img.shields.io/badge/status-early%20fork-222?style=for-the-badge" alt="Early fork"></a>
+  <a href="https://github.com/Lwb89dev/librenostr"><img src="https://img.shields.io/badge/status-active%20development-222?style=for-the-badge" alt="Active development"></a>
 </p>
 
-LibreNostr is a fork of the open-source [Primal Android app](https://github.com/PrimalHQ/primal-android-app). We kept the UI and the Nostr pieces that already work, and we are cutting the product free from Primal-specific infrastructure.
+LibreNostr is a fork of the open-source [Primal Android app](https://github.com/PrimalHQ/primal-android-app). The project keeps the mature Android/Compose foundation while replacing the remote cache dependency with ordinary Nostr relay queries wherever the relay path is ready.
 
-This is **not** a re-skinned Primal. The point of the fork is architectural:
-
-```text
-client  ↔  Nostr relays  +  local Room cache
-```
-
-not:
+The target architecture is:
 
 ```text
-client  ↔  primal.net cache  ↔  Nostr
+client  <->  Nostr relays  +  local Room/DataStore
 ```
 
-Today the imported tree still speaks to Primal’s cache for most reads. That is documented, not hidden. Each migrated path is switched to relays, then the old caller is deleted. See [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
+The imported codebase still contains upstream namespaces and compatibility services. Those are being removed incrementally, path by path, instead of hiding the remaining dependencies behind a rebrand.
 
-## What stays, what goes
+## Current state
 
-**Keep (and reuse)**
+The current AOSP debug build is usable as a daily development client for the core Nostr workflow:
 
-- Compose UI and navigation patterns
-- Local Room / DataStore cache (on the device, not a remote aggregator)
-- Local `nsec` identity
-- Existing Nostr models, secp256k1, Quartz NIP-04/NIP-44
-- Direct relay `EVENT` publish (`RelayPool`)
-- NWC and LNURL where they do not depend on Primal
+- direct relay read/write through `RelayPool`, including EOSE handling, timeouts, deduplication and clean subscription shutdown;
+- relay-first following feeds, including **Latest** and **Latest with replies**;
+- relay-first profile metadata, follow lists and NIP-65 relay lists, backed by local Room storage;
+- note threads fetched from relay events and replies;
+- local-key note publishing to write relays, with the published event persisted locally;
+- notifications with scrolling, pull-to-refresh and read-state handling;
+- LibreNostr-branded Compose UI with home, notifications, profile, algorithm and settings navigation;
+- profile sharing through `nostrich.org/p/<npub>` and Android deep-link handling;
+- inline search: profile results appear below the search field and note/read results render in the same screen, without an intermediate results page;
+- persistent recent searches and recent profiles, capped at five entries per group and shown with profile images;
+- note composer attachments, camera/gallery selection, polls and a GIF picker backed by Wikimedia Commons previews.
 
-**Remove (incrementally)**
+The app name and launcher icon are LibreNostr. The Android application/package namespace is still `net.primal.android`; renaming it is intentionally postponed until the networking migration is complete.
 
-- Primal cache WebSocket/HTTP as the source of feeds, profiles, threads, search
-- Trending / discovery that only exists because of that cache
-- Primal Premium / membership / promo
-- External signer product (NIP-46 / NIP-55) after local keys still publish
-- Primal trademarks, logos, and store copy — MIT copyright stays
+## Remaining boundaries
 
-## Current status
+LibreNostr is not yet a complete removal of every Primal-specific component. In particular:
 
-Imported from Primal **3.5.25** (`efb88b5af`). Phase 0 baseline compiles.
+- some discovery/search and metadata-enrichment calls still use the compatibility API at `primal.net`;
+- wallet/NWC, premium, external-signer and legacy Primal service modules remain in the imported tree and are under audit or scheduled for removal;
+- some legacy deep-link labels and upstream class names still say “Primal”.
 
-| Check | Result |
+Basic relay-backed feeds, profiles, threads, notifications and publishing should not depend on the remote Primal cache. Remaining paths are tracked in [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
+
+## Project layout
+
+| Directory | Role |
 |---|---|
-| `./gradlew :app:assembleAospDebug` | success |
-| `./gradlew :app:testAospDebugUnitTest` | 344 tests, 0 fail |
-| `./gradlew allTests` | 985 XML tests, 0 fail |
-
-The app name and launcher icon are LibreNostr. Package id is still `net.primal.android` until networking is stable — renaming it in the same breath as the data-layer work would make diffs unreadable.
-
-Honest caveat: **blocking `primal.net` will still break most reads** until the relay migration (LN-001…) lands. Publish already goes to relays.
-
-## Docs
-
-| File | What it is |
-|---|---|
-| [`docs/UPSTREAM.md`](docs/UPSTREAM.md) | Origin, remotes, MIT obligations |
-| [`docs/BASELINE.md`](docs/BASELINE.md) | Toolchain and the unmodified build |
-| [`docs/ARCHITECTURE_UPSTREAM.md`](docs/ARCHITECTURE_UPSTREAM.md) | KEEP / REFACTOR / REPLACE / REMOVE |
-| [`docs/PRIMAL_SERVER_DEPENDENCIES.md`](docs/PRIMAL_SERVER_DEPENDENCIES.md) | 84 cache/wallet verbs |
-| [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md) | Phased strangler plan |
-| [`docs/LIBRENOSTR_BACKLOG.md`](docs/LIBRENOSTR_BACKLOG.md) | Atomic tasks (`LN-00x`) |
+| `app/` | Android application, Compose screens, navigation and feature wiring |
+| `core/` | Networking, caching, media, cryptography and shared UI primitives |
+| `data/` | Local databases, remote APIs and repository implementations |
+| `domain/` | Platform-independent Nostr, feed, profile and wallet models |
+| `docs/` | Architecture notes, dependency inventory and migration roadmap |
 
 ## Building
 
-**Requires:** JDK 21, Android SDK (compileSdk 37, minSdk 26), Android Studio current enough for AGP 9.2.
+Requires JDK 21 and an Android SDK with compile SDK 37. The project uses AGP 9.2.1, Kotlin 2.4.0 and min SDK 26.
 
-Flavors: `aosp` (F-Droid / Zapstore) and `google` (Play). Use **aospDebug** unless you have Play secrets.
+Flavors are `aosp` (F-Droid/Zapstore-oriented) and `google` (Play services). Use `aospDebug` for local development unless Play secrets are configured.
 
 ```bash
-export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64   # or your JDK 21
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64   # or another JDK 21 path
 export ANDROID_HOME="$HOME/Android/Sdk"
 
 # sdk.dir is written to gitignored local.properties
 echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+./gradlew :app:compileAospDebugKotlin
 ./gradlew :app:assembleAospDebug
 ./gradlew :app:installAospDebug
 ```
 
-Debug builds **do not encrypt** stored keys (`NoEncryption`). Release builds use AES + SQLCipher. Do not daily-drive a debug APK with a real `nsec`.
+The AOSP debug APK has been compiled, installed and exercised through ADB during the current development cycle. Debug builds do not encrypt stored keys (`NoEncryption`); do not use a debug APK with a valuable real `nsec`.
 
-### Release
+### Release builds
 
-Create `config.properties` in the repo root (gitignored):
+Create a gitignored `config.properties` in the repository root:
 
 ```properties
 localStorage.keyAlias={KeystoreAliasForEncryption}
 ```
 
-Optional signing:
+Signing properties are optional and use the `playStore` or `alternative` signing block. Then run the appropriate release task, for example:
 
-```properties
-{signingConfigName}.storeFile={PathToYourCertificate}
-{signingConfigName}.storePassword={CertificatePassword}
-{signingConfigName}.keyAlias={YourAlias}
-{signingConfigName}.keyPassword={AliasPassword}
+```bash
+./gradlew :app:installAospAltRelease
 ```
 
-`{signingConfigName}` is `playStore` or `alternative`. Then `./gradlew :app:installAospAltRelease`.
+## Documentation
+
+| File | Description |
+|---|---|
+| [`docs/UPSTREAM.md`](docs/UPSTREAM.md) | Origin, remotes and MIT obligations |
+| [`docs/BASELINE.md`](docs/BASELINE.md) | Toolchain and imported baseline |
+| [`docs/ARCHITECTURE_UPSTREAM.md`](docs/ARCHITECTURE_UPSTREAM.md) | KEEP / REFACTOR / REPLACE / REMOVE map |
+| [`docs/PRIMAL_SERVER_DEPENDENCIES.md`](docs/PRIMAL_SERVER_DEPENDENCIES.md) | Inventory of remaining server verbs |
+| [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md) | Migration phases and stop conditions |
+| [`docs/LIBRENOSTR_BACKLOG.md`](docs/LIBRENOSTR_BACKLOG.md) | Atomic implementation tasks |
 
 ## Git remotes
 
@@ -123,15 +118,15 @@ Do not push to `upstream`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Open issues on this repository, not on Primal’s.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Open issues and pull requests on this repository, not on Primal's.
 
 ## License
 
-MIT. Upstream copyright: Copyright (c) 2023 PRIMAL SYSTEMS INC. See [LICENSE](LICENSE). LibreNostr does not claim authorship of unmodified upstream code and does not use the Primal trademark.
+MIT. Upstream copyright: Copyright (c) 2023 PRIMAL SYSTEMS INC. See [LICENSE](LICENSE). LibreNostr does not claim authorship of unmodified upstream code and does not use the Primal trademark as its product identity.
 
 ## Acknowledgments
 
 - [PrimalHQ/primal-android-app](https://github.com/PrimalHQ/primal-android-app) — the client this fork starts from
 - [Quartz](https://github.com/vitorpamplona/quartz) — NIP-04 / NIP-44
-- [Acinq](https://acinq.co) — secp256k1
-- [Breez SDK](https://breez.technology) — optional Lightning (still under audit for LibreNostr)
+- [Acinq](https://acinq.co) — secp256k1 and Lightning foundations
+- [Breez SDK](https://breez.technology) — inherited optional Lightning integration under audit

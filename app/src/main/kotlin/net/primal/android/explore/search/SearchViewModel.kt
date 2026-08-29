@@ -47,6 +47,7 @@ class SearchViewModel @Inject constructor(
         observeEvents()
         observeDebouncedQueryChanges()
         observeRecentUsers()
+        observeRecentSearches()
         if (initialQuery.isNotEmpty()) {
             setEvent(UiEvent.SearchQueryUpdated(query = initialQuery))
         }
@@ -56,10 +57,22 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             events.collect {
                 when (it) {
-                    is UiEvent.SearchQueryUpdated -> setState { copy(searching = true, searchQuery = it.query) }
+                    is UiEvent.SearchQueryUpdated -> setState {
+                        copy(
+                            searching = true,
+                            searchQuery = it.query,
+                            searchResults = emptyList(),
+                        )
+                    }
                     is UiEvent.ProfileSelected -> markProfileInteraction(profileId = it.profileId)
                     is UiEvent.SearchSubmitted -> saveRecentSearch(query = it.query)
-                    UiEvent.ResetSearchQuery -> setState { copy(searchQuery = "", searchResults = emptyList()) }
+                    UiEvent.ResetSearchQuery -> setState {
+                        copy(
+                            searching = false,
+                            searchQuery = "",
+                            searchResults = emptyList(),
+                        )
+                    }
                 }
             }
         }
@@ -109,9 +122,23 @@ class SearchViewModel @Inject constructor(
                 }
         }
 
+    private fun observeRecentSearches() =
+        viewModelScope.launch {
+            userRepository.observeRecentSearches(
+                ownerId = activeAccountStore.activeUserId(),
+                limit = MAX_RECENT_SEARCHES,
+            ).collect { queries ->
+                setState { copy(recentSearches = queries) }
+            }
+        }
+
     private fun markProfileInteraction(profileId: String) {
         viewModelScope.launch {
             userRepository.markAsInteracted(profileId = profileId, ownerId = activeAccountStore.activeUserId())
         }
+    }
+
+    private companion object {
+        const val MAX_RECENT_SEARCHES = 5
     }
 }

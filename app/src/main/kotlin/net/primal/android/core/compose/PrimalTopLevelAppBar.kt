@@ -1,13 +1,9 @@
 package net.primal.android.core.compose
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,13 +16,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,7 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,6 +64,13 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,7 +84,9 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Close
 import net.primal.android.core.compose.icons.primaliconpack.Search
+import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
 import net.primal.android.explore.search.SearchContract
 import net.primal.android.explore.search.SearchViewModel
 import net.primal.android.explore.search.ui.UserProfileListItem
@@ -188,10 +204,16 @@ private fun HomeSearchBar(
     var active by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var suggestionsVisible by rememberSaveable { mutableStateOf(false) }
+    var searchBarBounds by remember { mutableStateOf(IntRect.Zero) }
     val searchViewModel: SearchViewModel = hiltViewModel()
     val searchState by searchViewModel.state.collectAsState()
     val keyboard = LocalSoftwareKeyboardController.current
+    val keyboardVisible by keyboardVisibilityAsState()
+    val density = LocalDensity.current
+    val screenHeightPx = with(density) { LocalConfiguration.current.screenHeightDp.dp.roundToPx() }
+    val imeBottomPx = WindowInsets.ime.getBottom(density)
     val focusRequester = remember { FocusRequester() }
+    var keyboardWasVisible by remember { mutableStateOf(false) }
     val lavender = AppTheme.colorScheme.primary
     val onSurface = AppTheme.colorScheme.onSurface
     val panelVisible = active && suggestionsVisible
@@ -208,15 +230,64 @@ private fun HomeSearchBar(
         ),
     )
 
-    Column(
+    fun submitSearch() {
+        if (query.isBlank()) return
+        searchViewModel.setEvent(SearchContract.UiEvent.SearchSubmitted(query = query))
+        suggestionsVisible = false
+        keyboard?.hide()
+        onSubmit?.invoke(query)
+    }
+
+    fun selectRecentSearch(recentQuery: String) {
+        query = recentQuery
+        suggestionsVisible = true
+        searchViewModel.setEvent(SearchContract.UiEvent.SearchQueryUpdated(query = recentQuery))
+    }
+
+    fun clearSearch() {
+        query = ""
+        suggestionsVisible = true
+        searchViewModel.setEvent(SearchContract.UiEvent.ResetSearchQuery)
+        focusRequester.requestFocus()
+    }
+
+    fun closeSearch() {
+        active = false
+        suggestionsVisible = false
+        query = ""
+        searchViewModel.setEvent(SearchContract.UiEvent.ResetSearchQuery)
+        keyboard?.hide()
+    }
+
+    BackHandler(enabled = active) {
+        closeSearch()
+    }
+
+    LaunchedEffect(active, keyboardVisible) {
+        if (active && keyboardWasVisible && !keyboardVisible) {
+            closeSearch()
+        }
+        keyboardWasVisible = active && keyboardVisible
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(40.dp)
             .zIndex(1f),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
+                .onGloballyPositioned { searchBarBounds = it.boundsInWindow().let { bounds ->
+                    IntRect(
+                        left = bounds.left.toInt(),
+                        top = bounds.top.toInt(),
+                        right = bounds.right.toInt(),
+                        bottom = bounds.bottom.toInt(),
+                    )
+                } }
                 .clip(barShape)
                 .background(color = AppTheme.colorScheme.surface)
                 .background(brush = glassBrush)
@@ -256,9 +327,7 @@ private fun HomeSearchBar(
                     textStyle = AppTheme.typography.bodyMedium.copy(color = onSurface),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = {
-                        suggestionsVisible = false
-                        keyboard?.hide()
-                        onSubmit?.invoke(query)
+                        submitSearch()
                     }),
                     decorationBox = { innerTextField ->
                         Box {
@@ -285,29 +354,56 @@ private fun HomeSearchBar(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (active && query.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = ::clearSearch),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        imageVector = PrimalIcons.Close,
+                        contentDescription = "Clear search",
+                        tint = onSurface.copy(alpha = 0.7f),
+                    )
+                }
+            }
         }
 
-        AnimatedVisibility(
-            visible = panelVisible,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-        ) {
+        if (panelVisible && searchBarBounds.width > 0) {
+            Popup(
+                popupPositionProvider = SearchSuggestionsPositionProvider(searchBarBounds),
+                properties = PopupProperties(
+                    focusable = false,
+                    clippingEnabled = false,
+                ),
+            ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .width(with(LocalDensity.current) { searchBarBounds.width.toDp() })
+                    .heightIn(
+                        max = with(density) {
+                            (screenHeightPx - imeBottomPx - searchBarBounds.bottom)
+                                .coerceAtLeast(0)
+                                .toDp()
+                        },
+                    )
+                    .offset(y = (-1).dp)
                     .clip(panelShape)
                     .background(color = AppTheme.colorScheme.surface)
                     .background(brush = glassBrush)
-                    .border(width = 1.dp, color = lavender.copy(alpha = 0.16f), shape = panelShape),
+                    .shadow(elevation = 8.dp, shape = panelShape)
+                    .verticalScroll(rememberScrollState()),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
                         .clickable {
-                            suggestionsVisible = false
-                            keyboard?.hide()
-                            onSubmit?.invoke(query)
+                            submitSearch()
                         }
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -318,7 +414,57 @@ private fun HomeSearchBar(
                         color = onSurface.copy(alpha = 0.75f),
                     )
                 }
-                if (query.isNotBlank()) {
+                if (query.isBlank()) {
+                    searchState.recentSearches.take(MAX_SEARCH_SUGGESTIONS).forEach { recentQuery ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .clickable { selectRecentSearch(recentQuery) }
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = PrimalIcons.Search,
+                                contentDescription = null,
+                                tint = onSurface.copy(alpha = 0.45f),
+                                modifier = Modifier.padding(end = 10.dp),
+                            )
+                            Text(
+                                text = recentQuery,
+                                style = AppTheme.typography.bodyMedium,
+                                color = onSurface.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (searchState.recentUsers.isNotEmpty()) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            text = "Recent profiles",
+                            style = AppTheme.typography.labelMedium,
+                            color = onSurface.copy(alpha = 0.55f),
+                        )
+                        searchState.recentUsers.take(MAX_SEARCH_SUGGESTIONS).forEach { profile ->
+                            UserProfileListItem(
+                                data = profile,
+                                avatarSize = 36.dp,
+                                colors = androidx.compose.material3.ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
+                                onClick = {
+                                    searchViewModel.setEvent(
+                                        SearchContract.UiEvent.ProfileSelected(profileId = profile.profileId),
+                                    )
+                                    suggestionsVisible = false
+                                    keyboard?.hide()
+                                    onProfileClick?.invoke(profile.profileId)
+                                },
+                            )
+                        }
+                    }
+                } else {
                     if (searchState.searching && searchState.searchResults.isEmpty()) {
                         Text(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -354,8 +500,23 @@ private fun HomeSearchBar(
                     }
                 }
             }
+            }
         }
     }
+}
+
+private class SearchSuggestionsPositionProvider(
+    private val anchorBounds: IntRect,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset = IntOffset(
+        x = this.anchorBounds.left,
+        y = this.anchorBounds.bottom,
+    )
 }
 
 private const val MAX_SEARCH_SUGGESTIONS = 5

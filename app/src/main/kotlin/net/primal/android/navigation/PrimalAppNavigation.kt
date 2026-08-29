@@ -1484,6 +1484,8 @@ private fun NavGraphBuilder.search(
                 }
                 navController.navigateToExploreFeed(feedSpec = feedSpec)
             },
+            noteCallbacks = noteCallbacksHandler(navController),
+            onGoToWallet = { navController.navigateToWallet() },
         ),
     )
 }

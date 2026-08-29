@@ -412,7 +412,7 @@ class UserRepository @Inject constructor(
 
     fun observeRecentUsers(ownerId: String): Flow<List<UserProfileItemUi>> =
         usersDatabase.userProfileInteractions()
-            .observeRecentProfilesByOwnerId(ownerId)
+            .observeRecentProfilesByOwnerId(ownerId = ownerId, limit = MAX_RECENT_PROFILES)
             .distinctUntilChanged()
             .map { recentProfiles ->
                 val profileIds = recentProfiles.map { it.profileId }
@@ -432,6 +432,10 @@ class UserRepository @Inject constructor(
                     }
                 }
             }
+
+    private companion object {
+        const val MAX_RECENT_PROFILES = 5
+    }
 
     class FollowListNotFound : Exception()
 }
