@@ -9,17 +9,13 @@ import kotlinx.coroutines.launch
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.updater.UserDataUpdater
 import net.primal.android.user.updater.UserDataUpdaterFactory
-import net.primal.core.config.AppConfigHandler
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.domain.usecase.UpdateStaleStreamDataUseCase
 
 @Singleton
 class DataUpdater @Inject constructor(
     dispatcherProvider: DispatcherProvider,
     private val activeAccountStore: ActiveAccountStore,
     private val userDataSyncerFactory: UserDataUpdaterFactory,
-    private val appConfigHandler: AppConfigHandler,
-    private val updateStaleStreamDataUseCase: UpdateStaleStreamDataUseCase,
 ) {
     private val scope = CoroutineScope(dispatcherProvider.io() + SupervisorJob())
     private var userDataUpdater: UserDataUpdater? = null
@@ -30,8 +26,6 @@ class DataUpdater @Inject constructor(
 
     fun updateData() {
         scope.launch { userDataUpdater?.updateWithDebounce(30.minutes) }
-        scope.launch { appConfigHandler.updateWithDebounce(30.minutes) }
-        scope.launch { updateStaleStreamDataUseCase.updateWithDebounce(30.minutes) }
     }
 
     private fun observeActiveAccount() =

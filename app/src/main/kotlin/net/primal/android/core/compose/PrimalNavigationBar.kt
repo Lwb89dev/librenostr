@@ -86,7 +86,8 @@ fun PrimalNavigationBar(
                 val topPadding = 4.dp
                 val pillWidth = 72.dp
                 val destinations = PrimalTopLevelDestination.entries.filter {
-                    it != PrimalTopLevelDestination.Wallet
+                    it != PrimalTopLevelDestination.Wallet &&
+                        it != PrimalTopLevelDestination.Reads
                 }
                 val visualSelected = if (settingsSelected) {
                     PrimalTopLevelDestination.Settings

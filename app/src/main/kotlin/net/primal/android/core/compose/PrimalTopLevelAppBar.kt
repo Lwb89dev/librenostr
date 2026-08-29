@@ -149,18 +149,23 @@ fun PrimalTopLevelAppBar(
 
 @Composable
 private fun HomeSearchBar(placeholder: String, onClick: () -> Unit) {
-    val primary = AppTheme.colorScheme.primary
+    val lavender = AppTheme.colorScheme.primary
+    val onSurface = AppTheme.colorScheme.onSurface
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
             .clip(CircleShape)
+            .background(color = AppTheme.colorScheme.surface)
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(primary.copy(alpha = 0.58f), primary.copy(alpha = 0.32f)),
+                    colors = listOf(
+                        lavender.copy(alpha = 0.10f),
+                        lavender.copy(alpha = 0.04f),
+                    ),
                 ),
             )
-            .border(width = 1.dp, color = Color.White.copy(alpha = 0.28f), shape = CircleShape)
+            .border(width = 1.dp, color = lavender.copy(alpha = 0.16f), shape = CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -168,12 +173,12 @@ private fun HomeSearchBar(placeholder: String, onClick: () -> Unit) {
         Icon(
             imageVector = PrimalIcons.Search,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.92f),
+            tint = onSurface.copy(alpha = 0.55f),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = placeholder,
-            color = Color.White.copy(alpha = 0.78f),
+            color = onSurface.copy(alpha = 0.45f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

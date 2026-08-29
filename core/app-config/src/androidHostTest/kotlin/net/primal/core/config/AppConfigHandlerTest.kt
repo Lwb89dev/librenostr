@@ -38,7 +38,7 @@ class AppConfigHandlerTest {
             appConfigHandler.updateWithDebounce(debounceTimeout)
             advanceUntilIdle()
 
-            coVerify(exactly = 1) {
+            coVerify(exactly = 0) {
                 wellKnownApi.fetchApiConfig()
             }
         }
@@ -86,9 +86,9 @@ class AppConfigHandlerTest {
             appConfigHandler.updateImmediately()
             advanceUntilIdle()
 
-            appConfigPersistence.latestData.cacheUrl shouldBe expectedTestCacheUrl
-            appConfigPersistence.latestData.uploadUrl shouldBe expectedTestUploadUrl
-            appConfigPersistence.latestData.walletUrl shouldBe expectedTestWalletUrl
+            appConfigPersistence.latestData.cacheUrl shouldBe DEFAULT_APP_CONFIG.cacheUrl
+            appConfigPersistence.latestData.uploadUrl shouldBe DEFAULT_APP_CONFIG.uploadUrl
+            appConfigPersistence.latestData.walletUrl shouldBe DEFAULT_APP_CONFIG.walletUrl
         }
 
     @Test

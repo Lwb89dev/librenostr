@@ -95,8 +95,8 @@ These are the next implementation slice after Phase 0. Do them in order.
 
 | ID | Title | Files | Depends | Acceptance | Tests | Risk | Complexity | Status |
 |---|---|---|---|---|---|---|---|---|
-| LN-018 | Remove explore/trending UI | `app/.../explore`, `main/explore` | LN-004 (home still works) | No explore verbs at runtime | compile | Medium | L | todo |
-| LN-019 | Remove premium/membership | `app/.../premium`, membership verbs | LN-004 | No paywall, no IAP membership | compile | Medium | L | todo |
+| LN-018 | Remove explore/trending UI | `app/.../explore`, `main/explore` | LN-004 (home still works) | No explore verbs at runtime | compile | Medium | L | in_progress (home trending gone; Explore tab is algorithm; leftover screens still in tree) |
+| LN-019 | Remove premium/membership | `app/.../premium`, membership verbs | LN-004 | No paywall, no IAP membership | compile | Medium | L | in_progress (drawer/premium CTAs disconnected; modules still in tree) |
 | LN-020 | Remove NIP-46 / NIP-55 product | `nostrconnect`, `signer`, `data/account/signer` | LN-013 (publish proven with nsec) | Local nsec still publishes; no Amber/bunker login | login + publish tests | High | XL | todo |
 | LN-021 | Wallet classification implementation | `data/wallet/*` | LN-010 audit | NWC kept; primal wallet gone or isolated | compile | High | XL | todo |
 | LN-022 | Rebrand LibreNostr (no package rename) | strings, icons, README, about | after LN-018/019 | User-facing Primal marks gone; LICENSE kept | visual | Low | M | in_progress (name, icon, README, splash; package still net.primal.android) |

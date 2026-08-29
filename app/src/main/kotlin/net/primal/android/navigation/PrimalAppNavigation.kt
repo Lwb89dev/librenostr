@@ -434,8 +434,8 @@ fun noteCallbacksHandler(navController: NavController) =
             navController.navigateToReactions(eventId = eventId, initialTab = initialTab, articleATag = articleATag)
         },
         onPollVotesClick = { eventId -> navController.navigateToPollVotes(eventId = eventId) },
-        onGetPrimalPremiumClick = { navController.navigateToPremiumBuying() },
-        onPrimalLegendsLeaderboardClick = { navController.navigateToPremiumLegendLeaderboard() },
+        onGetPrimalPremiumClick = {},
+        onPrimalLegendsLeaderboardClick = {},
     )
 
 @OptIn(ExperimentalSharedTransitionApi::class)
