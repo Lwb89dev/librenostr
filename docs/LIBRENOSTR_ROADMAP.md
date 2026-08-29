@@ -33,7 +33,7 @@ Status: **done** (`RelayPool.query`, EOSE/timeout/dedupe/CLOSE, `lastQueryStats`
 
 ## Phase 3 — Profile / contact data from relays
 
-Status: **done** for kind 3, kind 0, and kind 10002 (all relay-first with cache fallback).
+Status: **done** for the primary kind 0 and kind 10002 paths (relay + local Room, without Primal fallback). Kind 3 is relay-first while remaining enrichment/statistics APIs are tracked separately.
 
 - Kind 3 contact list → Room.
 - Kind 0 metadata for those pubkeys → Room (respect local cache; do not re-query unchanged profiles forever).

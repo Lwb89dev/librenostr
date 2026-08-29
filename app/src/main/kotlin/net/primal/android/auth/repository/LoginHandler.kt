@@ -8,21 +8,17 @@ import net.primal.android.user.repository.RelayRepository
 import net.primal.android.user.repository.UserRepository
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
-import net.primal.domain.bookmarks.PublicBookmarksRepository
-import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.cryptography.utils.assureValidNsec
 
 class LoginHandler @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val mutedItemRepository: MutedItemRepository,
-    private val bookmarksRepository: PublicBookmarksRepository,
     private val dispatchers: DispatcherProvider,
     private val credentialsStore: CredentialsStore,
     private val relayRepository: RelayRepository,
 ) {
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("UNUSED_PARAMETER", "TooGenericExceptionCaught")
     suspend fun login(
         nostrKey: String,
         credentialType: CredentialType,
@@ -47,20 +43,8 @@ class LoginHandler @Inject constructor(
         credentialType: CredentialType,
     ) {
         runCatching { relayRepository.ensureLocalBootstrapRelays(userId) }
-
-        if (credentialType == CredentialType.ExternalSigner) {
-            activateAccount(credentialType = credentialType, nostrKey = nostrKey)
-            return
-        }
-
-        hydrateUserSession(userId = userId)
+        userRepository.ensureLocalUserAccount(userId)
         activateAccount(credentialType = credentialType, nostrKey = nostrKey)
-    }
-
-    private suspend fun hydrateUserSession(userId: String) {
-        userRepository.fetchAndUpdateUserAccount(userId = userId)
-        bookmarksRepository.fetchAndPersistBookmarks(userId = userId)
-        mutedItemRepository.fetchAndPersistMuteList(userId = userId)
     }
 
     private suspend fun activateAccount(credentialType: CredentialType, nostrKey: String) {

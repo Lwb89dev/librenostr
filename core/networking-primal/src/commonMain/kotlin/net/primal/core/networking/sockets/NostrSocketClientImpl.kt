@@ -152,7 +152,9 @@ internal class NostrSocketClientImpl(
                         if (!incomingCompressionEnabled) {
                             Napier.w { "Ignoring unsolicited binary WS frame from $socketUrl." }
                         } else if (frame.data.size > MAX_SOCKET_MESSAGE_CHARS) {
-                            Napier.w { "Dropping oversized WS binary frame from $socketUrl (${frame.data.size} bytes)." }
+                            Napier.w {
+                                "Dropping oversized WS binary frame from $socketUrl (${frame.data.size} bytes)."
+                            }
                         } else {
                             val decompressedMessage = decompressMessage(frame.data)
                             processIncomingMessage(text = decompressedMessage)
@@ -243,7 +245,7 @@ internal class NostrSocketClientImpl(
     override suspend fun sendAUTH(signedEvent: JsonObject) = sendMessage(text = signedEvent.buildNostrAUTHMessage())
 
     companion object {
-        private const val MAX_SOCKET_MESSAGE_CHARS = 256 * 1024
+        private const val MAX_SOCKET_MESSAGE_CHARS = 1024 * 1024
     }
 
     @Suppress("unused")

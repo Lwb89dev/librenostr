@@ -3,6 +3,7 @@ package net.primal.android.user.accounts
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -31,17 +32,17 @@ fun String.parseKind3Relays(): List<Relay> {
 }
 
 fun List<JsonArray>.parseNip65Relays(): List<Relay> {
-    return this.filter { it.firstOrNull()?.jsonPrimitive?.content == "r" }
-        .mapNotNull {
-            it.getOrNull(1)?.jsonPrimitive?.content?.let { url ->
-                val permission = it.getOrNull(2)?.jsonPrimitive?.content?.lowercase()
-                Relay(
-                    url = url,
-                    read = permission == null || permission == "read",
-                    write = permission == null || permission == "write",
-                )
-            }
-        }
+    return this.mapNotNull { tag ->
+        val marker = (tag.getOrNull(0) as? JsonPrimitive)?.content
+        if (marker != "r") return@mapNotNull null
+        val url = (tag.getOrNull(1) as? JsonPrimitive)?.content ?: return@mapNotNull null
+        val permission = (tag.getOrNull(2) as? JsonPrimitive)?.content?.lowercase()
+        Relay(
+            url = url,
+            read = permission == null || permission == "read",
+            write = permission == null || permission == "write",
+        )
+    }
 }
 
 fun List<JsonArray>.parseFollowings(): Set<String> {

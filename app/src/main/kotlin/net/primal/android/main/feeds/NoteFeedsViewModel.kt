@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.getAndUpdate
@@ -35,8 +37,11 @@ import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.FeedsRepository
+import net.primal.domain.feeds.PrimalFeed
 import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
+import net.primal.domain.feeds.defaultNoteFeedsNeedSync
 import net.primal.domain.feeds.isLibreNostrHomeFeedSpec
+import net.primal.domain.feeds.mergeDefaultNoteFeeds
 import net.primal.domain.nostr.toNostrString
 import net.primal.domain.nostr.utils.npubToPubkey
 import net.primal.domain.profile.ProfileRepository
@@ -150,21 +155,33 @@ class NoteFeedsViewModel @Inject constructor(
             setState { copy(loading = false) }
         }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeFeeds() =
         viewModelScope.launch {
-            feedsRepository.observeNotesFeeds(userId = activeAccountStore.activeUserId())
-                .collect { feeds ->
-                    val kept = feeds.filter { it.enabled && it.spec.isLibreNostrHomeFeedSpec() }
-                    if (kept.isEmpty()) {
-                        restoreDefaultNoteFeeds()
-                    } else {
-                        setState {
-                            copy(
-                                feeds = kept.map { it.asFeedUi() },
-                                loading = false,
-                            )
-                        }
-                    }
+            activeAccountStore.activeUserId
+                .filter { it.isNotBlank() }
+                .flatMapLatest { userId ->
+                    feedsRepository.observeNotesFeeds(userId = userId)
+                        .map { feeds -> userId to feeds }
                 }
+                .collect { (userId, feeds) -> syncObservedFeeds(userId, feeds) }
         }
+
+    private suspend fun syncObservedFeeds(userId: String, feeds: List<PrimalFeed>) {
+        val relevant = feeds.filter { it.spec.isLibreNostrHomeFeedSpec() }
+        val merged = mergeDefaultNoteFeeds(userId, relevant)
+        setState {
+            copy(
+                feeds = merged.filter { it.enabled }.map { it.asFeedUi() },
+                loading = false,
+            )
+        }
+        if (defaultNoteFeedsNeedSync(relevant, merged)) {
+            feedsRepository.persistLocalUserFeeds(
+                userId = userId,
+                specKind = FeedSpecKind.Notes,
+                feeds = merged,
+            )
+        }
+    }
 }

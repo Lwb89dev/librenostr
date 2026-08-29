@@ -42,6 +42,7 @@ internal fun NoteFeedsContent(
     noteCallbacks: NoteCallbacks,
     eventPublisher: (UiEvent) -> Unit,
     onActiveFeedChanged: (FeedUi?) -> Unit,
+    selectedFeed: FeedUi? = null,
     topAppBarCollapsedFraction: Float,
     shouldAnimateScrollToTop: MutableState<Boolean>,
     scrollToFeed: MutableState<FeedUi?> = remember { mutableStateOf(null) },
@@ -62,10 +63,15 @@ internal fun NoteFeedsContent(
         }
     }
 
-    LaunchedEffect(state.feeds, activeFeed) {
+    LaunchedEffect(state.feeds, selectedFeed?.spec) {
+        val selected = selectedFeed?.let { requested ->
+            state.feeds.firstOrNull { it.spec == requested.spec }
+        }
         val current = activeFeed
-        if (current == null || state.feeds.none { it.spec == current.spec }) {
-            val feed = state.feeds.firstOrNull()
+        val feed = selected ?: current?.let { currentFeed ->
+            state.feeds.firstOrNull { it.spec == currentFeed.spec }
+        } ?: state.feeds.firstOrNull()
+        if (feed?.spec != current?.spec) {
             activeFeed = feed
             onActiveFeedChanged(feed)
         }
@@ -73,9 +79,14 @@ internal fun NoteFeedsContent(
 
     LaunchedEffect(scrollToFeed.value) {
         val feed = scrollToFeed.value ?: return@LaunchedEffect
-        val pageIndex = state.feeds.indexOf(feed)
+        val resolvedFeed = state.feeds.firstOrNull { it.spec == feed.spec }
+        val pageIndex = state.feeds.indexOfFirst { it.spec == feed.spec }
         if (pageIndex >= 0) {
             pagerState.scrollToPage(page = pageIndex)
+        }
+        if (resolvedFeed != null && activeFeed?.spec != resolvedFeed.spec) {
+            activeFeed = resolvedFeed
+            onActiveFeedChanged(resolvedFeed)
         }
         scrollToFeed.value = null
     }
@@ -89,7 +100,6 @@ internal fun NoteFeedsContent(
             showTopZaps = true,
             bigPillStreams = if (state.showLiveStreams) state.streams else emptyList(),
             showStreamsInNewPill = state.showLiveStreams,
-            newNotesNoticeAlpha = (1 - topAppBarCollapsedFraction) * 1.0f,
             onGoToWallet = onGoToWallet,
             contentPadding = paddingValues,
             shouldAnimateScrollToTop = shouldAnimateScrollToTop.value,
@@ -135,6 +145,9 @@ internal fun NoteFeedTopAppBar(
     titleOverride: String? = null,
     subtitleOverride: String? = null,
     chevronExpanded: Boolean = false,
+    showAvatar: Boolean = true,
+    onSearchSubmit: ((String) -> Unit)? = null,
+    onSearchProfileClick: ((String) -> Unit)? = null,
 ) {
     PrimalTopLevelAppBar(
         title = title,
@@ -153,5 +166,8 @@ internal fun NoteFeedTopAppBar(
         scrollBehavior = scrollBehavior,
         onSearchClick = onSearchClick,
         searchPlaceholder = stringResource(id = R.string.home_search_placeholder),
+        showAvatar = showAvatar,
+        onSearchSubmit = onSearchSubmit,
+        onSearchProfileClick = onSearchProfileClick,
     )
 }

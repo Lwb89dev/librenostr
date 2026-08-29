@@ -18,6 +18,8 @@ import net.primal.android.settings.network.NetworkSettingsContract.UiEvent
 import net.primal.android.settings.network.NetworkSettingsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.RelayRepository
+import net.primal.core.utils.onFailure
+import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.cryptography.SignatureException
 
@@ -50,7 +52,7 @@ class NetworkSettingsViewModel @Inject constructor(
             relayRepository.observeUserRelays(userId).collect { relays ->
                 setState {
                     copy(
-                        relays = relays.map { relay ->
+                        relays = relays.distinctBy { it.url }.map { relay ->
                             SocketDestinationUiState(
                                 url = relay.url,
                                 connected = latestRelaysPoolStatus[relay.url] ?: false,
@@ -83,9 +85,9 @@ class NetworkSettingsViewModel @Inject constructor(
 
     private fun ensureRelayPoolUpdatedAndConnected() =
         viewModelScope.launch {
-            try {
+            runCatching {
                 relayRepository.syncUserRelaysOrBootstrap(userId = activeAccountStore.activeUserId())
-            } catch (error: NetworkException) {
+            }.onFailure { error ->
                 Napier.w(throwable = error) { "Failed to fetch and update user relays." }
             }
             delay(1.seconds)

@@ -4,27 +4,33 @@ import net.primal.core.utils.runCatching
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
 fun String.isUserNotesFeedSpec(): Boolean {
-    return this == "{\"id\":\"latest\",\"kind\":\"notes\"}"
+    return replaceWhitespace() == "{\"id\":\"latest\",\"kind\":\"notes\"}"
 }
 
 fun String.isUserNotesLwrFeedSpec(): Boolean {
-    return this == "{\"id\":\"latest\",\"include_replies\":true,\"kind\":\"notes\"}"
+    // Feed specs can be persisted/recreated with different whitespace or key order. Match the
+    // semantic boolean flag so the relay fetcher does not silently fall back to the normal feed.
+    val normalized = replaceWhitespace()
+    return normalized.startsWith("{") && normalized.endsWith("}") &&
+        normalized.contains("\"id\":\"latest\"") &&
+        normalized.contains("\"kind\":\"notes\"") &&
+        normalized.contains("\"include_replies\":true")
 }
+
+private fun String.replaceWhitespace(): String = replace(Regex("\\s+"), "")
 
 fun String.isFollowingNotesFeedSpec(): Boolean = isUserNotesFeedSpec() || isUserNotesLwrFeedSpec()
 
 fun buildFollowSetFeedSpec(pubkey: String, dTag: String) =
     """{"id":"list","kind":"notes","pubkey":"$pubkey","d":"$dTag"}"""
 
-fun String.isFollowSetFeedSpec(): Boolean =
-    contains("\"id\":\"list\"") && contains("\"kind\":\"notes\"")
+fun String.isFollowSetFeedSpec(): Boolean = contains("\"id\":\"list\"") && contains("\"kind\":\"notes\"")
 
 fun String.extractFollowSetDTag(): String? = extractJsonField("d")
 
 fun String.extractFollowSetPubkey(): String? = extractJsonField("pubkey")
 
-fun String.isLibreNostrHomeFeedSpec(): Boolean =
-    isFollowingNotesFeedSpec() || isFollowSetFeedSpec()
+fun String.isLibreNostrHomeFeedSpec(): Boolean = isFollowingNotesFeedSpec() || isFollowSetFeedSpec()
 
 private fun String.extractJsonField(name: String): String? {
     val prefix = "\"$name\":\""

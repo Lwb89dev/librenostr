@@ -21,8 +21,8 @@ fun NostrSocketClient.subscription(subscriptionId: String, data: JsonObject): Fl
     connectionGeneration
         .flatMapLatest {
             incomingMessages
+                .onSubscription { sendREQ(subscriptionId = subscriptionId, data = data) }
                 .filterBySubscriptionId(id = subscriptionId)
-                .onStart { sendREQ(subscriptionId = subscriptionId, data = data) }
         }
         .onStart { ensureSocketConnectionOrThrow() }
         .onCompletion { runCatching { sendCLOSE(subscriptionId = subscriptionId) } }

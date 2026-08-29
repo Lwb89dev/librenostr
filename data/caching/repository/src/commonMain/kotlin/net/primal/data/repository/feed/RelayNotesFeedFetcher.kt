@@ -51,7 +51,17 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
-        return page.toFeedResponse(emptyList())
+        val metadataAuthors = page.map { it.pubKey }.distinct()
+        val metadata = if (metadataAuthors.isEmpty()) {
+            emptyList()
+        } else {
+            queryInChunks(
+                authors = metadataAuthors,
+                kinds = listOf(NostrEventKind.Metadata.value),
+                limit = metadataAuthors.size,
+            )
+        }
+        return page.toFeedResponse(metadata)
     }
 
     private suspend fun loadAuthors(userId: String, feedSpec: String): List<String> {

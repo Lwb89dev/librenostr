@@ -19,14 +19,23 @@ class BlossomRepository @Inject constructor(
 ) {
 
     private companion object {
-        private val DEFAULT_BLOSSOM_LIST = listOf("https://blossom.band")
+        private val DEFAULT_BLOSSOM_LIST = listOf(
+            "https://blossom.band",
+            "https://cdn.satellite.earth",
+        )
     }
 
     suspend fun ensureBlossomServerList(userId: String): List<String> {
         val userAccount = userAccountsStore.findByIdOrNull(userId)
         val existingList = userAccount?.blossomServers.orEmpty()
-            .filterNot { it.contains("blossom.primal.net") }
-        return existingList.ifEmpty { DEFAULT_BLOSSOM_LIST }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .filterNot { it.contains("blossom.primal.net", ignoreCase = true) }
+            .map { it.ensureHttpOrHttps().trimEnd('/') }
+            .distinct()
+        // Keep user-published servers first, but always retain public fallbacks. A stale
+        // Blossom list must never make uploads fail permanently after a server disappears.
+        return (existingList + DEFAULT_BLOSSOM_LIST).distinct()
     }
 
     suspend fun publishBlossomServerList(userId: String, servers: List<String>) {

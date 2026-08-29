@@ -5,6 +5,12 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +56,7 @@ fun PrimalMainScaffold(
     badges: Badges = Badges(),
     onActiveDestinationClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     settingsSelected: Boolean = false,
     topAppBarState: TopAppBarState = remember {
         TopAppBarState(
@@ -70,7 +77,7 @@ fun PrimalMainScaffold(
     val localDensity = LocalDensity.current
     val streamState = LocalStreamState.current
     val topAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
-    val bottomBarState = rememberBottomBarState(topAppBarState, localDensity, streamState)
+    val bottomBarState = rememberBottomBarState(localDensity, streamState)
     val focusModeOn by remember(topAppBarState) {
         derivedStateOf { topAppBarState.collapsedFraction > FOCUS_MODE_COLLAPSE_THRESHOLD }
     }
@@ -107,19 +114,24 @@ fun PrimalMainScaffold(
                     onPrimaryDestinationChanged = onPrimaryDestinationChanged,
                     onActiveDestinationClick = onActiveDestinationClick,
                     onSettingsClick = onSettingsClick,
+                    onProfileClick = onProfileClick,
                     settingsSelected = settingsSelected,
                     badges = badges,
                     exploreAnchorHandle = exploreAnchorHandle,
                 )
             },
             floatingActionButton = {
-                ScaffoldFab(
-                    focusModeOn = focusModeOn,
-                    collapsedFraction = topAppBarState.collapsedFraction,
-                    bottomBarInitialHeight = bottomBarState.initialHeight,
-                    bottomBarRealHeight = bottomBarState.realHeight,
-                    floatingActionButton = floatingActionButton,
-                )
+                AnimatedVisibility(
+                    visible = !focusModeOn,
+                    enter = fadeIn() + scaleIn() +
+                        slideInHorizontally(initialOffsetX = { it / 2 }) +
+                        slideInVertically(initialOffsetY = { it / 2 }),
+                    exit = fadeOut() + scaleOut() +
+                        slideOutHorizontally(targetOffsetX = { it / 2 }) +
+                        slideOutVertically(targetOffsetY = { it / 2 }),
+                ) {
+                    floatingActionButton()
+                }
             },
             snackbarHost = snackbarHost,
         )
@@ -175,6 +187,7 @@ private fun ScaffoldBottomBar(
     onPrimaryDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     onActiveDestinationClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit,
     settingsSelected: Boolean,
     badges: Badges,
     exploreAnchorHandle: AnchorHandle? = null,
@@ -204,37 +217,11 @@ private fun ScaffoldBottomBar(
             onTopLevelDestinationChanged = onPrimaryDestinationChanged,
             onActiveDestinationClick = onActiveDestinationClick,
             onSettingsClick = onSettingsClick,
+            onProfileClick = onProfileClick,
             settingsSelected = settingsSelected,
             badges = badges,
             exploreAnchorHandle = exploreAnchorHandle,
         )
-    }
-}
-
-@Composable
-private fun ScaffoldFab(
-    focusModeOn: Boolean,
-    collapsedFraction: Float,
-    bottomBarInitialHeight: Dp,
-    bottomBarRealHeight: Dp,
-    floatingActionButton: @Composable () -> Unit,
-) {
-    AnimatedVisibility(
-        visible = !focusModeOn,
-        enter = fadeIn(),
-        exit = fadeOut(),
-        modifier = Modifier
-            .graphicsLayer {
-                this.alpha = (1 - collapsedFraction) * 1.0f
-                this.translationY = (bottomBarInitialHeight - bottomBarRealHeight).toPx()
-                this.rotationZ = (bottomBarInitialHeight - bottomBarRealHeight).toPx().coerceIn(
-                    minimumValue = 0f,
-                    maximumValue = FAB_MAX_ROTATION_Z,
-                )
-                this.clip = false
-            },
-    ) {
-        floatingActionButton()
     }
 }
 
@@ -245,10 +232,8 @@ private class BottomBarState(
     val measureModifier: Modifier,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun rememberBottomBarState(
-    topAppBarState: TopAppBarState,
     localDensity: androidx.compose.ui.unit.Density,
     streamState: net.primal.android.stream.player.StreamState,
 ): BottomBarState {
@@ -256,36 +241,22 @@ private fun rememberBottomBarState(
     val measureModifier = Modifier.onGloballyPositioned { layoutCoordinates ->
         initialHeight = with(localDensity) { layoutCoordinates.size.height.toDp() }
     }
-    val realHeight by remember(topAppBarState) {
-        derivedStateOf {
-            with(localDensity) {
-                ((1 - topAppBarState.collapsedFraction) * initialHeight.roundToPx()).toDp()
-            }
-        }
-    }
 
-    LaunchedEffect(realHeight) {
+    LaunchedEffect(initialHeight) {
         if (initialHeight != 0.dp) {
-            streamState.bottomBarHeight = with(localDensity) { realHeight.toPx().toInt() }
-        }
-    }
-
-    val isVisible by remember(topAppBarState) {
-        derivedStateOf {
-            initialHeight.isZeroOrNavigationBarFullHeight() || realHeight > 0.dp
+            streamState.bottomBarHeight = with(localDensity) { initialHeight.toPx().toInt() }
         }
     }
 
     return BottomBarState(
         initialHeight = initialHeight,
-        realHeight = realHeight,
-        isVisible = isVisible,
+        realHeight = initialHeight,
+        isVisible = true,
         measureModifier = measureModifier,
     )
 }
 
 private const val FOCUS_MODE_COLLAPSE_THRESHOLD = 0.5f
-private const val FAB_MAX_ROTATION_Z = 45f
 
 val FloatingNewDataHostTopPadding = 42.dp
 

@@ -1,16 +1,27 @@
 package net.primal.android.nostr.notary
 
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.beInstanceOf
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
+import net.primal.core.networking.sockets.NostrIncomingMessage
+import net.primal.core.networking.sockets.parseIncomingMessage
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.cryptography.calculateEventId
 import net.primal.domain.nostr.cryptography.hasValidIdAndSignature
+import net.primal.domain.nostr.cryptography.hasValidNip01Id
 import net.primal.domain.nostr.cryptography.signOrThrow
 import net.primal.domain.nostr.cryptography.utils.toHex
+import net.primal.domain.nostr.serialization.toNostrJsonObject
 import org.junit.Test
 
 class NostrUnsignedEventExtTest {
+
+    companion object {
+        private const val TEST_NSEC = "nsec18c2dg4s9j7ndlujesf4fq5m3ty6u92jpqffuckf75xyyxqsqy4pstyzq4l"
+    }
 
     @Test
     fun `calculateEventId returns correct id`() {
@@ -57,18 +68,31 @@ class NostrUnsignedEventExtTest {
 
     @Test
     fun `valid signed event passes id and signature check`() {
-        val signedEvent = unsignedFixture().signOrThrow(
-            "nsec18c2dg4s9j7ndlujesf4fq5m3ty6u92jpqffuckf75xyyxqsqy4pstyzq4l",
-        )
+        val signedEvent = unsignedFixture().signOrThrow(TEST_NSEC)
         signedEvent.hasValidIdAndSignature() shouldBe true
     }
 
     @Test
     fun `tampered content fails signature check`() {
-        val signedEvent = unsignedFixture().signOrThrow(
-            "nsec18c2dg4s9j7ndlujesf4fq5m3ty6u92jpqffuckf75xyyxqsqy4pstyzq4l",
-        )
+        val signedEvent = unsignedFixture().signOrThrow(TEST_NSEC)
         signedEvent.copy(content = "tampered").hasValidIdAndSignature() shouldBe false
+    }
+
+    @Test
+    fun `signed note survives incoming EVENT parse`() {
+        val signedEvent = unsignedFixture().signOrThrow(TEST_NSEC)
+        signedEvent.toNostrJsonObject().hasValidNip01Id() shouldBe true
+
+        val message = buildJsonArray {
+            add("EVENT")
+            add("sub-1")
+            add(signedEvent.toNostrJsonObject())
+        }
+        val parsed = message.toString().parseIncomingMessage()
+        parsed should beInstanceOf<NostrIncomingMessage.EventMessage>()
+        val incoming = parsed as NostrIncomingMessage.EventMessage
+        incoming.nostrEvent.shouldNotBeNull()
+        incoming.nostrEvent?.id shouldBe signedEvent.id
     }
 
     private fun unsignedFixture() =

@@ -1,25 +1,13 @@
 package net.primal.android.notes.feed.list
 
-import androidx.annotation.PluralsRes
-import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,18 +19,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -54,7 +34,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -64,29 +43,23 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.primal.android.R
-import net.primal.android.core.compose.AvatarThumbnailsRow
 import net.primal.android.core.compose.CommonTestTags
 import net.primal.android.core.compose.foundation.rememberLazyListStatePagingWorkaround
 import net.primal.android.core.compose.isNotEmpty
 import net.primal.android.core.compose.pulltorefresh.PrimalPullToRefreshBox
-import net.primal.android.core.compose.rememberIsItemVisible
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
 import net.primal.android.core.di.rememberMediaCacher
 import net.primal.android.core.errors.UiError
-import net.primal.android.drawer.FloatingNewDataHostTopPadding
 import net.primal.android.events.ui.findNearestOrNull
 import net.primal.android.notes.feed.list.NoteFeedContract.UiEvent
 import net.primal.android.notes.feed.model.FeedPostUi
-import net.primal.android.notes.feed.model.FeedPostsSyncStats
 import net.primal.android.notes.feed.model.StreamPillUi
-import net.primal.android.notes.feed.model.StreamsSyncStats
 import net.primal.android.notes.feed.note.ui.attachment.MaxDisplayImages
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.theme.AppTheme
 import net.primal.core.caching.MediaCacher
 import net.primal.domain.feeds.isImageSpec
 import net.primal.domain.feeds.isVideoSpec
-import net.primal.domain.links.CdnImage
 import net.primal.domain.links.EventUriType
 
 @Composable
@@ -95,7 +68,6 @@ fun NoteFeedList(
     noteCallbacks: NoteCallbacks,
     onGoToWallet: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    newNotesNoticeAlpha: Float = 1.00f,
     allowMutedThreads: Boolean = false,
     showTopZaps: Boolean = false,
     bigPillStreams: List<StreamPillUi> = emptyList(),
@@ -146,7 +118,6 @@ fun NoteFeedList(
         state = uiState.value,
         noteCallbacks = noteCallbacks,
         onGoToWallet = onGoToWallet,
-        newNotesNoticeAlpha = newNotesNoticeAlpha,
         useMediaCards = feedSpec.isImageSpec() || feedSpec.isVideoSpec(),
         bigPillStreams = bigPillStreams,
         showTopZaps = showTopZaps,
@@ -168,7 +139,6 @@ private fun NoteFeedList(
     state: NoteFeedContract.UiState,
     noteCallbacks: NoteCallbacks,
     onGoToWallet: () -> Unit,
-    newNotesNoticeAlpha: Float = 1.00f,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     bigPillStreams: List<StreamPillUi> = emptyList(),
@@ -185,7 +155,6 @@ private fun NoteFeedList(
 ) {
     val pagingItems = state.notes.collectAsLazyPagingItems()
     val listState = pagingItems.rememberLazyListStatePagingWorkaround()
-    val isStreamPillsRowVisible = listState.rememberIsItemVisible(key = STREAM_PILLS_ROW_KEY, fallback = false)
     val mediaCacher = rememberMediaCacher()
 
     ScrollToTopHandler(
@@ -231,33 +200,6 @@ private fun NoteFeedList(
             noContentPaddingValues = noContentPaddingValues,
         )
 
-        AnimatedVisibility(
-            visible = newNotesNoticeAlpha >= 0.5f,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier
-                .padding(contentPadding)
-                .padding(top = FloatingNewDataHostTopPadding)
-                .wrapContentHeight()
-                .wrapContentWidth()
-                .align(Alignment.TopCenter)
-                .graphicsLayer { this.alpha = newNotesNoticeAlpha },
-        ) {
-            if (state.showSyncStats && pagingItems.isNotEmpty()) {
-                var buttonVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(true) {
-                    delay(10.milliseconds)
-                    buttonVisible = true
-                }
-                if (buttonVisible && (!isStreamPillsRowVisible.value || bigPillStreams.isEmpty())) {
-                    NewPostsButton(
-                        streamsSyncStats = state.streamsSyncStats,
-                        notesSyncStats = state.notesSyncStats,
-                        onClick = { eventPublisher(UiEvent.NewPostsPillClick) },
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -395,146 +337,6 @@ fun NoteFeedList(
             onUiError = onUiError,
             noContentVerticalArrangement = noContentVerticalArrangement,
             noContentPaddingValues = noContentPaddingValues,
-        )
-    }
-}
-
-@Composable
-private fun NewPostsButton(
-    streamsSyncStats: StreamsSyncStats,
-    notesSyncStats: FeedPostsSyncStats,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .height(40.dp)
-            .background(
-                color = AppTheme.colorScheme.primary,
-                shape = AppTheme.shapes.extraLarge,
-            )
-            .padding(horizontal = 2.dp)
-            .padding(start = 4.dp, end = 12.dp)
-            .clickable { onClick() },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        when {
-            notesSyncStats.latestNotesCount > 1 && streamsSyncStats.streamsCount == 1 -> {
-                NewPillPluralIndicator(
-                    id = R.plurals.feed_new_posts_notice,
-                    count = notesSyncStats.latestNotesCount,
-                    avatars = notesSyncStats.latestAvatarCdnImages,
-                )
-
-                VerticalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = Color.White.copy(alpha = 0.5f),
-                )
-
-                NewPillStringIndicator(
-                    id = R.string.feed_new_stream,
-                    count = 1,
-                    avatars = streamsSyncStats.streamAvatarCdnImages,
-                )
-            }
-
-            notesSyncStats.latestNotesCount > 0 && streamsSyncStats.streamsCount == 0 -> {
-                NewPillPluralIndicator(
-                    id = R.plurals.feed_new_posts_notice_extended,
-                    count = notesSyncStats.latestNotesCount,
-                    avatars = notesSyncStats.latestAvatarCdnImages,
-                )
-            }
-
-            notesSyncStats.latestNotesCount == 0 && streamsSyncStats.streamsCount > 0 -> {
-                NewPillPluralIndicator(
-                    id = R.plurals.feed_new_lives_notice,
-                    count = streamsSyncStats.streamsCount,
-                    avatars = streamsSyncStats.streamAvatarCdnImages,
-                )
-            }
-
-            else -> {
-                NewPillPluralIndicator(
-                    id = R.plurals.feed_new_posts_notice,
-                    count = notesSyncStats.latestNotesCount,
-                    avatars = notesSyncStats.latestAvatarCdnImages,
-                )
-
-                VerticalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = Color.White.copy(alpha = 0.5f),
-                )
-
-                NewPillPluralIndicator(
-                    id = R.plurals.feed_new_lives_notice,
-                    count = streamsSyncStats.streamsCount,
-                    avatars = streamsSyncStats.streamAvatarCdnImages,
-                )
-            }
-        }
-    }
-}
-
-private const val MAX_NOTES_IN_PILL = 20
-
-@Composable
-private fun NewPillPluralIndicator(
-    modifier: Modifier = Modifier,
-    @PluralsRes id: Int,
-    count: Int,
-    avatars: List<CdnImage?>,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AvatarThumbnailsRow(avatarCdnImages = avatars)
-
-        Text(
-            modifier = Modifier.wrapContentHeight(),
-            text = buildAnnotatedString {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(count.coerceAtMost(MAX_NOTES_IN_PILL).toString())
-                    if (count > MAX_NOTES_IN_PILL) {
-                        append("+")
-                    }
-                    append(" ")
-                }
-                append(pluralStringResource(id = id, count = count))
-            },
-            style = AppTheme.typography.bodySmall,
-            color = Color.White,
-        )
-    }
-}
-
-@Composable
-private fun NewPillStringIndicator(
-    modifier: Modifier = Modifier,
-    @StringRes id: Int,
-    count: Int,
-    avatars: List<CdnImage?>,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AvatarThumbnailsRow(avatarCdnImages = avatars)
-
-        Text(
-            modifier = Modifier.wrapContentHeight(),
-            text = buildAnnotatedString {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(count.toString())
-                    append(" ")
-                }
-                append(stringResource(id = id))
-            },
-            style = AppTheme.typography.bodySmall,
-            color = Color.White,
         )
     }
 }

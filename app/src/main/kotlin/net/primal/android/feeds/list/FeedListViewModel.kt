@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
-import net.primal.android.feeds.DvmFeedListHandler
 import net.primal.android.feeds.list.FeedListContract.UiEvent
 import net.primal.android.feeds.list.FeedListContract.UiState
 import net.primal.android.feeds.list.FeedListContract.UiState.FeedMarketplaceStage
@@ -29,10 +28,13 @@ import net.primal.domain.feeds.DvmFeed
 import net.primal.domain.feeds.FEED_KIND_LIST
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.FeedsRepository
+import net.primal.domain.feeds.PrimalFeed
 import net.primal.domain.feeds.buildFollowSetFeedSpec
 import net.primal.domain.feeds.buildSpec
 import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
+import net.primal.domain.feeds.defaultNoteFeedsNeedSync
 import net.primal.domain.feeds.isLibreNostrHomeFeedSpec
+import net.primal.domain.feeds.mergeDefaultNoteFeeds
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.findFirstTitle
@@ -47,7 +49,6 @@ class FeedListViewModel @AssistedInject constructor(
     private val feedRepository: FeedRepository,
     private val feedsRepository: FeedsRepository,
     private val activeAccountStore: ActiveAccountStore,
-    private val dvmFeedListHandler: DvmFeedListHandler,
     private val relayEventQuerier: RelayEventQuerier,
 ) : ViewModel() {
 
@@ -172,11 +173,27 @@ class FeedListViewModel @AssistedInject constructor(
 
     private fun observeFeeds() =
         viewModelScope.launch {
-            feedsRepository.observeFeeds(userId = activeAccountStore.activeUserId(), specKind = specKind)
-                .collect { feeds ->
-                    changeAllFeeds(feeds = feeds.map { it.asFeedUi() })
-                }
+            val userId = activeAccountStore.activeUserId()
+            feedsRepository.observeFeeds(userId = userId, specKind = specKind)
+                .collect { feeds -> applyObservedFeeds(userId, feeds) }
         }
+
+    private suspend fun applyObservedFeeds(userId: String, feeds: List<PrimalFeed>) {
+        if (specKind != FeedSpecKind.Notes) {
+            changeAllFeeds(feeds = feeds.map { it.asFeedUi() })
+            return
+        }
+        val relevant = feeds.filter { it.spec.isLibreNostrHomeFeedSpec() }
+        val merged = mergeDefaultNoteFeeds(userId, relevant)
+        if (defaultNoteFeedsNeedSync(relevant, merged)) {
+            feedsRepository.persistLocalUserFeeds(
+                userId = userId,
+                specKind = specKind,
+                feeds = merged,
+            )
+        }
+        changeAllFeeds(feeds = merged.map { it.asFeedUi() })
+    }
 
     private fun changeAllFeeds(feeds: List<FeedUi>) {
         allFeeds = feeds.filter { it.spec.isLibreNostrHomeFeedSpec() }

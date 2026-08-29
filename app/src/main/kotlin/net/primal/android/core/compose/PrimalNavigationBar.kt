@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -44,13 +46,7 @@ import androidx.compose.ui.unit.sp
 import net.primal.android.R
 import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.bubble.anchor
-import net.primal.android.core.compose.icons.PrimalIcons
-import net.primal.android.core.compose.icons.primaliconpack.Algorithm
-import net.primal.android.core.compose.icons.primaliconpack.FeedPickerFilled
-import net.primal.android.core.compose.icons.primaliconpack.LongReadFilled
-import net.primal.android.core.compose.icons.primaliconpack.NavWalletBoltFilled
-import net.primal.android.core.compose.icons.primaliconpack.NotificationsFilled
-import net.primal.android.core.compose.icons.primaliconpack.SettingsFilled
+import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.Badges
@@ -58,12 +54,15 @@ import net.primal.android.user.domain.Badges
 val NavigationBarFullHeightDp = 64.dp
 
 @Composable
+@Suppress("LongMethod")
 fun PrimalNavigationBar(
     modifier: Modifier = Modifier,
     activeDestination: PrimalTopLevelDestination,
     onTopLevelDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     onActiveDestinationClick: (() -> Unit)? = null,
     onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    profileLabel: String = "Profile",
     settingsSelected: Boolean = false,
     badges: Badges = Badges(),
     exploreAnchorHandle: AnchorHandle? = null,
@@ -94,8 +93,10 @@ fun PrimalNavigationBar(
                 } else {
                     activeDestination
                 }
-                val itemWidth = (maxWidth - horizontalPadding * 2) / destinations.size
-                val selectedIndex = destinations.indexOf(visualSelected).coerceAtLeast(0)
+                val itemCount = destinations.size + 1
+                val itemWidth = (maxWidth - horizontalPadding * 2) / itemCount
+                val selectedIndex = (destinations.indexOf(visualSelected) +
+                    if (destinations.indexOf(visualSelected) >= 2) 1 else 0).coerceAtLeast(0)
 
                 val pillOffset by animateDpAsState(
                     targetValue = horizontalPadding + itemWidth * selectedIndex + (itemWidth - pillWidth) / 2,
@@ -117,7 +118,17 @@ fun PrimalNavigationBar(
                             .height(52.dp)
                             .width(pillWidth)
                             .background(
-                                color = AppTheme.extraColorScheme.surfaceVariantAlt1,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        AppTheme.colorScheme.primary.copy(alpha = 0.24f),
+                                        AppTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                    ),
+                                ),
+                                shape = CircleShape,
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = AppTheme.colorScheme.primary.copy(alpha = 0.28f),
                                 shape = CircleShape,
                             ),
                     )
@@ -129,7 +140,15 @@ fun PrimalNavigationBar(
                         .padding(horizontal = horizontalPadding)
                         .fillMaxSize(),
                 ) {
-                    destinations.forEach { destination ->
+                    destinations.forEachIndexed { index, destination ->
+                        if (index == 2) {
+                            PrimalProfileNavigationBarItem(
+                                modifier = Modifier.weight(1f),
+                                label = profileLabel,
+                                selected = false,
+                                onClick = onProfileClick,
+                            )
+                        }
                         PrimalNavigationBarItem(
                             modifier = Modifier
                                 .weight(1f)
@@ -165,6 +184,29 @@ fun PrimalNavigationBar(
 }
 
 @Composable
+private fun PrimalProfileNavigationBarItem(
+    modifier: Modifier,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val tint = if (selected) AppTheme.colorScheme.primary else AppTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(CircleShape)
+            .padding(top = 4.dp)
+            .clickable(indication = null, interactionSource = null, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(imageVector = LibreNavigationIcons.Profile, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = label, style = AppTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 10.sp), color = tint)
+    }
+}
+
+@Composable
 private fun PrimalNavigationBarItem(
     modifier: Modifier = Modifier,
     destination: PrimalTopLevelDestination,
@@ -173,7 +215,7 @@ private fun PrimalNavigationBarItem(
     onClick: () -> Unit,
 ) {
     val tint = if (selected) {
-        AppTheme.colorScheme.onSurface
+        AppTheme.colorScheme.primary
     } else {
         AppTheme.colorScheme.onSurface.copy(alpha = 0.75f)
     }
@@ -228,12 +270,12 @@ enum class PrimalTopLevelDestination {
 
 private fun PrimalTopLevelDestination.imageVector(): ImageVector {
     return when (this) {
-        PrimalTopLevelDestination.Feeds -> PrimalIcons.FeedPickerFilled
-        PrimalTopLevelDestination.Reads -> PrimalIcons.LongReadFilled
-        PrimalTopLevelDestination.Wallet -> PrimalIcons.NavWalletBoltFilled
-        PrimalTopLevelDestination.Alerts -> PrimalIcons.NotificationsFilled
-        PrimalTopLevelDestination.Explore -> PrimalIcons.Algorithm
-        PrimalTopLevelDestination.Settings -> PrimalIcons.SettingsFilled
+        PrimalTopLevelDestination.Feeds -> LibreNavigationIcons.Home
+        PrimalTopLevelDestination.Reads -> LibreNavigationIcons.Home
+        PrimalTopLevelDestination.Wallet -> LibreNavigationIcons.Settings
+        PrimalTopLevelDestination.Alerts -> LibreNavigationIcons.Notifications
+        PrimalTopLevelDestination.Explore -> LibreNavigationIcons.Algorithm
+        PrimalTopLevelDestination.Settings -> LibreNavigationIcons.Settings
     }
 }
 

@@ -54,17 +54,10 @@ class NotificationsRemoteMediator(
     }
 
     override suspend fun initialize(): InitializeAction {
-        val taggedCount = withContext(dispatcherProvider.io()) {
-            database.notificationGroupCrossRef().countByGroup(
-                ownerId = userId,
-                groupKey = group.name,
-            )
-        }
-        return if (taggedCount == 0) {
-            InitializeAction.LAUNCH_INITIAL_REFRESH
-        } else {
-            InitializeAction.SKIP_INITIAL_REFRESH
-        }
+        // Always refresh once when the screen is opened. Existing caches can contain only the
+        // newest notification (especially after migrating away from Primal's cache server), and
+        // skipping here leaves the user with an apparently non-scrollable one-item list.
+        return InitializeAction.LAUNCH_INITIAL_REFRESH
     }
 
     override suspend fun load(loadType: LoadType, state: PagingState<Int, Notification>): MediatorResult {
@@ -94,7 +87,9 @@ class NotificationsRemoteMediator(
         val initialRequestBody = NotificationsRequestBody(
             pubkey = userId,
             userPubkey = userId,
-            limit = state.config.pageSize,
+            // Notifications are a single chronological stream. Request a generous first page so
+            // the cache-less client does not appear to contain only the newest event.
+            limit = maxOf(state.config.pageSize, 200),
             typeGroup = group.wireToken,
         )
 

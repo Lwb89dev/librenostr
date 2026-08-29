@@ -5,6 +5,7 @@ import io.github.anvell.filetype.FileType
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,7 +46,6 @@ internal class PrimalUploadService(
         val result = withContext(dispatchers.io()) {
             runCatching {
                 val blossomApis = resolveBlossomApisOrThrow(userId = userId)
-                val primaryApi = blossomApis.first()
                 val mirrorApis = blossomApis.drop(1)
 
                 val fileMetadata = openBufferedSource().use { it.getMetadata() }
@@ -56,33 +56,48 @@ internal class PrimalUploadService(
                     onSignRequested = onSignRequested,
                 )
 
-                val descriptor: BlobDescriptor = try {
-//                    primaryApi.headMedia(
-//                        authorization = uploadAuthorizationHeader,
-//                        fileMetadata = fileMetadata,
-//                    )
-                    primaryApi.putMedia(
-                        authorization = uploadAuthorizationHeader,
-                        fileMetadata = fileMetadata,
-                        bufferedSource = openBufferedSource(),
-                        onProgress = onProgress,
-                    )
-                } catch (_: BlossomException) {
-//                    primaryApi.headUpload(
-//                        authorization = uploadAuthorizationHeader,
-//                        fileMetadata = fileMetadata,
-//                    )
-                    primaryApi.putUpload(
-                        authorization = uploadAuthorizationHeader,
-                        fileMetadata = fileMetadata,
-                        bufferedSource = openBufferedSource(),
-                        onProgress = onProgress,
-                    )
+                var descriptor: BlobDescriptor? = null
+                var lastUploadError: Throwable? = null
+                blossomApis.forEach { blossomApi ->
+                    if (descriptor != null) return@forEach
+                    try {
+                        // BUD-01 specifies /upload. A few older servers still
+                        // expose /media, so keep it as a compatibility fallback.
+                        // Try both for any transport/protocol failure: Ktor may
+                        // throw a non-Blossom exception before we receive a HTTP
+                        // response (for example on a reset connection).
+                        descriptor = try {
+                            blossomApi.putUpload(
+                                authorization = uploadAuthorizationHeader,
+                                fileMetadata = fileMetadata,
+                                bufferedSource = openBufferedSource(),
+                                onProgress = onProgress,
+                            )
+                        } catch (firstError: Throwable) {
+                            if (firstError is CancellationException) throw firstError
+                            Napier.w(firstError) { "Blossom /upload failed; trying legacy /media endpoint." }
+                            blossomApi.putMedia(
+                                authorization = uploadAuthorizationHeader,
+                                fileMetadata = fileMetadata,
+                                bufferedSource = openBufferedSource(),
+                                onProgress = onProgress,
+                            )
+                        }
+                    } catch (error: Throwable) {
+                        if (error is CancellationException) throw error
+                        lastUploadError = error
+                        Napier.w(error) { "Blossom upload failed; trying the next configured server." }
+                    }
                 }
+                val uploadedDescriptor = descriptor
+                    ?: throw BlossomUploadException(
+                        message = "All configured Blossom servers rejected the upload.",
+                        cause = lastUploadError,
+                    )
 
                 val mirrorAuthorizationHeader = signAuthorizationOrThrow(
                     userId = userId,
-                    fileHash = descriptor.sha256,
+                    fileHash = uploadedDescriptor.sha256,
                     humanMessage = "Mirror File",
                     onSignRequested = onSignRequested,
                 )
@@ -92,15 +107,15 @@ internal class PrimalUploadService(
                         runCatching {
                             blossomApi.putMirror(
                                 authorization = mirrorAuthorizationHeader,
-                                fileUrl = descriptor.url,
+                                fileUrl = uploadedDescriptor.url,
                             )
                         }.onFailure { error ->
-                            Napier.w(error) { "Blossom mirror failed for ${descriptor.url}" }
+                            Napier.w(error) { "Blossom mirror failed for ${uploadedDescriptor.url}" }
                         }
                     }
                 }
 
-                return@runCatching descriptor
+                return@runCatching uploadedDescriptor
             }
         }
 
@@ -162,7 +177,10 @@ internal class PrimalUploadService(
         return authorizationHeader
     }
 
-    private fun expirationTimestamp() = Clock.System.now().plus(1.hours).toEpochMilliseconds()
+    // Nostr timestamps (including Blossom's expiration tag) are Unix seconds,
+    // not milliseconds. Sending milliseconds makes every authorization appear
+    // valid for tens of thousands of years and is rejected by compliant servers.
+    private fun expirationTimestamp() = Clock.System.now().plus(1.hours).epochSeconds
 
     private fun BufferedSource.getMetadata(): FileMetadata {
         val hashingSource = HashingSource.sha256(this)

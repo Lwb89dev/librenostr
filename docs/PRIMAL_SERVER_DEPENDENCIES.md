@@ -54,7 +54,7 @@ Standard Nostr can reproduce a capability only when a NIP or kind already carrie
 | Followers | same | `user_followers` | Follower list | not on protocol | no | n/a | REMOVE (or optional NIP-50) |
 | Contact list | same | `contact_list` | Kind 3 + metadata | kind 3 | yes | one replaceable event | REPLACE |
 | Is following | same | `is_user_following` | Boolean | inspect local kind 3 | yes | local | REPLACE |
-| User relays | same | `get_user_relays_2` | Relay list | kind 10002 NIP-65 | yes | | REPLACE (LN-011: current-user path is relay-first; cache fallback; batch still cache) |
+| User relays | same | `get_user_relays_2` | Relay list | kind 10002 NIP-65 | yes | | REPLACED (LN-011: current-user and batch paths query relays; local edits use Room) |
 | Default relays | same | `get_default_relays` | Primal-recommended relays | LibreNostr static defaults + user config | n/a | n/a | REPLACE (LN-011: `FALLBACK_RELAYS` used for bootstrap/onboarding) |
 | Bookmarks | same | `get_bookmarks` | Bookmark list | kind 10003 / 30001 | yes | | REPLACE |
 | Mutes | `SettingsApiImpl` | `mutelist`, `mutelists` | Mute lists | kind 10000 / 30000 | yes | | REPLACE |

@@ -163,6 +163,7 @@ internal fun ArticleFeedTopAppBar(
     titleOverride: String? = null,
     subtitleOverride: String? = null,
     chevronExpanded: Boolean = false,
+    showAvatar: Boolean = true,
 ) {
     PrimalTopLevelAppBar(
         title = title,
@@ -184,5 +185,6 @@ internal fun ArticleFeedTopAppBar(
         onAvatarClick = onAvatarClick,
         onAvatarSwipeDown = onAvatarSwipeDown,
         scrollBehavior = scrollBehavior,
+        showAvatar = showAvatar,
     )
 }

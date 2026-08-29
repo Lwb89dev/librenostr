@@ -3,6 +3,11 @@ package net.primal.android.core.compose
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,8 +22,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,15 +36,28 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.zIndex
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -50,6 +71,9 @@ import kotlin.math.abs
 import kotlinx.coroutines.launch
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.Search
+import net.primal.android.explore.search.SearchContract
+import net.primal.android.explore.search.SearchViewModel
+import net.primal.android.explore.search.ui.UserProfileListItem
 import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
@@ -81,6 +105,9 @@ fun PrimalTopLevelAppBar(
     pages: List<AppBarPage> = emptyList(),
     onSearchClick: (() -> Unit)? = null,
     searchPlaceholder: String? = null,
+    showAvatar: Boolean = true,
+    onSearchSubmit: ((String) -> Unit)? = null,
+    onSearchProfileClick: ((String) -> Unit)? = null,
 ) {
     val effectiveTitle = titleOverride ?: title
     val effectiveSubtitle = subtitleOverride ?: subtitle
@@ -98,6 +125,8 @@ fun PrimalTopLevelAppBar(
                     HomeSearchBar(
                         placeholder = searchPlaceholder.orEmpty(),
                         onClick = onSearchClick,
+                        onSubmit = onSearchSubmit,
+                        onProfileClick = onSearchProfileClick,
                     )
                 } else if (titleOverride != null) {
                     AppBarTitle(
@@ -126,13 +155,15 @@ fun PrimalTopLevelAppBar(
                 }
             },
             actions = {
-                SwipeableAvatar(
-                    avatarCdnImage = avatarCdnImage,
-                    avatarBlossoms = avatarBlossoms,
-                    avatarLegendaryCustomization = avatarLegendaryCustomization,
-                    onAvatarClick = onAvatarClick,
-                    onAvatarSwipeDown = onAvatarSwipeDown,
-                )
+                if (showAvatar) {
+                    SwipeableAvatar(
+                        avatarCdnImage = avatarCdnImage,
+                        avatarBlossoms = avatarBlossoms,
+                        avatarLegendaryCustomization = avatarLegendaryCustomization,
+                        onAvatarClick = onAvatarClick,
+                        onAvatarSwipeDown = onAvatarSwipeDown,
+                    )
+                }
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = AppTheme.colorScheme.surface,
@@ -148,42 +179,186 @@ fun PrimalTopLevelAppBar(
 }
 
 @Composable
-private fun HomeSearchBar(placeholder: String, onClick: () -> Unit) {
+private fun HomeSearchBar(
+    placeholder: String,
+    onClick: () -> Unit,
+    onSubmit: ((String) -> Unit)?,
+    onProfileClick: ((String) -> Unit)?,
+) {
+    var active by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var suggestionsVisible by rememberSaveable { mutableStateOf(false) }
+    val searchViewModel: SearchViewModel = hiltViewModel()
+    val searchState by searchViewModel.state.collectAsState()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
     val lavender = AppTheme.colorScheme.primary
     val onSurface = AppTheme.colorScheme.onSurface
-    Row(
+    val panelVisible = active && suggestionsVisible
+    val barShape = if (panelVisible) {
+        RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+    } else {
+        CircleShape
+    }
+    val panelShape = RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp)
+    val glassBrush = Brush.verticalGradient(
+        colors = listOf(
+            lavender.copy(alpha = 0.10f),
+            lavender.copy(alpha = 0.04f),
+        ),
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
-            .clip(CircleShape)
-            .background(color = AppTheme.colorScheme.surface)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        lavender.copy(alpha = 0.10f),
-                        lavender.copy(alpha = 0.04f),
-                    ),
-                ),
-            )
-            .border(width = 1.dp, color = lavender.copy(alpha = 0.16f), shape = CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .zIndex(1f),
     ) {
-        Icon(
-            imageVector = PrimalIcons.Search,
-            contentDescription = null,
-            tint = onSurface.copy(alpha = 0.55f),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = placeholder,
-            color = onSurface.copy(alpha = 0.45f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .clip(barShape)
+                .background(color = AppTheme.colorScheme.surface)
+                .background(brush = glassBrush)
+                .border(width = 1.dp, color = lavender.copy(alpha = 0.16f), shape = barShape)
+                .clickable {
+                    active = true
+                    suggestionsVisible = true
+                    onClick()
+                }
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = PrimalIcons.Search,
+                contentDescription = null,
+                tint = onSurface.copy(alpha = 0.55f),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            if (active) {
+                BasicTextField(
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester),
+                    value = query,
+                    onValueChange = {
+                        query = it
+                        suggestionsVisible = true
+                        searchViewModel.setEvent(
+                            if (it.isBlank()) {
+                                SearchContract.UiEvent.ResetSearchQuery
+                            } else {
+                                SearchContract.UiEvent.SearchQueryUpdated(query = it)
+                            },
+                        )
+                    },
+                    singleLine = true,
+                    textStyle = AppTheme.typography.bodyMedium.copy(color = onSurface),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        suggestionsVisible = false
+                        keyboard?.hide()
+                        onSubmit?.invoke(query)
+                    }),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (query.isBlank()) {
+                                Text(
+                                    text = placeholder,
+                                    style = AppTheme.typography.bodyMedium,
+                                    color = onSurface.copy(alpha = 0.45f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+                LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            } else {
+                Text(
+                    text = placeholder,
+                    style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                    color = onSurface.copy(alpha = 0.45f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = panelVisible,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(panelShape)
+                    .background(color = AppTheme.colorScheme.surface)
+                    .background(brush = glassBrush)
+                    .border(width = 1.dp, color = lavender.copy(alpha = 0.16f), shape = panelShape),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clickable {
+                            suggestionsVisible = false
+                            keyboard?.hide()
+                            onSubmit?.invoke(query)
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                    Text(
+                        text = if (query.isBlank()) "Recent searches" else "Search notes and profiles",
+                        style = AppTheme.typography.bodyMedium,
+                        color = onSurface.copy(alpha = 0.75f),
+                    )
+                }
+                if (query.isNotBlank()) {
+                    if (searchState.searching && searchState.searchResults.isEmpty()) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            text = "Searching…",
+                            style = AppTheme.typography.bodySmall,
+                            color = onSurface.copy(alpha = 0.6f),
+                        )
+                    } else if (searchState.searchResults.isEmpty()) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            text = "No matching profiles",
+                            style = AppTheme.typography.bodySmall,
+                            color = onSurface.copy(alpha = 0.6f),
+                        )
+                    } else {
+                        searchState.searchResults.take(MAX_SEARCH_SUGGESTIONS).forEach { profile ->
+                            UserProfileListItem(
+                                data = profile,
+                                avatarSize = 36.dp,
+                                colors = androidx.compose.material3.ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
+                                onClick = {
+                                    searchViewModel.setEvent(
+                                        SearchContract.UiEvent.ProfileSelected(profileId = profile.profileId),
+                                    )
+                                    suggestionsVisible = false
+                                    keyboard?.hide()
+                                    onProfileClick?.invoke(profile.profileId)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+
+private const val MAX_SEARCH_SUGGESTIONS = 5
 
 @Composable
 private fun AppBarTitle(

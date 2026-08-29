@@ -85,6 +85,8 @@
     </plurals>
 
     <string name="login_title">Sign In</string>
+    <string name="login_with_amber_button">Login with Amber</string>
+    <string name="login_amber_required">LibreNostr signs with Amber. Install Amber to continue.</string>
     <string name="login_description">Enter your Nostr key to sign in:</string>
     <string name="login_button_sign_in">Sign In</string>
     <string name="login_button_paste_your_key">Paste Your Key</string>
@@ -126,14 +128,14 @@
     <string name="logout_cancel_button">Cancel</string>
     <string name="logout_button">Sign out</string>
 
-    <string name="primary_destination_feed_label">Feeds</string>
+    <string name="primary_destination_feed_label">Home</string>
     <string name="primary_destination_reads_label">Reads</string>
     <string name="primary_destination_wallet_label">Wallet</string>
     <string name="primary_destination_notifications_label">Notifications</string>
     <string name="primary_destination_explore_label">Algorithm</string>
-    <string name="algorithm_title">Your algorithm</string>
-    <string name="algorithm_subtitle">Be your own algorhythm</string>
-    <string name="home_search_placeholder">Search</string>
+    <string name="algorithm_title">Your algorithms</string>
+    <string name="algorithm_subtitle">You get to decide what you want to see</string>
+    <string name="home_search_placeholder">Search everything</string>
     <string name="follow_set_picker_title">Your lists</string>
     <string name="follow_set_picker_empty">No lists yet. Create one in Listr, then add it here.</string>
     <string name="follow_set_picker_members">%1$d people</string>
@@ -551,28 +553,12 @@
     <string name="feed_list_restore_default_feeds_title">Restore default feeds</string>
     <string name="feed_list_restore_default_feeds_prompt_text">This will replace your feed list with default Primal feeds. Do you wish to continue?</string>
 
-    <string name="feed_no_content">There is no content in this feed.</string>
+    <string name="feed_no_content">Nothing to show - Pull down to refresh</string>
     <string name="feed_error_loading">Unable to load content for this feed. Please try again.</string>
     <string name="feed_refresh_button">Refresh</string>
     <string name="feed_restore_default_feeds_button">Restore default feeds</string>
     <string name="feeds_error_loading_user_feeds">Unable to load feeds. Please try again.</string>
     <string name="feeds_or">or</string>
-
-    <string name="feed_new_stream">stream</string>
-    <string name="feed_new_posts_notice_general">posted</string>
-    <string name="feed_new_posts_notice_100plus">100+ new notes</string>
-    <plurals name="feed_new_posts_notice">
-        <item quantity="one">new note</item>
-        <item quantity="other">notes</item>
-    </plurals>
-    <plurals name="feed_new_posts_notice_extended">
-        <item quantity="one">new note</item>
-        <item quantity="other">new notes</item>
-    </plurals>
-    <plurals name="feed_new_lives_notice">
-        <item quantity="one">live stream</item>
-        <item quantity="other">live</item>
-    </plurals>
 
     <string name="feed_context_unmute_thread">Unmute Thread</string>
     <string name="feed_context_share_note">Share Note</string>
@@ -619,7 +605,7 @@
     <string name="note_editor_reply_publishing_button">Replying…</string>
     <string name="note_editor_quoting_publishing_button">Quoting…</string>
     <string name="note_editor_uploading_attachments">Uploading…</string>
-    <string name="note_editor_content_placeholder">Type your note here…</string>
+    <string name="note_editor_content_placeholder">Share something with your network…</string>
     <string name="note_editor_nostr_publish_error">Unable to publish your note. Please check your connection and try again.</string>
     <string name="note_editor_unable_to_locate_event">Unable to preview %1$s event. Tap to retry.</string>
 
@@ -654,26 +640,11 @@
     <string name="accessibility_poll_remove_choice">Remove poll choice</string>
     <string name="accessibility_poll_add_choice">Add poll choice</string>
 
-    <string name="gif_picker_search_placeholder">Search KLIPY</string>
+    <string name="gif_picker_search_placeholder">Search open GIFs</string>
     <string name="gif_picker_cancel">Cancel</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_klipy">KLIPY</string>
+    <string name="gif_picker_source">Wikimedia Commons</string>
     <string name="gif_picker_retry_upload">Retry</string>
-    <string name="gif_category_trending">Trending</string>
-    <string name="gif_category_omg">OMG</string>
-    <string name="gif_category_funny">Funny</string>
-    <string name="gif_category_sad">Sad</string>
-    <string name="gif_category_love">Love</string>
-    <string name="gif_category_angry">Angry</string>
-    <string name="gif_category_dumb">Dumb</string>
-    <string name="gif_category_terrible">Terrible</string>
-    <string name="gif_category_wow">Wow</string>
-    <string name="gif_category_cringe">Cringe</string>
-    <string name="gif_category_yes">Yes</string>
-    <string name="gif_category_no">No</string>
-    <string name="gif_category_lol">LOL</string>
-    <string name="gif_category_savage">Savage</string>
-    <string name="gif_category_blessed">Blessed</string>
 
     <string name="post_action_missing_lightning_address">Unable to zap this user since they don\'t have a lightning address set up.</string>
     <string name="post_action_invalid_zap_request">Unable to zap. Check your wallet connection and try again.</string>
@@ -1269,7 +1240,7 @@
     <string name="profile_save_profile_button">Save profile</string>
     <string name="profile_edit_profile_title">Edit Profile</string>
     <string name="profile_context_add_user_feed">Add User Feed</string>
-    <string name="profile_context_share_profile">Share User Profile</string>
+    <string name="profile_context_share_profile">Share profile</string>
     <string name="profile_context_remove_user_feed">Remove user feed</string>
     <string name="profile_context_zap_user">Zap User</string>
     <string name="profile_context_message_user">Message User</string>
@@ -1291,7 +1262,7 @@
 
     <string name="profile_qr_code_profile_tab">Public Key</string>
     <string name="profile_qr_code_lightning_tab">Lightning Address</string>
-    <string name="profile_qr_code_scan_qr_code">Scan QR Code</string>
+    <string name="profile_qr_code_scan_qr_code">Scan QR code</string>
     <string name="profile_qr_code_view_qr_code">View QR Code</string>
     <string name="profile_qr_code_scan_qr_code_hint">Scan a user\'s QR code to find\nthem on Nostr</string>
 

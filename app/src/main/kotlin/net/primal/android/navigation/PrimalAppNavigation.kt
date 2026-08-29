@@ -9,6 +9,8 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -17,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NamedNavArgument
@@ -354,8 +357,6 @@ internal fun NavController.navigateToNostrConnectBottomSheet(url: String) {
     navigate(route = "nostrConnectBottomSheet?$NOSTR_CONNECT_URI=$safeUrl")
 }
 
-private fun NavController.navigateToActiveSessions() = navigate(route = "activeSessions")
-
 fun accountSwitcherCallbacksHandler(navController: NavController) =
     AccountSwitcherCallbacks(
         onActiveAccountChanged = { navController.navigateToHome() },
@@ -460,12 +461,7 @@ fun PrimalAppNavigation(navController: NavHostController, startDestination: Stri
     }
 
     SharedTransitionLayout {
-        AppOverlays(
-            onRemoteSessionClick = { navController.navigateToActiveSessions() },
-            onUpgradeWalletClick = { navController.navigateToWalletUpgrade() },
-            onWalletFaqClick = { navController.navigateToWalletUpgradeFaq() },
-            onRestoreWalletClick = { navController.navigateToWalletRestore() },
-        ) {
+        AppOverlays {
             PiPManagerProvider {
                 LiveStreamOverlay(
                     navController = navController,
@@ -974,6 +970,9 @@ private fun PrimalAppNavigation(
                     uriPattern = "https://primal.net/p/{$PROFILE_ID}"
                 },
                 navDeepLink {
+                    uriPattern = "https://nostrich.org/p/{$PROFILE_ID}"
+                },
+                navDeepLink {
                     uriPattern = "https://primal.net/profile/{$PROFILE_ID}"
                 },
                 navDeepLink {
@@ -1309,6 +1308,13 @@ private fun NavGraphBuilder.noteEditor(
     route = route,
     deepLinks = deepLinks,
     arguments = arguments,
+    enterTransition = {
+        // The editor grows from the FAB corner, giving the post composer a diagonal reveal.
+        scaleIn(initialScale = 0.08f, transformOrigin = TransformOrigin(1f, 1f)) + fadeIn()
+    },
+    exitTransition = {
+        scaleOut(targetScale = 0.08f, transformOrigin = TransformOrigin(1f, 1f)) + fadeOut()
+    },
 ) {
     val activity = LocalActivity.current
     val mediaUrls = activity?.intent.parseMediaUris()

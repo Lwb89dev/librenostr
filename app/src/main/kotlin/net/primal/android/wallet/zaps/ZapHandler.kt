@@ -29,6 +29,7 @@ class ZapHandler @Inject constructor(
     private val androidLightningWallet: AndroidLightningWallet,
 ) {
 
+    @Suppress("TooGenericExceptionCaught")
     suspend fun zap(
         userId: String,
         target: ZapTarget,

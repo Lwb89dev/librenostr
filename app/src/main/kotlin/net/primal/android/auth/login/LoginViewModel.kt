@@ -73,6 +73,7 @@ class LoginViewModel @Inject constructor(
             }
         }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun login(
         nostrKey: String,
         authorizationEvent: NostrEvent?,

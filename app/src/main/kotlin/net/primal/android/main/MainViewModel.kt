@@ -34,6 +34,7 @@ class MainViewModel @Inject constructor(
     private fun setState(reducer: UiState.() -> UiState) = _state.getAndUpdate { it.reducer() }
 
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
+    private var notificationsMarkedSeen = false
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
     private val _effects = Channel<MainContract.SideEffect>()
@@ -54,6 +55,10 @@ class MainViewModel @Inject constructor(
                     UiEvent.RequestUserDataUpdate -> dataUpdater.updateData()
                     UiEvent.SwitchToNextAccount -> switchToNextAccount()
                     UiEvent.DismissExploreHint -> dismissExploreHint()
+                    UiEvent.NotificationsViewed -> setState {
+                        notificationsMarkedSeen = true
+                        copy(badges = badges.copy(unreadNotificationsCount = 0))
+                    }
                 }
             }
         }
@@ -102,7 +107,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             subscriptionsManager.badges.collect {
                 setState {
-                    copy(badges = it)
+                    copy(badges = if (notificationsMarkedSeen) it.copy(unreadNotificationsCount = 0) else it)
                 }
             }
         }

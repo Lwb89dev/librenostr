@@ -143,7 +143,7 @@ fun rememberPrimalMarkwon(
                                 CustomTypefaceSpan.create(
                                     ResourcesCompat.getFont(
                                         context,
-                                        R.font.nacelle_regular,
+                                        R.font.ubuntu_sans_variable,
                                     )!!,
                                 ),
                             )

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
@@ -32,10 +31,10 @@ import androidx.compose.ui.unit.sp
 import net.primal.android.R
 import net.primal.android.core.compose.button.PrimalFilledButton
 import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.icons.primaliconpack.FeedZaps
 import net.primal.android.core.compose.icons.primaliconpack.Message
-import net.primal.android.core.compose.icons.primaliconpack.More
-import net.primal.android.core.compose.icons.primaliconpack.QrCode
+import net.primal.android.core.compose.icons.primaliconpack.Share
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -61,9 +60,9 @@ fun ProfileActions(
         if (dropdownMenu != null) {
             ActionButton(
                 containerColor = containerColor,
-                onClick = { menuVisible = true },
-                iconVector = PrimalIcons.More,
-                contentDescription = stringResource(id = R.string.accessibility_profile_drop_down),
+                onClick = onMessageClick,
+                iconVector = LibreNavigationIcons.Envelope,
+                contentDescription = stringResource(id = R.string.accessibility_profile_messages),
             )
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -72,8 +71,8 @@ fun ProfileActions(
         ActionButton(
             containerColor = containerColor,
             onClick = onDrawerQrCodeClick,
-            iconVector = PrimalIcons.QrCode,
-            iconPadding = 11.dp,
+            iconVector = PrimalIcons.Share,
+            iconPadding = 9.dp,
             contentDescription = stringResource(id = R.string.accessibility_profile_qr_code),
         )
 
@@ -123,12 +122,13 @@ fun ProfileActions(
 private fun ActionButton(
     iconVector: ImageVector,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     iconPadding: Dp = 2.dp,
     containerColor: Color = AppTheme.extraColorScheme.surfaceVariantAlt1,
     contentDescription: String? = null,
 ) {
     IconButton(
-        modifier = Modifier.size(40.dp),
+        modifier = modifier.height(40.dp),
         onClick = onClick,
         colors = IconButtonDefaults.iconButtonColors(
             containerColor = containerColor,

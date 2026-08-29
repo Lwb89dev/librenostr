@@ -20,11 +20,11 @@ import net.primal.android.core.compose.icons.primaliconpack.ContextShare
 import net.primal.android.core.compose.icons.primaliconpack.Message
 import net.primal.android.core.compose.icons.primaliconpack.NavWalletBolt
 import net.primal.android.core.compose.icons.primaliconpack.UserFeedAdd
-import net.primal.android.core.utils.resolvePrimalProfileLink
 import net.primal.android.core.utils.systemShareText
 import net.primal.android.profile.details.ProfileDetailsContract
 import net.primal.android.profile.report.ReportUserDialog
 import net.primal.android.theme.AppTheme
+import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
 @Suppress("LongMethod")
 @ExperimentalMaterial3Api
@@ -32,7 +32,6 @@ import net.primal.android.theme.AppTheme
 fun ProfileDropdownMenu(
     profileId: String,
     profileName: String,
-    primalName: String?,
     isActiveUser: Boolean,
     isProfileMuted: Boolean,
     isProfileFeedInActiveUserFeeds: Boolean,
@@ -92,7 +91,7 @@ fun ProfileDropdownMenu(
             onClick = {
                 systemShareText(
                     context = context,
-                    text = resolvePrimalProfileLink(profileId = profileId, primalName = primalName),
+                    text = "https://nostrich.org/p/${profileId.hexToNpubHrp()}",
                 )
                 onDismissRequest()
             },

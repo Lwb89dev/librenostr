@@ -49,6 +49,15 @@ class NotificationRepositoryImpl(
         }
     }
 
+    override suspend fun markAllNotificationsAsSeenLocally(userId: String) {
+        withContext(dispatcherProvider.io()) {
+            database.notifications().markAllUnseenNotificationsAsSeen(
+                ownerId = userId,
+                seenAt = Clock.System.now().epochSeconds,
+            )
+        }
+    }
+
     override fun observeSeenNotifications(userId: String, group: NotificationGroup): Flow<PagingData<NotificationDO>> {
         return createPager(userId = userId, group = group) {
             database.notifications().seenByGroupPaged(ownerId = userId, groupKey = group.name)

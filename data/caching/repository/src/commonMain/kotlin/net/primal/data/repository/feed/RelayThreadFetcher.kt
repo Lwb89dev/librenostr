@@ -22,8 +22,8 @@ internal class RelayThreadFetcher(
         val ancestors = walkAncestors(opened)
         val rootId = rootIdOf(opened = opened, ancestors = ancestors, noteId = noteId)
         val root = eventById(rootId, listOfNotNull(opened) + ancestors)
-        val tagged = queryTagged(
-            seedIds = listOf(rootId, noteId) + ancestors.map { it.id },
+        val tagged = queryEventTags(
+            eventTags = listOf(rootId, noteId) + ancestors.map { it.id },
             kinds = kinds,
             limit = limit,
         )
@@ -73,9 +73,7 @@ internal class RelayThreadFetcher(
 
     private suspend fun queryTagged(seedIds: List<String>, kinds: List<Int>, limit: Int): List<NostrEvent> {
         val first = queryEventTags(seedIds.distinct(), kinds, limit)
-        val extra = first.map { it.id }.filter { it !in seedIds }.distinct()
-        val second = queryEventTags(extra, kinds, limit)
-        return first + second
+        return first
     }
 
     private suspend fun queryEventTags(eventTags: List<String>, kinds: List<Int>, limit: Int): List<NostrEvent> {
@@ -113,7 +111,9 @@ internal class RelayThreadFetcher(
     companion object {
         private const val AUTHOR_CHUNK = 100
         private const val ID_CHUNK = 50
-        private const val MAX_HOPS = 20
+        // Avoid a serial 20-relay round trip for replies; five ancestors covers normal threads
+        // while keeping the screen responsive on slow/offline relays.
+        private const val MAX_HOPS = 5
         private const val MISSING_CAP = 50
     }
 }

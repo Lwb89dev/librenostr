@@ -11,6 +11,7 @@ import io.ktor.http.content.OutgoingContent
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.writeFully
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.primal.core.utils.coroutines.DispatcherProvider
 import okio.BufferedSource
@@ -111,6 +112,7 @@ internal class BlossomApiImpl(
 
         if (!response.status.isSuccess()) {
             val reason = response.headers["X-Reason"] ?: "Unknown"
+            Napier.w { "$errorPrefix failed (${response.status.value}) at $baseBlossomUrl/$endpoint: $reason" }
             throw UploadRequirementException(message = "$reason ($errorPrefix)")
         }
     }
@@ -135,6 +137,11 @@ internal class BlossomApiImpl(
                         append(HttpHeaders.Authorization, authorization)
                         append(HttpHeaders.ContentLength, totalBytes.toString())
                         append(HttpHeaders.ContentType, contentType)
+                        // Blossom BUD-01 servers validate these metadata headers before reading
+                        // the body; without them several public servers return a generic 400.
+                        append("X-SHA-256", fileMetadata.sha256)
+                        append("X-Content-Length", totalBytes.toString())
+                        append("X-Content-Type", contentType)
                     }
 
                     setBody(
@@ -161,6 +168,7 @@ internal class BlossomApiImpl(
 
         if (!response.status.isSuccess()) {
             val reason = response.headers["X-Reason"] ?: "Unknown"
+            Napier.w { "$errorPrefix failed (${response.status.value}) at $baseBlossomUrl/$endpoint: $reason" }
             throw BlossomUploadException(message = "$reason ($errorPrefix)")
         }
 

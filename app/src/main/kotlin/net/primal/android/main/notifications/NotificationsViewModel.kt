@@ -82,6 +82,7 @@ class NotificationsViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UiState())
     val state = _state.asStateFlow()
+    private var notificationsMarkedSeen = false
     private fun setState(reducer: UiState.() -> UiState) = _state.getAndUpdate { it.reducer() }
 
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
@@ -104,12 +105,19 @@ class NotificationsViewModel @Inject constructor(
     private fun subscribeToBadgesUpdates() =
         viewModelScope.launch {
             subscriptionsManager.badges.collect {
-                setState { copy(badges = it) }
+                setState { copy(badges = if (notificationsMarkedSeen) it.copy(unreadNotificationsCount = 0) else it) }
             }
         }
 
     private fun handleNotificationsSeen(group: NotificationGroup) {
         if (group != NotificationGroup.ALL) return
+        notificationsMarkedSeen = true
+        viewModelScope.launch(dispatcherProvider.io()) {
+            notificationRepository.markAllNotificationsAsSeenLocally(activeAccountStore.activeUserId())
+        }
+        // The cache-less client has no Primal AUTH endpoint to acknowledge reads. Keep the
+        // local navigation state authoritative so the unread dot disappears immediately.
+        setState { copy(badges = badges.copy(unreadNotificationsCount = 0)) }
         Napier.d { "Skipping Primal cache notifications last-seen AUTH" }
     }
 
@@ -151,7 +159,9 @@ class NotificationsViewModel @Inject constructor(
             }
         }
 
-        return unseenNotifications.map { byType -> byType.map { it.asNotificationUi() } }
+        return unseenNotifications
+            .sortedByDescending { group -> group.maxOfOrNull { it.createdAt } ?: 0L }
+            .map { byType -> byType.map { it.asNotificationUi() } }
     }
 
     private fun NotificationType.isLike() =

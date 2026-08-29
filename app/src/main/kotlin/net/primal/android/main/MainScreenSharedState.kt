@@ -9,10 +9,12 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import net.primal.android.feeds.list.ui.model.FeedUi
+import androidx.compose.runtime.saveable.listSaver
 import net.primal.android.main.explore.section.ExploreSection
 import net.primal.android.main.feeds.NoteFeedsContract
 import net.primal.android.main.reads.ReadsScreenContract
+import net.primal.android.feeds.list.ui.model.FeedUi
+import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.wallet.CurrencyMode
 
@@ -45,12 +47,28 @@ internal fun rememberMainScreenSharedState(
     val readsPagerState = rememberPagerState(pageCount = { readsState.feeds.size })
     return MainScreenSharedState(
         snackbarHostState = remember { SnackbarHostState() },
-        homeActiveFeed = remember { mutableStateOf(null) },
+        homeActiveFeed = rememberSaveable(stateSaver = listSaver<FeedUi?, Any>(
+            save = { feed: FeedUi? -> feed?.let { listOf<Any>(it.ownerId, it.spec, it.specKind.name, it.feedKind, it.title, it.description, it.enabled, it.deletable) } ?: emptyList() },
+            restore = { values ->
+                if (values.isEmpty()) null else values.let {
+                    FeedUi(
+                        ownerId = it[0] as String,
+                        spec = it[1] as String,
+                        specKind = FeedSpecKind.valueOf(it[2] as String),
+                        feedKind = it[3] as String,
+                        title = it[4] as String,
+                        description = it[5] as String,
+                        enabled = it[6] as Boolean,
+                        deletable = it[7] as Boolean,
+                    )
+                }
+            },
+        )) { mutableStateOf(null) },
         readsActiveFeed = remember { mutableStateOf(null) },
         explorePagerState = rememberPagerState(pageCount = { ExploreSection.entries.size }),
         homePagerState = homePagerState,
         readsPagerState = readsPagerState,
-        notificationsPagerState = rememberPagerState(pageCount = { NotificationGroup.entries.size }),
+        notificationsPagerState = rememberPagerState(pageCount = { 1 }),
         homeShouldAnimateScrollToTop = remember { mutableStateOf(false) },
         homeScrollToFeed = remember { mutableStateOf(null) },
         readsShouldAnimateScrollToTop = remember { mutableStateOf(false) },

@@ -103,6 +103,12 @@ class CredentialsStoreTest {
     }
 
     @Test
+    fun `find returns null if credential is not found`() {
+        val credentialsStore = CredentialsStore(persistence = persistence)
+        credentialsStore.find(npub = "missing npub") shouldBe null
+    }
+
+    @Test
     fun `clearCredentials removes all credentials from data store`() =
         runTest {
             persistence.updateData { setOf(expectedCredential) }

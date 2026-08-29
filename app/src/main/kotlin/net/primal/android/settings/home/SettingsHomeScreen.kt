@@ -78,7 +78,10 @@ private fun SettingsHomeScreen(
             ) {
                 items(
                     items = PrimalSettingsSection.entries.filter {
-                        it != PrimalSettingsSection.Wallet && it != PrimalSettingsSection.ConnectedApps
+                        it != PrimalSettingsSection.Wallet &&
+                            it != PrimalSettingsSection.ConnectedApps &&
+                            it != PrimalSettingsSection.Account &&
+                            it != PrimalSettingsSection.Zaps
                     },
                     key = { it.name },
                 ) {

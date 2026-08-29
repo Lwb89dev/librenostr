@@ -20,7 +20,8 @@ import net.primal.core.networking.UserAgentProvider
 import net.primal.core.networking.factory.HttpClientFactory
 
 private const val CONNECT_TIMEOUT_MILLIS = 15_000L
-private const val SOCKET_TIMEOUT_MILLIS = 15_000L
+// Media uploads can legitimately take longer than a normal API request, especially on mobile.
+private const val SOCKET_TIMEOUT_MILLIS = 120_000L
 
 internal fun createBlossomHttpClient() =
     HttpClientFactory.createHttpClient {

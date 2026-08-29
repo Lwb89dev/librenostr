@@ -20,6 +20,7 @@ interface MainContract {
         data object RequestUserDataUpdate : UiEvent()
         data object SwitchToNextAccount : UiEvent()
         data object DismissExploreHint : UiEvent()
+        data object NotificationsViewed : UiEvent()
     }
 
     sealed class SideEffect {

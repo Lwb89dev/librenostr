@@ -80,11 +80,7 @@ internal fun NotificationsContent(
 ) {
     val noteViewModel = hiltViewModel<NoteViewModel, NoteViewModel.Factory> { it.create() }
 
-    val currentGroup by remember {
-        derivedStateOf {
-            NotificationGroup.entries.getOrElse(pagerState.currentPage) { NotificationGroup.ALL }
-        }
-    }
+    val currentGroup = NotificationGroup.ALL
 
     LaunchedEffect(currentGroup) {
         onNotificationsSeen(currentGroup)
@@ -97,30 +93,24 @@ internal fun NotificationsContent(
         }
     }
 
-    HorizontalPager(state = pagerState) { pageIndex ->
-        val group = NotificationGroup.entries[pageIndex]
-        val isActive by remember(pageIndex) {
-            derivedStateOf { pageIndex == pagerState.currentPage }
-        }
-        NotificationFilterPage(
-            group = group,
-            isActive = isActive,
-            seenNotificationsProvider = seenNotificationsProvider,
-            unseenNotificationsProvider = unseenNotificationsProvider,
-            badges = badges,
-            noteEventPublisher = noteViewModel::setEvent,
-            paddingValues = paddingValues,
-            noteCallbacks = noteCallbacks,
-            onGoToWallet = onGoToWallet,
-            shouldAnimateScrollToTop = shouldAnimateScrollToTop,
-        )
-    }
+    NotificationPage(
+        group = NotificationGroup.ALL,
+        isActive = true,
+        seenNotificationsProvider = seenNotificationsProvider,
+        unseenNotificationsProvider = unseenNotificationsProvider,
+        badges = badges,
+        noteEventPublisher = noteViewModel::setEvent,
+        paddingValues = paddingValues,
+        noteCallbacks = noteCallbacks,
+        onGoToWallet = onGoToWallet,
+        shouldAnimateScrollToTop = shouldAnimateScrollToTop,
+    )
 }
 
 @Suppress("LongMethod", "LongParameterList")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NotificationFilterPage(
+private fun NotificationPage(
     group: NotificationGroup,
     isActive: Boolean,
     seenNotificationsProvider: (NotificationGroup) -> Flow<PagingData<NotificationUi>>,
@@ -290,25 +280,26 @@ private fun NotificationsList(
     }
 
     var pullToRefreshing by remember { mutableStateOf(false) }
+    val pullToRefreshState = rememberPullToRefreshState()
     LaunchedEffect(seenPagingItems.loadState.refresh) {
-        if (seenPagingItems.loadState.refresh !is LoadState.Loading) {
-            pullToRefreshing = false
-        }
+        if (seenPagingItems.loadState.refresh !is LoadState.Loading) pullToRefreshing = false
     }
 
     PrimalPullToRefreshBox(
+        modifier = Modifier.fillMaxSize(),
         isRefreshing = pullToRefreshing,
         onRefresh = {
             pullToRefreshing = true
             seenPagingItems.refresh()
         },
-        state = rememberPullToRefreshState(),
+        state = pullToRefreshState,
         indicatorPaddingValues = paddingValues,
     ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = paddingValues,
         state = listState,
+        userScrollEnabled = true,
     ) {
         items(
             items = unseenNotifications,
@@ -450,22 +441,28 @@ internal fun NotificationsTopAppBar(
     showTitleChevron: Boolean = false,
     chevronExpanded: Boolean = false,
     onTitleClick: (() -> Unit)? = null,
+    showAvatar: Boolean = true,
 ) {
-    PrimalTopLevelAppBar(
-        title = stringResource(id = R.string.notifications_title),
-        titleOverride = titleOverride,
-        subtitleOverride = subtitleOverride,
-        avatarCdnImage = avatarCdnImage,
-        avatarBlossoms = avatarBlossoms,
-        avatarLegendaryCustomization = avatarLegendaryCustomization,
-        onAvatarClick = onAvatarClick,
-        onAvatarSwipeDown = onAvatarSwipeDown,
-        showDivider = false,
-        scrollBehavior = scrollBehavior,
-        showTitleChevron = showTitleChevron,
-        chevronExpanded = chevronExpanded,
-        onTitleClick = onTitleClick,
-        pagerState = pagerState,
-        pages = pages,
-    )
+    val hasContent = showAvatar || !titleOverride.isNullOrBlank() ||
+        !subtitleOverride.isNullOrBlank() || pages.size > 1 || showTitleChevron
+    if (hasContent) {
+        PrimalTopLevelAppBar(
+            title = "",
+            titleOverride = titleOverride,
+            subtitleOverride = subtitleOverride,
+            avatarCdnImage = avatarCdnImage,
+            avatarBlossoms = avatarBlossoms,
+            avatarLegendaryCustomization = avatarLegendaryCustomization,
+            onAvatarClick = onAvatarClick,
+            onAvatarSwipeDown = onAvatarSwipeDown,
+            showDivider = false,
+            scrollBehavior = scrollBehavior,
+            showTitleChevron = showTitleChevron,
+            chevronExpanded = chevronExpanded,
+            onTitleClick = onTitleClick,
+            pagerState = pagerState,
+            pages = pages,
+            showAvatar = showAvatar,
+        )
+    }
 }

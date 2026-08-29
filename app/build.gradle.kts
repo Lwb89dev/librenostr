@@ -105,17 +105,6 @@ android {
             value = "\"${configProperties?.getProperty("api.breez.sdk", "")}\"",
         )
 
-        buildConfigField(
-            type = "String",
-            name = "KLIPY_API_KEY",
-            value = "\"${configProperties?.getProperty("api.klipy", "")}\"",
-        )
-
-        buildConfigField(
-            type = "String",
-            name = "KLIPY_CLIENT_KEY",
-            value = "\"${configProperties?.getProperty("api.klipy.clientKey", "")}\"",
-        )
     }
 
     ksp {
@@ -382,6 +371,9 @@ dependencies {
     implementation(libs.coil.gif)
     implementation(libs.coil.video)
     implementation(libs.coil.network)
+    // Expose Coil's Android OkHttp factory to the app so the image loader can
+    // attach Wikimedia-compatible request headers to GIF thumbnails.
+    implementation("io.coil-kt.coil3:coil-network-okhttp-android:${libs.versions.coil.get()}")
     implementation(libs.telephoto.zoomable.image)
     implementation(libs.telephoto.zoomable.peek.overlay)
     implementation(libs.telephoto.zoomable.image.coil)

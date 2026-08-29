@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,7 +30,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +50,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,7 +79,8 @@ import net.primal.android.R
 import net.primal.android.articles.feed.ui.FeedArticleListItem
 import net.primal.android.articles.feed.ui.FeedArticleUi
 import net.primal.android.articles.highlights.HighlightUi
-import net.primal.android.core.compose.ImportPhotosIconButton
+import net.primal.android.core.compose.MediaPickerIconButton
+import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.PrimalAsyncImage
 import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.PrimalDivider
@@ -87,7 +89,6 @@ import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.ReplyingToText
 import net.primal.android.core.compose.SnackbarErrorHandler
-import net.primal.android.core.compose.TakePhotoIconButton
 import net.primal.android.core.compose.UniversalAvatarThumbnail
 import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.core.compose.foundation.isAppInDarkPrimalTheme
@@ -95,12 +96,12 @@ import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.Delete
 import net.primal.android.core.compose.icons.primaliconpack.Gif
-import net.primal.android.core.compose.icons.primaliconpack.ImportPhotoFromCamera
-import net.primal.android.core.compose.icons.primaliconpack.ImportPhotoFromGallery
 import net.primal.android.core.compose.icons.primaliconpack.Poll
 import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.drawer.multiaccount.ui.AccountSwitcherBottomSheet
 import net.primal.android.editor.NoteEditorContract.UiEvent
+import net.primal.android.gifpicker.GifPickerInlineContent
+import net.primal.android.gifpicker.GifPickerViewModel
 import net.primal.android.editor.domain.NoteAttachment
 import net.primal.android.editor.ui.NoteAttachmentPreview
 import net.primal.android.editor.ui.NoteOutlinedTextField
@@ -124,9 +125,43 @@ import net.primal.domain.nostr.asATagValue
 
 private const val KEYBOARD_SETTLE_DELAY = 300L
 
+private val NOTE_PLACEHOLDER_PHRASES = listOf(
+    "What are your thoughts today?",
+    "What's going on in your corner of the world?",
+    "What caught your attention today?",
+    "What are you learning right now?",
+    "What made you smile today?",
+    "What are you building this week?",
+    "What idea keeps coming back to you?",
+    "What would you like to remember about today?",
+    "What are you reading, watching, or listening to?",
+    "What's one small win from today?",
+    "What conversation are you still thinking about?",
+    "What deserves more attention today?",
+    "What are you curious about right now?",
+    "What did today teach you?",
+    "What's happening in your community?",
+    "What are you grateful for today?",
+    "What are you working through at the moment?",
+    "What would you like everyone to know?",
+    "What's the best thing you discovered today?",
+    "Let everyone know what you think about what happened today.",
+    "Did you post your daily reminder to stack Bitcoin?",
+    "Somebody needs to know that spending Bitcoin matters just as much as stacking it.",
+    "Are you stacking sats or still waiting for the perfect dip?",
+    "Bitcoin doesn't need permission — did you share that reminder today?",
+    "What's your strongest conviction about Bitcoin right now?",
+    "Did your savings gain a little more orange today?",
+    "Stack patiently, spend intentionally, stay sovereign.",
+    "What would a Bitcoin standard change in your life?",
+    "Not your keys, not your coins — have you checked your setup?",
+    "Who needs to hear that Bitcoin is freedom technology today?",
+)
+
 @Composable
 fun NoteEditorScreen(viewModel: NoteEditorViewModel, callbacks: NoteEditorContract.ScreenCallbacks) {
     val uiState = viewModel.state.collectAsState()
+    val gifPickerViewModel: GifPickerViewModel = hiltViewModel()
 
     LaunchedEffect(viewModel, callbacks) {
         viewModel.effect.collect {
@@ -140,6 +175,7 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, callbacks: NoteEditorContra
         state = uiState.value,
         callbacks = callbacks,
         eventPublisher = { viewModel.setEvent(it) },
+        gifPickerViewModel = gifPickerViewModel,
     )
 }
 
@@ -149,6 +185,7 @@ fun NoteEditorScreen(
     state: NoteEditorContract.UiState,
     callbacks: NoteEditorContract.ScreenCallbacks,
     eventPublisher: (UiEvent) -> Unit,
+    gifPickerViewModel: GifPickerViewModel? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -156,6 +193,7 @@ fun NoteEditorScreen(
     val keyboardVisible by keyboardVisibilityAsState()
     val scope = rememberCoroutineScope()
     var showAccountSwitcher by remember { mutableStateOf(false) }
+    var showGifPicker by remember { mutableStateOf(false) }
 
     if (showAccountSwitcher && state.selectedAccount != null) {
         AccountSwitcherBottomSheet(
@@ -225,7 +263,14 @@ fun NoteEditorScreen(
                         showAccountSwitcher = true
                     }
                 },
-                onGifClick = callbacks.onGifPickerClick,
+                onGifClick = { showGifPicker = !showGifPicker },
+                showGifPicker = showGifPicker,
+                gifPickerViewModel = gifPickerViewModel,
+                onGifDismiss = { showGifPicker = false },
+                onGifSelected = {
+                    eventPublisher(UiEvent.InsertGif(it))
+                    showGifPicker = false
+                },
             )
         },
     )
@@ -287,6 +332,10 @@ private fun NoteEditorBox(
     noteCallbacks: NoteCallbacks,
     onShowAccountSwitcher: () -> Unit,
     onGifClick: () -> Unit,
+    showGifPicker: Boolean,
+    gifPickerViewModel: GifPickerViewModel?,
+    onGifDismiss: () -> Unit,
+    onGifSelected: (String) -> Unit,
 ) {
     val editorListState = rememberLazyListState()
     var noteEditorMaxHeightPx by remember { mutableIntStateOf(0) }
@@ -383,6 +432,28 @@ private fun NoteEditorBox(
             onGifClick = onGifClick,
             onPollToggle = { eventPublisher(UiEvent.TogglePollMode) },
         )
+
+        if (showGifPicker && gifPickerViewModel != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        end = 12.dp,
+                        // NoteEditorBox already consumes the IME inset via
+                        // imePadding on its parent. Adding WindowInsets.ime
+                        // here moved the popup a second time, underneath the
+                        // top app bar as soon as the keyboard appeared.
+                        bottom = with(density) { footerHeight.toDp() } + 8.dp,
+                    )
+                    .widthIn(max = 420.dp),
+            ) {
+                GifPickerInlineContent(
+                    viewModel = gifPickerViewModel,
+                    onDismiss = onGifDismiss,
+                    onGifSelected = onGifSelected,
+                )
+            }
+        }
     }
 }
 
@@ -612,6 +683,7 @@ private fun NoteEditorInputArea(
     eventPublisher: (UiEvent) -> Unit,
     onShowAccountSwitcher: () -> Unit,
 ) {
+    val notePlaceholder = remember { NOTE_PLACEHOLDER_PHRASES.random() }
     Row {
         UniversalAvatarThumbnail(
             modifier = Modifier
@@ -666,13 +738,11 @@ private fun NoteEditorInputArea(
             enabled = !state.publishing,
             placeholder = {
                 Text(
-                    text = stringResource(
-                        id = if (state.pollState != null) {
-                            R.string.poll_editor_question_placeholder
-                        } else {
-                            R.string.note_editor_content_placeholder
-                        },
-                    ),
+                    text = if (state.pollState != null) {
+                        stringResource(id = R.string.poll_editor_question_placeholder)
+                    } else {
+                        notePlaceholder
+                    },
                     color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
                     style = AppTheme.typography.bodyMedium,
                 )
@@ -715,15 +785,11 @@ private fun NoteEditorFooter(
                 },
             )
         } else {
-            NoteActionRow(
+        NoteActionRow(
                 onPhotosImported = { photoUris ->
                     eventPublisher(
                         UiEvent.ImportLocalFiles(uris = photoUris),
                     )
-                },
-                onUserTag = {
-                    eventPublisher(UiEvent.AppendUserTagAtSign)
-                    eventPublisher(UiEvent.ToggleSearchUsers(enabled = true))
                 },
                 onGifClick = onGifClick,
                 isPollMode = isPollMode,
@@ -936,7 +1002,6 @@ private fun ReplyToNote(replyToNote: FeedPostUi, connectionLineColor: Color) {
 @Composable
 private fun NoteActionRow(
     onPhotosImported: (List<Uri>) -> Unit,
-    onUserTag: () -> Unit,
     onGifClick: () -> Unit,
     isPollMode: Boolean,
     onPollToggle: () -> Unit,
@@ -944,11 +1009,11 @@ private fun NoteActionRow(
     Row(
         modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
-        ImportPhotosIconButton(
-            imageVector = PrimalIcons.ImportPhotoFromGallery,
+        MediaPickerIconButton(
+            imageVector = LibreNavigationIcons.Gallery,
             contentDescription = stringResource(id = R.string.accessibility_import_photo_from_gallery),
             tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-            onPhotosImported = onPhotosImported,
+            onMediaSelected = onPhotosImported,
         )
 
         IconButton(onClick = onGifClick) {
@@ -959,25 +1024,10 @@ private fun NoteActionRow(
             )
         }
 
-        TakePhotoIconButton(
-            imageVector = PrimalIcons.ImportPhotoFromCamera,
-            contentDescription = stringResource(id = R.string.accessibility_take_photo),
-            tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-            onPhotoTaken = { uri -> onPhotosImported(listOf(uri)) },
-        )
-
         IconButton(onClick = onPollToggle) {
             Icon(
                 imageVector = PrimalIcons.Poll,
                 contentDescription = stringResource(id = R.string.accessibility_poll_toggle),
-                tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-            )
-        }
-
-        IconButton(onClick = onUserTag) {
-            Icon(
-                imageVector = Icons.Default.AlternateEmail,
-                contentDescription = stringResource(id = R.string.accessibility_tag_user),
                 tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
             )
         }

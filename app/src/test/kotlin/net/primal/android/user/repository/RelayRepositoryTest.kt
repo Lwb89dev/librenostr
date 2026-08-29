@@ -22,9 +22,6 @@ import net.primal.android.user.db.UsersDatabase
 import net.primal.android.user.domain.Relay
 import net.primal.android.user.domain.RelayKind
 import net.primal.core.testing.CoroutinesTestRule
-import net.primal.data.remote.api.users.UsersApi
-import net.primal.data.remote.api.users.model.UsersRelaysResponse
-import net.primal.domain.common.PrimalEvent
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -48,22 +45,6 @@ class RelayRepositoryTest {
     @After
     fun tearDown() {
         unmockkStatic("androidx.room.RoomDatabaseKt")
-    }
-
-    private fun buildPrimalUserRelaysListEvent(relays: List<String>): PrimalEvent {
-        return PrimalEvent(
-            kind = NostrEventKind.PrimalUserRelaysList.value,
-            tags = mutableListOf<JsonArray>().apply {
-                relays.forEach {
-                    add(
-                        buildJsonArray {
-                            add("r")
-                            add(it)
-                        },
-                    )
-                }
-            },
-        )
     }
 
     private fun buildRelayDao(): RelayDao = mockk(relaxed = true)
@@ -103,7 +84,6 @@ class RelayRepositoryTest {
 
     private fun buildRepository(
         usersDatabase: UsersDatabase = buildUsersDatabase(),
-        usersApi: UsersApi = mockk(relaxed = true),
         nostrPublisher: NostrPublisher = mockk(relaxed = true),
         relayEventQuerier: RelayEventQuerier = mockk(relaxed = true) {
             coEvery { query(any()) } returns emptyList()
@@ -112,7 +92,6 @@ class RelayRepositoryTest {
         return RelayRepository(
             dispatchers = coroutinesTestRule.dispatcherProvider,
             usersDatabase = usersDatabase,
-            usersApi = usersApi,
             nostrPublisher = nostrPublisher,
             relayEventQuerier = relayEventQuerier,
         )
@@ -123,19 +102,16 @@ class RelayRepositoryTest {
         runTest {
             val userId = "random"
             val nostrPublisher = mockk<NostrPublisher>(relaxed = true)
-            val usersApi = mockk<UsersApi>(relaxed = true)
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = usersApi,
                 nostrPublisher = nostrPublisher,
             )
 
             repository.bootstrapDefaultUserRelays(userId = userId)
 
-            coVerify(exactly = 0) { usersApi.getDefaultRelays() }
             coVerify {
                 nostrPublisher.publishRelayList(
                     userId = userId,
@@ -172,20 +148,17 @@ class RelayRepositoryTest {
             val nostrPublisher = mockk<NostrPublisher>(relaxed = true)
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
+            every { relayDao.findRelays(userId, RelayKind.UserRelay) } returns relays.map { url ->
+                RelayPO(userId, RelayKind.UserRelay, url, read = true, write = true)
+            }
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                        cachedRelayListEvents = listOf(buildPrimalUserRelaysListEvent(relays = relays)),
-                    )
-                },
                 nostrPublisher = nostrPublisher,
             )
 
             repository.removeRelayAndPublishRelayList(userId = userId, url = relays.first())
 
-            // After removing "wss://relay.primal.net", remaining relays from the API are used as-is
             val expectedRelayUrls = relays.drop(1)
             coVerify {
                 nostrPublisher.publishRelayList(
@@ -205,14 +178,12 @@ class RelayRepositoryTest {
             val nostrPublisher = mockk<NostrPublisher>(relaxed = true)
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
+            every { relayDao.findRelays(userId, RelayKind.UserRelay) } returns relays.map { url ->
+                RelayPO(userId, RelayKind.UserRelay, url, read = true, write = true)
+            }
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                        cachedRelayListEvents = listOf(buildPrimalUserRelaysListEvent(relays = relays)),
-                    )
-                },
                 nostrPublisher = nostrPublisher,
             )
 
@@ -220,7 +191,6 @@ class RelayRepositoryTest {
             // because removeIf compares cleaned URLs
             repository.removeRelayAndPublishRelayList(userId = userId, url = "wss://nostr1.current.fyi/")
 
-            // Remaining relay URLs are from the API (not cleaned)
             val expectedRelayUrls = relays.drop(1)
             coVerify {
                 nostrPublisher.publishRelayList(
@@ -240,19 +210,16 @@ class RelayRepositoryTest {
             val nostrPublisher = mockk<NostrPublisher>(relaxed = true)
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
+            every { relayDao.findRelays(userId, RelayKind.UserRelay) } returns relays.map { url ->
+                RelayPO(userId, RelayKind.UserRelay, url, read = true, write = true)
+            }
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                        cachedRelayListEvents = listOf(buildPrimalUserRelaysListEvent(relays = relays)),
-                    )
-                },
                 nostrPublisher = nostrPublisher,
             )
 
             repository.removeRelayAndPublishRelayList(userId = userId, url = relays.first())
-            // After removing first relay, remaining relays from the API are used as-is
             val expectedRelays = relays.drop(1).map { Relay(url = it, read = true, write = true) }
 
             coVerify {
@@ -269,14 +236,15 @@ class RelayRepositoryTest {
             val userId = "random"
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
+            val querier = mockk<RelayEventQuerier> {
+                coEvery { query(any()) } returns listOf(
+                    buildNip65Event(userId, createdAt = 1, relays = emptyList()),
+                )
+            }
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                        cachedRelayListEvents = listOf(buildPrimalUserRelaysListEvent(relays = emptyList())),
-                    )
-                },
+                relayEventQuerier = querier,
             )
 
             repository.fetchAndUpdateUserRelays(userId = userId)
@@ -286,19 +254,13 @@ class RelayRepositoryTest {
         }
 
     @Test
-    fun `fetchAndUpdateUserRelays ignores fetch if cached NIP-65 is missing`() =
+    fun `fetchAndUpdateUserRelays keeps local data if relay NIP-65 is missing`() =
         runTest {
             val userId = "random"
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
 
-            val repository = buildRepository(
-                usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns
-                        UsersRelaysResponse(cachedRelayListEvents = emptyList())
-                },
-            )
+            val repository = buildRepository(usersDatabase = usersDatabase)
 
             repository.fetchAndUpdateUserRelays(userId = userId)
 
@@ -307,22 +269,21 @@ class RelayRepositoryTest {
         }
 
     @Test
-    fun `fetchAndUpdateUserRelays replaces relays when response has valid event`() =
+    fun `fetchAndUpdateUserRelays replaces relays when relay has valid event`() =
         runTest {
             val userId = "random"
             val expectedRelayUrls = listOf("wss://relay.primal.net", "wss://relay.damus.io")
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
+            val querier = mockk<RelayEventQuerier> {
+                coEvery { query(any()) } returns listOf(
+                    buildNip65Event(userId, createdAt = 1, relays = expectedRelayUrls),
+                )
+            }
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                        cachedRelayListEvents = listOf(
-                            buildPrimalUserRelaysListEvent(relays = expectedRelayUrls),
-                        ),
-                    )
-                },
+                relayEventQuerier = querier,
             )
 
             repository.fetchAndUpdateUserRelays(userId = userId)
@@ -338,18 +299,11 @@ class RelayRepositoryTest {
         }
 
     @Test
-    fun `fetchAndUpdateUserRelays prefers kind 10002 from relays over cache`() =
+    fun `fetchAndUpdateUserRelays uses kind 10002 from relays`() =
         runTest {
             val userId = "random"
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
-            val usersApi = mockk<UsersApi>(relaxed = true) {
-                coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                    cachedRelayListEvents = listOf(
-                        buildPrimalUserRelaysListEvent(relays = listOf("wss://from.cache")),
-                    ),
-                )
-            }
             val querier = mockk<RelayEventQuerier> {
                 coEvery { query(any()) } returns listOf(
                     buildNip65Event(
@@ -362,13 +316,11 @@ class RelayRepositoryTest {
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = usersApi,
                 relayEventQuerier = querier,
             )
 
             repository.fetchAndUpdateUserRelays(userId = userId)
 
-            coVerify(exactly = 0) { usersApi.getUserRelays(any<List<String>>()) }
             coVerify {
                 relayDao.upsertAll(
                     relays = withArg { relays ->
@@ -409,10 +361,9 @@ class RelayRepositoryTest {
         }
 
     @Test
-    fun `fetchAndUpdateUserRelays falls back to cache when relays return nothing`() =
+    fun `fetchAndUpdateUserRelays keeps local data when relays return nothing`() =
         runTest {
             val userId = "random"
-            val expectedRelayUrls = listOf("wss://from.cache")
             val relayDao = buildRelayDao()
             val usersDatabase = buildUsersDatabase(relayDao)
             val querier = mockk<RelayEventQuerier> {
@@ -421,25 +372,13 @@ class RelayRepositoryTest {
 
             val repository = buildRepository(
                 usersDatabase = usersDatabase,
-                usersApi = mockk(relaxed = true) {
-                    coEvery { getUserRelays(listOf(userId)) } returns UsersRelaysResponse(
-                        cachedRelayListEvents = listOf(
-                            buildPrimalUserRelaysListEvent(relays = expectedRelayUrls),
-                        ),
-                    )
-                },
                 relayEventQuerier = querier,
             )
 
             repository.fetchAndUpdateUserRelays(userId = userId)
 
-            coVerify {
-                relayDao.upsertAll(
-                    relays = withArg { relays ->
-                        relays.map { it.url }.sorted() shouldBe expectedRelayUrls.sorted()
-                    },
-                )
-            }
+            coVerify(exactly = 0) { relayDao.deleteAll(userId = userId, kind = RelayKind.UserRelay) }
+            coVerify(exactly = 0) { relayDao.upsertAll(any()) }
         }
 
     @Test
@@ -448,16 +387,14 @@ class RelayRepositoryTest {
             val userId = "random"
             val relays = listOf("wss://relay.one", "wss://relay.two")
             val nostrPublisher = mockk<NostrPublisher>(relaxed = true)
-            val querier = mockk<RelayEventQuerier> {
-                coEvery { query(any()) } returns listOf(
-                    buildNip65Event(userId, createdAt = 1, relays = relays),
-                )
+            val relayDao = buildRelayDao()
+            every { relayDao.findRelays(userId, RelayKind.UserRelay) } returns relays.map { url ->
+                RelayPO(userId, RelayKind.UserRelay, url, read = true, write = true)
             }
 
             val repository = buildRepository(
-                usersDatabase = buildUsersDatabase(),
+                usersDatabase = buildUsersDatabase(relayDao),
                 nostrPublisher = nostrPublisher,
-                relayEventQuerier = querier,
             )
 
             repository.updateRelayPermissionsAndPublishRelayList(

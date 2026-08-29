@@ -23,7 +23,6 @@ import net.primal.android.core.errors.UiError
 import net.primal.android.gifpicker.GifPickerContract.SideEffect
 import net.primal.android.gifpicker.GifPickerContract.UiEvent
 import net.primal.android.gifpicker.GifPickerContract.UiState
-import net.primal.android.gifpicker.domain.GifCategory
 import net.primal.android.gifpicker.domain.asGifItem
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
@@ -53,7 +52,6 @@ class GifPickerViewModel @Inject constructor(
     private var nextCursor: String? = null
 
     init {
-        fetchTrending()
         observeEvents()
         observeDebouncedSearchQuery()
     }
@@ -64,28 +62,6 @@ class GifPickerViewModel @Inject constructor(
                 when (event) {
                     is UiEvent.UpdateSearchQuery -> {
                         setState { copy(searchQuery = event.query) }
-                    }
-
-                    is UiEvent.SelectCategory -> {
-                        val newCategory = if (_state.value.selectedCategory == event.category) {
-                            GifCategory.TRENDING
-                        } else {
-                            event.category
-                        }
-                        if (newCategory == _state.value.selectedCategory) return@collect
-                        nextCursor = null
-                        setState {
-                            copy(
-                                searchQuery = "",
-                                selectedCategory = newCategory,
-                                gifItems = emptyList(),
-                            )
-                        }
-                        if (newCategory == GifCategory.TRENDING) {
-                            fetchTrending()
-                        } else {
-                            searchGifs(query = newCategory.displayName)
-                        }
                     }
 
                     is UiEvent.SelectGif -> selectGif(event)
@@ -108,15 +84,12 @@ class GifPickerViewModel @Inject constructor(
                         setState {
                             copy(
                                 gifItems = emptyList(),
-                                selectedCategory = GifCategory.TRENDING,
                             )
                         }
-                        performFetchTrending()
                     } else {
                         setState {
                             copy(
                                 gifItems = emptyList(),
-                                selectedCategory = null,
                             )
                         }
                         performSearchGifs(query = it.query)
@@ -174,14 +147,9 @@ class GifPickerViewModel @Inject constructor(
             if (currentState.searching || cursor == null) return@launch
 
             val query = currentState.searchQuery
-            val category = currentState.selectedCategory
-
             when {
                 query.isNotBlank() -> searchGifs(query = query, cursor = cursor)
-                category != null && category != GifCategory.TRENDING -> {
-                    searchGifs(query = category.displayName, cursor = cursor)
-                }
-                else -> fetchTrending(cursor = cursor)
+                else -> Unit
             }
         }
 

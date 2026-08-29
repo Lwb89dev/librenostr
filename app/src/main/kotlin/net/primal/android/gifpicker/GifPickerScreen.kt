@@ -1,6 +1,7 @@
 package net.primal.android.gifpicker
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,10 +10,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -23,8 +24,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -59,9 +59,7 @@ import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.Search
 import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.gifpicker.GifPickerContract.UiEvent
-import net.primal.android.gifpicker.domain.GifCategory
 import net.primal.android.gifpicker.domain.GifItem
-import net.primal.android.gifpicker.domain.toDisplayName
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -81,6 +79,65 @@ fun GifPickerScreen(viewModel: GifPickerViewModel, callbacks: GifPickerContract.
         callbacks = callbacks,
         eventPublisher = viewModel::setEvent,
     )
+}
+
+/** Compact picker shown above the composer toolbar. It stays empty until a query is entered. */
+@Composable
+fun GifPickerInlineContent(
+    viewModel: GifPickerViewModel,
+    onDismiss: () -> Unit,
+    onGifSelected: (String) -> Unit,
+) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            if (effect is GifPickerContract.SideEffect.GifSelected) {
+                onGifSelected(effect.url)
+                onDismiss()
+            }
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Keep the inline picker within the space above the composer
+            // toolbar. Without a cap that is small enough for the IME layout,
+            // the result grid grows to its 290.dp height and bottom-aligning
+            // the column pushes the search field underneath the top bar.
+            .heightIn(max = 240.dp)
+            .shadow(18.dp, RoundedCornerShape(22.dp))
+            .background(AppTheme.colorScheme.surfaceVariant, RoundedCornerShape(22.dp))
+            .padding(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            GifSearchBar(
+                modifier = Modifier.weight(1f),
+                query = state.searchQuery,
+                onQueryChange = { viewModel.setEvent(UiEvent.UpdateSearchQuery(it)) },
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close GIF picker",
+                    tint = AppTheme.colorScheme.onSurface,
+                )
+            }
+        }
+        if (state.searchQuery.isBlank()) {
+            Text(
+                text = "Search for a GIF to see results",
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 18.dp),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
+            )
+        } else {
+            GifGridContent(
+                state = state,
+                eventPublisher = viewModel::setEvent,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 290.dp),
+            )
+        }
+    }
 }
 
 @Composable
@@ -132,12 +189,6 @@ fun GifPickerScreen(
                     }
                 }
 
-                GifCategoryChips(
-                    categories = state.categories,
-                    selectedCategory = state.selectedCategory,
-                    onCategorySelected = { eventPublisher(UiEvent.SelectCategory(it)) },
-                )
-
                 GifGridContent(
                     state = state,
                     eventPublisher = eventPublisher,
@@ -151,7 +202,7 @@ fun GifPickerScreen(
                         append(stringResource(id = R.string.gif_picker_powered_by))
                         append(" ")
                         withStyle(SpanStyle(color = AppTheme.extraColorScheme.onSurfaceVariantAlt2)) {
-                            append(stringResource(id = R.string.gif_picker_klipy))
+                            append(stringResource(id = R.string.gif_picker_source))
                         }
                     },
                     modifier = Modifier
@@ -167,7 +218,7 @@ fun GifPickerScreen(
 }
 
 @Composable
-private fun GifSearchBar(
+internal fun GifSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -215,47 +266,7 @@ private fun GifSearchBar(
 }
 
 @Composable
-private fun GifCategoryChips(
-    categories: List<GifCategory>,
-    selectedCategory: GifCategory?,
-    onCategorySelected: (GifCategory) -> Unit,
-) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(categories) { category ->
-            val isSelected = selectedCategory == category
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(category) },
-                label = {
-                    Text(
-                        text = category.toDisplayName(),
-                        style = AppTheme.typography.bodyMedium,
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = AppTheme.extraColorScheme.surfaceVariantAlt1,
-                    labelColor = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
-                    selectedContainerColor = AppTheme.colorScheme.onSurface,
-                    selectedLabelColor = AppTheme.colorScheme.surface,
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    borderColor = AppTheme.extraColorScheme.surfaceVariantAlt1,
-                    selectedBorderColor = AppTheme.colorScheme.onSurface,
-                    enabled = true,
-                    selected = isSelected,
-                ),
-                shape = RoundedCornerShape(20.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun GifGridContent(
+internal fun GifGridContent(
     state: GifPickerContract.UiState,
     eventPublisher: (UiEvent) -> Unit,
     modifier: Modifier = Modifier,

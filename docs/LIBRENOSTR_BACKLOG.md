@@ -39,7 +39,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 - **Tests:** Upsert latest kind 0; cache hit; batch authors
 - **Risk:** Medium — UI currently expects Primal premium/legend/CDN fields
 - **Complexity:** M
-- **Status:** done (relay-first kind 0, Room upsert, Primal cache fallback)
+- **Status:** done for direct profile reads (relay kind 0 + Room; no Primal profile fallback)
 
 ### LN-004 — Following feed from relays
 
@@ -78,7 +78,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 | ID | Title | Files | Depends | Acceptance | Tests | Risk | Complexity | Status |
 |---|---|---|---|---|---|---|---|---|
 | LN-010 | Relay observability (debug) | `RelayPool`, logging | LN-001 | Connected relays, active subs, timeouts, event/dup counts; never log nsec | unit | Low | S | done |
-| LN-011 | Default + user relay model | `FallbackRelays`, `settings/network`, NIP-65 | LN-002 | Add/remove/enable relays; read/write; not a single vendor | UI + unit | Medium | M | done (kind 10002 relay-first + cache fallback; read/write in Network settings; defaults from `FALLBACK_RELAYS`) |
+| LN-011 | Default + user relay model | `FallbackRelays`, `settings/network`, NIP-65 | LN-002 | Add/remove/enable relays; read/write; not a single vendor | UI + unit | Medium | M | done (kind 10002 relay-only; local edits use Room; defaults from `FALLBACK_RELAYS`) |
 | LN-012 | Disable `cachingProxyEnabled` publish | `RelaysSocketManager`, `RelayPool` | LN-006 | EVENT only to relays | publish still OK | Medium | S | done (EVENT to write relays only; cache broadcast path removed) |
 
 ## Phase 6–7
@@ -86,7 +86,7 @@ These are the next implementation slice after Phase 0. Do them in order.
 | ID | Title | Files | Depends | Acceptance | Tests | Risk | Complexity | Status |
 |---|---|---|---|---|---|---|---|---|
 | LN-013 | Local persist instead of `import_events` | `NostrPublisher`, `CachingImportRepository` | LN-004 | Publish visible after restart without cache | unit | Medium | M | done (Room PostData + following-feed membership; no `import_events` on publish) |
-| LN-014 | Switch profile screens off UsersApi cache | `ProfileRepositoryImpl` | LN-003 | No `user_profile` in that path | grep + tests | High | L | todo |
+| LN-014 | Switch profile screens off UsersApi cache | `ProfileRepositoryImpl` | LN-003 | No `user_profile` in that path | grep + tests | High | L | done for `fetchProfile(s)`; search, follower statistics and primal-name lookup remain separate migration work |
 | LN-015 | Switch following feed off mega_feed | `NoteFeedRemoteMediator` | LN-004 | No `multi_kind_mega_feed_directive` for that spec | grep + tests | High | L | todo |
 | LN-016 | Switch thread off `thread_view` | thread repos | LN-005 | No `thread_view` | grep + tests | High | L | todo |
 | LN-017 | Delete unused cache client | `core/networking-primal` cache types, `core/app-config` | LN-014..016 and remaining consumers | App compiles; primal cache URLs not required | assemble + tests | High | XL | todo |

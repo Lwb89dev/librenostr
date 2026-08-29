@@ -70,12 +70,8 @@ object PrimalApiServiceFactory {
 
     fun createUsersApi(primalApiClient: PrimalApiClient): UsersApi = UsersApiImpl(primalApiClient)
 
-    fun createKlipyApi(apiKey: String, clientKey: String): KlipyApi =
-        KlipyApiImpl(
-            apiKey = apiKey,
-            clientKey = clientKey,
-            httpClient = defaultHttpClient,
-        )
+    fun createKlipyApi(): KlipyApi =
+        KlipyApiImpl(httpClient = defaultHttpClient)
 
     fun createUserWellKnownApi(): UserWellKnownApi =
         Ktorfit.Builder()

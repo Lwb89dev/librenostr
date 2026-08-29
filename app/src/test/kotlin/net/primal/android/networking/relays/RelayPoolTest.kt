@@ -296,6 +296,33 @@ class RelayPoolTest {
             coVerify(exactly = 0) { writeSocket.sendREQ(any(), any()) }
         }
 
+    @Test
+    fun query_doesNotLoseImmediateRelayResponse() =
+        runTest {
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-immediate" }
+            val event = buildNostrEvent("immediate")
+            val incoming = MutableSharedFlow<NostrIncomingMessage>()
+            val socket = buildQuerySocket("wss://fast.example", incoming)
+            coEvery { socket.sendREQ("sub-immediate", any()) } coAnswers {
+                launch {
+                    incoming.emit(
+                        NostrIncomingMessage.EventMessage(
+                            subscriptionId = "sub-immediate",
+                            nostrEvent = event,
+                        ),
+                    )
+                    incoming.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-immediate"))
+                }
+            }
+            relayPool.socketClients = listOf(socket)
+
+            val result = relayPool.query(buildRelayFilter(kinds = listOf(1)))
+
+            result.events.map { it.id } shouldBe listOf("immediate")
+            result.eoseRelays shouldBe setOf("wss://fast.example")
+        }
+
     private fun buildQuerySocket(
         url: String,
         incoming: MutableSharedFlow<NostrIncomingMessage>,

@@ -1,6 +1,8 @@
 package net.primal.domain
 
 import io.kotest.matchers.shouldBe
+import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
+import net.primal.domain.feeds.defaultNoteFeedsNeedSync
 import net.primal.domain.feeds.isAudioSpec
 import net.primal.domain.feeds.isImageSpec
 import net.primal.domain.feeds.isNotesBookmarkFeedSpec
@@ -12,6 +14,7 @@ import net.primal.domain.feeds.isReadsFeedSpec
 import net.primal.domain.feeds.isUserNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.isVideoSpec
+import net.primal.domain.feeds.mergeDefaultNoteFeeds
 import org.junit.Test
 
 class FeedExtensionsKtTest {
@@ -121,5 +124,21 @@ class FeedExtensionsKtTest {
     fun isAudioFeedSpec_forProperFeedSpec_returnsTrue() {
         val spec = "{\"id\":\"advsearch\",\"query\":\"filter:audio music pas:1\"}"
         spec.isAudioSpec() shouldBe true
+    }
+
+    @Test
+    fun mergeDefaultNoteFeeds_addsLatestWhenOnlyLwrExists() {
+        val lwr = defaultLibreNostrNoteFeeds(profileId)[1]
+        val merged = mergeDefaultNoteFeeds(profileId, listOf(lwr))
+        merged.map { it.title } shouldBe listOf("Latest", "Latest with replies")
+        defaultNoteFeedsNeedSync(listOf(lwr), merged) shouldBe true
+    }
+
+    @Test
+    fun mergeDefaultNoteFeeds_keepsLatestAndLwrWhenAlreadyPresent() {
+        val defaults = defaultLibreNostrNoteFeeds(profileId)
+        val merged = mergeDefaultNoteFeeds(profileId, defaults)
+        merged.map { it.spec } shouldBe defaults.map { it.spec }
+        defaultNoteFeedsNeedSync(defaults, merged) shouldBe false
     }
 }

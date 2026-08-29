@@ -82,7 +82,8 @@ class CredentialsStore @Inject constructor(
             it.filterNot { cred -> cred.npub == npub }.toSet()
         }
 
+    fun find(npub: String): Credential? = credentials.value.find { it.npub == npub }
+
     fun findOrThrow(npub: String): Credential =
-        credentials.value.find { it.npub == npub }
-            ?: throw IllegalArgumentException("Credential not found for $npub.")
+        find(npub) ?: throw IllegalArgumentException("Credential not found for $npub.")
 }

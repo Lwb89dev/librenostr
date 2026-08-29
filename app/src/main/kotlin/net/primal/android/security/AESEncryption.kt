@@ -25,16 +25,23 @@ class AESEncryption(
     }
 
     override fun decrypt(inputStream: InputStream): String {
-        val decryptedBytes = inputStream.use {
-            val ivSize = it.read()
-            require(ivSize == 16) { "Invalid AES IV size." }
-            val iv = ByteArray(ivSize)
-            it.read(iv)
-
-            val encryptedData = it.readBytes()
-            val cipher = encryptionManager.getDecryptCipherForIv(keyAlias, iv)
-            cipher.doFinal(encryptedData)
+        val bytes = inputStream.use { it.readBytes() }
+        if (bytes.isEmpty()) return ""
+        val ivSize = bytes[0].toInt() and 0xFF
+        if (ivSize != AES_IV_SIZE || bytes.size <= AES_IV_SIZE + 1) {
+            return String(bytes, Charsets.UTF_8)
         }
-        return String(decryptedBytes, Charsets.UTF_8)
+        return try {
+            val iv = bytes.copyOfRange(1, AES_IV_SIZE + 1)
+            val encrypted = bytes.copyOfRange(AES_IV_SIZE + 1, bytes.size)
+            val cipher = encryptionManager.getDecryptCipherForIv(keyAlias, iv)
+            String(cipher.doFinal(encrypted), Charsets.UTF_8)
+        } catch (_: Throwable) {
+            String(bytes, Charsets.UTF_8)
+        }
+    }
+
+    companion object {
+        private const val AES_IV_SIZE = 16
     }
 }

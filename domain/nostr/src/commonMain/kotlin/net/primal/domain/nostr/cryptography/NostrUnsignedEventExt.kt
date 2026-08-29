@@ -4,7 +4,6 @@ import io.ktor.utils.io.core.toByteArray
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonArray
 import kotlinx.serialization.json.buildJsonArray
-import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.cryptography.utils.Bech32
@@ -41,6 +40,5 @@ fun NostrUnsignedEvent.calculateEventId(): ByteArray {
         addJsonArray { tags.forEach { add(it) } }
         add(content)
     }
-    val rawEventJson = json.encodeToJsonString()
-    return CryptoUtils.sha256(rawEventJson.toByteArray())
+    return CryptoUtils.sha256(json.toString().toByteArray())
 }

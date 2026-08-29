@@ -41,7 +41,11 @@ object CryptoUtils {
 
     fun sign(data: ByteArray, privateKey: ByteArray): ByteArray = secp256k1.signSchnorr(data, privateKey, null)
 
-    fun verifySchnorr(signature: ByteArray, hash: ByteArray, pubKey: ByteArray): Boolean {
+    fun verifySchnorr(
+        signature: ByteArray,
+        hash: ByteArray,
+        pubKey: ByteArray,
+    ): Boolean {
         if (signature.size != 64 || hash.size != 32 || pubKey.size != 32) return false
         return try {
             secp256k1.verifySchnorr(signature, hash, pubKey)

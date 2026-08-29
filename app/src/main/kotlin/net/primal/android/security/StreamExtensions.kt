@@ -7,8 +7,14 @@ import java.io.OutputStream
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
+@Suppress("TooGenericExceptionCaught", "ThrowsCount")
 inline fun <reified T> InputStream.readDecrypted(json: Json, encryption: Encryption): T {
-    val decryptedJson = encryption.decrypt(this)
+    val decryptedJson = try {
+        encryption.decrypt(this)
+    } catch (error: Exception) {
+        Napier.w(throwable = error) { "Unable to decrypt stored value." }
+        throw CorruptionException("Unable to decrypt stored value.", error)
+    }
     return try {
         json.decodeFromString(decryptedJson)
     } catch (error: SerializationException) {

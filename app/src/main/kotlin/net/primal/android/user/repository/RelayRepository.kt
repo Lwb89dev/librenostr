@@ -18,16 +18,16 @@ import net.primal.android.user.domain.mapToRelayDO
 import net.primal.android.user.domain.mapToRelayPO
 import net.primal.android.user.domain.toRelay
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.data.remote.api.users.UsersApi
+import net.primal.core.utils.runCatching
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 
+@Suppress("TooManyFunctions")
 class RelayRepository @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val usersDatabase: UsersDatabase,
-    private val usersApi: UsersApi,
     private val nostrPublisher: NostrPublisher,
     private val relayEventQuerier: RelayEventQuerier,
 ) {
@@ -61,23 +61,14 @@ class RelayRepository @Inject constructor(
                     limit = 5,
                 ),
             )
-        }.getOrNull() ?: return null
-        val latest = events.maxByOrNull { it.createdAt } ?: return null
-        Napier.i {
-            "Relay kind-10002 for $userId: events=${events.size} createdAt=${latest.createdAt}"
+        }.getOrNull().orEmpty()
+        val latest = events.maxByOrNull { it.createdAt }
+        if (latest != null) {
+            Napier.i {
+                "Relay kind-10002 for $userId: events=${events.size} createdAt=${latest.createdAt}"
+            }
         }
-        return latest.tags.parseNip65Relays()
-    }
-
-    private suspend fun fetchUserRelaysFromCache(userId: String): List<RelayDO>? {
-        val response = withContext(dispatchers.io()) { usersApi.getUserRelays(listOf(userId)) }
-        val cachedNip65Event = response.cachedRelayListEvents.firstOrNull() ?: return null
-        return cachedNip65Event.tags.parseNip65Relays()
-    }
-
-    private suspend fun fetchUserRelays(userId: String): List<RelayDO>? {
-        fetchUserRelaysFromRelays(userId)?.takeIf { it.isNotEmpty() }?.let { return it }
-        return fetchUserRelaysFromCache(userId)?.takeIf { it.isNotEmpty() }
+        return latest?.tags?.parseNip65Relays()
     }
 
     suspend fun ensureLocalBootstrapRelays(userId: String) {
@@ -93,24 +84,40 @@ class RelayRepository @Inject constructor(
     }
 
     private suspend fun currentUserRelays(userId: String): List<RelayDO> {
-        fetchUserRelays(userId)?.let { return it }
         return findRelays(userId, RelayKind.UserRelay).map { it.mapToRelayDO() }
     }
 
     suspend fun fetchAndUpdateUserRelays(userId: String) {
-        val relayList = fetchUserRelays(userId)
+        val relayList = fetchUserRelaysFromRelays(userId)?.takeIf { it.isNotEmpty() }
         if (relayList != null) replaceUserRelays(userId, relayList)
     }
 
-    private suspend fun fetchUserRelays(userIds: List<String>) =
-        withContext(dispatchers.io()) {
-            usersApi.getUserRelays(userIds).cachedRelayListEvents
-                .filterNot { it.pubKey == null }
-                .map { UserRelays(pubkey = it.pubKey!!, relays = it.tags.parseNip65Relays()) }
-        }
+    private suspend fun fetchUserRelaysFromRelays(userIds: List<String>): List<UserRelays> {
+        if (userIds.isEmpty()) return emptyList()
+        val events = runCatching {
+            relayEventQuerier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.RelayListMetadata.value),
+                    authors = userIds.distinct(),
+                    limit = userIds.size * EVENTS_PER_AUTHOR_LIMIT,
+                ),
+            )
+        }.getOrNull().orEmpty()
+
+        return events
+            .filter { it.pubKey in userIds }
+            .groupBy { it.pubKey }
+            .mapNotNull { (pubkey, authorEvents) ->
+                authorEvents.maxByOrNull { it.createdAt }
+                    ?.tags
+                    ?.parseNip65Relays()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { UserRelays(pubkey = pubkey, relays = it) }
+            }
+    }
 
     suspend fun fetchAndUpdateUserRelays(userIds: List<String>): List<UserRelays> {
-        return fetchUserRelays(userIds).onEach {
+        return fetchUserRelaysFromRelays(userIds).onEach {
             replaceUserRelays(userId = it.pubkey, relays = it.relays)
         }
     }
@@ -120,9 +127,9 @@ class RelayRepository @Inject constructor(
             usersDatabase.withTransaction {
                 usersDatabase.relays().deleteAll(userId = userId, kind = RelayKind.UserRelay)
                 usersDatabase.relays().upsertAll(
-                    relays = relays.map {
-                        it.mapToRelayPO(userId = userId, kind = RelayKind.UserRelay)
-                    },
+                    relays = relays
+                        .map { it.mapToRelayPO(userId = userId, kind = RelayKind.UserRelay) }
+                        .distinctBy { it.url },
                 )
             }
         }
@@ -172,4 +179,8 @@ class RelayRepository @Inject constructor(
             nostrPublisher.publishRelayList(userId = userId, relays = newRelayList)
             replaceUserRelays(userId = userId, relays = newRelayList)
         }
+
+    private companion object {
+        const val EVENTS_PER_AUTHOR_LIMIT = 3
+    }
 }

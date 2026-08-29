@@ -14,9 +14,12 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
@@ -72,13 +75,18 @@ class NoteFeedViewModel @AssistedInject constructor(
         ): NoteFeedViewModel
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun buildFeedByDirective(feedSpec: String) =
-        feedRepository.feedBySpec(
-            userId = activeAccountStore.activeUserId(),
-            feedSpec = feedSpec,
-            allowMutedThreads = allowMutedThreads,
-        )
-            .map { it.map { feedNote -> feedNote.asFeedPostUi() } }
+        activeAccountStore.activeUserId
+            .filter { it.isNotBlank() }
+            .flatMapLatest { userId ->
+                feedRepository.feedBySpec(
+                    userId = userId,
+                    feedSpec = feedSpec,
+                    allowMutedThreads = allowMutedThreads,
+                )
+            }
+            .map { paging -> paging.map { feedNote -> feedNote.asFeedPostUi() } }
             .cachedIn(viewModelScope + dispatcherProvider.io())
 
     private val _state = MutableStateFlow(UiState(notes = buildFeedByDirective(feedSpec)))

@@ -1,6 +1,7 @@
 package net.primal.android.core.compose
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -23,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,8 +30,6 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
-import net.primal.android.core.compose.icons.PrimalIcons
-import net.primal.android.core.compose.icons.primaliconpack.AvatarDefault
 import net.primal.android.core.images.AvatarCoilImageLoader
 import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.premium.legend.domain.LegendaryStyle
@@ -280,11 +278,10 @@ fun DefaultAvatarThumbnailPlaceholderListItemImage(
             .fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = PrimalIcons.AvatarDefault,
+        Image(
+            painter = painterResource(id = R.drawable.default_avatar_ostrich),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            tint = LocalContentColor.current,
         )
     }
 }

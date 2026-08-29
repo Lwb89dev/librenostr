@@ -64,7 +64,6 @@ import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.profile.details.ProfileDetailsContract
 import net.primal.android.profile.details.ui.model.PremiumProfileDataUi
 import net.primal.android.profile.details.ui.model.shouldShowPremiumBadge
-import net.primal.android.profile.domain.ProfileFollowsType
 import net.primal.android.theme.AppTheme
 import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.domain.utils.isLightningAddress
@@ -128,7 +127,6 @@ fun ProfileHeaderDetails(
             }
         },
         onDrawerQrCodeClick = { state.profileId?.let { callbacks.onDrawerQrCodeClick(it) } },
-        onFollowsClick = callbacks.onFollowsClick,
         onProfileClick = { noteCallbacks.onProfileClick?.invoke(it) },
         onHashtagClick = { noteCallbacks.onHashtagClick?.invoke(it) },
         onPremiumBadgeClick = callbacks.onPremiumBadgeClick,
@@ -147,7 +145,6 @@ private fun ProfileHeaderDetails(
     onMessageClick: () -> Unit,
     onFollow: () -> Unit,
     onUnfollow: () -> Unit,
-    onFollowsClick: (String, ProfileFollowsType) -> Unit,
     onProfileClick: (String) -> Unit,
     onHashtagClick: (String) -> Unit,
     onPremiumBadgeClick: (tier: String, profileId: String) -> Unit,
@@ -180,7 +177,6 @@ private fun ProfileHeaderDetails(
                     ProfileDropdownMenu(
                         profileId = profileId,
                         profileName = state.resolveProfileName(),
-                        primalName = state.profileDetails?.primalName,
                         isActiveUser = state.isActiveUser == true,
                         isProfileMuted = state.isProfileMuted,
                         isProfileFeedInActiveUserFeeds = state.isProfileFeedInActiveUserFeeds,
@@ -209,15 +205,6 @@ private fun ProfileHeaderDetails(
             UserInternetIdentifier(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 internetIdentifier = state.profileDetails.internetIdentifier,
-            )
-        }
-
-        state.profileId?.let { profileId ->
-            ProfileFollowIndicators(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
-                isProfileFollowingMe = state.isProfileFollowingMe,
-                onFollowingClick = { onFollowsClick(profileId, ProfileFollowsType.Following) },
-                onFollowersClick = { onFollowsClick(profileId, ProfileFollowsType.Followers) },
             )
         }
 
@@ -344,66 +331,6 @@ private fun UserFollowedByIndicatorPlaceholder(modifier: Modifier = Modifier) {
 
 private const val FOLLOWED_BY_AVATAR_COUNT = 5
 private const val FOLLOWED_BY_AVATAR_OVERLAP = 0.25f
-
-@Composable
-private fun ProfileFollowIndicators(
-    modifier: Modifier = Modifier,
-    isProfileFollowingMe: Boolean,
-    onFollowingClick: () -> Unit,
-    onFollowersClick: () -> Unit,
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            modifier = Modifier.clickable { onFollowingClick() },
-            text = stringResource(id = R.string.drawer_following_suffix),
-            style = AppTheme.typography.labelLarge,
-            color = AppTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            modifier = Modifier.clickable { onFollowersClick() },
-            text = stringResource(id = R.string.drawer_followers_suffix),
-            style = AppTheme.typography.labelLarge,
-            color = AppTheme.colorScheme.onSurfaceVariant,
-        )
-
-        FollowsYouBadge(isProfileFollowingMe = isProfileFollowingMe)
-    }
-}
-
-@Composable
-private fun FollowsYouBadge(isProfileFollowingMe: Boolean) {
-    Box(
-        modifier = Modifier
-            .height(20.dp)
-            .then(
-                if (isProfileFollowingMe) {
-                    Modifier
-                        .clip(AppTheme.shapes.extraLarge)
-                        .background(
-                            color = AppTheme.extraColorScheme.surfaceVariantAlt1,
-                            shape = AppTheme.shapes.extraSmall,
-                        )
-                        .padding(horizontal = 12.dp)
-                        .padding(top = 0.5.dp)
-                } else {
-                    Modifier
-                },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isProfileFollowingMe) {
-            Text(
-                text = stringResource(id = R.string.profile_follows_you).lowercase(),
-                color = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-                style = AppTheme.typography.bodySmall,
-            )
-        }
-    }
-}
 
 @Composable
 private fun UserDisplayName(
@@ -577,7 +504,6 @@ private fun PreviewProfileHeaderDetails() {
                 onDrawerQrCodeClick = {},
                 onFollow = {},
                 onUnfollow = {},
-                onFollowsClick = { _, _ -> },
                 onProfileClick = {},
                 onHashtagClick = {},
                 onPremiumBadgeClick = { _, _ -> },

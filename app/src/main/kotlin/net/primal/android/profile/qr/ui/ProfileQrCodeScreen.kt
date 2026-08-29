@@ -3,6 +3,7 @@ package net.primal.android.profile.qr.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import net.primal.android.R
 import net.primal.android.core.compose.ColumnWithBackground
@@ -39,13 +41,17 @@ import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
+import net.primal.android.core.compose.icons.primaliconpack.QrCode
+import net.primal.android.core.compose.icons.primaliconpack.Share
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.primalGradientBrush
+import net.primal.android.core.utils.systemShareText
 import net.primal.android.core.compose.profile.model.ProfileDetailsUi
 import net.primal.android.profile.qr.ProfileQrCodeContract
 import net.primal.android.profile.qr.ProfileQrCodeViewModel
 import net.primal.android.scanner.QrCodeScanner
 import net.primal.android.theme.AppTheme
+import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
 @Composable
 fun ProfileQrCodeViewerScreen(viewModel: ProfileQrCodeViewModel, callbacks: ProfileQrCodeContract.ScreenCallbacks) {
@@ -144,6 +150,7 @@ private fun ProfileQrCodeViewerScreen(
                 QrCodeModeBottomBar(
                     qrCodeMode = qrCodeMode,
                     onModeChange = { qrCodeMode = qrCodeMode.invert() },
+                    profileId = state.profileId,
                 )
             },
         )
@@ -151,22 +158,59 @@ private fun ProfileQrCodeViewerScreen(
 }
 
 @Composable
-private fun QrCodeModeBottomBar(qrCodeMode: QrCodeMode, onModeChange: () -> Unit) {
+private fun QrCodeModeBottomBar(qrCodeMode: QrCodeMode, onModeChange: () -> Unit, profileId: String) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
-        PrimalLoadingButton(
-            modifier = Modifier
-                .widthIn(240.dp, MAX_COMPONENT_WIDTH.dp)
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            text = qrCodeMode.toActionButtonText(),
-            containerColor = PrimalDarkButtonColor,
-            disabledContainerColor = PrimalDarkButtonColor,
-            contentColor = Color.White,
-            onClick = onModeChange,
-        )
+        if (qrCodeMode == QrCodeMode.Viewer) {
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PrimalLoadingButton(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = 32.dp),
+                    height = 48.dp,
+                    text = stringResource(id = R.string.profile_qr_code_scan_qr_code),
+                    leadingIcon = PrimalIcons.QrCode,
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    maxLines = 1,
+                    containerColor = PrimalDarkButtonColor,
+                    disabledContainerColor = PrimalDarkButtonColor,
+                    contentColor = Color.White,
+                    onClick = onModeChange,
+                )
+                PrimalLoadingButton(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = 32.dp),
+                    height = 48.dp,
+                    text = stringResource(id = R.string.profile_context_share_profile),
+                    leadingIcon = PrimalIcons.Share,
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    maxLines = 1,
+                    containerColor = PrimalDarkButtonColor,
+                    disabledContainerColor = PrimalDarkButtonColor,
+                    contentColor = Color.White,
+                    onClick = { systemShareText(context, "https://nostrich.org/p/${profileId.hexToNpubHrp()}") },
+                )
+            }
+        } else {
+            PrimalLoadingButton(
+                modifier = Modifier.widthIn(200.dp, MAX_COMPONENT_WIDTH.dp).padding(bottom = 32.dp),
+                text = qrCodeMode.toActionButtonText(),
+                containerColor = PrimalDarkButtonColor,
+                disabledContainerColor = PrimalDarkButtonColor,
+                contentColor = Color.White,
+                onClick = onModeChange,
+            )
+        }
     }
 }
 

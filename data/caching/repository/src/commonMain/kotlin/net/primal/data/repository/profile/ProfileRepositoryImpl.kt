@@ -4,9 +4,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
-import net.primal.core.networking.utils.retryNetworkCall
 import net.primal.core.utils.Result
-import net.primal.core.utils.asMapByKey
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
@@ -20,10 +18,8 @@ import net.primal.data.repository.mappers.local.asProfileDataDO
 import net.primal.data.repository.mappers.local.asProfileStatsDO
 import net.primal.data.repository.mappers.remote.asProfileDataPO
 import net.primal.data.repository.mappers.remote.asProfileDataPOFromRelay
-import net.primal.data.repository.mappers.remote.asProfileStatsPO
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalLegendProfiles
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
@@ -44,7 +40,6 @@ import net.primal.domain.profile.ProfileData
 import net.primal.domain.profile.ProfileRepository
 import net.primal.domain.profile.ProfileStats
 import net.primal.domain.publisher.PrimalPublisher
-import net.primal.shared.data.local.db.withTransaction
 
 class ProfileRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
@@ -144,81 +139,24 @@ class ProfileRepositoryImpl(
     override suspend fun fetchProfile(profileId: String) =
         withContext(dispatcherProvider.io()) {
             val local = database.profiles().findProfileData(profileId = profileId)
+            if (local != null) return@withContext local.asProfileDataDO()
             val fromRelays = persistRelayMetadata(listOf(profileId))
             val relayProfile = fromRelays.firstOrNull()
             if (relayProfile != null) {
                 verifyNip05IfPresent(profileId, relayProfile)
-                return@withContext relayProfile
             }
-            if (local != null) return@withContext local.asProfileDataDO()
-            fetchProfileFromCache(profileId)
+            relayProfile
         }
-
-    private suspend fun fetchProfileFromCache(profileId: String): ProfileData? {
-        val response = retryNetworkCall { usersApi.getUserProfile(userId = profileId) }
-        response.metadata?.let {
-            mediaCacher?.cacheAvatarUrls(metadata = listOf(it), cdnResources = response.cdnResources)
-        }
-        val cdnResources = response.cdnResources.flatMapNotNullAsCdnResource()
-        val primalUserName = response.primalUserNames.parseAndMapPrimalUserNames()
-        val primalPremiumInfo = response.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-        val primalLegendProfiles = response.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
-        val blossomServers = response.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
-        val profileMetadata = response.metadata?.asProfileDataPO(
-            cdnResources = cdnResources,
-            primalUserNames = primalUserName,
-            primalPremiumInfo = primalPremiumInfo,
-            primalLegendProfiles = primalLegendProfiles,
-            blossomServers = blossomServers,
-        )
-        val profileStats = response.profileStats?.asProfileStatsPO()
-        val streamData = response.liveActivity.mapNotNullAsStreamDataPO()
-
-        database.withTransaction {
-            if (profileMetadata != null) {
-                database.profiles().insertOrUpdateAll(data = listOf(profileMetadata))
-            }
-            if (profileStats != null) {
-                database.profileStats().upsert(data = profileStats)
-            }
-            if (streamData.isNotEmpty()) {
-                database.streams().upsertStreamData(data = streamData)
-            }
-        }
-
-        verifyNip05IfPresent(profileId, profileMetadata?.asProfileDataDO())
-        return profileMetadata?.asProfileDataDO()
-    }
 
     override suspend fun fetchProfiles(profileIds: List<String>): List<ProfileData> =
         withContext(dispatcherProvider.io()) {
             val fromRelays = persistRelayMetadata(profileIds)
-            val missing = profileIds.toSet() - fromRelays.map { it.profileId }.toSet()
-            if (missing.isEmpty()) return@withContext fromRelays
-            fromRelays + fetchProfilesFromCache(missing.toList())
+            val foundIds = fromRelays.mapTo(mutableSetOf()) { it.profileId }
+            val localProfiles = database.profiles()
+                .findProfileData(profileIds.filterNot(foundIds::contains))
+                .map { it.asProfileDataDO() }
+            fromRelays + localProfiles
         }
-
-    private suspend fun fetchProfilesFromCache(profileIds: List<String>): List<ProfileData> {
-        if (profileIds.isEmpty()) return emptyList()
-        val response = retryNetworkCall { usersApi.getUserProfilesMetadata(userIds = profileIds.toSet()) }
-        val primalUserNames = response.primalUserNames.parseAndMapPrimalUserNames()
-        val primalPremiumInfo = response.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-        val primalLegendProfiles = response.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
-        val cdnResources = response.cdnResources.flatMapNotNullAsCdnResource().asMapByKey { it.url }
-        val blossomServers = response.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
-        val profiles = response.metadataEvents.map {
-            it.asProfileDataPO(
-                cdnResources = cdnResources,
-                primalUserNames = primalUserNames,
-                primalPremiumInfo = primalPremiumInfo,
-                primalLegendProfiles = primalLegendProfiles,
-                blossomServers = blossomServers,
-            )
-        }
-        mediaCacher?.cacheAvatarUrls(metadata = response.metadataEvents, cdnResources = response.cdnResources)
-        database.profiles().insertOrUpdateAll(data = profiles)
-        return profiles.map { it.asProfileDataDO() }
-    }
 
     private suspend fun persistRelayMetadata(profileIds: List<String>): List<ProfileData> {
         val events = queryRelayMetadata(profileIds)

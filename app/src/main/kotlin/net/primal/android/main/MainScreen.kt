@@ -2,6 +2,9 @@ package net.primal.android.main
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
@@ -9,6 +12,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +31,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -62,12 +74,11 @@ import net.primal.android.main.feeds.NoteFeedTopAppBar
 import net.primal.android.main.feeds.NoteFeedsContent
 import net.primal.android.main.feeds.NoteFeedsContract
 import net.primal.android.main.feeds.NoteFeedsViewModel
-import net.primal.android.main.notifications.NotificationFilterOverlayContent
 import net.primal.android.main.notifications.NotificationsContent
 import net.primal.android.main.notifications.NotificationsContract
 import net.primal.android.main.notifications.NotificationsTopAppBar
 import net.primal.android.main.notifications.NotificationsViewModel
-import net.primal.android.main.notifications.toAppBarPages
+import net.primal.android.theme.AppTheme
 import net.primal.android.main.reads.ArticleFeedTopAppBar
 import net.primal.android.main.reads.ReadsContent
 import net.primal.android.main.reads.ReadsScreenContract
@@ -159,11 +170,7 @@ fun MainScreen(
     )
 
     val onActiveDestinationClick: () -> Unit = {
-        if (activeTab == PrimalTopLevelDestination.Explore) {
-            navController.navigateToSearch(searchScope = SearchScope.Notes)
-        } else {
-            handleActiveDestinationClick(activeTab, sharedState, uiScope)
-        }
+        handleActiveDestinationClick(activeTab, sharedState, uiScope)
     }
 
     val onTabChanged: (PrimalTopLevelDestination) -> Unit = { destination ->
@@ -175,6 +182,9 @@ fun MainScreen(
     val focusModeEnabled = when (activeTab) {
         PrimalTopLevelDestination.Wallet,
         PrimalTopLevelDestination.Explore,
+        // Notifications has no collapsible app bar. Do not attach the home top-bar nested
+        // scroll connection, otherwise it consumes the list's vertical drag on this tab.
+        PrimalTopLevelDestination.Alerts,
         -> false
 
         else -> LocalContentDisplaySettings.current.focusModeEnabled
@@ -199,6 +209,7 @@ fun MainScreen(
             notificationsViewModel.setEvent(
                 NotificationsContract.UiEvent.NotificationsSeen(group = group),
             )
+            mainViewModel.setEvent(MainContract.UiEvent.NotificationsViewed)
         },
         homeTopAppBarState = homeTopAppBarState,
         currentTopAppBarState = currentTopAppBarState,
@@ -224,7 +235,6 @@ private fun MainScreenTopAppBar(
     onFeedPickerRequest: () -> Unit,
     onReadPickerRequest: () -> Unit,
     onWalletPickerRequest: () -> Unit,
-    onAlertsFilterPickerRequest: () -> Unit,
     titleOverride: String? = null,
     subtitleOverride: String? = null,
     chevronExpanded: Boolean = false,
@@ -241,6 +251,8 @@ private fun MainScreenTopAppBar(
     exploreActiveSection: ExploreSection,
     onExploreSectionPickerRequest: () -> Unit,
     onExploreSearchClick: () -> Unit,
+    onExploreSearchSubmit: (String) -> Unit,
+    onExploreSearchProfileClick: (String) -> Unit,
     onExploreAdvancedSearchClick: () -> Unit,
     homeFeeds: List<FeedUi>,
     readsFeeds: List<FeedUi>,
@@ -262,6 +274,9 @@ private fun MainScreenTopAppBar(
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
                 chevronExpanded = chevronExpanded,
+                showAvatar = false,
+                onSearchSubmit = onExploreSearchSubmit,
+                onSearchProfileClick = onExploreSearchProfileClick,
             )
         }
 
@@ -281,6 +296,7 @@ private fun MainScreenTopAppBar(
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
                 chevronExpanded = chevronExpanded,
+                showAvatar = false,
             )
         }
 
@@ -297,6 +313,7 @@ private fun MainScreenTopAppBar(
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
                 chevronExpanded = chevronExpanded,
+                showAvatar = false,
             )
         }
 
@@ -310,11 +327,12 @@ private fun MainScreenTopAppBar(
                 onAvatarSwipeDown = onAvatarSwipeDown,
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
-                pagerState = notificationsPagerState,
-                pages = notificationsPages,
-                showTitleChevron = true,
-                chevronExpanded = chevronExpanded,
-                onTitleClick = onAlertsFilterPickerRequest,
+                pagerState = null,
+                pages = emptyList(),
+                showTitleChevron = false,
+                chevronExpanded = false,
+                onTitleClick = null,
+                showAvatar = false,
             )
         }
 
@@ -344,10 +362,11 @@ private fun ScaffoldTopAppBar(
     readPickerVisible: Boolean,
     walletPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
-    alertsFilterPickerVisible: Boolean,
     sharedState: MainScreenSharedState,
     toggleOverlay: (ActiveOverlay) -> Unit,
     onExploreSearchClick: () -> Unit,
+    onExploreSearchSubmit: (String) -> Unit,
+    onExploreSearchProfileClick: (String) -> Unit,
     onExploreAdvancedSearchClick: () -> Unit,
     exploreActiveSection: ExploreSection,
     homeFeeds: List<FeedUi>,
@@ -360,7 +379,7 @@ private fun ScaffoldTopAppBar(
     } else {
         null
     }
-    val notificationsPages = NotificationGroup.entries.toAppBarPages()
+    val notificationsPages = emptyList<AppBarPage>()
 
     MainScreenTopAppBar(
         activeTab = activeTab,
@@ -378,14 +397,12 @@ private fun ScaffoldTopAppBar(
         onFeedPickerRequest = { toggleOverlay(ActiveOverlay.FeedPicker) },
         onReadPickerRequest = { toggleOverlay(ActiveOverlay.ReadPicker) },
         onWalletPickerRequest = { toggleOverlay(ActiveOverlay.WalletPicker) },
-        onAlertsFilterPickerRequest = { toggleOverlay(ActiveOverlay.AlertsFilter) },
         titleOverride = drawerTitle,
         subtitleOverride = drawerSubtitle,
         chevronExpanded = feedPickerVisible ||
             readPickerVisible ||
             walletPickerVisible ||
-            exploreSectionPickerVisible ||
-            alertsFilterPickerVisible,
+            exploreSectionPickerVisible,
         avatarCdnImage = mainState.activeAccountAvatarCdnImage,
         avatarLegendaryCustomization = mainState.activeAccountLegendaryCustomization,
         avatarBlossoms = mainState.activeAccountBlossoms,
@@ -399,6 +416,8 @@ private fun ScaffoldTopAppBar(
         exploreActiveSection = exploreActiveSection,
         onExploreSectionPickerRequest = { toggleOverlay(ActiveOverlay.ExploreSectionPicker) },
         onExploreSearchClick = onExploreSearchClick,
+        onExploreSearchSubmit = { query -> navController.navigateToSearch(searchScope = SearchScope.Notes, initialQuery = query) },
+        onExploreSearchProfileClick = onExploreSearchProfileClick,
         onExploreAdvancedSearchClick = onExploreAdvancedSearchClick,
         homeFeeds = homeFeeds,
         readsFeeds = readsFeeds,
@@ -436,6 +455,7 @@ private fun MainScreenContent(
                     noteCallbacks = noteCallbacks,
                     eventPublisher = homeEventPublisher,
                     onActiveFeedChanged = { sharedState.homeActiveFeed.value = it },
+                    selectedFeed = sharedState.homeActiveFeed.value,
                     topAppBarCollapsedFraction = homeTopAppBarState.collapsedFraction,
                     shouldAnimateScrollToTop = sharedState.homeShouldAnimateScrollToTop,
                     scrollToFeed = sharedState.homeScrollToFeed,
@@ -459,17 +479,32 @@ private fun MainScreenContent(
                 PrimalTopLevelDestination.Explore -> {
                     val active = sharedState.homeActiveFeed.value ?: homeState.feeds.firstOrNull()
                     if (active != null) {
-                        Box(modifier = Modifier.padding(paddingValues)) {
-                            FeedListOverlayContent(
-                                activeFeed = active,
-                                feedSpecKind = FeedSpecKind.Notes,
-                                onFeedClick = { feed ->
-                                    sharedState.homeActiveFeed.value = feed
-                                    onTabChanged(PrimalTopLevelDestination.Feeds)
-                                },
-                                onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
-                                onGoToWallet = onGoToWallet,
-                            )
+                        Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + scaleIn(initialScale = 0.92f),
+                                exit = fadeOut(),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 24.dp)
+                                        .shadow(18.dp, RoundedCornerShape(28.dp))
+                                        .clip(RoundedCornerShape(28.dp))
+                                        .background(AppTheme.colorScheme.surface.copy(alpha = 0.98f)),
+                                ) {
+                                    FeedListOverlayContent(
+                                        activeFeed = active,
+                                        feedSpecKind = FeedSpecKind.Notes,
+                                        onFeedClick = { feed ->
+                                            sharedState.homeActiveFeed.value = feed
+                                            onTabChanged(PrimalTopLevelDestination.Feeds)
+                                        },
+                                        onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
+                                        onGoToWallet = onGoToWallet,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -535,11 +570,8 @@ private fun MainScreenScaffold(
     val walletPickerVisible = activeOverlay == ActiveOverlay.WalletPicker
     val exploreSectionPickerVisible = activeOverlay == ActiveOverlay.ExploreSectionPicker
     val accountDrawerVisible = activeOverlay == ActiveOverlay.AccountDrawer
-    val alertsFilterPickerVisible = activeOverlay == ActiveOverlay.AlertsFilter
     val exploreActiveSection = ExploreSection.entries
         .getOrElse(sharedState.explorePagerState.currentPage) { ExploreSection.Explore }
-    val notificationsActiveGroup = NotificationGroup.entries
-        .getOrElse(sharedState.notificationsPagerState.currentPage) { NotificationGroup.ALL }
 
     val streamState = LocalStreamState.current
     LaunchedEffect(activeOverlay) {
@@ -556,6 +588,11 @@ private fun MainScreenScaffold(
         onActiveDestinationClick = onActiveDestinationClick,
         onPrimaryDestinationChanged = onTabChanged,
         onSettingsClick = { navController.navigateToSettings() },
+        onProfileClick = {
+            if (mainState.activeAccountId.isNotEmpty()) {
+                navController.navigateToProfile(profileId = mainState.activeAccountId)
+            }
+        },
         settingsSelected = false,
         badges = mainState.badges,
         focusModeEnabled = focusModeEnabled,
@@ -572,10 +609,11 @@ private fun MainScreenScaffold(
                 readPickerVisible = readPickerVisible,
                 walletPickerVisible = walletPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
-                alertsFilterPickerVisible = alertsFilterPickerVisible,
                 sharedState = sharedState,
                 toggleOverlay = ::toggleOverlay,
-                onExploreSearchClick = { navController.navigateToSearch(searchScope = SearchScope.Notes) },
+                onExploreSearchClick = {},
+                onExploreSearchSubmit = { query -> navController.navigateToSearch(searchScope = SearchScope.Notes, initialQuery = query) },
+                onExploreSearchProfileClick = { profileId -> navController.navigateToProfile(profileId = profileId) },
                 onExploreAdvancedSearchClick = { navController.navigateToAdvancedSearch() },
                 exploreActiveSection = exploreActiveSection,
                 homeFeeds = homeState.feeds,
@@ -610,8 +648,6 @@ private fun MainScreenScaffold(
                 readPickerVisible = readPickerVisible,
                 walletPickerVisible = walletPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
-                alertsFilterPickerVisible = alertsFilterPickerVisible,
-                notificationsActiveGroup = notificationsActiveGroup,
                 exploreActiveSection = exploreActiveSection,
                 sharedState = sharedState,
                 onDismissOverlay = { activeOverlay = null },
@@ -657,8 +693,6 @@ private fun MainScreenOverlays(
     readPickerVisible: Boolean,
     walletPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
-    alertsFilterPickerVisible: Boolean,
-    notificationsActiveGroup: NotificationGroup,
     exploreActiveSection: ExploreSection,
     sharedState: MainScreenSharedState,
     onDismissOverlay: () -> Unit,
@@ -733,12 +767,7 @@ private fun MainScreenOverlays(
         )
     }
 
-    NotificationFilterPickerOverlay(
-        visible = alertsFilterPickerVisible,
-        activeGroup = notificationsActiveGroup,
-        notificationsPagerState = sharedState.notificationsPagerState,
-        onDismissOverlay = onDismissOverlay,
-    )
+    // Notification filters were intentionally removed: the ALL stream is always visible.
 
     ExploreSectionPickerOverlay(
         visible = exploreSectionPickerVisible,
@@ -761,26 +790,6 @@ private fun ExploreSectionPickerOverlay(
             activeSection = activeSection,
             onSectionClick = { section ->
                 scope.launch { explorePagerState.scrollToPage(section.ordinal) }
-                onDismissOverlay()
-            },
-            onDismiss = onDismissOverlay,
-        )
-    }
-}
-
-@Composable
-private fun NotificationFilterPickerOverlay(
-    visible: Boolean,
-    activeGroup: NotificationGroup,
-    notificationsPagerState: PagerState,
-    onDismissOverlay: () -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    PrimalOverlay(visible = visible, onDismiss = onDismissOverlay) {
-        NotificationFilterOverlayContent(
-            activeGroup = activeGroup,
-            onGroupClick = { group ->
-                scope.launch { notificationsPagerState.scrollToPage(group.ordinal) }
                 onDismissOverlay()
             },
             onDismiss = onDismissOverlay,
@@ -877,7 +886,6 @@ private fun handleActiveDestinationClick(
 
 private enum class ActiveOverlay {
     AccountDrawer,
-    AlertsFilter,
     FeedPicker,
     ReadPicker,
     WalletPicker,

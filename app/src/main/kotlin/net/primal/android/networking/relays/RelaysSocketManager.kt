@@ -1,9 +1,7 @@
 package net.primal.android.networking.relays
 
-import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -53,7 +51,16 @@ class RelaysSocketManager @Inject constructor(
         observeActiveUserId()
     }
 
-    private fun initFallbackRelaysPool() = fallbackRelaysPool.changeRelays(FALLBACK_RELAYS)
+    private fun initFallbackRelaysPool() {
+        fallbackRelaysPool.changeRelays(FALLBACK_RELAYS)
+        connectPool(fallbackRelaysPool)
+    }
+
+    private fun connectPool(pool: RelayPool) {
+        pool.relays.forEach { relay ->
+            scope.launch { pool.tryConnectingToRelay(relay.url) }
+        }
+    }
 
     private fun observeActiveUserId() =
         scope.launch {
@@ -75,27 +82,26 @@ class RelaysSocketManager @Inject constructor(
 
     private fun observeRelays(userId: String): Job =
         scope.launch {
-            try {
-                usersDatabase.relays().observeRelays(userId = userId).collect { relays ->
-                    val userRelays = relays.filter { it.kind == RelayKind.UserRelay }.map { it.mapToRelayDO() }
-                    val nwcRelays = relays.filter { it.kind == RelayKind.NwcRelay }.map { it.mapToRelayDO() }
-                    updateRelayPools(regularRelays = userRelays, walletRelays = nwcRelays)
-                }
-            } catch (error: CancellationException) {
-                Napier.w(throwable = error) { "Relay observation cancelled" }
+            usersDatabase.relays().observeRelays(userId = userId).collect { relays ->
+                val userRelays = relays.filter { it.kind == RelayKind.UserRelay }.map { it.mapToRelayDO() }
+                val nwcRelays = relays.filter { it.kind == RelayKind.NwcRelay }.map { it.mapToRelayDO() }
+                updateRelayPools(regularRelays = userRelays, walletRelays = nwcRelays)
             }
         }
 
     private suspend fun updateRelayPools(regularRelays: List<Relay>?, walletRelays: List<Relay>?) {
         relayPoolsMutex.withLock {
-            val userRelaysChanged = userRelaysPool.relays != regularRelays
-            if (userRelaysChanged && !regularRelays.isNullOrEmpty()) {
-                userRelaysPool.changeRelays(relays = regularRelays)
+            val sanitizedUserRelays = regularRelays.orEmpty()
+            val userRelaysChanged = userRelaysPool.relays != sanitizedUserRelays
+            if (userRelaysChanged) {
+                userRelaysPool.changeRelays(relays = sanitizedUserRelays)
+                connectPool(userRelaysPool)
             }
 
-            val nwcRelaysChanged = nwcRelaysPool.relays != walletRelays
-            if (nwcRelaysChanged && !walletRelays.isNullOrEmpty()) {
-                nwcRelaysPool.changeRelays(relays = walletRelays)
+            val sanitizedWalletRelays = walletRelays.orEmpty()
+            val nwcRelaysChanged = nwcRelaysPool.relays != sanitizedWalletRelays
+            if (nwcRelaysChanged) {
+                nwcRelaysPool.changeRelays(relays = sanitizedWalletRelays)
             }
         }
     }
@@ -143,8 +149,11 @@ class RelaysSocketManager @Inject constructor(
     suspend fun tryConnectingToUserRelay(url: String) = userRelaysPool.tryConnectingToRelay(url)
 
     suspend fun queryEvents(filter: JsonObject): RelayPoolQueryResult {
-        val pool = if (userRelaysPool.hasRelays()) userRelaysPool else fallbackRelaysPool
-        return pool.query(filter)
+        val userResult = userRelaysPool
+            .takeIf { it.hasRelays() }
+            ?.query(filter)
+            ?.takeIf { it.events.isNotEmpty() }
+        return userResult ?: fallbackRelaysPool.query(filter)
     }
 
     override suspend fun query(filter: RelayFilter): List<NostrEvent> {

@@ -17,11 +17,13 @@ import net.primal.domain.common.PrimalEvent
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.hasValidIdAndSignature
+import net.primal.domain.nostr.cryptography.hasValidNip01Id
+import net.primal.domain.nostr.cryptography.hasValidSchnorrSignature
 import net.primal.domain.nostr.isNotPrimalEventKind
 import net.primal.domain.nostr.isNotUnknown
 import net.primal.domain.nostr.isPrimalEventKind
 
-private const val MAX_INCOMING_MESSAGE_CHARS = 256 * 1024
+private const val MAX_INCOMING_MESSAGE_CHARS = 1024 * 1024
 
 fun String.parseIncomingMessage(): NostrIncomingMessage? {
     if (length > MAX_INCOMING_MESSAGE_CHARS) {
@@ -86,7 +88,7 @@ private fun JsonArray.takeAsEventIncomingMessage(): NostrIncomingMessage? {
     if (subscriptionId == null || kind == null) return null
 
     val nostrEvent = if (kind.isNotUnknown() && kind.isNotPrimalEventKind()) {
-        event.asNostrEventOrNull()?.takeIf { it.hasValidIdAndSignature() }
+        event.asVerifiedNostrEventOrNull()
     } else {
         null
     }
@@ -117,7 +119,7 @@ private fun JsonArray.takeAsEventsIncomingMessage(): NostrIncomingMessage? {
         val kind = jsonEvent.getMessageNostrEventKind()
         when {
             kind.isNotUnknown() && kind.isNotPrimalEventKind() -> {
-                val nostrEvent = jsonEvent.asNostrEventOrNull()?.takeIf { it.hasValidIdAndSignature() }
+                val nostrEvent = jsonEvent.asVerifiedNostrEventOrNull()
                 if (nostrEvent != null) {
                     nostrEvents.add(nostrEvent)
                 }
@@ -139,6 +141,12 @@ private fun JsonArray.takeAsEventsIncomingMessage(): NostrIncomingMessage? {
         nostrEvents = nostrEvents,
         primalEvents = primalEvents,
     )
+}
+
+private fun JsonObject.asVerifiedNostrEventOrNull(): NostrEvent? {
+    val event = asNostrEventOrNull() ?: return null
+    if (hasValidNip01Id() && event.hasValidSchnorrSignature()) return event
+    return event.takeIf { it.hasValidIdAndSignature() }
 }
 
 private fun JsonObject.getMessageNostrEventKind(): NostrEventKind {

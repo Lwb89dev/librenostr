@@ -251,6 +251,10 @@ class NostrNotary @Inject constructor(
             NostrEventKind.RelayListMetadata.value,
             NostrEventKind.BookmarksList.value,
             NostrEventKind.BlossomServerList.value,
+            // Blossom BUD-01 uploads use a signed kind 24242 authorization
+            // event. External signers (Amber) must be allowed to approve it
+            // just like the other user-initiated Nostr events.
+            NostrEventKind.BlossomUploadBlob.value,
             NostrEventKind.ClientAuthentication.value,
             NostrEventKind.CategorizedPeopleList.value,
             NostrEventKind.LongFormContent.value,

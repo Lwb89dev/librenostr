@@ -15,9 +15,7 @@ import net.primal.android.user.repository.RelayRepository
 import net.primal.android.user.repository.UserRepository
 import net.primal.core.testing.CoroutinesTestRule
 import net.primal.core.testing.FakeDataStore
-import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.common.exception.NetworkException
-import net.primal.domain.mutes.MutedItemRepository
 import org.junit.Rule
 import org.junit.Test
 
@@ -36,16 +34,12 @@ class LoginHandlerTest {
     private fun createLoginHandler(
         authRepository: AuthRepository = mockk(relaxed = true),
         userRepository: UserRepository = mockk(relaxed = true),
-        mutedItemRepository: MutedItemRepository = mockk(relaxed = true),
-        bookmarksRepository: PublicBookmarksRepository = mockk(relaxed = true),
         credentialsStore: CredentialsStore = mockk(relaxed = true),
         relayRepository: RelayRepository = mockk(relaxed = true),
     ): LoginHandler =
         LoginHandler(
             authRepository = authRepository,
             userRepository = userRepository,
-            mutedItemRepository = mutedItemRepository,
-            bookmarksRepository = bookmarksRepository,
             dispatchers = coroutinesTestRule.dispatcherProvider,
             credentialsStore = credentialsStore,
             relayRepository = relayRepository,
@@ -69,7 +63,7 @@ class LoginHandlerTest {
         }
 
     @Test
-    fun login_callsFetchAndUpdateUserAccount() =
+    fun login_createsLocalAccountWithoutWaitingForProfileHydration() =
         runTest {
             val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
                 coEvery { saveNsec(any()) } returns expectedUserId
@@ -85,9 +79,8 @@ class LoginHandlerTest {
                 authorizationEvent = null,
             )
 
-            coVerify {
-                userRepository.fetchAndUpdateUserAccount(expectedUserId)
-            }
+            coVerify(exactly = 1) { userRepository.ensureLocalUserAccount(expectedUserId) }
+            coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
         }
 
     @Test
@@ -106,28 +99,6 @@ class LoginHandlerTest {
             advanceUntilIdle()
 
             coVerify(exactly = 1) { credentialsStore.saveNsec(nsec) }
-        }
-
-    @Test
-    fun login_callsFetchAndPersistMuteList() =
-        runTest {
-            val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
-                coEvery { saveNsec(any()) } returns expectedUserId
-            }
-            val mutedItemRepository = mockk<MutedItemRepository>(relaxed = true)
-            val loginHandler = createLoginHandler(
-                mutedItemRepository = mutedItemRepository,
-                credentialsStore = credentialsStore,
-            )
-            loginHandler.login(
-                nostrKey = nsec,
-                credentialType = CredentialType.PrivateKey,
-                authorizationEvent = null,
-            )
-
-            coVerify {
-                mutedItemRepository.fetchAndPersistMuteList(expectedUserId)
-            }
         }
 
     @Test
@@ -172,7 +143,7 @@ class LoginHandlerTest {
             )
 
             val userRepository = mockk<UserRepository>(relaxed = true) {
-                coEvery { fetchAndUpdateUserAccount(any()) } throws NetworkException()
+                coEvery { ensureLocalUserAccount(any()) } throws NetworkException()
             }
             val loginHandler = createLoginHandler(
                 authRepository = authRepository,
@@ -234,6 +205,7 @@ class LoginHandlerTest {
 
             coVerify(exactly = 1) { authRepository.loginWithExternalSignerNpub(npub = hexPubkey) }
             coVerify(exactly = 1) { relayRepository.ensureLocalBootstrapRelays(expectedUserId) }
+            coVerify(exactly = 1) { userRepository.ensureLocalUserAccount(expectedUserId) }
             coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
         }
 }

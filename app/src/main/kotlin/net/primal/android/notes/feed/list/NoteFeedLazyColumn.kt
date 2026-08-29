@@ -200,6 +200,7 @@ fun NoteFeedLazyColumn(
                             ListNoContent(
                                 modifier = Modifier.fillParentMaxSize(),
                                 noContentText = noContentText,
+                                refreshButtonVisible = false,
                                 onRefresh = { pagingItems.refresh() },
                                 verticalArrangement = noContentVerticalArrangement,
                                 contentPadding = noContentPaddingValues,

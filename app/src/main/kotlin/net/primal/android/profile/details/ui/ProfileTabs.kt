@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import net.primal.android.R
@@ -23,6 +25,7 @@ import net.primal.android.profile.details.NOTES_TAB_INDEX
 import net.primal.android.profile.details.READS_TAB_INDEX
 import net.primal.android.profile.details.REPLIES_TAB_INDEX
 import net.primal.android.theme.AppTheme
+import net.primal.android.core.compose.icons.LibreNavigationIcons
 
 internal const val PROFILE_TAB_COUNT = 4
 
@@ -57,7 +60,8 @@ fun ProfileTabs(
             modifier = Modifier.fillMaxWidth(),
             selected = selectedTabIndex == NOTES_TAB_INDEX,
             onClick = onNotesCountClick,
-            text = notesCount?.asTabText() ?: placeholderText,
+            text = "",
+            icon = LibreNavigationIcons.Notes,
             label = stringResource(id = R.string.profile_notes_stat),
         )
 
@@ -65,21 +69,24 @@ fun ProfileTabs(
             modifier = Modifier.fillMaxWidth(),
             selected = selectedTabIndex == REPLIES_TAB_INDEX,
             onClick = onRepliesCountClick,
-            text = repliesCount?.asTabText() ?: placeholderText,
+            text = "",
+            icon = LibreNavigationIcons.Replies,
             label = stringResource(id = R.string.profile_replies_stat),
         )
 
         CustomTab(
             selected = selectedTabIndex == READS_TAB_INDEX,
             onClick = onReadsCountClick,
-            text = readsCount?.asTabText() ?: placeholderText,
+            text = "",
+            icon = LibreNavigationIcons.Reads,
             label = stringResource(id = R.string.profile_reads_stat),
         )
 
         CustomTab(
             selected = selectedTabIndex == MEDIA_TAB_INDEX,
             onClick = onMediaCountClick,
-            text = mediaCount?.asTabText() ?: placeholderText,
+            text = "",
+            icon = LibreNavigationIcons.Media,
             label = stringResource(id = R.string.profile_media_stat),
         )
     }
@@ -101,6 +108,7 @@ private fun CustomTab(
     modifier: Modifier = Modifier,
     text: String,
     label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
     Tab(
         modifier = modifier,
@@ -109,18 +117,14 @@ private fun CustomTab(
         selectedContentColor = Color.Unspecified,
         content = {
             Column(
-                modifier = Modifier.padding(vertical = 12.dp),
+                modifier = Modifier.padding(vertical = 7.dp),
             ) {
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = text,
-                    textAlign = TextAlign.Center,
-                    style = AppTheme.typography.bodyLarge.copy(
-                        fontSize = 26.sp,
-                    ),
-                    color = AppTheme.colorScheme.onPrimary,
+                Icon(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 1.dp).size(20.dp),
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = AppTheme.colorScheme.onPrimary,
                 )
-
                 Text(
                     modifier = Modifier.fillMaxWidth(),
                     text = label,

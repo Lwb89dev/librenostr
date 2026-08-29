@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.getAndUpdate
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.transformWhile
@@ -52,7 +52,7 @@ class RelayPool(
     companion object {
         const val PUBLISH_TIMEOUT = 10_000
         const val SUBSCRIBE_TIMEOUT = 8_000
-        const val FIRST_EOSE_GRACE_MS = 150L
+        const val FIRST_EOSE_GRACE_MS = 400L
         const val MAX_EVENTS_PER_QUERY = 500
         const val MAX_RELAYS = 30
     }
@@ -219,10 +219,12 @@ class RelayPool(
     private fun writeClients(): List<NostrSocketClient> = clientsFor { it.write }
 
     private fun clientsFor(predicate: (Relay) -> Boolean): List<NostrSocketClient> {
-        if (relays.isEmpty()) return socketClients
         val urls = relays.filter(predicate).map { it.url }.toSet()
-        if (urls.isEmpty()) return emptyList()
-        return socketClients.filter { it.socketUrl in urls }
+        return when {
+            relays.isEmpty() -> socketClients
+            urls.isEmpty() -> emptyList()
+            else -> socketClients.filter { it.socketUrl in urls }
+        }
     }
 
     private suspend fun collectUntilEose(
@@ -269,6 +271,7 @@ class RelayPool(
         )
     }
 
+    @Suppress("LongParameterList")
     private suspend fun queryOneRelayInto(
         client: NostrSocketClient,
         subscriptionId: String,
@@ -310,6 +313,7 @@ class RelayPool(
         )
     }
 
+    @Suppress("LongParameterList", "TooGenericExceptionCaught")
     private suspend fun queryOneRelay(
         client: NostrSocketClient,
         subscriptionId: String,
@@ -323,8 +327,8 @@ class RelayPool(
             client.ensureSocketConnectionOrThrow()
             withTimeout(timeoutMs) {
                 client.incomingMessages
+                    .onSubscription { client.sendREQ(subscriptionId = subscriptionId, data = filter) }
                     .filterBySubscriptionId(subscriptionId)
-                    .onStart { client.sendREQ(subscriptionId = subscriptionId, data = filter) }
                     .transformWhile { message ->
                         emit(message)
                         message !is NostrIncomingMessage.EoseMessage

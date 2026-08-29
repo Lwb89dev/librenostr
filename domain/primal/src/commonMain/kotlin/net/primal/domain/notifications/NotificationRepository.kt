@@ -14,4 +14,7 @@ interface NotificationRepository {
 
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun markAllNotificationsAsSeen(authorization: NostrEvent)
+
+    /** Marks the local cache as read without contacting any proprietary notification service. */
+    suspend fun markAllNotificationsAsSeenLocally(userId: String)
 }

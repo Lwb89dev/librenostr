@@ -92,12 +92,19 @@ class UserRepository @Inject constructor(
             }
         }
 
+    suspend fun ensureLocalUserAccount(userId: String): UserAccount {
+        if (userId.isBlank()) return UserAccount.EMPTY
+        return accountsStore.getAndUpdateAccount(userId = userId) { this }
+    }
+
     suspend fun fetchAndUpdateUserAccount(userId: String): UserAccount {
-        val userProfile = fetchUserProfileOrNull(userId = userId)
+        if (userId.isBlank()) return UserAccount.EMPTY
+        ensureLocalUserAccount(userId)
+        val userProfile = runCatching { fetchUserProfileOrNull(userId = userId) }.getOrNull()
         val userStats = userProfile?.takeIf {
             it.followersCount != null && it.followingCount != null && it.notesCount != null
         }
-        val followList = fetchUserFollowListOrNull(userId = userId)
+        val followList = runCatching { fetchUserFollowListOrNull(userId = userId) }.getOrNull()
 
         return accountsStore.getAndUpdateAccount(userId = userId) {
             copyIfNotNull(

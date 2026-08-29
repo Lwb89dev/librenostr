@@ -1,6 +1,7 @@
 package net.primal.android.explore.asearch
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -111,7 +112,14 @@ private fun AdvancedSearchScreen(
         bottomBar = {
             if (!state.loading) {
                 Box(
-                    modifier = Modifier.background(AppTheme.colorScheme.background),
+                    modifier = Modifier.background(
+                        Brush.verticalGradient(
+                            listOf(
+                                AppTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                AppTheme.colorScheme.background,
+                            ),
+                        ),
+                    ),
                 ) {
                     PrimalLoadingButton(
                         modifier = Modifier
@@ -152,10 +160,12 @@ private fun AdvancedSearchContent(
 ) {
     Column(
         modifier = Modifier
-            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .background(AppTheme.colorScheme.background)
+            .padding(horizontal = 8.dp, vertical = 12.dp)
             .verticalScroll(rememberScrollState())
             .padding(paddingValues),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         IncludedWordsTextField(
             includedWords = state.includedWords,

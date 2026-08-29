@@ -23,3 +23,27 @@ fun defaultLibreNostrNoteFeeds(userId: String): List<PrimalFeed> =
             position = 1,
         ),
     )
+
+fun mergeDefaultNoteFeeds(userId: String, existing: List<PrimalFeed>): List<PrimalFeed> {
+    val defaults = defaultLibreNostrNoteFeeds(userId)
+    if (existing.isEmpty()) return defaults
+    val bySpec = existing.associateBy { it.spec }
+    val defaultSpecs = defaults.map { it.spec }.toSet()
+    val orderedDefaults = defaults.mapIndexed { index, default ->
+        bySpec[default.spec]?.copy(
+            title = default.title,
+            description = default.description,
+            position = index,
+        ) ?: default
+    }
+    val rest = existing.filter { it.spec !in defaultSpecs }
+        .mapIndexed { index, feed -> feed.copy(position = defaults.size + index) }
+    return orderedDefaults + rest
+}
+
+fun defaultNoteFeedsNeedSync(existing: List<PrimalFeed>, merged: List<PrimalFeed>): Boolean {
+    if (existing.size != merged.size) return true
+    return existing.zip(merged).any { (current, next) ->
+        current.spec != next.spec || current.position != next.position
+    }
+}
