@@ -20,8 +20,8 @@ import net.primal.android.theme.AppTheme
 private const val TOS_ANNOTATION_TAG = "TosAnnotationTag"
 private const val PRIVACY_ANNOTATION_TAG = "PrivacyAnnotationTag"
 
-private const val PRIMAL_TOS_URL = "https://primal.net/terms"
-private const val PRIMAL_PRIVACY_POLICY_URL = "https://primal.net/privacy"
+private const val PRIMAL_TOS_URL = "https://nostrich.org/terms"
+private const val PRIMAL_PRIVACY_POLICY_URL = "https://nostrich.org/privacy"
 
 @Composable
 fun ToSAndPrivacyPolicyText(

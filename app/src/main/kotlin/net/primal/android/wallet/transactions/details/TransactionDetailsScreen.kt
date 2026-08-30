@@ -812,7 +812,7 @@ class TransactionParameterProvider : PreviewParameterProvider<TransactionDetailD
                 txId = "123",
                 txType = TxType.DEPOSIT,
                 txAmountInSats = 9999.toULong(),
-                txNote = "Bought sats from Primal",
+                txNote = "Bought sats from LibreNostr",
                 txInstant = Instant.now(),
                 otherUserId = "storeId",
                 otherUserAvatarCdnImage = null,

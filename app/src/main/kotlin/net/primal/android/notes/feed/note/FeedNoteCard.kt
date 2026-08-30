@@ -84,7 +84,6 @@ import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.domain.links.CdnImage
 import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.utils.canZap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -376,13 +375,8 @@ private fun FeedNoteCard(
                                 }
 
                                 FeedPostAction.Zap -> {
-                                    if (zappingState.canZap()) {
-                                        eventPublisher(
-                                            UiEvent.ZapAction(
-                                                postId = data.postId,
-                                                postAuthorId = data.authorId,
-                                            ),
-                                        )
+                                    if (zappingState.walletConnected) {
+                                        dialogsState.showZapOptions = true
                                     } else {
                                         dialogsState.showCantZapWarning = true
                                     }
@@ -409,13 +403,7 @@ private fun FeedNoteCard(
                         repostAnchor = repostAnchor,
                         onPostLongClickAction = { postAction ->
                             when (postAction) {
-                                FeedPostAction.Zap -> {
-                                    if (zappingState.walletConnected) {
-                                        dialogsState.showZapOptions = true
-                                    } else {
-                                        dialogsState.showCantZapWarning = true
-                                    }
-                                }
+                                FeedPostAction.Zap -> Unit
 
                                 else -> Unit
                             }
@@ -727,8 +715,8 @@ class FeedPostUiProvider : PreviewParameterProvider<FeedPostUi> {
                 """.trimIndent(),
                 uris = emptyList(),
                 authorId = "npubSomething",
-                authorName = "primal",
-                authorHandle = "primal",
+                authorName = "librenostr",
+                authorHandle = "librenostr",
                 authorInternetIdentifier = "primal@primal.net",
                 authorAvatarCdnImage = CdnImage(sourceUrl = "https://i.imgur.com/Z8dpmvc.png"),
                 timestamp = Instant.now().minus(30, ChronoUnit.MINUTES),

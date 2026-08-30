@@ -54,7 +54,7 @@ suspend fun systemShareImage(context: Context, bitmap: Bitmap) =
 
 fun resolvePrimalNoteLink(noteId: String) = resolvePrimalNoteLink(nevent = Nevent(eventId = noteId))
 
-fun resolvePrimalNoteLink(nevent: Nevent) = "https://primal.net/e/${nevent.toNeventString()}"
+fun resolvePrimalNoteLink(nevent: Nevent) = "https://nostrich.org/e/${nevent.toNeventString()}"
 
 fun resolvePrimalArticleLink(
     naddr: String,
@@ -62,9 +62,9 @@ fun resolvePrimalArticleLink(
     articleSlug: String? = null,
 ): String {
     return if (!primalName.isNullOrBlank() && !articleSlug.isNullOrBlank()) {
-        "https://primal.net/$primalName/$articleSlug"
+        "https://nostrich.org/$primalName/$articleSlug"
     } else {
-        "https://primal.net/a/$naddr"
+        "https://nostrich.org/a/$naddr"
     }
 }
 
@@ -72,14 +72,14 @@ fun resolvePrimalStreamLink(naddr: Naddr, primalName: String?): String {
     val identifier = naddr.identifier
 
     return if (!primalName.isNullOrBlank()) {
-        "https://primal.net/$primalName/live/$identifier"
+        "https://nostrich.org/$primalName/live/$identifier"
     } else {
         val nprofile = Nprofile(pubkey = naddr.userId).toNprofileString()
-        "https://primal.net/$nprofile/live/$identifier"
+        "https://nostrich.org/$nprofile/live/$identifier"
     }
 }
 
 fun resolvePrimalProfileLink(profileId: String, primalName: String?): String {
     val path = primalName ?: "p/${Nprofile(pubkey = profileId).toNprofileString()}"
-    return "https://primal.net/$path"
+    return "https://nostrich.org/$path"
 }

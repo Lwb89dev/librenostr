@@ -60,7 +60,6 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import java.text.NumberFormat
 import java.time.Instant
-import kotlinx.coroutines.delay
 import net.primal.android.R
 import net.primal.android.core.activity.LocalActiveAccountId
 import net.primal.android.core.activity.LocalContentDisplaySettings
@@ -82,7 +81,6 @@ import net.primal.android.core.compose.icons.primaliconpack.FeedNewRepostsFilled
 import net.primal.android.core.compose.icons.primaliconpack.FeedZapOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewZapFilled
 import net.primal.android.core.compose.zaps.FeedNoteTopZapsSection
-import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.core.errors.UiError
 import net.primal.android.core.ext.openUriSafely
 import net.primal.android.core.utils.TextMatcher
@@ -102,7 +100,6 @@ import net.primal.android.theme.AppTheme
 import net.primal.core.utils.detectUrls
 import net.primal.domain.links.EventUriType
 import net.primal.domain.nostr.ReactionType
-import net.primal.domain.utils.canZap
 
 private val ActionIconSize = 17.sp
 private const val ZapIconSizeMultiplier = 1.2f
@@ -263,13 +260,8 @@ private fun MediaFeedCardBody(
                         noteCallbacks.onNoteReplyClick?.invoke(data.asNeventString())
 
                     FeedPostAction.Zap -> {
-                        if (zappingState.canZap()) {
-                            eventPublisher(
-                                UiEvent.ZapAction(
-                                    postId = data.postId,
-                                    postAuthorId = data.authorId,
-                                ),
-                            )
+                        if (zappingState.walletConnected) {
+                            dialogsState.showZapOptions = true
                         } else {
                             dialogsState.showCantZapWarning = true
                         }
@@ -290,13 +282,7 @@ private fun MediaFeedCardBody(
             },
             onPostLongPressAction = { postAction ->
                 when (postAction) {
-                    FeedPostAction.Zap -> {
-                        if (zappingState.walletConnected) {
-                            dialogsState.showZapOptions = true
-                        } else {
-                            dialogsState.showCantZapWarning = true
-                        }
-                    }
+                    FeedPostAction.Zap -> Unit
 
                     else -> Unit
                 }
@@ -685,14 +671,6 @@ private fun MediaFeedActionsRow(
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance() }
 
-    var isZapCooldownActive by remember { mutableStateOf(false) }
-    LaunchedEffect(isZapCooldownActive) {
-        if (isZapCooldownActive) {
-            delay(ZAP_ACTION_DELAY)
-            isZapCooldownActive = false
-        }
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -726,12 +704,7 @@ private fun MediaFeedActionsRow(
                 contentDescription = stringResource(R.string.accessibility_zaps_count),
                 iconSize = ActionIconSize.times(ZapIconSizeMultiplier),
                 numberFormat = numberFormat,
-                onPostAction = { action ->
-                    if (!isZapCooldownActive) {
-                        isZapCooldownActive = true
-                        onPostAction(action)
-                    }
-                },
+                onPostAction = onPostAction,
                 onPostLongPressAction = onPostLongPressAction,
             )
             ActionStat(

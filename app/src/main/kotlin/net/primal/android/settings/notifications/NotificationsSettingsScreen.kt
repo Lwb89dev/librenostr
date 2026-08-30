@@ -40,7 +40,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
@@ -74,7 +73,11 @@ import net.primal.domain.notifications.NotificationSettingsSection
 import net.primal.domain.notifications.NotificationSettingsType
 
 @Composable
-fun NotificationsSettingsScreen(viewModel: NotificationsSettingsViewModel, onClose: () -> Unit) {
+fun NotificationsSettingsScreen(
+    viewModel: NotificationsSettingsViewModel,
+    onClose: () -> Unit,
+    embedded: Boolean = false,
+) {
     val state = viewModel.state.collectAsState()
 
     LaunchedErrorHandler(viewModel = viewModel)
@@ -82,6 +85,7 @@ fun NotificationsSettingsScreen(viewModel: NotificationsSettingsViewModel, onClo
     NotificationsSettingsScreen(
         state = state.value,
         onClose = onClose,
+        embedded = embedded,
         eventPublisher = { viewModel.setEvent(it) },
     )
 }
@@ -91,17 +95,22 @@ fun NotificationsSettingsScreen(viewModel: NotificationsSettingsViewModel, onClo
 fun NotificationsSettingsScreen(
     state: NotificationsSettingsContract.UiState,
     onClose: () -> Unit,
+    embedded: Boolean = false,
     eventPublisher: (NotificationsSettingsContract.UiEvent) -> Unit,
 ) {
     PrimalScaffold(
         containerColor = AppTheme.colorScheme.surfaceVariant,
-        topBar = {
+        topBar = if (embedded) {
+            null
+        } else {
+            {
             PrimalTopAppBar(
                 title = stringResource(id = R.string.settings_notifications_title),
                 navigationIcon = PrimalIcons.ArrowBack,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
                 onNavigationIconClick = onClose,
             )
+            }
         },
         content = { paddingValues ->
             SignatureErrorColumn(
@@ -150,24 +159,6 @@ private fun NotificationsColumn(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
-        }
-
-        item {
-            NotificationsSettingsBlock(
-                section = NotificationSettingsSection.NOTIFICATIONS_IN_TAB,
-                notifications = state.tabNotificationsSettings,
-                eventPublisher = eventPublisher,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        item {
-            NotificationsSettingsBlock(
-                section = NotificationSettingsSection.PREFERENCES,
-                notifications = state.preferencesSettings,
-                eventPublisher = eventPublisher,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
         }
 
         item {
@@ -324,16 +315,18 @@ private fun PushNotificationSection(
                 icon = PrimalIcons.Notifications,
                 onCheckedChange = { newEnabled ->
                     if (newEnabled) {
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                            notificationsPermission?.status?.isGranted == true
-                        ) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            if (notificationsPermission?.status?.isGranted == true) {
+                                onChange(true)
+                            } else {
+                                // Request POST_NOTIFICATIONS from Android the first time the
+                                // user enables push notifications.
+                                notificationsPermission?.launchPermissionRequest()
+                            }
+                        } else if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
                             onChange(true)
                         } else {
-                            if (notificationsPermission?.status?.shouldShowRationale == true) {
-                                notificationsPermission.launchPermissionRequest()
-                            } else {
-                                systemSettingsLauncher.launch(context.getNotificationSettingsIntent())
-                            }
+                            systemSettingsLauncher.launch(context.getNotificationSettingsIntent())
                         }
                     } else {
                         onChange(false)
@@ -342,13 +335,6 @@ private fun PushNotificationSection(
             )
         }
 
-        Text(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp),
-            text = stringResource(R.string.settings_notifications_enable_push_notifications_description),
-            style = AppTheme.typography.bodySmall,
-        )
     }
 }
 

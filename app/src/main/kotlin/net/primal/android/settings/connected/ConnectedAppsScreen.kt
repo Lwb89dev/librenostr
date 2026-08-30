@@ -288,8 +288,8 @@ fun PreviewConnectedAppsScreen() {
                         AppConnectionUi(
                             connectionId = "1",
                             appId = "1",
-                            appName = "Primal web app",
-                            appIconUrl = "https://primal.net/assets/favicon-51789dff.ico",
+                            appName = "LibreNostr web app",
+                            appIconUrl = "https://nostrich.org/assets/favicon.ico",
                             userAvatarCdnImage = CdnImage("https://i.imgur.com/Z8dpmvc.png"),
                             userLegendaryCustomization = null,
                         ),
@@ -306,7 +306,7 @@ fun PreviewConnectedAppsScreen() {
                         AppConnectionUi(
                             connectionId = "3",
                             appId = "net.primal.android",
-                            appName = "Primal",
+                            appName = "LibreNostr",
                             appIconUrl = null,
                             userAvatarCdnImage = CdnImage("https://i.imgur.com/Z8dpmvc.png"),
                             userLegendaryCustomization = null,

@@ -55,12 +55,17 @@ import net.primal.android.core.compose.settings.DecoratedSettingsOutlinedTextFie
 import net.primal.android.theme.AppTheme
 
 @Composable
-fun NetworkSettingsScreen(viewModel: NetworkSettingsViewModel, onClose: () -> Unit) {
+fun NetworkSettingsScreen(
+    viewModel: NetworkSettingsViewModel,
+    onClose: () -> Unit,
+    embedded: Boolean = false,
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     NetworkSettingsScreen(
         state = uiState,
         onClose = onClose,
+        embedded = embedded,
         eventsPublisher = { viewModel.setEvent(it) },
     )
 }
@@ -70,6 +75,7 @@ fun NetworkSettingsScreen(viewModel: NetworkSettingsViewModel, onClose: () -> Un
 fun NetworkSettingsScreen(
     state: NetworkSettingsContract.UiState,
     onClose: () -> Unit,
+    embedded: Boolean = false,
     eventsPublisher: (NetworkSettingsContract.UiEvent) -> Unit,
 ) {
     val context = LocalContext.current
@@ -88,13 +94,17 @@ fun NetworkSettingsScreen(
 
     PrimalScaffold(
         modifier = Modifier,
-        topBar = {
+        topBar = if (embedded) {
+            null
+        } else {
+            {
             PrimalTopAppBar(
                 title = stringResource(id = R.string.settings_network_title),
                 navigationIcon = PrimalIcons.ArrowBack,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
                 onNavigationIconClick = onClose,
             )
+            }
         },
         content = { paddingValues ->
             NetworkLazyColumn(

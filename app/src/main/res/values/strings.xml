@@ -38,7 +38,7 @@
     <string name="app_error_unable_to_update_follow_list">Unable to update follow list. Please try again.</string>
     <string name="app_error_unable_to_set_nostr_address">Unable to set nostr address. Please try again.</string>
     <string name="app_error_unable_to_set_lightning_address">Unable to set lightning address. Please try again.</string>
-    <string name="app_npub_login_error">Primal is in read only mode because you are signed in via your public key. To enable all options, please sign in with your private key.</string>
+    <string name="app_npub_login_error">LibreNostr is in read only mode because you are signed in via your public key. To enable all options, please sign in with your private key.</string>
     <string name="app_error_restore_default_blossom_server">Unable to restore default blossom server. Please try again.</string>
     <string name="app_error_unable_to_update_blossom_server_list">Unable to update blossom server list. Please try again.</string>
     <string name="app_error_fetching_mute_list">Failed to load your mute list. Please check your connection and try again.</string>
@@ -101,7 +101,7 @@
     <string name="scan_code_apply_button">Apply</string>
     <string name="scan_code_error_invalid_login_string">Invalid remote login string. Please try again.</string>
     <string name="scan_code_redeem_button">Redeem code</string>
-    <string name="scan_code_onboard_button">Onboard to Primal</string>
+    <string name="scan_code_onboard_button">Onboard to LibreNostr</string>
     <string name="scan_code_activate_wallet_button">Activate Wallet</string>
     <string name="scan_code_use_keyboard_button">Use Keyboard instead</string>
     <string name="scan_code_enter_placeholder">Enter code…</string>
@@ -110,18 +110,18 @@
     <string name="scan_code_loaded_with">This code is loaded with:</string>
     <string name="scan_code_get_zapping">Get Zapping!</string>
     <string name="scan_code_sats">sats</string>
-    <string name="scan_code_primal_premium">Primal Premium</string>
+    <string name="scan_code_primal_premium">LibreNostr Premium</string>
     <plurals name="scan_code_premium_months">
         <item quantity="one">%1$s month</item>
         <item quantity="other">%1$s months</item>
     </plurals>
-    <string name="scan_code_to_redeem_notice">To redeem your code, onboard to Primal by\ncreating your Nostr account and activating\nyour Primal Wallet.</string>
-    <string name="scan_code_no_wallet_notice">To redeem your code,\nactivate your Primal Wallet.</string>
+    <string name="scan_code_to_redeem_notice">To redeem your code, onboard to LibreNostr by\ncreating your Nostr account and activating\nyour wallet.</string>
+    <string name="scan_code_no_wallet_notice">To redeem your code,\nactivate your wallet.</string>
     <string name="scan_code_scan_anything_title">Scan Anything:</string>
-    <string name="scan_code_scan_anything_subtitle">Invite code, payment invoice, login string, user link, content link, primal gift card</string>
+    <string name="scan_code_scan_anything_subtitle">Invite code, payment invoice, login string, user link, content link, gift card</string>
     <string name="scan_code_remote_login_camera_title">Login to Any Nostr App</string>
-    <string name="scan_code_remote_login_camera_subtitle">Use your Primal account to login to any\nNostr app that supports remote sign in.</string>
-    <string name="scan_code_remote_login_manual_entry_subtitle">Use your Primal account to login to any Nostr app that supports remote sign in. Paste the connection string below:</string>
+    <string name="scan_code_remote_login_camera_subtitle">Use your LibreNostr account to login to any\nNostr app that supports remote sign in.</string>
+    <string name="scan_code_remote_login_manual_entry_subtitle">Use your LibreNostr account to login to any Nostr app that supports remote sign in. Paste the connection string below:</string>
 
     <string name="logout_title">Sign out</string>
     <string name="logout_description">If you didn\'t save your private key, it will be irretrievably lost. Do you really want to sign out?</string>
@@ -132,6 +132,7 @@
     <string name="primary_destination_reads_label">Reads</string>
     <string name="primary_destination_wallet_label">Wallet</string>
     <string name="primary_destination_notifications_label">Notifications</string>
+    <string name="pull_down_to_update">Update feed</string>
     <string name="primary_destination_explore_label">Algorithm</string>
     <string name="algorithm_title">Your algorithms</string>
     <string name="algorithm_subtitle">You get to decide what you want to see</string>
@@ -158,14 +159,14 @@
     <string name="account_switcher_create_new_account">Create a new account</string>
     <string name="account_switcher_add_existing_account">Add an existing account</string>
 
-    <string name="subscription_primal_title_primary">Primal</string>
+    <string name="subscription_primal_title_primary">LibreNostr</string>
     <string name="subscription_primal_title_secondary">Premium and Pro</string>
-    <string name="subscription_primal_subtitle">Upgrade your Primal experience today.</string>
+    <string name="subscription_primal_subtitle">Upgrade your LibreNostr experience today.</string>
     <string name="subscription_primal_premium_title">Premium</string>
     <string name="subscription_primal_buy_premium">Buy Premium</string>
     <string name="subscription_primal_premium_perk_verified_nostr_address">Verified Nostr Address</string>
     <string name="subscription_primal_premium_perk_custom_lightning_address">Custom Lightning Address</string>
-    <string name="subscription_primal_premium_perk_vip_profile">VIP profile on primal.net</string>
+    <string name="subscription_primal_premium_perk_vip_profile">VIP profile on nostrich.org</string>
     <string name="subscription_primal_premium_perk_advanced_nostr_search">Advanced Nostr search</string>
     <string name="subscription_primal_premium_perk_paid_relay">Premium paid relay</string>
     <string name="subscription_primal_premium_perk_10gb_media_storage">10GB media storage</string>
@@ -173,12 +174,12 @@
     <string name="subscription_primal_pro_title">Pro</string>
     <string name="subscription_primal_buy_pro">Buy Pro</string>
     <string name="subscription_primal_pro_perk_everything_in_premium">Everything in Premium, and</string>
-    <string name="subscription_primal_pro_perk_studio">Primal Studio</string>
-    <string name="subscription_primal_pro_perk_legend_status">Legend Status on Primal</string>
+    <string name="subscription_primal_pro_perk_studio">LibreNostr Studio</string>
+    <string name="subscription_primal_pro_perk_legend_status">Legend Status on LibreNostr</string>
     <string name="subscription_primal_pro_perk_100gb_storage">100GB media storage</string>
     <string name="subscription_primal_pro_perk_10gb_max_file">10GB max file size</string>
-    <string name="subscription_learn_about_premium">Learn about Primal Premium</string>
-    <string name="subscription_learn_about_pro">Learn about Primal Pro</string>
+    <string name="subscription_learn_about_premium">Learn about LibreNostr Premium</string>
+    <string name="subscription_learn_about_pro">Learn about LibreNostr Pro</string>
     <string name="subscription_price_per_month"> /month</string>
     <string name="subscription_billed_annually">%1$s billed annually</string>
     <string name="subscription_save_percent">Save %1$d%%</string>
@@ -187,13 +188,13 @@
     <string name="subscription_and">and</string>
     <string name="subscription_pp">Privacy Policy</string>
 
-    <string name="premium_primal_og_title">Primal OG</string>
-    <string name="premium_primal_og_description">The Primal OG tier was created to recognize those users who signed up to Primal Premium in the first year.</string>
-    <string name="premium_subscribe_to_get">Subscribe to Primal Premium to get:</string>
-    <string name="premium_primal_name">Primal Name</string>
+    <string name="premium_primal_og_title">LibreNostr OG</string>
+    <string name="premium_primal_og_description">The LibreNostr OG tier was created to recognize those users who signed up to LibreNostr Premium in the first year.</string>
+    <string name="premium_subscribe_to_get">Subscribe to LibreNostr Premium to get:</string>
+    <string name="premium_primal_name">LibreNostr Name</string>
     <string name="premium_primal_name_benefit_one">Verified nostr address</string>
     <string name="premium_primal_name_benefit_two">Bitcoin lightning address</string>
-    <string name="premium_primal_name_benefit_three">VIP profile on primal.net</string>
+    <string name="premium_primal_name_benefit_three">VIP profile on nostrich.org</string>
     <string name="premium_nostr_tools">Nostr Tools</string>
     <string name="premium_nostr_tools_benefit_one">Media hosting</string>
     <string name="premium_nostr_tools_benefit_two">Advanced search</string>
@@ -204,14 +205,14 @@
     <string name="premium_period_annually">annually</string>
     <string name="premium_price_or">or</string>
     <string name="premium_start_by_reserving_primal_name">
-        Start by reserving your Primal Name:
+        Start by reserving your LibreNostr Name:
     </string>
-    <string name="premium_find_primal_name_button">Find Primal Name</string>
+    <string name="premium_find_primal_name_button">Find LibreNostr Name</string>
     <string name="premium_cancel_button">Cancel</string>
     <string name="premium_google_play_not_available">Unable to connect to the Google Play Store. Check your Google account and try again.</string>
-    <string name="premium_google_play_not_available_aosp">Google Play services are not available. You can use the Primal web app to buy Primal Premium.</string>
+    <string name="premium_google_play_not_available_aosp">Google Play services are not available. You can use the LibreNostr web app to buy LibreNostr Premium.</string>
 
-    <string name="premium_primal_name_title">Find Primal Name</string>
+    <string name="premium_primal_name_title">Find LibreNostr Name</string>
     <string name="premium_primal_name_search_button">Search</string>
     <string name="premium_primal_name_unavailable_message">Sorry, that name is currently unavailable</string>
     <string name="premium_primal_name_nostr_address">Nostr address</string>
@@ -219,18 +220,18 @@
     <string name="premium_primal_name_vip_profile">VIP profile</string>
     <string name="premium_primal_name_not_set_value">[not set]</string>
 
-    <string name="premium_buying_home_primal_pro">Primal Pro</string>
+    <string name="premium_buying_home_primal_pro">LibreNostr Pro</string>
     <string name="premium_buying_home_primal_pro_description">Upgrade to the highest level of visibility,\n features and recognition across the network,\n and get access to professional tools.</string>
 
     <string name="premium_purchase_title">Congrats!</string>
-    <string name="premium_purchase_primal_name_available">Your Primal Name is available!</string>
+    <string name="premium_purchase_primal_name_available">Your LibreNostr Name is available!</string>
     <string name="premium_purchase_your_legend_status">Your Legend Status is one click away</string>
     <string name="premium_purchase_learn_more">Learn about Premium</string>
     <string name="premium_purchase_promo_code">Have a promo code?</string>
     <string name="premium_purchase_get_annual_plan">Get Annual Plan</string>
     <string name="premium_purchase_get_monthly_plan">Get Monthly Plan</string>
     <string name="premium_purchase_restore_subscription">Restore Your Subscription</string>
-    <string name="premium_purchase_restore_subscription_explanation">Your Google Play account already has an active Primal subscription, connected to a different Nostr account. You can restore it below:</string>
+    <string name="premium_purchase_restore_subscription_explanation">Your Google Play account already has an active LibreNostr subscription, connected to a different Nostr account. You can restore it below:</string>
     <string name="premium_purchase_tos_notice">By proceeding you acknowledge that\nyou agree to our </string>
     <string name="premium_purchase_tos">Terms of Service</string>
 
@@ -250,12 +251,12 @@
 
     <string name="premium_home_member_premium_title">Premium</string>
     <string name="premium_home_member_pro_title">Pro</string>
-    <string name="premium_home_member_early_primal_user">Hey there! You are an early Primal user who interacted with our team, so we gave you 6 months of Primal Premium for free. ♥\uFE0F\uD83E\uDEC2</string>
+    <string name="premium_home_member_early_primal_user">Hey there! You are an early LibreNostr user who interacted with our team, so we gave you 6 months of LibreNostr Premium for free. ♥\uFE0F\uD83E\uDEC2</string>
     <string name="premium_home_premium_button">Manage Premium</string>
     <string name="premium_home_pro_button">Manage Pro</string>
     <string name="premium_home_renew_subscription">Renew Subscription</string>
     <string name="premium_home_extend_subscription">Extend Subscription</string>
-    <string name="premium_home_enjoying_primal">Are you enjoying Primal?</string>
+    <string name="premium_home_enjoying_primal">Are you enjoying LibreNostr?</string>
     <string name="premium_home_enjoying_primal_if_so">If so, see how you can</string>
     <string name="premium_home_support_us">support us</string>
     <string name="premium_home_table_expires">Expires</string>
@@ -264,23 +265,23 @@
     <string name="premium_home_table_expires_on">Expires on</string>
     <string name="premium_home_table_expired_on">Expired on</string>
     <string name="premium_home_table_apply">apply</string>
-    <string name="premium_home_expired_subscription_notice">Your Primal Premium subscription has expired.\nYou can renew it below:</string>
-    <string name="premium_home_legend_contribution_title">Your contribution to Primal:</string>
+    <string name="premium_home_expired_subscription_notice">Your LibreNostr Premium subscription has expired.\nYou can renew it below:</string>
+    <string name="premium_home_legend_contribution_title">Your contribution to LibreNostr:</string>
     <string name="premium_home_legend_support_appreciation">Thank you for your support! 💜🫂</string>
     <string name="premium_home_legend_contribute_more">Want to contribute more?</string>
-    <string name="premium_home_primal_pro_want_to">Want to get more out of Primal?</string>
+    <string name="premium_home_primal_pro_want_to">Want to get more out of LibreNostr?</string>
     <string name="premium_home_primal_pro_check_out">Check out</string>
-    <string name="premium_home_primal_pro">Primal Pro</string>
+    <string name="premium_home_primal_pro">LibreNostr Pro</string>
 
-    <string name="premium_support_primal_title">Support Primal</string>
+    <string name="premium_support_primal_title">Support LibreNostr</string>
 
-    <string name="premium_become_legend_primal_title">Primal Legend</string>
-    <string name="premium_become_legend_intro_description">The Legend tier was created to recognize users who have made a significant\ncontribution to Primal.</string>
+    <string name="premium_become_legend_primal_title">LibreNostr Legend</string>
+    <string name="premium_become_legend_intro_description">The Legend tier was created to recognize users who have made a significant\ncontribution to LibreNostr.</string>
     <string name="premium_become_legend_intro_subtitle">Donate $1000 or more to gain:</string>
     <string name="premium_become_legend_intro_perk_unlimited_premium_title">Forever Premium</string>
-    <string name="premium_become_legend_intro_perk_unlimited_premium_description">Primal Premium subscription never expires for legends.</string>
+    <string name="premium_become_legend_intro_perk_unlimited_premium_description">LibreNostr Premium subscription never expires for legends.</string>
     <string name="premium_become_legend_intro_perk_more_storage_title">Way More Storage</string>
-    <string name="premium_become_legend_intro_perk_more_storage_description">Get 100GB of Primal Premium media storage.</string>
+    <string name="premium_become_legend_intro_perk_more_storage_description">Get 100GB of LibreNostr Premium media storage.</string>
     <string name="premium_become_legend_intro_perk_custom_profile_title">Legendary Custom Profile</string>
     <string name="premium_become_legend_intro_perk_custom_profile_description">Pick the color of your verified badge and set a custom ring around your avatar.</string>
     <string name="premium_become_legend_intro_gratitude_title">♥️ Our Eternal Gratitude ♥️</string>
@@ -293,19 +294,19 @@
     <string name="premium_become_legend_button_copy_invoice">Copy Invoice</string>
     <string name="premium_become_legend_success_title">Success</string>
     <string name="premium_become_legend_success_headline">Success, payment received!</string>
-    <string name="premium_become_legend_success_supporting_text">You are now a Primal Legend</string>
+    <string name="premium_become_legend_success_supporting_text">You are now a LibreNostr Legend</string>
     <string name="premium_become_legend_success_done_button">Done</string>
     <string name="premium_become_legend_failed_fetching_payment_instructions">Unable to get payment instructions. Please try again.</string>
     <string name="premium_become_legend_retry_button">Retry</string>
 
-    <string name="legend_contribution_intro_stage_title">Contribute to Primal</string>
+    <string name="legend_contribution_intro_stage_title">Contribute to LibreNostr</string>
     <string name="legend_contribution_cancel">Cancel</string>
     <string name="legend_contribution_pay_with_on_chain_bitcoin_button">Pay with on-chain bitcoin</string>
     <string name="legend_contribution_pay_with_bitcoin_lightning">Pay with bitcoin lightning</string>
     <string name="legend_contribution_amount_stage_title">Enter Amount</string>
     <string name="legend_contribution_payment_instructions_on_chain_stage_title">On-chain Payment</string>
     <string name="legend_contribution_payment_instructions_lightning_stage_title">Lightning Payment</string>
-    <string name="legend_contribution_payment_instructions_pay_with_primal_wallet">Pay Now via Primal Wallet</string>
+    <string name="legend_contribution_payment_instructions_pay_with_primal_wallet">Pay Now via LibreNostr Wallet</string>
     <string name="legend_contribution_payment_instructions_copy_invoice">Copy Invoice</string>
     <string name="legend_contribution_payment_instructions_error_on_fetching_mining_fees">Unable to load mining fees. Please try again.</string>
     <string name="legend_contribution_success_stage_title">Success</string>
@@ -315,7 +316,7 @@
 
     <string name="premium_manage_title">Manage Premium</string>
     <string name="premium_manage_nostr_tools">Nostr Tools</string>
-    <string name="premium_manage_primal_account">Primal Account</string>
+    <string name="premium_manage_primal_account">LibreNostr Account</string>
     <string name="premium_manage_have_a_question">Have a question?</string>
     <string name="premium_manage_check_faq">Check out our FAQ</string>
     <string name="premium_manage_media_management">Media Management</string>
@@ -323,7 +324,7 @@
     <string name="premium_manage_contact_list_backup">Contact List Backup</string>
     <string name="premium_manage_content_backup">Content Backup</string>
     <string name="premium_manage_manage_subscription">Manage Subscription</string>
-    <string name="premium_manage_change_primal_name">Change your Primal name</string>
+    <string name="premium_manage_change_primal_name">Change your LibreNostr name</string>
     <string name="premium_manage_extend_subscription">Extend Your Subscription</string>
     <string name="premium_manage_legendary_customization">Legendary Profile Customization</string>
     <string name="premium_manage_become_a_legend">Become a Legend</string>
@@ -352,7 +353,7 @@
     <string name="premium_relay_title">Premium Relay</string>
     <string name="premium_relay_top_app_bar_title">Premium Relay</string>
     <string name="premium_relay_running">Running</string>
-    <string name="premium_relay_description">The Primal Premium relay is a high-performance Nostr relay that only accepts content from Primal Premium users. Posting to this relay improves your visibility on the Nostr network because it guarantees high signal and lack of spam to any Nostr user that reads from it. </string>
+    <string name="premium_relay_description">The LibreNostr Premium relay is a high-performance Nostr relay that only accepts content from LibreNostr Premium users. Posting to this relay improves your visibility on the Nostr network because it guarantees high signal and lack of spam to any Nostr user that reads from it. </string>
     <string name="premium_relay_connect_button">Connect to Premium Relay</string>
     <string name="premium_relay_connected_button">Connected to Premium Relay</string>
 
@@ -371,7 +372,7 @@
 
     <string name="premium_order_history_title">Manage Subscription</string>
     <string name="premium_order_history_header">Order history</string>
-    <string name="premium_order_history_premium_valid_until">Primal Pro valid until:</string>
+    <string name="premium_order_history_premium_valid_until">LibreNostr Pro valid until:</string>
     <string name="premium_order_history_premium_valid_forever">Forever</string>
     <string name="premium_order_history_premium_hint_legend">You Legend</string>
     <string name="premium_order_history_premium_hint_renews_app_store">Renews via App Store</string>
@@ -397,9 +398,9 @@
         <item quantity="other">Premium %1$s months</item>
     </plurals>
 
-    <string name="premium_change_primal_name_title">Change your Primal name</string>
-    <string name="premium_name_changed_title">Primal name changed</string>
-    <string name="premium_name_changed_button">Change Primal Name Now</string>
+    <string name="premium_change_primal_name_title">Change your LibreNostr name</string>
+    <string name="premium_name_changed_title">LibreNostr name changed</string>
+    <string name="premium_name_changed_button">Change LibreNostr Name Now</string>
     <string name="premium_name_change_name_taken_error">Oops! Looks like someone just snatched that name. Please try another one!</string>
 
     <string name="premium_content_backup_title">Content Backup</string>
@@ -415,23 +416,23 @@
 
     <string name="premium_error_play_subscription_purchase_not_found">Unable to cancel the subscription. Please check if you are logged in with your Google Account and try again.</string>
     <string name="premium_error_failed_to_cancel_subscription">Unable to cancel the subscription. Please check your connection and try again.</string>
-    <string name="premium_error_failed_to_process_subscription_purchase">We were unable to process your subscription purchase. Please reach out to Primal Support.</string>
+    <string name="premium_error_failed_to_process_subscription_purchase">We were unable to process your subscription purchase. Please reach out to LibreNostr Support.</string>
 
     <string name="premium_support_primal_description">Be a part of the Nostr revolution and help us continue building for this ecosystem.</string>
     <string name="premium_support_primal_review_call_title">Leave a 5 Star Review</string>
     <string name="premium_support_primal_review_call_description">Play Store reviews really help improve the visibility of Nostr apps at this early stage.</string>
     <string name="premium_support_primal_review_call_button_text">Go to App Listing</string>
     <string name="premium_support_primal_buy_subscription_title">Buy a Subscription</string>
-    <string name="premium_support_primal_buy_subscription_description">Extend your existing subscription to gain peace of mind and help fund Primal.</string>
-    <string name="premium_support_primal_buy_subscription_button_text">Buy Primal Premium</string>
+    <string name="premium_support_primal_buy_subscription_description">Extend your existing subscription to gain peace of mind and help fund LibreNostr.</string>
+    <string name="premium_support_primal_buy_subscription_button_text">Buy LibreNostr Premium</string>
     <string name="premium_support_primal_become_a_legend_title">Become a Legend</string>
     <string name="premium_support_primal_become_a_legend_description">Donate $1.000 or more to gain permanent membership and exclusive perks!</string>
     <string name="premium_support_primal_become_a_legend_button_text">Become a Legend Now</string>
 
     <string name="premium_legend_profile_customization">Legendary Profile</string>
     <string name="premium_legend_profile_customization_card_shoutout">Legend Card Shoutout</string>
-    <string name="premium_legend_profile_customization_notice">Legend cards contain a personalized shoutout from\nPrimal to all our legends.</string>
-    <string name="premium_legend_profile_customization_notice_in_review">Your edits have been sent to primal for review. The\nupdated content should be live soon.</string>
+    <string name="premium_legend_profile_customization_notice">Legend cards contain a personalized shoutout from\nLibreNostr to all our legends.</string>
+    <string name="premium_legend_profile_customization_notice_in_review">Your edits have been sent to librenostr for review. The\nupdated content should be live soon.</string>
     <string name="premium_legend_profile_customization_suggest_edits">suggest edits</string>
     <string name="premium_legend_profile_customization_edits_under_review">Edits under review</string>
     <string name="premium_legend_profile_customization_cancel">Cancel</string>
@@ -442,18 +443,18 @@
     <string name="premium_legend_profile_apply_button">Apply</string>
 
     <string name="premium_card_legend_since">Legend since</string>
-    <string name="premium_card_og_since">Primal OG since</string>
+    <string name="premium_card_og_since">LibreNostr OG since</string>
     <string name="premium_card_button_see_other_legends">See other Legends</string>
-    <string name="premium_card_button_see_other_ogs">See other Primal OGs</string>
+    <string name="premium_card_button_see_other_ogs">See other LibreNostr OGs</string>
     <string name="premium_card_button_become_a_legend">Become a Legend</string>
     <string name="premium_card_dropdown_close">Close</string>
     <string name="premium_card_dropdown_legend_settings">Legend settings</string>
 
     <string name="premium_ogs_leaderboard_title">Premium Users</string>
     <string name="premium_ogs_leaderboard_latest_tab">Latest</string>
-    <string name="premium_ogs_leaderboard_get_primal_premium">Get Primal Premium</string>
+    <string name="premium_ogs_leaderboard_get_primal_premium">Get LibreNostr Premium</string>
     <string name="premium_ogs_leaderboard_since">Since</string>
-    <string name="premium_legend_leaderboard_title">Primal Legends</string>
+    <string name="premium_legend_leaderboard_title">LibreNostr Legends</string>
     <string name="premium_legend_leaderboard_latest_tab">Latest</string>
     <string name="premium_legend_leaderboard_contribution_tab">Contribution</string>
     <string name="premium_legend_leaderboard_about_legends">About Legends</string>
@@ -551,7 +552,7 @@
     <string name="feed_list_dialog_dismiss">Dismiss</string>
     <string name="feed_list_restore_default_feeds">Restore default feeds</string>
     <string name="feed_list_restore_default_feeds_title">Restore default feeds</string>
-    <string name="feed_list_restore_default_feeds_prompt_text">This will replace your feed list with default Primal feeds. Do you wish to continue?</string>
+    <string name="feed_list_restore_default_feeds_prompt_text">This will replace your feed list with the default feeds. Do you wish to continue?</string>
 
     <string name="feed_no_content">Nothing to show - Pull down to refresh</string>
     <string name="feed_error_loading">Unable to load content for this feed. Please try again.</string>
@@ -589,9 +590,9 @@
     <string name="feed_missing_event_alt_description_note">Mentioned note not found.</string>
     <string name="feed_missing_event_alt_description_event">Mentioned event not found.</string>
 
-    <string name="feed_paywall_title">This is a Primal Premium feed.</string>
+    <string name="feed_paywall_title">This is a LibreNostr Premium feed.</string>
     <string name="feed_paywall_description">Buy a Subscription to become a Nostr power user and support our work:</string>
-    <string name="feed_paywall_get_premium_button">Get Primal Premium</string>
+    <string name="feed_paywall_get_premium_button">Get LibreNostr Premium</string>
 
     <string name="post_delete_repost_button_confirmation">Delete Repost</string>
     <string name="post_repost_button_confirmation">Repost</string>
@@ -724,7 +725,7 @@
     <string name="explore_feed_topic_reads_feed_description">All reads tagged with %1$s</string>
     <string name="explore_feed_advanced_search_feed_title">Search results</string>
     <string name="explore_feed_simple_search_feed_title">Search: %1$s</string>
-    <string name="explore_feed_search_feed_description">Primal search results</string>
+    <string name="explore_feed_search_feed_description">LibreNostr search results</string>
     <string name="explore_feed_user_feed_title">User: %1$s</string>
     <string name="explore_feed_user_feed_description">Latest by user follows</string>
     <string name="explore_feed_user_notes_feed_description">Latest notes by user follows</string>
@@ -950,7 +951,7 @@
     <string name="settings_wallet_nwc_profile_lightning_address_hint">You can change your Nostr Lightning Address (for receiving zaps) in your</string>
     <string name="settings_wallet_nwc_profile_lightning_address_hint_suffix">profile settings</string>
     <string name="settings_wallet_max_wallet_balance">Max wallet balance</string>
-    <string name="settings_wallet_max_wallet_balance_hint">Primal Wallet is a transactional wallet, designed for handling small amounts. We recommend self-custody for larger amounts.</string>
+    <string name="settings_wallet_max_wallet_balance_hint">LibreNostr Wallet is a transactional wallet, designed for handling small amounts. We recommend self-custody for larger amounts.</string>
     <string name="settings_wallet_hide_transactions_below">Hide transactions below</string>
     <string name="settings_wallet_nwc_connections_header_app">App</string>
     <string name="settings_wallet_nwc_connections_header_daily_budget">Daily Budget</string>
@@ -968,7 +969,7 @@
     <string name="settings_wallet_hide_transactions_below_edit_title">Edit amount</string>
     <string name="settings_wallet_ln_address">Nostr lightning address</string>
     <string name="settings_wallet_start_in_wallet">Start in wallet</string>
-    <string name="settings_wallet_start_in_wallet_hint">Open the wallet when Primal starts</string>
+    <string name="settings_wallet_start_in_wallet_hint">Open the wallet when LibreNostr starts</string>
     <string name="settings_wallet_save">Save</string>
     <string name="settings_wallet_backup_wallet_title">Backup wallet</string>
     <string name="settings_wallet_backup_wallet_subtitle">Write down your wallet recovery phrase so you don\'t lose access to your funds</string>
@@ -980,7 +981,7 @@
     <string name="settings_wallet_export_nwc_logs_subtitle">Download logs history for all NWC connections in CSV format</string>
     <string name="settings_wallet_new_nwc_connection_title">New Wallet Connection</string>
     <string name="settings_wallet_new_nwc_connection_app_name_input_header">Name of the app you wish to connect:</string>
-    <string name="settings_wallet_new_nwc_connection_hint">You can revoke access at any time in your Primal Wallet settings.</string>
+    <string name="settings_wallet_new_nwc_connection_hint">You can revoke access at any time in your LibreNostr Wallet settings.</string>
     <string name="settings_wallet_new_nwc_connection_create_new_connection_button">Create Wallet Connection</string>
     <string name="settings_wallet_new_nwc_connection_cancel_button">Cancel</string>
     <string name="settings_wallet_new_nwc_connection_bottom_sheet_pick_daily_budget_title">Pick maximum daily budget</string>
@@ -989,8 +990,8 @@
     <string name="settings_wallet_new_nwc_connection_copy_nwc_string_button">Copy NWC String</string>
     <string name="settings_wallet_new_nwc_connection_done_button">Done</string>
     <string name="settings_wallet_new_nwc_connection_connection_created_text">Connection created</string>
-    <string name="settings_wallet_link_primal_wallet_title">Link Primal Wallet</string>
-    <string name="settings_wallet_link_external_app_request">An external app “%1$s” is requesting access to your Primal Wallet. If you wish to allow this, click “Give Wallet Access” below.</string>
+    <string name="settings_wallet_link_primal_wallet_title">Link LibreNostr Wallet</string>
+    <string name="settings_wallet_link_external_app_request">An external app “%1$s” is requesting access to your LibreNostr Wallet. If you wish to allow this, click “Give Wallet Access” below.</string>
     <string name="settings_wallet_link_give_wallet_access_button">Give Wallet Access</string>
 
     <string name="settings_wallet_nwc_qr_code_scan_title">Connect NWC Wallet</string>
@@ -1007,7 +1008,7 @@
     <string name="nwc_notification_service_active">NWC Wallet Service active</string>
     <string name="nwc_notification_enable_switch_label">Enable Notifications</string>
     <string name="nwc_notification_enable_button">Let\'s Go</string>
-    <string name="nwc_notification_keep_running_description">To keep running reliably while Primal is in the background or when your phone is locked, you need to enable wallet service notifications.</string>
+    <string name="nwc_notification_keep_running_description">To keep running reliably while LibreNostr is in the background or when your phone is locked, you need to enable wallet service notifications.</string>
 
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_error_update_settings">Unable to update notification settings.</string>
@@ -1029,8 +1030,8 @@
     <string name="settings_notifications_group_preferences_DMS_from_follows">Only show DM notifications from users I follow</string>
     <string name="settings_notifications_group_preferences_reactions_from_follows">Only show reactions from users I follow</string>
     <string name="settings_notifications_enable_push_notifications">Enable Push Notifications</string>
-    <string name="settings_notifications_enable_push_notifications_description">Get system notifications from Primal. You can also configure this in your system settings.</string>
-    <string name="settings_notifications_channel_name_all_app_events">Primal app notifications</string>
+    <string name="settings_notifications_enable_push_notifications_description">Get system notifications from LibreNostr. You can also configure this in your system settings.</string>
+    <string name="settings_notifications_channel_name_all_app_events">LibreNostr app notifications</string>
 
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_theme_section_title">Theme</string>
@@ -1276,8 +1277,8 @@
     <string name="profile_editor_input_header_bitcoin_lightning_address">Bitcoin lightning address</string>
     <string name="profile_editor_input_header_nip_05">Verified Nostr address (NIP 05)</string>
     <string name="profile_editor_required_field_hint">required</string>
-    <string name="profile_editor_premium_dialog_title">Primal Premium</string>
-    <string name="profile_editor_premium_dialog_description">You need a Primal Premium account to get a custom Nostr Verified Address on Primal.</string>
+    <string name="profile_editor_premium_dialog_title">LibreNostr Premium</string>
+    <string name="profile_editor_premium_dialog_description">You need a LibreNostr Premium account to get a custom Nostr Verified Address on LibreNostr.</string>
     <string name="profile_editor_premium_dialog_dismiss_text">Cancel</string>
     <string name="profile_editor_premium_dialog_confirm_text">Okay</string>
 
@@ -1324,7 +1325,7 @@
     <string name="zap_bottom_sheet_custom_amount_placeholder">Custom amount…</string>
     <string name="zap_bottom_sheet_zap_button">Zap</string>
 
-    <string name="zap_warning_bottom_sheet_enable_wallet_text">To zap people on Nostr, you need to enable your Primal wallet or connect the external wallet.</string>
+    <string name="zap_warning_bottom_sheet_enable_wallet_text">To zap people on Nostr, you need to enable your LibreNostr wallet or connect the external wallet.</string>
     <string name="zap_warning_bottom_sheet_no_sats_to_zap">Insufficient sats to zap, you need to get some sats before you can zap.</string>
     <string name="zap_warning_bottom_sheet_go_to_wallet_button">Go to Wallet</string>
 
@@ -1346,27 +1347,27 @@
     <string name="wallet_dashboard_upgrade_please_upgrade">Please upgrade to continue using this wallet.</string>
     <string name="wallet_dashboard_upgrade_button">Upgrade Wallet Now</string>
     <string name="wallet_dashboard_detected_title">Wallet Detected</string>
-    <string name="wallet_dashboard_detected_description">We detected that you already have a non-custodial Primal wallet associated with this Nostr account. To use it on this device, please restore it via the recovery phrase. Alternatively, you can create a new wallet which will be associated with your account.</string>
+    <string name="wallet_dashboard_detected_description">We detected that you already have a non-custodial LibreNostr wallet associated with this Nostr account. To use it on this device, please restore it via the recovery phrase. Alternatively, you can create a new wallet which will be associated with your account.</string>
     <string name="wallet_dashboard_discontinued_title">Wallet Discontinued</string>
-    <string name="wallet_dashboard_discontinued_description">The custodial wallet service has been discontinued. To recover your funds, please contact us at support@primal.net.</string>
+    <string name="wallet_dashboard_discontinued_description">The custodial wallet service has been discontinued. To recover your funds, please contact us at support@nostrich.org.</string>
     <string name="wallet_dashboard_restore_button">Restore Existing Wallet</string>
     <string name="wallet_dashboard_create_new_button">Create New Wallet</string>
 
     <!-- Wallet Notice: Upgrade (Case 1) -->
     <string name="wallet_notice_upgrade_title">Upgrade Your Wallet!</string>
-    <string name="wallet_notice_upgrade_description_first">Good news: Primal now features a new non-custodial wallet, which is a required upgrade for all users.</string>
+    <string name="wallet_notice_upgrade_description_first">Good news: LibreNostr now features a new non-custodial wallet, which is a required upgrade for all users.</string>
     <string name="wallet_notice_upgrade_description_second">With one tap, we\'ll move your funds and full\ntransaction history to your new non-custodial\nwallet - so you fully control your bitcoin.\nQuestions? Check out our </string>
     <string name="wallet_notice_upgrade_faqs">FAQs</string>
     <string name="wallet_notice_upgrade_button">Start Wallet Upgrade</string>
 
     <!-- Wallet Notice: Discontinued (Case 2) -->
     <string name="wallet_notice_discontinued_title">Wallet Discontinued</string>
-    <string name="wallet_notice_discontinued_description">The custodial wallet service has been discontinued. To recover your funds, please contact us at support@primal.net.</string>
+    <string name="wallet_notice_discontinued_description">The custodial wallet service has been discontinued. To recover your funds, please contact us at support@nostrich.org.</string>
     <string name="wallet_notice_discontinued_close_button">Close</string>
 
     <!-- Wallet Notice: Detected (Case 3) -->
     <string name="wallet_notice_detected_title">Wallet Detected</string>
-    <string name="wallet_notice_detected_description">We detected that you already have a non-custodial Primal wallet associated with this Nostr account. To use it on this device, please restore it via the recovery phrase. Alternatively, you can create a new wallet which will be associated with your account.</string>
+    <string name="wallet_notice_detected_description">We detected that you already have a non-custodial LibreNostr wallet associated with this Nostr account. To use it on this device, please restore it via the recovery phrase. Alternatively, you can create a new wallet which will be associated with your account.</string>
     <string name="wallet_notice_detected_restore_button">Restore Existing Wallet</string>
     <string name="wallet_notice_detected_create_button">Create New Wallet</string>
 
@@ -1397,23 +1398,23 @@
     <string name="wallet_upgrade_faq_title">Wallet Upgrade FAQ</string>
     <string name="wallet_upgrade_faq_first_question">Do I have to upgrade my wallet?</string>
     <string name="wallet_upgrade_faq_first_answer">Yes. Support for the old custodial wallet will be discontinued on April 30, 2026. All users need to upgrade prior to this date.</string>
-    <string name="wallet_upgrade_faq_second_question">Does the new Primal wallet support both lightning and on-chain transactions?</string>
-    <string name="wallet_upgrade_faq_second_answer">Yes. Just like with the old custodial wallet, the new Primal wallet enables users to send and receive lightning and on-chain bitcoin transactions.</string>
-    <string name="wallet_upgrade_faq_third_question">Can I keep my existing Primal lightning address?</string>
-    <string name="wallet_upgrade_faq_third_answer">Yes. Your Primal lightning address will not change after the wallet upgrade.</string>
+    <string name="wallet_upgrade_faq_second_question">Does the new LibreNostr wallet support both lightning and on-chain transactions?</string>
+    <string name="wallet_upgrade_faq_second_answer">Yes. Just like with the old custodial wallet, the new LibreNostr wallet enables users to send and receive lightning and on-chain bitcoin transactions.</string>
+    <string name="wallet_upgrade_faq_third_question">Can I keep my existing LibreNostr lightning address?</string>
+    <string name="wallet_upgrade_faq_third_answer">Yes. Your LibreNostr lightning address will not change after the wallet upgrade.</string>
     <string name="wallet_upgrade_faq_fourth_question">Can I transfer my funds to a different wallet before I upgrade?</string>
     <string name="wallet_upgrade_faq_fourth_answer">Yes. The old custodial wallet remains fully functional until April 30, 2026. You can send your funds to any other bitcoin wallet prior to upgrading.</string>
     <string name="wallet_upgrade_faq_fifth_question">Will I be able to revert to the old custodial wallet after the upgrade?</string>
     <string name="wallet_upgrade_faq_fifth_answer">No. After the wallet upgrade is completed, you will not be able to revert to the old custodial wallet, however your full transaction history will be transferred to the new wallet.</string>
     <string name="wallet_upgrade_faq_sixth_question">What if I don\'t upgrade before support for the old wallet is discontinued?</string>
-    <string name="wallet_upgrade_faq_sixth_answer">After April 30, 2026 the old custodial wallet will no longer be functional. If you don\'t upgrade and still have some funds in that wallet, you will be able to recover them by contacting us at support@primal.net.</string>
-    <string name="wallet_upgrade_faq_seventh_question">Which technology is the new Primal wallet built on?</string>
-    <string name="wallet_upgrade_faq_seventh_answer">The new Primal wallet is built on the Spark network technology. For more information, you can visit: https://spark.money.</string>
+    <string name="wallet_upgrade_faq_sixth_answer">After April 30, 2026 the old custodial wallet will no longer be functional. If you don\'t upgrade and still have some funds in that wallet, you will be able to recover them by contacting us at support@nostrich.org.</string>
+    <string name="wallet_upgrade_faq_seventh_question">Which technology is the new LibreNostr wallet built on?</string>
+    <string name="wallet_upgrade_faq_seventh_answer">The new LibreNostr wallet is built on the Spark network technology. For more information, you can visit: https://spark.money.</string>
     <string name="wallet_upgrade_faq_eighth_question">Are there any transaction fees that I need to pay to upgrade?</string>
-    <string name="wallet_upgrade_faq_eighth_answer">No. Primal will cover all transaction fees required to upgrade all our users to their new non-custodial wallets.</string>
+    <string name="wallet_upgrade_faq_eighth_answer">No. LibreNostr will cover all transaction fees required to upgrade all our users to their new non-custodial wallets.</string>
     <string name="wallet_upgrade_faq_ninth_question">Does the new wallet support Nostr Wallet Connect?</string>
-    <string name="wallet_upgrade_faq_ninth_answer">Yes. The new Primal wallet does support Nostr Wallet Connect, however it works a bit differently than the old one. Since the new wallet is non-custodial, the Primal mobile app needs to be running in order to sign NWC events. The NWC feature is best used in conjunction with the Primal remote signer.</string>
-    <string name="wallet_upgrade_faq_tenth_question">I have existing NWC connections to the old Primal wallet. Will I have to re-create those with the new wallet?</string>
+    <string name="wallet_upgrade_faq_ninth_answer">Yes. The new LibreNostr wallet does support Nostr Wallet Connect, however it works a bit differently than the old one. Since the new wallet is non-custodial, the LibreNostr mobile app needs to be running in order to sign NWC events. The NWC feature is best used in conjunction with the LibreNostr remote signer.</string>
+    <string name="wallet_upgrade_faq_tenth_question">I have existing NWC connections to the old LibreNostr wallet. Will I have to re-create those with the new wallet?</string>
     <string name="wallet_upgrade_faq_tenth_answer">Yes. Old NWC connections will stop working when the old wallet is deprecated on April 30, 2026.</string>
 
     <string name="wallet_restore_title">Restore Existing Wallet</string>
@@ -1445,7 +1446,7 @@
     <string name="wallet_in_app_purchase_to_receive_label">To receive</string>
     <string name="wallet_in_app_purchase_not_available">Unable to connect to the Google Play Store services. Please try again.</string>
     <string name="wallet_in_app_purchase_store_try_again">Try again</string>
-    <string name="wallet_in_app_purchase_error_confirmation_failed">We were unable to confirm your purchase. Please reach out to Primal Support.</string>
+    <string name="wallet_in_app_purchase_error_confirmation_failed">We were unable to confirm your purchase. Please reach out to LibreNostr Support.</string>
     <string name="wallet_action_button_send">Send</string>
     <string name="wallet_action_button_scan">Scan</string>
     <string name="wallet_action_button_receive">Receive</string>
@@ -1549,8 +1550,8 @@
     <string name="wallet_backup_success_title">Congrats!</string>
     <string name="wallet_backup_welcome_description">We are going to display your wallet recovery phrase on the next screen.</string>
     <string name="wallet_backup_important">Important:</string>
-    <string name="wallet_backup_disclaimer_part_one">Primal does not have access to the funds in your wallet. You have sole custody of your wallet via the recovery phrase. If you lose your recovery phrase, </string>
-    <string name="wallet_backup_disclaimer_part_two">Primal will not be able to restore your funds.</string>
+    <string name="wallet_backup_disclaimer_part_one">LibreNostr does not have access to the funds in your wallet. You have sole custody of your wallet via the recovery phrase. If you lose your recovery phrase, </string>
+    <string name="wallet_backup_disclaimer_part_two">LibreNostr will not be able to restore your funds.</string>
     <string name="wallet_backup_button_i_understand">I understand, backup wallet</string>
     <string name="wallet_backup_button_cancel">Cancel, I\'ll do this later</string>
     <string name="wallet_backup_seed_description_one">This is your wallet recovery phrase. To backup your wallet, simply write these words down in the correct order.</string>
@@ -1560,7 +1561,7 @@
     <string name="wallet_backup_verify_correct">Correct</string>
     <string name="wallet_backup_verify_incorrect">Incorrect</string>
     <string name="wallet_backup_button_verify">Verify</string>
-    <string name="wallet_backup_confirm_check_1">My funds are not held by Primal</string>
+    <string name="wallet_backup_confirm_check_1">My funds are not held by LibreNostr</string>
     <string name="wallet_backup_confirm_check_2">If my device gets lost or stolen, the only way to recover my funds is via the wallet recovery phrase</string>
     <string name="wallet_backup_confirm_check_3">It is my sole responsibility to keep my recovery phrase safe</string>
     <string name="wallet_backup_confirm_description">Your wallet has been backed up. You now hold the keys to your bitcoin!\nPlease confirm the three points below.</string>
@@ -1568,7 +1569,7 @@
     <string name="wallet_backup_button_finish">Finish</string>
 
     <string name="qrcode_scanner_permission_title">Permission required</string>
-    <string name="qrcode_scanner_permission_rationale">Primal needs access to your camera to scan QR codes.</string>
+    <string name="qrcode_scanner_permission_rationale">LibreNostr needs access to your camera to scan QR codes.</string>
     <string name="qrcode_scanner_grant_permission_button">Allow access</string>
     <string name="qrcode_scanner_cancel_button">Cancel</string>
 
@@ -1774,7 +1775,7 @@
     <string name="permissions_bottom_sheet_back_button">Back</string>
 
     <string name="signer_notification_name">Remote Signer</string>
-    <string name="signer_notification_summary_title">Primal Remote Signer</string>
+    <string name="signer_notification_summary_title">LibreNostr Remote Signer</string>
     <string name="signer_notification_end_session">End session</string>
     <string name="signer_notification_unknown_app">Unknown App</string>
     <string name="signer_notification_logged_in_as">Logged in as %s</string>
@@ -1785,7 +1786,7 @@
     <string name="signer_notification_enable_switch_label">Enable Notifications</string>
     <string name="signer_notification_enable_button">Let’s Go</string>
     <string name="signer_notification_session_active_prefix">Session active with</string>
-    <string name="signer_notification_keep_running_description">To keep running reliably while Primal is in the background or when your phone is locked, you need to enable remote signer notifications.</string>
+    <string name="signer_notification_keep_running_description">To keep running reliably while LibreNostr is in the background or when your phone is locked, you need to enable remote signer notifications.</string>
 
     <string name="local_app_unknown_app">Unknown App</string>
 
@@ -1793,7 +1794,7 @@
     <string name="wallet_upgrade_ready_bullet_2">We\'ll transfer your wallet balance</string>
     <string name="wallet_upgrade_ready_bullet_3">We\'ll copy your transaction history</string>
     <string name="wallet_upgrade_ready_bullet_4">You\'ll keep your lightning address</string>
-    <string name="wallet_upgrade_keep_open">Please keep Primal open\nuntil the upgrade process is done.</string>
+    <string name="wallet_upgrade_keep_open">Please keep LibreNostr open\nuntil the upgrade process is done.</string>
     <string name="wallet_upgrade_faq_question">Questions? Check out our </string>
     <string name="wallet_upgrade_faq_link">FAQs</string>
     <string name="wallet_upgrade_button_now">Upgrade Wallet Now</string>
@@ -1801,7 +1802,7 @@
     <string name="wallet_upgrade_failed_subtitle_1">But no worries, your old wallet is still fully functional and you can safely try again.</string>
     <string name="wallet_upgrade_failed_subtitle_2">If you have a larger wallet balance, you can try sending it to a different wallet first.</string>
     <string name="wallet_upgrade_failed_support_1">If this issue persists please feel free to contact support at</string>
-    <string name="wallet_upgrade_failed_support_email">support@primal.net</string>
+    <string name="wallet_upgrade_failed_support_email">support@nostrich.org</string>
     <string name="wallet_upgrade_failed_support_2">. Make sure you</string>
     <string name="wallet_upgrade_failed_support_copy_log">copy the error log</string>
     <string name="wallet_upgrade_failed_support_3">, and include that in your email.</string>

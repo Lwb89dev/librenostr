@@ -2,6 +2,7 @@ package net.primal.android.navigation
 
 import androidx.activity.compose.LocalActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.runtime.Composable
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController
 import androidx.navigation.NavDeepLink
@@ -124,6 +125,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
     ) {
         home(
             route = "home_settings",
+            navController = navController,
             onClose = { navController.navigateUp() },
             onSettingsSectionClick = {
                 when (it) {
@@ -253,6 +255,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
 
 private fun NavGraphBuilder.home(
     route: String,
+    navController: NavController,
     onClose: () -> Unit,
     onSettingsSectionClick: (PrimalSettingsSection) -> Unit,
     onDeveloperToolsClick: () -> Unit,
@@ -270,7 +273,62 @@ private fun NavGraphBuilder.home(
         onClose = onClose,
         onSettingsSectionClick = onSettingsSectionClick,
         onDeveloperToolsClick = onDeveloperToolsClick,
+        sectionContent = { section ->
+            EmbeddedSettingsSection(section = section, navController = navController)
+        },
+        developerContent = {
+            val developerViewModel = hiltViewModel<DeveloperToolsViewModel>()
+            DeveloperToolsScreen(
+                viewModel = developerViewModel,
+                onClose = {},
+                onInspectUserDataClick = { navController.navigateToDataInspector() },
+                embedded = true,
+            )
+        },
     )
+    }
+
+@Composable
+private fun EmbeddedSettingsSection(
+    section: PrimalSettingsSection,
+    navController: NavController,
+) {
+    when (section) {
+        PrimalSettingsSection.Network -> NetworkSettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
+        PrimalSettingsSection.Appearance -> AppearanceSettingsScreen(
+            viewModel = appearanceSettingsViewModel(primalTheme = LocalPrimalTheme.current),
+            onClose = {},
+            embedded = true,
+        )
+        PrimalSettingsSection.ContentDisplay -> ContentDisplaySettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
+        PrimalSettingsSection.MutedAccounts -> MutedSettingsScreen(
+            viewModel = hiltViewModel(),
+            noteCallbacks = noteCallbacksHandler(navController),
+            onProfileClick = { profileId -> navController.navigateToProfile(profileId) },
+            onClose = {},
+            onGoToWallet = { navController.navigateToWallet() },
+            embedded = true,
+        )
+        PrimalSettingsSection.MediaUploads -> MediaUploadsSettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
+        PrimalSettingsSection.Notifications -> NotificationsSettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
+        else -> Unit
+    }
 }
 
 private fun NavGraphBuilder.account(route: String, navController: NavController) =

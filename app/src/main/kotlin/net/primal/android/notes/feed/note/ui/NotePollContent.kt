@@ -484,7 +484,7 @@ private fun PreviewZapPollPending() {
                         PollOptionUi(id = "1", label = "Phoenix"),
                         PollOptionUi(id = "2", label = "Muun"),
                         PollOptionUi(id = "3", label = "Blue Wallet"),
-                        PollOptionUi(id = "4", label = "Primal"),
+                        PollOptionUi(id = "4", label = "LibreNostr"),
                     ),
 
                     endsAt = Instant.now().plus(Duration.ofDays(1)),
@@ -528,7 +528,7 @@ private fun PreviewZapPollVoted() {
                         ),
                         PollOptionUi(
                             id = "4",
-                            label = "Primal",
+                            label = "LibreNostr",
                             votePercentage = 0.576f,
                             satsZapped = 89_000,
                             isWinner = true,
@@ -577,7 +577,7 @@ private fun PreviewZapPollEnded() {
                         ),
                         PollOptionUi(
                             id = "4",
-                            label = "Primal",
+                            label = "LibreNostr",
                             votePercentage = 0.618f,
                             satsZapped = 4_441,
                             isWinner = true,

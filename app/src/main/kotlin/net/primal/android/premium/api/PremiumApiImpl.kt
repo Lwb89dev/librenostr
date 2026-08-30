@@ -81,7 +81,7 @@ class PremiumApiImpl @Inject constructor(
                 optionsJson = AppSpecificDataRequest(
                     eventFromUser = nostrNotary.signAuthorizationNostrEvent(
                         userId = userId,
-                        description = "Check Primal Premium membership status",
+                        description = "Check LibreNostr Premium membership status",
                         tags = listOf(userId.asPubkeyTag()),
                     ).unwrapOrThrow(),
                 ).encodeToJsonString(),

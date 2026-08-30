@@ -1,12 +1,20 @@
 package net.primal.android.settings.home
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -15,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +32,10 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,6 +69,8 @@ fun SettingsHomeScreen(
     onClose: () -> Unit,
     onSettingsSectionClick: (PrimalSettingsSection) -> Unit,
     onDeveloperToolsClick: () -> Unit,
+    sectionContent: (@Composable (PrimalSettingsSection) -> Unit)? = null,
+    developerContent: (@Composable () -> Unit)? = null,
 ) {
     val uiState = viewModel.state.collectAsState()
 
@@ -64,6 +79,8 @@ fun SettingsHomeScreen(
         onClose = onClose,
         onSettingsSectionClick = onSettingsSectionClick,
         onDeveloperToolsClick = onDeveloperToolsClick,
+        sectionContent = sectionContent,
+        developerContent = developerContent,
         eventPublisher = { viewModel.setEvent(it) },
     )
 }
@@ -75,8 +92,16 @@ private fun SettingsHomeScreen(
     onClose: () -> Unit,
     onSettingsSectionClick: (PrimalSettingsSection) -> Unit,
     onDeveloperToolsClick: () -> Unit,
+    sectionContent: (@Composable (PrimalSettingsSection) -> Unit)?,
+    developerContent: (@Composable () -> Unit)?,
     eventPublisher: (SettingsHomeContract.UiEvent) -> Unit,
 ) {
+    var expandedSection by rememberSaveable { mutableStateOf<String?>(null) }
+
+    BackHandler(enabled = expandedSection != null) {
+        expandedSection = null
+    }
+
     PrimalScaffold(
         modifier = Modifier,
         topBar = {
@@ -107,10 +132,33 @@ private fun SettingsHomeScreen(
                         SettingsListItem(
                             title = it.title(),
                             leadingIcon = it.icon(),
-                            onClick = { onSettingsSectionClick(it) },
-                            trailingIcon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                            onClick = {
+                                if (sectionContent == null) {
+                                    onSettingsSectionClick(it)
+                                } else {
+                                    expandedSection = if (expandedSection == it.name) null else it.name
+                                }
+                            },
+                            trailingIcon = if (expandedSection == it.name) {
+                                Icons.Outlined.KeyboardArrowDown
+                            } else {
+                                Icons.AutoMirrored.Outlined.KeyboardArrowRight
+                            },
                             walletNeedsBackup = it == PrimalSettingsSection.Wallet && state.walletNeedsBackup,
                         )
+                        AnimatedVisibility(
+                            visible = expandedSection == it.name,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut(),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 80.dp, max = 640.dp),
+                            ) {
+                                sectionContent?.invoke(it)
+                            }
+                        }
                         PrimalDivider()
                     }
 
@@ -119,9 +167,32 @@ private fun SettingsHomeScreen(
                             SettingsListItem(
                                 title = stringResource(id = R.string.settings_developer_tools_title),
                                 leadingIcon = PrimalIcons.Key,
-                                onClick = onDeveloperToolsClick,
-                                trailingIcon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                                onClick = {
+                                    if (developerContent == null) {
+                                        onDeveloperToolsClick()
+                                    } else {
+                                        expandedSection = if (expandedSection == "developer_tools") null else "developer_tools"
+                                    }
+                                },
+                                trailingIcon = if (expandedSection == "developer_tools") {
+                                    Icons.Outlined.KeyboardArrowDown
+                                } else {
+                                    Icons.AutoMirrored.Outlined.KeyboardArrowRight
+                                },
                             )
+                            AnimatedVisibility(
+                                visible = expandedSection == "developer_tools",
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut(),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 80.dp, max = 640.dp),
+                                ) {
+                                    developerContent?.invoke()
+                                }
+                            }
                             PrimalDivider()
                         }
                     }
@@ -261,6 +332,8 @@ private fun PreviewSettingsHomeScreen() {
             onClose = { },
             onSettingsSectionClick = {},
             onDeveloperToolsClick = {},
+            sectionContent = null,
+            developerContent = null,
             eventPublisher = {},
         )
     }

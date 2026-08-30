@@ -17,7 +17,7 @@ class ExchangeRateHandler @Inject constructor(
     val usdExchangeRate = _state.asStateFlow()
 
     suspend fun updateExchangeRate(userId: String) {
-        Napier.d { "Skipping Primal wallet exchange-rate fetch for $userId" }
+        Napier.d { "Skipping legacy wallet exchange-rate fetch for $userId" }
     }
 }
 

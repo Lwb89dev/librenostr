@@ -126,7 +126,7 @@ class ChatViewModel @Inject constructor(
         }
 
     private fun markConversationAsRead() {
-        Napier.d { "Skipping Primal cache mark-as-read AUTH" }
+        Napier.d { "Skipping cache mark-as-read AUTH" }
     }
 
     private fun sendMessage() =

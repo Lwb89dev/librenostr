@@ -50,6 +50,7 @@ import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.Badges
+import net.primal.domain.links.CdnImage
 
 val NavigationBarFullHeightDp = 64.dp
 
@@ -62,6 +63,7 @@ fun PrimalNavigationBar(
     onActiveDestinationClick: (() -> Unit)? = null,
     onSettingsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    profileAvatarCdnImage: CdnImage? = null,
     profileLabel: String = "Profile",
     settingsSelected: Boolean = false,
     badges: Badges = Badges(),
@@ -84,10 +86,14 @@ fun PrimalNavigationBar(
                 val horizontalPadding = 12.dp
                 val topPadding = 4.dp
                 val pillWidth = 72.dp
-                val destinations = PrimalTopLevelDestination.entries.filter {
-                    it != PrimalTopLevelDestination.Wallet &&
-                        it != PrimalTopLevelDestination.Reads
-                }
+                // Keep the profile button centered, with Algorithms before it and
+                // Notifications after it in the persistent bottom bar.
+                val destinations = listOf(
+                    PrimalTopLevelDestination.Feeds,
+                    PrimalTopLevelDestination.Explore,
+                    PrimalTopLevelDestination.Alerts,
+                    PrimalTopLevelDestination.Settings,
+                )
                 val visualSelected = if (settingsSelected) {
                     PrimalTopLevelDestination.Settings
                 } else {
@@ -146,6 +152,7 @@ fun PrimalNavigationBar(
                                 modifier = Modifier.weight(1f),
                                 label = profileLabel,
                                 selected = false,
+                                avatarCdnImage = profileAvatarCdnImage,
                                 onClick = onProfileClick,
                             )
                         }
@@ -188,6 +195,7 @@ private fun PrimalProfileNavigationBarItem(
     modifier: Modifier,
     label: String,
     selected: Boolean,
+    avatarCdnImage: CdnImage?,
     onClick: () -> Unit,
 ) {
     val tint = if (selected) AppTheme.colorScheme.primary else AppTheme.colorScheme.onSurface.copy(alpha = 0.75f)
@@ -200,7 +208,13 @@ private fun PrimalProfileNavigationBarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(imageVector = LibreNavigationIcons.Profile, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
+        UniversalAvatarThumbnail(
+            avatarCdnImage = avatarCdnImage,
+            avatarSize = 24.dp,
+            hasBorder = false,
+            fallbackBorderColor = tint,
+            onClick = null,
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = label, style = AppTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 10.sp), color = tint)
     }

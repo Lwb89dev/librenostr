@@ -311,7 +311,7 @@ class TxDataProvider : PreviewParameterProvider<TransactionListItemDataUi> {
                 txType = TxType.DEPOSIT,
                 txState = TxState.SUCCEEDED,
                 txAmountInSats = 9999.toULong(),
-                txNote = "Bought sats from Primal",
+                txNote = "Bought sats from LibreNostr",
                 txCreatedAt = Instant.now(),
                 txUpdatedAt = Instant.now(),
                 txCompletedAt = Instant.now(),

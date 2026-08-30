@@ -228,21 +228,21 @@ private fun String.replaceNostrProfileUrisWithHandles(resources: List<NoteNostrU
 }
 
 private val noteLinkLeftovers = listOf(
-    "https://primal.net/e/ " to "",
-    "https://www.primal.net/e/ " to "",
-    "http://primal.net/e/ " to "",
-    "http://www.primal.net/e/ " to "",
-    "https://primal.net/e/\n" to "",
-    "https://www.primal.net/e/\n" to "",
-    "http://primal.net/e/\n" to "",
-    "http://www.primal.net/e/\n" to "",
+    "https://nostrich.org/e/ " to "",
+    "https://www.nostrich.org/e/ " to "",
+    "http://nostrich.org/e/ " to "",
+    "http://www.nostrich.org/e/ " to "",
+    "https://nostrich.org/e/\n" to "",
+    "https://www.nostrich.org/e/\n" to "",
+    "http://nostrich.org/e/\n" to "",
+    "http://www.nostrich.org/e/\n" to "",
 )
 
 private val profileLinkLeftovers = listOf(
-    "https://primal.net/p/@" to "@",
-    "https://www.primal.net/p/@" to "@",
-    "http://primal.net/p/@" to "@",
-    "http://www.primal.net/p/@" to "@",
+    "https://nostrich.org/p/@" to "@",
+    "https://www.nostrich.org/p/@" to "@",
+    "http://nostrich.org/p/@" to "@",
+    "http://www.nostrich.org/p/@" to "@",
 )
 
 private fun String.clearParsedPrimalLinks(): String {

@@ -112,10 +112,10 @@ class NotificationsViewModel @Inject constructor(
         viewModelScope.launch(dispatcherProvider.io()) {
             notificationRepository.markAllNotificationsAsSeenLocally(activeAccountStore.activeUserId())
         }
-        // The cache-less client has no Primal AUTH endpoint to acknowledge reads. Keep the
+        // The cache-less client has no remote AUTH endpoint to acknowledge reads. Keep the
         // local navigation state authoritative so the unread dot disappears immediately.
         setState { copy(badges = badges.copy(unreadNotificationsCount = 0)) }
-        Napier.d { "Skipping Primal cache notifications last-seen AUTH" }
+        Napier.d { "Skipping cache notifications last-seen AUTH" }
     }
 
     @Suppress("NestedBlockDepth")

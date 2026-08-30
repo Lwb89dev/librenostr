@@ -38,7 +38,7 @@ object NetworkingModule {
     @Singleton
     fun unauthenticatedRetrofit(okHttpClient: OkHttpClient): Retrofit =
         Retrofit.Builder()
-            .baseUrl("https://primal.net")
+            .baseUrl("https://nostrich.org/")
             .client(okHttpClient)
             .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(CommonJson.asConverterFactory("application/json".toMediaType()))

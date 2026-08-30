@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import net.primal.android.R
 import net.primal.android.core.compose.AppBarIcon
 import net.primal.android.core.compose.ConfirmActionAlertDialog
-import net.primal.android.core.compose.DeleteListItemImage
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.PrimalLoadingSpinner
 import net.primal.android.core.compose.PrimalScaffold
@@ -59,6 +58,7 @@ import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
+import net.primal.android.core.compose.icons.primaliconpack.Close
 import net.primal.android.core.compose.icons.primaliconpack.ConnectRelay
 import net.primal.android.core.compose.icons.primaliconpack.MediaGalleryFilled
 import net.primal.android.core.compose.settings.DecoratedSettingsOutlinedTextField
@@ -67,12 +67,17 @@ import net.primal.android.settings.network.TextSection
 import net.primal.android.theme.AppTheme
 
 @Composable
-fun MediaUploadsSettingsScreen(viewModel: MediaUploadsSettingsViewModel, onClose: () -> Unit) {
+fun MediaUploadsSettingsScreen(
+    viewModel: MediaUploadsSettingsViewModel,
+    onClose: () -> Unit,
+    embedded: Boolean = false,
+) {
     val state = viewModel.state.collectAsState()
     MediaUploadsSettingsScreen(
         state = state.value,
         eventPublisher = viewModel::setEvent,
         onClose = onClose,
+        embedded = embedded,
     )
 }
 
@@ -82,6 +87,7 @@ private fun MediaUploadsSettingsScreen(
     state: MediaUploadsSettingsContract.UiState,
     eventPublisher: (MediaUploadsSettingsContract.UiEvent) -> Unit,
     onClose: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val focusManager = LocalFocusManager.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -107,19 +113,23 @@ private fun MediaUploadsSettingsScreen(
         },
     )
 
-    BackHandler {
+    BackHandler(enabled = !embedded || state.mode != MediaUploadsMode.View) {
         backSequence()
     }
 
     PrimalScaffold(
         modifier = Modifier,
-        topBar = {
+        topBar = if (embedded) {
+            null
+        } else {
+            {
             PrimalTopAppBar(
                 title = stringResource(id = R.string.settings_media_uploads_title),
                 navigationIcon = PrimalIcons.ArrowBack,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
                 onNavigationIconClick = backSequence,
             )
+            }
         },
         content = { paddingValues ->
             if (state.isLoadingBlossomServerUrls) {
@@ -591,7 +601,12 @@ private fun MirrorBlossomServerDestination(
                     modifier = Modifier.offset(x = 7.dp),
                     onClick = onDisconnectMirrorBlossomServer,
                 ) {
-                    DeleteListItemImage()
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = PrimalIcons.Close,
+                        contentDescription = stringResource(id = R.string.accessibility_delete_list_item),
+                        tint = AppTheme.colorScheme.error,
+                    )
                 }
             }
         },

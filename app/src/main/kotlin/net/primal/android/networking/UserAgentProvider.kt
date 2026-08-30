@@ -1,6 +1,6 @@
 package net.primal.android.networking
 
 object UserAgentProvider {
-    const val APP_NAME = "Primal-Android"
-    const val CLIENT_NAME = "Primal Android"
+    const val APP_NAME = "LibreNostr-Android"
+    const val CLIENT_NAME = "LibreNostr Android"
 }

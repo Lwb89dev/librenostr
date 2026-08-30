@@ -6,7 +6,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,7 +19,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
-import kotlinx.coroutines.delay
 import net.primal.android.R
 import net.primal.android.core.compose.IconText
 import net.primal.android.core.compose.bubble.AnchorHandle
@@ -34,7 +32,6 @@ import net.primal.android.core.compose.icons.primaliconpack.FeedRepostsOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewRepostsFilled
 import net.primal.android.core.compose.icons.primaliconpack.FeedZapOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewZapFilled
-import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostAction
 import net.primal.android.theme.AppTheme
@@ -51,14 +48,6 @@ fun FeedNoteActionsRow(
 ) {
     val iconSize = if (highlightedNote) 26.sp else 17.sp
     val numberFormat = remember { NumberFormat.getNumberInstance() }
-
-    var isZapCooldownActive by remember { mutableStateOf(false) }
-    LaunchedEffect(isZapCooldownActive) {
-        if (isZapCooldownActive) {
-            delay(ZAP_ACTION_DELAY)
-            isZapCooldownActive = false
-        }
-    }
 
     Row(
         modifier = modifier,
@@ -89,12 +78,7 @@ fun FeedNoteActionsRow(
             iconVectorHighlight = PrimalIcons.FeedNewZapFilled,
             colorHighlight = AppTheme.extraColorScheme.zapped,
             onClick = if (onPostAction != null) {
-                {
-                    if (!isZapCooldownActive) {
-                        isZapCooldownActive = true
-                        onPostAction(FeedPostAction.Zap)
-                    }
-                }
+                { onPostAction(FeedPostAction.Zap) }
             } else {
                 {}
             },

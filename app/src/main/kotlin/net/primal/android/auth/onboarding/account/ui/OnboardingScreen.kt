@@ -107,12 +107,12 @@ private class UiStateProvider(
         OnboardingContract.UiState(
             currentStep = OnboardingStep.Preview,
             profileDisplayName = "Alex",
-            profileAboutYou = "Primal Lead Android Developer",
+            profileAboutYou = "LibreNostr Lead Android Developer",
         ),
         OnboardingContract.UiState(
             currentStep = OnboardingStep.Preview,
             profileDisplayName = "Alex",
-            profileAboutYou = "Primal Lead Android Developer",
+            profileAboutYou = "LibreNostr Lead Android Developer",
             accountCreated = true,
         ),
     ),

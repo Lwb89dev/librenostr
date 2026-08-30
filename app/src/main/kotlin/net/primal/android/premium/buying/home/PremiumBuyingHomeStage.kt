@@ -314,7 +314,7 @@ private fun TOSNotice() {
             withStyle(style = textStyle) {
                 appendLine(stringResource(id = R.string.subscription_tos_title))
             }
-            withLink(link = LinkAnnotation.Url("https://primal.net/terms")) {
+            withLink(link = LinkAnnotation.Url("https://nostrich.org/terms")) {
                 withStyle(
                     style = textStyle.copy(
                         textDecoration = TextDecoration.Underline,

@@ -49,7 +49,7 @@ class PrimalMediaSessionService : MediaSessionService() {
                         mediaItems.firstOrNull()?.let { mediaItem ->
                             val noteId = mediaItem.mediaMetadata.extras?.getString(EXTRA_NOTE_ID)
                             val uri = if (noteId != null) {
-                                "https://primal.net/e/$noteId"
+                                "https://nostrich.org/e/$noteId"
                             } else {
                                 "primal://live/${mediaItem.mediaId}"
                             }

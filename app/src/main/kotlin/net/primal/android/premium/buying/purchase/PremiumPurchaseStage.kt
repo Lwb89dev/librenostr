@@ -428,7 +428,7 @@ private fun TOSNotice(subscriptionTier: SubscriptionTier) {
             ) {
                 append(stringResource(id = R.string.premium_purchase_tos_notice))
             }
-            withLink(link = LinkAnnotation.Url("https://primal.net/terms")) {
+            withLink(link = LinkAnnotation.Url("https://nostrich.org/terms")) {
                 withStyle(
                     style = SpanStyle(
                         color = if (subscriptionTier.isPremiumTier()) {

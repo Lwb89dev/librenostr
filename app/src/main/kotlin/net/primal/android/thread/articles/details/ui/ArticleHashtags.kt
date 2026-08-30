@@ -61,7 +61,7 @@ private fun PreviewArticleHashtags() {
     PrimalPreview(primalTheme = PrimalTheme.Midnight) {
         Surface {
             ArticleHashtags(
-                hashtags = listOf("#primal", "#nostr", "#wallet", "#bitcoin", "#mobile", "#android", "#freedom"),
+                hashtags = listOf("#librenostr", "#nostr", "#wallet", "#bitcoin", "#mobile", "#android", "#freedom"),
                 onHashtagClick = {},
                 modifier = Modifier.fillMaxWidth(),
             )

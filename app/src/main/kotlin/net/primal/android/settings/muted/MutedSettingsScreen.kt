@@ -1,7 +1,9 @@
 package net.primal.android.settings.muted
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -49,6 +51,7 @@ fun MutedSettingsScreen(
     onProfileClick: (String) -> Unit,
     onClose: () -> Unit,
     onGoToWallet: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val state = viewModel.state.collectAsState()
     MutedSettingsScreen(
@@ -58,6 +61,7 @@ fun MutedSettingsScreen(
         onClose = onClose,
         noteCallbacks = noteCallbacks,
         onGoToWallet = onGoToWallet,
+        embedded = embedded,
     )
 }
 
@@ -70,6 +74,7 @@ fun MutedSettingsScreen(
     eventPublisher: (MutedSettingsContract.UiEvent) -> Unit,
     onProfileClick: (String) -> Unit,
     onClose: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val pagerState = rememberPagerState { MUTE_SETTINGS_TAB_COUNT }
     val scope = rememberCoroutineScope()
@@ -88,7 +93,27 @@ fun MutedSettingsScreen(
         }
     }
 
-    PrimalScaffold(
+    if (embedded) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            MutedSettingsTabs(
+                modifier = Modifier,
+                selectedTabIndex = pagerState.currentPage,
+                onUsersTabClick = { scope.launch { pagerState.animateScrollToPage(USERS_INDEX) } },
+                onWordsTabClick = { scope.launch { pagerState.animateScrollToPage(WORDS_INDEX) } },
+                onHashtagsTabClick = { scope.launch { pagerState.animateScrollToPage(HASHTAGS_INDEX) } },
+                onThreadsTabClick = { scope.launch { pagerState.animateScrollToPage(THREADS_INDEX) } },
+            )
+            MutedSettingsPager(
+                pagerState = pagerState,
+                state = state,
+                paddingValues = PaddingValues(),
+                noteCallbacks = noteCallbacks,
+                onGoToWallet = onGoToWallet,
+                eventPublisher = eventPublisher,
+                onProfileClick = onProfileClick,
+            )
+        }
+    } else PrimalScaffold(
         modifier = Modifier,
         topBar = {
             PrimalTopAppBar(

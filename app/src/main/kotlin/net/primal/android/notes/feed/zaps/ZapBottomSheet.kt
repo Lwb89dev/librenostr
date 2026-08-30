@@ -78,7 +78,9 @@ fun ZapBottomSheet(
     var selectedZapIndex by remember { mutableIntStateOf(0) }
     var selectedZapComment by remember { mutableStateOf(zapConfig.first().message) }
     var selectedZapAmount by remember { mutableLongStateOf(zapConfig.first().amount) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Open at the compact detent so the picker feels like a contextual menu.
+    // Users can still expand it when they need the custom amount/comment fields.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val keyboardVisible by keyboardVisibilityAsState()
@@ -93,6 +95,7 @@ fun ZapBottomSheet(
 
     ModalBottomSheet(
         containerColor = AppTheme.extraColorScheme.surfaceVariantAlt2,
+        scrimColor = AppTheme.colorScheme.scrim.copy(alpha = 0.28f),
         tonalElevation = 0.dp,
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,

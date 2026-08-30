@@ -1,14 +1,28 @@
 package net.primal.android.main
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
@@ -23,6 +37,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -46,6 +64,8 @@ import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.bubble.AnchoredBubble
 import net.primal.android.core.compose.bubble.BubblePlacement
+import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Close
 import net.primal.android.core.compose.fab.NewPostFloatingActionButton
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
 import net.primal.android.core.errors.resolveUiErrorMessage
@@ -199,6 +219,7 @@ fun MainScreen(
         noteCallbacks = noteCallbacks,
         accountSwitcherCallbacks = accountSwitcherCallbacks,
         focusModeEnabled = focusModeEnabled,
+        profileAvatarCdnImage = mainState.activeAccountAvatarCdnImage,
         onActiveDestinationClick = onActiveDestinationClick,
         onTabChanged = onTabChanged,
         onDrawerDestinationClick = onDrawerDestinationClick,
@@ -525,6 +546,7 @@ private fun MainScreenScaffold(
     noteCallbacks: NoteCallbacks,
     accountSwitcherCallbacks: AccountSwitcherCallbacks,
     focusModeEnabled: Boolean,
+    profileAvatarCdnImage: CdnImage?,
     onActiveDestinationClick: () -> Unit,
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
     onDrawerDestinationClick: (DrawerScreenDestination) -> Unit,
@@ -538,6 +560,9 @@ private fun MainScreenScaffold(
     val walletPickerVisible = activeOverlay == ActiveOverlay.WalletPicker
     val exploreSectionPickerVisible = activeOverlay == ActiveOverlay.ExploreSectionPicker
     val accountDrawerVisible = activeOverlay == ActiveOverlay.AccountDrawer
+    val showPullToRefreshHint = mainState.showPullToRefreshHint &&
+        activeTab == PrimalTopLevelDestination.Feeds &&
+        activeOverlay == null
     val exploreActiveSection = ExploreSection.entries
         .getOrElse(sharedState.explorePagerState.currentPage) { ExploreSection.Explore }
 
@@ -548,6 +573,13 @@ private fun MainScreenScaffold(
 
     fun toggleOverlay(overlay: ActiveOverlay) {
         activeOverlay = if (activeOverlay == overlay) null else overlay
+    }
+
+    LaunchedEffect(mainState.showPullToRefreshHint) {
+        if (mainState.showPullToRefreshHint) {
+            delay(PULL_TO_REFRESH_HINT_DURATION_MS)
+            mainEventPublisher(MainContract.UiEvent.DismissPullToRefreshHint)
+        }
     }
 
     PrimalMainScaffold(
@@ -564,6 +596,7 @@ private fun MainScreenScaffold(
         settingsSelected = false,
         badges = mainState.badges,
         focusModeEnabled = focusModeEnabled,
+        profileAvatarCdnImage = profileAvatarCdnImage,
         exploreAnchorHandle = exploreAnchor,
         topAppBarState = currentTopAppBarState,
         topAppBar = { scrollBehavior ->
@@ -625,6 +658,12 @@ private fun MainScreenScaffold(
                 onTabChanged = onTabChanged,
             )
 
+            PullToRefreshHint(
+                visible = showPullToRefreshHint,
+                onUpdate = { mainEventPublisher(MainContract.UiEvent.UpdateFeedFromHint) },
+                onDismiss = { mainEventPublisher(MainContract.UiEvent.DismissPullToRefreshHint) },
+            )
+
             AnchoredBubble(
                 anchor = exploreAnchor,
                 text = stringResource(id = R.string.explore_double_tap_hint_text),
@@ -638,6 +677,69 @@ private fun MainScreenScaffold(
             SnackbarHost(hostState = sharedState.snackbarHostState)
         },
     )
+}
+
+private const val PULL_TO_REFRESH_HINT_DURATION_MS = 6_000L
+
+@Composable
+private fun PullToRefreshHint(
+    visible: Boolean,
+    onUpdate: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier.fillMaxSize(),
+        enter = slideInVertically(initialOffsetY = { -it / 2 }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { -it / 2 }) + fadeOut(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 12.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val shape = CircleShape
+            Row(
+                modifier = Modifier
+                    .shadow(elevation = 10.dp, shape = shape)
+                    .clip(shape)
+                    .clickable(onClick = onUpdate)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                AppTheme.colorScheme.primary,
+                                AppTheme.colorScheme.secondary,
+                            ),
+                        ),
+                        shape = shape,
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = AppTheme.colorScheme.onPrimary.copy(alpha = 0.28f),
+                        shape = shape,
+                    )
+                    .padding(start = 16.dp, top = 9.dp, bottom = 9.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(id = R.string.pull_down_to_update),
+                    color = AppTheme.colorScheme.onPrimary,
+                    style = AppTheme.typography.bodyMedium,
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.padding(start = 4.dp).size(28.dp),
+                ) {
+                    Icon(
+                        imageVector = PrimalIcons.Close,
+                        contentDescription = stringResource(id = R.string.accessibility_close),
+                        tint = AppTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

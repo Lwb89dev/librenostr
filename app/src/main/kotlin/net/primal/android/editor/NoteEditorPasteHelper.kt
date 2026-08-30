@@ -18,7 +18,7 @@ data class ExtractedNostrToken(
  *
  * Trailing punctuation in [TRAILING_PUNCTUATION] is peeled off the token before
  * computing [ExtractedNostrToken.sourceMatch], so a paste like
- * "Look at https://primal.net/e/nevent1abc." keeps the trailing period in the typed
+ * "Look at https://nostrich.org/e/nevent1abc." keeps the trailing period in the typed
  * text after the URL is stripped.
  */
 fun String.extractEmbeddableNostrTokens(isEmbeddable: (canonicalUri: String) -> Boolean): List<ExtractedNostrToken> {

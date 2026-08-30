@@ -124,7 +124,7 @@ class MessageConversationListViewModel @Inject constructor(
     }
 
     private fun markAllConversationAsRead() {
-        Napier.d { "Skipping Primal cache mark-all-as-read AUTH" }
+        Napier.d { "Skipping cache mark-all-as-read AUTH" }
     }
 
     private fun Flow<PagingData<DMConversation>>.mapAsPagingDataOfMessageConversationUi() =

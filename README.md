@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>A relay-first Nostr client for Android.</strong><br>
-  Connects to Nostr relays directly, keeps local state on the device, and is being freed from Primal's proprietary infrastructure.
+  Connects to Nostr relays directly and keeps local state on the device, without proprietary infrastructure.
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <a href="https://github.com/Lwb89dev/librenostr"><img src="https://img.shields.io/badge/status-active%20development-222?style=for-the-badge" alt="Active development"></a>
 </p>
 
-LibreNostr is a fork of the open-source [Primal Android app](https://github.com/PrimalHQ/primal-android-app). The project keeps the mature Android/Compose foundation while replacing the remote cache dependency with ordinary Nostr relay queries wherever the relay path is ready.
+LibreNostr is a fork of an open-source Android client ([upstream repository](https://github.com/PrimalHQ/primal-android-app)). The project keeps the mature Android/Compose foundation while replacing the remote cache dependency with ordinary Nostr relay queries wherever the relay path is ready.
 
 The target architecture is:
 
@@ -44,13 +44,13 @@ The app name and launcher icon are LibreNostr. The Android application/package n
 
 ## Remaining boundaries
 
-LibreNostr is not yet a complete removal of every Primal-specific component. In particular:
+LibreNostr is not yet a complete removal of every upstream-specific component. In particular:
 
-- some discovery/search and metadata-enrichment calls still use the compatibility API at `primal.net`;
-- wallet/NWC, premium, external-signer and legacy Primal service modules remain in the imported tree and are under audit or scheduled for removal;
-- some legacy deep-link labels and upstream class names still say “Primal”.
+- some discovery/search and metadata-enrichment calls still use compatibility services;
+- wallet/NWC, premium, external-signer and legacy service modules remain in the imported tree and are under audit or scheduled for removal;
+- some upstream class names still use the original namespace.
 
-Basic relay-backed feeds, profiles, threads, notifications and publishing should not depend on the remote Primal cache. Remaining paths are tracked in [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
+Basic relay-backed feeds, profiles, threads, notifications and publishing do not depend on a remote cache. Remaining paths are tracked in [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
 
 ## Project layout
 
@@ -118,15 +118,15 @@ Do not push to `upstream`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Open issues and pull requests on this repository, not on Primal's.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Open issues and pull requests on this repository.
 
 ## License
 
-MIT. Upstream copyright: Copyright (c) 2023 PRIMAL SYSTEMS INC. See [LICENSE](LICENSE). LibreNostr does not claim authorship of unmodified upstream code and does not use the Primal trademark as its product identity.
+MIT. Upstream copyright: Copyright (c) 2023 PRIMAL SYSTEMS INC. See [LICENSE](LICENSE). LibreNostr does not claim authorship of unmodified upstream code and uses LibreNostr as its product identity.
 
 ## Acknowledgments
 
-- [PrimalHQ/primal-android-app](https://github.com/PrimalHQ/primal-android-app) — the client this fork starts from
+- [Upstream Android client](https://github.com/PrimalHQ/primal-android-app) — the client this fork starts from
 - [Quartz](https://github.com/vitorpamplona/quartz) — NIP-04 / NIP-44
 - [Acinq](https://acinq.co) — secp256k1 and Lightning foundations
 - [Breez SDK](https://breez.technology) — inherited optional Lightning integration under audit

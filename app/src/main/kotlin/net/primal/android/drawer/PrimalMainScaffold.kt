@@ -46,6 +46,7 @@ import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.user.domain.Badges
+import net.primal.domain.links.CdnImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +58,7 @@ fun PrimalMainScaffold(
     onActiveDestinationClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    profileAvatarCdnImage: CdnImage? = null,
     settingsSelected: Boolean = false,
     topAppBarState: TopAppBarState = remember {
         TopAppBarState(
@@ -115,6 +117,7 @@ fun PrimalMainScaffold(
                     onActiveDestinationClick = onActiveDestinationClick,
                     onSettingsClick = onSettingsClick,
                     onProfileClick = onProfileClick,
+                    profileAvatarCdnImage = profileAvatarCdnImage,
                     settingsSelected = settingsSelected,
                     badges = badges,
                     exploreAnchorHandle = exploreAnchorHandle,
@@ -188,6 +191,7 @@ private fun ScaffoldBottomBar(
     onActiveDestinationClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onProfileClick: () -> Unit,
+    profileAvatarCdnImage: CdnImage?,
     settingsSelected: Boolean,
     badges: Badges,
     exploreAnchorHandle: AnchorHandle? = null,
@@ -218,6 +222,7 @@ private fun ScaffoldBottomBar(
             onActiveDestinationClick = onActiveDestinationClick,
             onSettingsClick = onSettingsClick,
             onProfileClick = onProfileClick,
+            profileAvatarCdnImage = profileAvatarCdnImage,
             settingsSelected = settingsSelected,
             badges = badges,
             exploreAnchorHandle = exploreAnchorHandle,

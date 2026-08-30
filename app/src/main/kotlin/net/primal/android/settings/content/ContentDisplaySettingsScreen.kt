@@ -32,12 +32,17 @@ import net.primal.android.user.domain.ContentDisplaySettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContentDisplaySettingsScreen(viewModel: ContentDisplaySettingsViewModel, onClose: () -> Unit) {
+fun ContentDisplaySettingsScreen(
+    viewModel: ContentDisplaySettingsViewModel,
+    onClose: () -> Unit,
+    embedded: Boolean = false,
+) {
     val uiState = viewModel.uiState.collectAsState()
 
     ContentDisplaySettingsScreen(
         state = uiState.value,
         onClose = onClose,
+        embedded = embedded,
         eventPublisher = { viewModel.setEvent(it) },
     )
 }
@@ -47,17 +52,22 @@ fun ContentDisplaySettingsScreen(viewModel: ContentDisplaySettingsViewModel, onC
 private fun ContentDisplaySettingsScreen(
     state: ContentDisplaySettingsContract.UiState,
     onClose: () -> Unit,
+    embedded: Boolean = false,
     eventPublisher: (UiEvent) -> Unit,
 ) {
     PrimalScaffold(
         modifier = Modifier,
-        topBar = {
+        topBar = if (embedded) {
+            null
+        } else {
+            {
             PrimalTopAppBar(
                 title = stringResource(id = R.string.settings_content_display_title),
                 navigationIcon = PrimalIcons.ArrowBack,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
                 onNavigationIconClick = onClose,
             )
+            }
         },
         content = { paddingValues ->
             Column(

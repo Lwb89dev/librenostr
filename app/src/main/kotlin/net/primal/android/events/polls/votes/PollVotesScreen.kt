@@ -497,7 +497,7 @@ private fun PreviewPollVotesScreenZapPoll() {
                             ),
                             PollOptionUi(
                                 id = "2",
-                                label = "Primal",
+                                label = "LibreNostr",
                                 voteCount = 5,
                                 votePercentage = 0.291f,
                                 satsZapped = 45_000,

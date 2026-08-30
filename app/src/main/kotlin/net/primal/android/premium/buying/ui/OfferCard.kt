@@ -111,7 +111,7 @@ fun OfferCard(
 private fun OfferTitle(titleSuffix: String, titleColor: Color) {
     Row {
         Text(
-            text = "Primal",
+            text = "LibreNostr",
             fontSize = 24.sp,
             lineHeight = 24.sp,
             fontWeight = FontWeight.Bold,

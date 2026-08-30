@@ -522,7 +522,7 @@ private fun PrimalAppNavigation(
             ),
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/rc/{$PROMO_CODE}"
+                    uriPattern = "https://nostrich.org/rc/{$PROMO_CODE}"
                 },
             ),
             navController = navController,
@@ -560,13 +560,13 @@ private fun PrimalAppNavigation(
             navController = navController,
             onDrawerDestinationClick = drawerDestinationHandler,
             deepLinks = listOf(
-                navDeepLink { uriPattern = "https://primal.net" },
-                navDeepLink { uriPattern = "https://primal.net/home" },
-                navDeepLink { uriPattern = "https://primal.net/reads" },
-                navDeepLink { uriPattern = "https://primal.net/explore" },
-                navDeepLink { uriPattern = "https://primal.net/notifications" },
-                navDeepLink { uriPattern = "https://primal.net/p/{$PROFILE_NPUB}/live/{$IDENTIFIER}" },
-                navDeepLink { uriPattern = "https://primal.net/{$PRIMAL_NAME}/live/{$IDENTIFIER}" },
+                navDeepLink { uriPattern = "https://nostrich.org" },
+                navDeepLink { uriPattern = "https://nostrich.org/home" },
+                navDeepLink { uriPattern = "https://nostrich.org/reads" },
+                navDeepLink { uriPattern = "https://nostrich.org/explore" },
+                navDeepLink { uriPattern = "https://nostrich.org/notifications" },
+                navDeepLink { uriPattern = "https://nostrich.org/p/{$PROFILE_NPUB}/live/{$IDENTIFIER}" },
+                navDeepLink { uriPattern = "https://nostrich.org/{$PRIMAL_NAME}/live/{$IDENTIFIER}" },
                 navDeepLink { uriPattern = "primal://live/{$STREAM_NADDR}" },
                 navDeepLink { uriPattern = "$NOSTR_CONNECT_SCHEME://.*" },
                 navDeepLink { uriPattern = "$PRIMAL_CONNECT_SCHEME://.*" },
@@ -615,7 +615,7 @@ private fun PrimalAppNavigation(
             navController = navController,
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/bookmarks"
+                    uriPattern = "https://nostrich.org/bookmarks"
                 },
             ),
         )
@@ -657,7 +657,7 @@ private fun PrimalAppNavigation(
             ),
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/search/{$ADVANCED_SEARCH_FEED_SPEC}"
+                    uriPattern = "https://nostrich.org/search/{$ADVANCED_SEARCH_FEED_SPEC}"
                 },
             ),
             navController = navController,
@@ -731,7 +731,7 @@ private fun PrimalAppNavigation(
             navController = navController,
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/premium"
+                    uriPattern = "https://nostrich.org/premium"
                 },
             ),
         )
@@ -773,7 +773,7 @@ private fun PrimalAppNavigation(
             navController = navController,
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/dms"
+                    uriPattern = "https://nostrich.org/dms"
                 },
             ),
         )
@@ -834,7 +834,7 @@ private fun PrimalAppNavigation(
             ),
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/e/{$NOTE_ID}"
+                    uriPattern = "https://nostrich.org/e/{$NOTE_ID}"
                 },
             ),
             navController = navController,
@@ -858,10 +858,10 @@ private fun PrimalAppNavigation(
             ),
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/a/{$ARTICLE_NADDR}"
+                    uriPattern = "https://nostrich.org/a/{$ARTICLE_NADDR}"
                 },
                 navDeepLink {
-                    uriPattern = "https://primal.net/{$PRIMAL_NAME}/{$ARTICLE_ID}"
+                    uriPattern = "https://nostrich.org/{$PRIMAL_NAME}/{$ARTICLE_ID}"
                 },
             ),
             navController = navController,
@@ -931,16 +931,16 @@ private fun PrimalAppNavigation(
             ),
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "https://primal.net/p/{$PROFILE_ID}"
+                    uriPattern = "https://nostrich.org/p/{$PROFILE_ID}"
                 },
                 navDeepLink {
                     uriPattern = "https://nostrich.org/p/{$PROFILE_ID}"
                 },
                 navDeepLink {
-                    uriPattern = "https://primal.net/profile/{$PROFILE_ID}"
+                    uriPattern = "https://nostrich.org/profile/{$PROFILE_ID}"
                 },
                 navDeepLink {
-                    uriPattern = "https://primal.net/{$PRIMAL_NAME}"
+                    uriPattern = "https://nostrich.org/{$PRIMAL_NAME}"
                 },
             ),
             navController = navController,

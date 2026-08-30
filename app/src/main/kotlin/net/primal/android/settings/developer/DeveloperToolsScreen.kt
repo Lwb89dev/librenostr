@@ -75,6 +75,7 @@ fun DeveloperToolsScreen(
     viewModel: DeveloperToolsViewModel,
     onClose: () -> Unit,
     onInspectUserDataClick: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val uiState = viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -141,6 +142,7 @@ fun DeveloperToolsScreen(
         state = uiState.value,
         onClose = onClose,
         onInspectUserDataClick = onInspectUserDataClick,
+        embedded = embedded,
         eventPublisher = { viewModel.setEvent(it) },
     )
 }
@@ -152,19 +154,24 @@ private fun DeveloperToolsScreen(
     state: UiState,
     onClose: () -> Unit,
     onInspectUserDataClick: () -> Unit,
+    embedded: Boolean = false,
     eventPublisher: (UiEvent) -> Unit,
 ) {
     val context = LocalContext.current
 
     PrimalScaffold(
         modifier = Modifier,
-        topBar = {
+        topBar = if (embedded) {
+            null
+        } else {
+            {
             PrimalTopAppBar(
                 title = stringResource(id = R.string.settings_developer_tools_title),
                 navigationIcon = PrimalIcons.ArrowBack,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
                 onNavigationIconClick = onClose,
             )
+            }
         },
         content = { paddingValues ->
             Column(
@@ -453,7 +460,7 @@ private fun WalletItem(
 
 private fun WalletType.toDisplayName(): String =
     when (this) {
-        WalletType.PRIMAL -> "Primal Wallet"
+        WalletType.PRIMAL -> "LibreNostr Wallet"
         WalletType.SPARK -> "Spark Wallet"
         WalletType.NWC -> "NWC Wallet"
     }

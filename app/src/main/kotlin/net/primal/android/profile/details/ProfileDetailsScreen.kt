@@ -517,7 +517,7 @@ private fun PreviewProfileScreen() {
                     avatarCdnImage = null,
                     internetIdentifier = "alex@primal.net",
                     lightningAddress = "alex@primal.net",
-                    about = "Primal Android",
+                    about = "LibreNostr Android",
                     website = "https://appollo41.com",
                 ),
                 isProfileFollowed = false,

@@ -52,11 +52,16 @@ import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 
 @Composable
-fun AppearanceSettingsScreen(viewModel: AppearanceSettingsViewModel, onClose: () -> Unit) {
+fun AppearanceSettingsScreen(
+    viewModel: AppearanceSettingsViewModel,
+    onClose: () -> Unit,
+    embedded: Boolean = false,
+) {
     val uiState = viewModel.state.collectAsState()
     AppearanceSettingsScreen(
         state = uiState.value,
         onClose = onClose,
+        embedded = embedded,
         eventPublisher = { viewModel.setEvent(it) },
     )
 }
@@ -66,18 +71,23 @@ fun AppearanceSettingsScreen(viewModel: AppearanceSettingsViewModel, onClose: ()
 fun AppearanceSettingsScreen(
     state: AppearanceSettingsContract.UiState,
     onClose: () -> Unit,
+    embedded: Boolean = false,
     eventPublisher: (UiEvent) -> Unit,
 ) {
     val isSystemInDarkTheme = isSystemInDarkTheme()
     PrimalScaffold(
         modifier = Modifier,
-        topBar = {
+        topBar = if (embedded) {
+            null
+        } else {
+            {
             PrimalTopAppBar(
                 title = stringResource(id = R.string.settings_appearance_title),
                 navigationIcon = PrimalIcons.ArrowBack,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
                 onNavigationIconClick = onClose,
             )
+            }
         },
         content = { paddingValues ->
             Column(

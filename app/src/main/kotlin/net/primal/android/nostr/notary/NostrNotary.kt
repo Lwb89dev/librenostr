@@ -62,7 +62,7 @@ class NostrNotary @Inject constructor(
 
     override suspend fun signNostrEvent(unsignedNostrEvent: NostrUnsignedEvent): SignResult {
         if (unsignedNostrEvent.kind in BLOCKED_PRIMAL_AUTH_KINDS) {
-            Napier.d { "Skipping leftover Primal cache/wallet kind ${unsignedNostrEvent.kind}" }
+            Napier.d { "Skipping leftover LibreNostr cache/wallet kind ${unsignedNostrEvent.kind}" }
             return SignResult.Rejected(SigningRejectedException())
         }
 
@@ -145,17 +145,17 @@ class NostrNotary @Inject constructor(
         description: String,
         tags: List<JsonArray> = emptyList(),
     ): SignResult {
-        Napier.d { "Primal cache AUTH disabled (userId=$userId, description=$description)" }
+        Napier.d { "LibreNostr cache AUTH disabled (userId=$userId, description=$description)" }
         return SignResult.Rejected(SigningRejectedException())
     }
 
     suspend fun signAppSettingsNostrEvent(userId: String, appSettings: ContentAppSettings): SignResult {
-        Napier.d { "Primal cache app-settings AUTH disabled (userId=$userId)" }
+        Napier.d { "LibreNostr cache app-settings AUTH disabled (userId=$userId)" }
         return SignResult.Rejected(SigningRejectedException())
     }
 
     suspend fun signAppSpecificDataNostrEvent(userId: String, content: String): SignResult {
-        Napier.d { "Primal cache app-specific AUTH disabled (userId=$userId)" }
+        Napier.d { "LibreNostr cache app-specific AUTH disabled (userId=$userId)" }
         return SignResult.Rejected(SigningRejectedException())
     }
 
