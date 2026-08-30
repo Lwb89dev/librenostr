@@ -11,8 +11,9 @@ import androidx.compose.ui.res.stringResource
 import net.primal.android.R
 import net.primal.android.core.activity.LocalZappingState
 import net.primal.android.core.compose.ConfirmActionAlertDialog
+import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.profile.approvals.ApproveBookmarkAlertDialog
-import net.primal.android.notes.feed.NoteRepostOrQuoteBottomSheet
+import net.primal.android.notes.feed.NoteRepostOrQuotePopup
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asNeventString
 import net.primal.android.notes.feed.note.NoteContract.UiEvent
@@ -44,6 +45,7 @@ fun NoteCardDialogs(
     eventPublisher: (UiEvent) -> Unit,
     noteCallbacks: NoteCallbacks,
     onGoToWallet: (() -> Unit)?,
+    repostAnchor: AnchorHandle,
 ) {
     val zappingState = LocalZappingState.current
     if (dialogsState.showCantZapWarning) {
@@ -107,7 +109,8 @@ fun NoteCardDialogs(
     }
 
     if (dialogsState.showRepostConfirmation) {
-        NoteRepostOrQuoteBottomSheet(
+        NoteRepostOrQuotePopup(
+            anchor = repostAnchor,
             isReposted = data.stats.userReposted,
             onDismiss = { dialogsState.showRepostConfirmation = false },
             onRepostClick = {

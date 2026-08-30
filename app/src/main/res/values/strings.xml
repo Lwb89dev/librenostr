@@ -1044,13 +1044,12 @@
     <string name="settings_content_display_auto_play_videos_hint">Start playing videos automatically as you scroll the feed. Turn this off to use less network data.</string>
     <string name="settings_content_display_animated_avatars">Show animated avatars</string>
     <string name="settings_content_display_animated_avatars_hint">Switch off to disable animated avatars in feeds. Profile will continue to show the full version.</string>
-    <string name="settings_content_display_full_screen_feed_display">Full screen feed display</string>
-    <string name="settings_content_display_full_screen_feed_display_hint">Maximize screen real estate by hiding app header &amp; footer as you scroll down the feed.</string>
     <string name="settings_content_display_live_streams">Live streams</string>
     <string name="settings_content_display_live_streams_hint">Show live streams from people you follow at the top of the home feed. Off by default to keep the feed light.</string>
 
-    <string name="settings_network_title">Network</string>
+    <string name="settings_network_title">Manage relays</string>
     <string name="settings_network_relays_section">Relays</string>
+    <string name="settings_network_relays_recommendation">Tip: for most users, 5–6 relays is a good balance between reliability and speed. More relays can increase connection and battery usage.</string>
     <string name="settings_network_add_a_relay_section">Add a relay</string>
     <string name="settings_network_restore_default_relays_title">Restore Defaults</string>
     <string name="settings_network_restore_default_relays_description">Are you sure you want to restore default relays?</string>

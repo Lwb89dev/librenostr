@@ -91,7 +91,6 @@ interface ProfileDetailsContract {
         val onLiveStreamClick: (naddr: String) -> Unit,
         val onFollowsClick: (String, ProfileFollowsType) -> Unit,
         val onGoToWallet: () -> Unit,
-        val onPremiumBadgeClick: (tier: String, profileId: String) -> Unit,
         val onNewPostClick: () -> Unit,
     )
 }

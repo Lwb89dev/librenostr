@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import net.primal.android.R
 import net.primal.android.core.compose.ListNoContent
 import net.primal.android.core.compose.PrimalDivider
+import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Document
 import net.primal.android.settings.muted.MutedSettingsContract
 import net.primal.android.settings.muted.ui.MutedListItem
 import net.primal.android.settings.muted.ui.MutedSettingsBottomSection
@@ -45,6 +47,7 @@ fun MuteWords(
             ) { mutedWord ->
                 MutedListItem(
                     item = mutedWord,
+                    leadingIcon = PrimalIcons.Document,
                     onUnmuteClick = {
                         eventPublisher(
                             MutedSettingsContract.UiEvent.UnmuteWord(mutedWord),

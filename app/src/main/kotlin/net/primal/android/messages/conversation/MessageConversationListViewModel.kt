@@ -23,7 +23,6 @@ import net.primal.android.core.utils.usernameUiFriendly
 import net.primal.android.messages.conversation.MessageConversationListContract.UiEvent
 import net.primal.android.messages.conversation.MessageConversationListContract.UiState
 import net.primal.android.messages.conversation.model.MessageConversationUi
-import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
 import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -40,8 +39,6 @@ class MessageConversationListViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val subscriptionsManager: SubscriptionsManager,
     private val chatRepository: ChatRepository,
-    @Suppress("UnusedPrivateProperty")
-    private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
     private val conversationsPagerCache = ConversationRelation.entries.associateWith { relation ->

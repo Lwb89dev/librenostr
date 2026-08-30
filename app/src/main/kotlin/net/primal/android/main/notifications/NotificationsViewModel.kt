@@ -27,7 +27,6 @@ import net.primal.android.core.utils.usernameUiFriendly
 import net.primal.android.events.polls.votes.asPollUi
 import net.primal.android.main.notifications.NotificationsContract.UiEvent
 import net.primal.android.main.notifications.NotificationsContract.UiState
-import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
@@ -50,8 +49,6 @@ class NotificationsViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val notificationRepository: NotificationRepository,
     private val subscriptionsManager: SubscriptionsManager,
-    @Suppress("UnusedPrivateProperty")
-    private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
     private val seenPagerCache: Map<NotificationGroup, Flow<PagingData<NotificationUi>>> =

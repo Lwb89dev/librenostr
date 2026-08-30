@@ -4,7 +4,6 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,8 +52,18 @@ import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.SignatureErrorColumn
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
+import net.primal.android.core.compose.icons.primaliconpack.FeedLikeOutline
+import net.primal.android.core.compose.icons.primaliconpack.FeedReplyOutline
+import net.primal.android.core.compose.icons.primaliconpack.FeedRepostsOutline
+import net.primal.android.core.compose.icons.primaliconpack.Follow
+import net.primal.android.core.compose.icons.primaliconpack.Message
+import net.primal.android.core.compose.icons.primaliconpack.Messages
+import net.primal.android.core.compose.icons.primaliconpack.Mute
+import net.primal.android.core.compose.icons.primaliconpack.NavWallet
+import net.primal.android.core.compose.icons.primaliconpack.Notifications
+import net.primal.android.core.compose.icons.primaliconpack.Play
+import net.primal.android.core.compose.icons.primaliconpack.Zap
 import net.primal.android.core.compose.preview.PrimalPreview
-import net.primal.android.core.compose.res.painterResource
 import net.primal.android.core.utils.getNotificationSettingsIntent
 import net.primal.android.settings.notifications.NotificationsSettingsContract.UiEvent.NotificationSettingsChanged
 import net.primal.android.settings.notifications.NotificationsSettingsContract.UiState.ApiError
@@ -206,7 +215,7 @@ fun <T : NotificationSettingsType> NotificationsSettingsBlock(
                     title = notificationSwitchUi.settingsType.toTitle(),
                     longTitleText = notificationSwitchUi.settingsType is NotificationSettingsType.Preferences,
                     enabled = notificationSwitchUi.enabled,
-                    painter = notificationSwitchUi.settingsType.toImagePainter(),
+                    icon = notificationSwitchUi.settingsType.icon(),
                     onCheckedChange = {
                         eventPublisher(
                             NotificationSettingsChanged(
@@ -231,7 +240,7 @@ private fun NotificationSettingsRow(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     longTitleText: Boolean = false,
-    painter: Painter? = null,
+    icon: ImageVector? = null,
     onCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
     Row(
@@ -243,11 +252,12 @@ private fun NotificationSettingsRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (painter != null) {
-            Image(
-                modifier = Modifier.size(32.dp),
-                painter = painter,
+        if (icon != null) {
+            androidx.compose.material3.Icon(
+                modifier = Modifier.size(28.dp),
+                imageVector = icon,
                 contentDescription = null,
+                tint = AppTheme.colorScheme.primary,
             )
         }
 
@@ -311,6 +321,7 @@ private fun PushNotificationSection(
                 modifier = Modifier.height(48.dp),
                 title = stringResource(R.string.settings_notifications_enable_push_notifications),
                 enabled = pushNotificationsEnabled,
+                icon = PrimalIcons.Notifications,
                 onCheckedChange = { newEnabled ->
                     if (newEnabled) {
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -454,106 +465,28 @@ private fun NotificationSettingsType.toTitle(): String =
         )
     }
 
-@Suppress("CyclomaticComplexMethod", "LongMethod")
-@Composable
-private fun NotificationSettingsType.toImagePainter(): Painter? =
+private fun NotificationSettingsType.icon(): ImageVector =
     when (this) {
-        is NotificationSettingsType.Preferences -> null
-        NotificationSettingsType.PushNotifications.DirectMessages ->
-            painterResource(
-                darkResId = R.drawable.notification_push_type_dms_dark,
-                lightResId = R.drawable.notification_push_type_dms_dark,
-            )
-
-        NotificationSettingsType.PushNotifications.Mentions ->
-            painterResource(
-                darkResId = R.drawable.notification_type_you_were_mentioned_in_a_post_dark,
-                lightResId = R.drawable.notification_type_you_were_mentioned_in_a_post_light,
-            )
-
-        NotificationSettingsType.PushNotifications.NewFollows ->
-            painterResource(
-                darkResId = R.drawable.notification_type_followed_dark,
-                lightResId = R.drawable.notification_type_followed_light,
-            )
-
-        NotificationSettingsType.PushNotifications.Reactions ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_liked_dark,
-                lightResId = R.drawable.notification_type_your_post_was_liked_light,
-            )
-
-        NotificationSettingsType.PushNotifications.Replies ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_replied_to_dark,
-                lightResId = R.drawable.notification_type_your_post_was_replied_to_light,
-            )
-
-        NotificationSettingsType.PushNotifications.Reposts ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_reposted_dark,
-                lightResId = R.drawable.notification_type_your_post_was_reposted_light,
-            )
-
-        NotificationSettingsType.PushNotifications.WalletTransactions ->
-            painterResource(
-                darkResId = R.drawable.notification_push_type_wallet_tx_dark,
-                lightResId = R.drawable.notification_push_type_wallet_tx_dark,
-            )
-
-        NotificationSettingsType.PushNotifications.Zaps ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_zapped_dark,
-                lightResId = R.drawable.notification_type_your_post_was_zapped_light,
-            )
-
-        NotificationSettingsType.TabNotifications.Mentions ->
-            painterResource(
-                darkResId = R.drawable.notification_type_you_were_mentioned_in_a_post_dark,
-                lightResId = R.drawable.notification_type_you_were_mentioned_in_a_post_light,
-            )
-
-        NotificationSettingsType.TabNotifications.NewFollows ->
-            painterResource(
-                darkResId = R.drawable.notification_type_followed_dark,
-                lightResId = R.drawable.notification_type_followed_light,
-            )
-
-        NotificationSettingsType.TabNotifications.Reactions ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_liked_dark,
-                lightResId = R.drawable.notification_type_your_post_was_liked_light,
-            )
-
-        NotificationSettingsType.TabNotifications.Replies ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_replied_to_dark,
-                lightResId = R.drawable.notification_type_your_post_was_replied_to_light,
-            )
-
-        NotificationSettingsType.TabNotifications.Reposts ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_reposted_dark,
-                lightResId = R.drawable.notification_type_your_post_was_reposted_light,
-            )
-
-        NotificationSettingsType.TabNotifications.Zaps ->
-            painterResource(
-                darkResId = R.drawable.notification_type_your_post_was_zapped_dark,
-                lightResId = R.drawable.notification_type_your_post_was_zapped_light,
-            )
-
-        NotificationSettingsType.TabNotifications.LiveEvents ->
-            painterResource(
-                darkResId = R.drawable.notification_type_live_stream_dark,
-                lightResId = R.drawable.notification_type_live_stream_light,
-            )
-
-        NotificationSettingsType.PushNotifications.LiveEvents ->
-            painterResource(
-                darkResId = R.drawable.notification_type_live_stream_dark,
-                lightResId = R.drawable.notification_type_live_stream_light,
-            )
+        NotificationSettingsType.Preferences.ReplyRoReply -> PrimalIcons.FeedReplyOutline
+        NotificationSettingsType.Preferences.HellThread -> PrimalIcons.Mute
+        NotificationSettingsType.Preferences.DMsFromFollows -> PrimalIcons.Messages
+        NotificationSettingsType.Preferences.ReactionsFromFollows -> PrimalIcons.FeedLikeOutline
+        NotificationSettingsType.PushNotifications.DirectMessages -> PrimalIcons.Message
+        NotificationSettingsType.PushNotifications.Mentions -> PrimalIcons.Message
+        NotificationSettingsType.PushNotifications.NewFollows -> PrimalIcons.Follow
+        NotificationSettingsType.PushNotifications.Reactions -> PrimalIcons.FeedLikeOutline
+        NotificationSettingsType.PushNotifications.Replies -> PrimalIcons.FeedReplyOutline
+        NotificationSettingsType.PushNotifications.Reposts -> PrimalIcons.FeedRepostsOutline
+        NotificationSettingsType.PushNotifications.WalletTransactions -> PrimalIcons.NavWallet
+        NotificationSettingsType.PushNotifications.Zaps -> PrimalIcons.Zap
+        NotificationSettingsType.PushNotifications.LiveEvents -> PrimalIcons.Play
+        NotificationSettingsType.TabNotifications.Mentions -> PrimalIcons.Message
+        NotificationSettingsType.TabNotifications.NewFollows -> PrimalIcons.Follow
+        NotificationSettingsType.TabNotifications.Reactions -> PrimalIcons.FeedLikeOutline
+        NotificationSettingsType.TabNotifications.Replies -> PrimalIcons.FeedReplyOutline
+        NotificationSettingsType.TabNotifications.Reposts -> PrimalIcons.FeedRepostsOutline
+        NotificationSettingsType.TabNotifications.Zaps -> PrimalIcons.Zap
+        NotificationSettingsType.TabNotifications.LiveEvents -> PrimalIcons.Play
     }
 
 @Preview

@@ -46,6 +46,7 @@ fun FeedListOverlayContent(
     onDismiss: () -> Unit,
     onGoToWallet: (() -> Unit)? = null,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
+    inlineActions: Boolean = false,
 ) {
     val viewModel = hiltViewModel<FeedListViewModel, FeedListViewModel.Factory>(
         key = "FeedListViewModel_$feedSpecKind",
@@ -61,6 +62,7 @@ fun FeedListOverlayContent(
         eventPublisher = viewModel::setEvent,
         onGoToWallet = onGoToWallet,
         onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
+        inlineActions = inlineActions,
     )
 }
 
@@ -73,6 +75,7 @@ private fun FeedListOverlayContent(
     eventPublisher: (FeedListContract.UiEvent) -> Unit,
     onGoToWallet: (() -> Unit)? = null,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
+    inlineActions: Boolean = false,
 ) {
     BackHandler {
         when (state.feedMarketplaceStage) {
@@ -103,6 +106,7 @@ private fun FeedListOverlayContent(
                 onCloseClick = onDismiss,
                 eventPublisher = eventPublisher,
                 onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
+                inlineActions = inlineActions,
             )
 
             FeedMarketplaceStage.FeedMarketplace -> FollowSetPicker(
@@ -128,6 +132,7 @@ private fun FeedListStage(
     onCloseClick: () -> Unit,
     eventPublisher: (FeedListContract.UiEvent) -> Unit,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
+    inlineActions: Boolean = false,
 ) {
     FeedList(
         modifier = Modifier.fillMaxSize(),
@@ -167,6 +172,7 @@ private fun FeedListStage(
             eventPublisher(FeedListContract.UiEvent.RestoreDefaultPrimalFeeds)
         },
         onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
+        inlineActions = inlineActions,
     )
 }
 

@@ -161,11 +161,7 @@ fun NoteDropdownMenuIcon(
                     context.copyText(text = resolvePrimalNoteLink(noteId = noteId))
                     menuVisible = false
                     uiScope.launch {
-                        Toast.makeText(
-                            context,
-                            copyConfirmationText,
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        Toast.makeText(context, copyConfirmationText, Toast.LENGTH_SHORT).show()
                     }
                 },
             )
@@ -178,11 +174,7 @@ fun NoteDropdownMenuIcon(
                     context.copyText(text = noteContent)
                     menuVisible = false
                     uiScope.launch {
-                        Toast.makeText(
-                            context,
-                            copyConfirmationText,
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        Toast.makeText(context, copyConfirmationText, Toast.LENGTH_SHORT).show()
                     }
                 },
             )
@@ -201,11 +193,7 @@ fun NoteDropdownMenuIcon(
                     context.copyText(text = nevent.withNostrPrefix())
                     menuVisible = false
                     uiScope.launch {
-                        Toast.makeText(
-                            context,
-                            copyConfirmationText,
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        Toast.makeText(context, copyConfirmationText, Toast.LENGTH_SHORT).show()
                     }
                 },
             )
@@ -216,11 +204,7 @@ fun NoteDropdownMenuIcon(
                     context.copyText(text = noteRawData)
                     menuVisible = false
                     uiScope.launch {
-                        Toast.makeText(
-                            context,
-                            copyConfirmationText,
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        Toast.makeText(context, copyConfirmationText, Toast.LENGTH_SHORT).show()
                     }
                 },
             )

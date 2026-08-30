@@ -66,20 +66,20 @@ import net.primal.android.core.activity.LocalActiveAccountId
 import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.activity.LocalZappingState
 import net.primal.android.core.compose.IconText
+import net.primal.android.core.compose.bubble.AnchorHandle
+import net.primal.android.core.compose.bubble.anchor
 import net.primal.android.core.compose.PrimalAsyncImage
 import net.primal.android.core.compose.PrimalClickableText
 import net.primal.android.core.compose.asBeforeNowFormat
 import net.primal.android.core.compose.attachment.model.EventUriUi
 import net.primal.android.core.compose.icons.PrimalIcons
-import net.primal.android.core.compose.icons.primaliconpack.FeedBookmark
-import net.primal.android.core.compose.icons.primaliconpack.FeedBookmarkFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewLike
+import net.primal.android.core.compose.icons.primaliconpack.FeedLikeOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewLikeFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewReply
+import net.primal.android.core.compose.icons.primaliconpack.FeedReplyOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewReplyFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewReposts
+import net.primal.android.core.compose.icons.primaliconpack.FeedRepostsOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewRepostsFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewZap
+import net.primal.android.core.compose.icons.primaliconpack.FeedZapOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewZapFilled
 import net.primal.android.core.compose.zaps.FeedNoteTopZapsSection
 import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
@@ -148,6 +148,7 @@ fun MediaFeedCard(
     }
 
     val dialogsState = rememberNoteCardDialogsState()
+    val repostAnchor = remember { AnchorHandle() }
     NoteCardDialogs(
         dialogsState = dialogsState,
         data = data,
@@ -155,6 +156,7 @@ fun MediaFeedCard(
         eventPublisher = viewModel::setEvent,
         noteCallbacks = noteCallbacks,
         onGoToWallet = onGoToWallet,
+        repostAnchor = repostAnchor,
     )
 
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -168,6 +170,7 @@ fun MediaFeedCard(
         couldAutoPlay = couldAutoPlay,
         expanded = expanded,
         onExpandClick = { expanded = true },
+        repostAnchor = repostAnchor,
     )
 }
 
@@ -182,6 +185,7 @@ private fun MediaFeedCardBody(
     couldAutoPlay: Boolean,
     expanded: Boolean,
     onExpandClick: () -> Unit,
+    repostAnchor: AnchorHandle,
 ) {
     val graphicsLayer = rememberGraphicsLayer()
     val zappingState = LocalZappingState.current
@@ -252,7 +256,7 @@ private fun MediaFeedCardBody(
 
         MediaFeedActionsRow(
             eventStats = data.stats,
-            isBookmarked = data.isBookmarked,
+            repostAnchor = repostAnchor,
             onPostAction = { postAction ->
                 when (postAction) {
                     FeedPostAction.Reply ->
@@ -675,9 +679,9 @@ private fun buildMediaFeedAnnotatedString(
 @Composable
 private fun MediaFeedActionsRow(
     eventStats: EventStatsUi,
-    isBookmarked: Boolean,
     onPostAction: (FeedPostAction) -> Unit,
     onPostLongPressAction: (FeedPostAction) -> Unit,
+    repostAnchor: AnchorHandle,
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance() }
 
@@ -697,14 +701,14 @@ private fun MediaFeedActionsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(ActionSpacing),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             ActionStat(
                 action = FeedPostAction.Reply,
                 count = eventStats.repliesCount,
                 highlighted = eventStats.userReplied,
-                icon = PrimalIcons.FeedNewReply,
+                icon = PrimalIcons.FeedReplyOutline,
                 iconHighlighted = PrimalIcons.FeedNewReplyFilled,
                 highlightColor = AppTheme.extraColorScheme.replied,
                 contentDescription = stringResource(R.string.accessibility_replies_count),
@@ -716,7 +720,7 @@ private fun MediaFeedActionsRow(
                 action = FeedPostAction.Zap,
                 count = eventStats.satsZapped,
                 highlighted = eventStats.userZapped,
-                icon = PrimalIcons.FeedNewZap,
+                icon = PrimalIcons.FeedZapOutline,
                 iconHighlighted = PrimalIcons.FeedNewZapFilled,
                 highlightColor = AppTheme.extraColorScheme.zapped,
                 contentDescription = stringResource(R.string.accessibility_zaps_count),
@@ -734,7 +738,7 @@ private fun MediaFeedActionsRow(
                 action = FeedPostAction.Like,
                 count = eventStats.likesCount,
                 highlighted = eventStats.userLiked,
-                icon = PrimalIcons.FeedNewLike,
+                icon = PrimalIcons.FeedLikeOutline,
                 iconHighlighted = PrimalIcons.FeedNewLikeFilled,
                 highlightColor = AppTheme.extraColorScheme.liked,
                 contentDescription = stringResource(R.string.accessibility_likes_count),
@@ -743,10 +747,11 @@ private fun MediaFeedActionsRow(
                 onPostLongPressAction = onPostLongPressAction,
             )
             ActionStat(
+                modifier = Modifier.anchor(repostAnchor),
                 action = FeedPostAction.Repost,
                 count = eventStats.repostsCount,
                 highlighted = eventStats.userReposted,
-                icon = PrimalIcons.FeedNewReposts,
+                icon = PrimalIcons.FeedRepostsOutline,
                 iconHighlighted = PrimalIcons.FeedNewRepostsFilled,
                 highlightColor = AppTheme.extraColorScheme.reposted,
                 contentDescription = stringResource(R.string.accessibility_repost_count),
@@ -755,25 +760,13 @@ private fun MediaFeedActionsRow(
                 onPostLongPressAction = onPostLongPressAction,
             )
         }
-
-        ActionStat(
-            action = FeedPostAction.Bookmark,
-            count = 0,
-            highlighted = isBookmarked,
-            icon = PrimalIcons.FeedBookmark,
-            iconHighlighted = PrimalIcons.FeedBookmarkFilled,
-            highlightColor = AppTheme.extraColorScheme.bookmarked,
-            contentDescription = stringResource(R.string.accessibility_bookmark),
-            numberFormat = numberFormat,
-            onPostAction = onPostAction,
-            onPostLongPressAction = onPostLongPressAction,
-        )
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ActionStat(
+    modifier: Modifier = Modifier,
     action: FeedPostAction,
     count: Long,
     highlighted: Boolean,
@@ -788,7 +781,7 @@ private fun ActionStat(
 ) {
     val defaultColor = AppTheme.extraColorScheme.onSurfaceVariantAlt4
     IconText(
-        modifier = Modifier
+        modifier = modifier
             .animateContentSize()
             .combinedClickable(
                 enabled = action != FeedPostAction.Like || !highlighted,

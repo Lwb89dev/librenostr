@@ -743,8 +743,6 @@ private fun PrimalAppNavigation(
 
         premiumSupportPrimal(route = "premium/supportPrimal", navController = navController)
 
-        premiumLegendContribution(route = "premium/legend/contribution", navController = navController)
-
         premiumMoreInfo(
             route = "premium/info?$PREMIUM_MORE_INFO_TAB_INDEX={$PREMIUM_MORE_INFO_TAB_INDEX}",
             arguments = listOf(
@@ -755,40 +753,6 @@ private fun PrimalAppNavigation(
             ),
             navController = navController,
         )
-
-        premiumBuyPrimalLegend(
-            route = "premium/legend/buy?$FROM_ORIGIN={$FROM_ORIGIN}",
-            arguments = listOf(
-                navArgument(FROM_ORIGIN) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-            ),
-            navController = navController,
-        )
-
-        premiumLegendaryProfile(route = "premium/legend/profile", navController = navController)
-
-        premiumCard(
-            route = "premium/card/{$PROFILE_ID}",
-            arguments = listOf(
-                navArgument(PROFILE_ID) {
-                    type = NavType.StringType
-                },
-            ),
-            navController = navController,
-        )
-
-        premiumLegendLeaderboard(
-            route = "premium/legend/leaderboard",
-            navController = navController,
-            deepLinks = listOf(
-                navDeepLink {
-                    uriPattern = "https://primal.net/legends"
-                },
-            ),
-        )
-        premiumOGsLeaderboard(route = "premium/ogs/leaderboard", navController = navController)
 
         premiumManage(route = "premium/manage", navController = navController)
 
@@ -1474,16 +1438,7 @@ private fun NavGraphBuilder.search(
                 }
             },
             onProfileClick = { profileId -> navController.navigateToProfile(profileId) },
-            onNoteClick = { noteId -> navController.navigateToThread(noteId) },
             onNaddrClick = { naddr -> navController.navigateToArticleDetails(naddr) },
-            onSearchContent = { scope, query ->
-                val feedSpec = when (scope) {
-                    SearchScope.Notes -> buildAdvancedSearchNotesFeedSpec(query = query)
-                    SearchScope.Reads -> buildAdvancedSearchReadsFeedSpec(query = query)
-                    SearchScope.MyNotifications -> buildAdvancedSearchNotificationsFeedSpec(query = query)
-                }
-                navController.navigateToExploreFeed(feedSpec = feedSpec)
-            },
             noteCallbacks = noteCallbacksHandler(navController),
             onGoToWallet = { navController.navigateToWallet() },
         ),
@@ -1590,10 +1545,8 @@ private fun NavGraphBuilder.premiumHome(route: String, navController: NavControl
                 onClose = { navController.navigateUp() },
                 onRenewSubscription = { navController.navigateToPremiumExtendSubscription(primalName = it) },
                 onManagePremium = { navController.navigateToPremiumManage() },
-                onLegendCardClick = { navController.navigateToPremiumCard(profileId = it) },
                 onSupportPrimal = { navController.navigateToPremiumSupportPrimal() },
                 onUpgradeToProClick = { navController.navigateToUpgradeToPrimalPro() },
-                onContributePrimal = { navController.navigateToLegendContributePrimal() },
             ),
         )
     }
@@ -1614,7 +1567,6 @@ private fun NavGraphBuilder.premiumSupportPrimal(route: String, navController: N
             callbacks = SupportPrimalContract.ScreenCallbacks(
                 onClose = { navController.navigateUp() },
                 onExtendSubscription = { navController.navigateToPremiumExtendSubscription(primalName = it) },
-                onBecomeLegend = { navController.navigateToPremiumBuyPrimalLegend() },
             ),
         )
     }
@@ -1833,11 +1785,6 @@ private fun NavGraphBuilder.premiumManage(route: String, navController: NavContr
                         is PremiumManageContract.ManageDestination.ExtendSubscription ->
                             navController.navigateToPremiumExtendSubscription(primalName = it.primalName)
 
-                        PremiumManageContract.ManageDestination.LegendaryProfileCustomization ->
-                            navController.navigateToPremiumLegendaryProfile()
-
-                        PremiumManageContract.ManageDestination.BecomeALegend ->
-                            navController.navigateToPremiumBuyPrimalLegend()
                     }
                 },
             ),
@@ -2243,11 +2190,6 @@ private fun NavGraphBuilder.profile(
             onMediaItemClick = { navController.navigateToMediaItem(it) },
             onGoToWallet = { navController.navigateToWallet() },
             onSearchClick = { navController.navigateToAdvancedSearch(initialPostedBy = listOf(it)) },
-            onPremiumBadgeClick = { premiumTier, profileId ->
-                if (premiumTier.isPrimalLegendTier() || premiumTier.isPremiumTier()) {
-                    navController.navigateToPremiumCard(profileId = profileId)
-                }
-            },
             onNewPostClick = { navController.navigateToNoteEditor(null) },
             onLiveStreamClick = { naddr -> streamState.start(naddr) },
         ),

@@ -846,9 +846,7 @@ private fun ArticleContentWithComments(
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 16.dp),
                         eventStats = state.article.eventStatsUi,
-                        isBookmarked = state.article.isBookmarked,
                         showCounts = false,
-                        showBookmark = true,
                         highlightedNote = true,
                         onPostAction = onPostAction,
                         onPostLongPressAction = onPostLongPressAction,

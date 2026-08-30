@@ -56,6 +56,8 @@ import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.Copy
 import net.primal.android.core.compose.icons.primaliconpack.Delete
 import net.primal.android.core.compose.icons.primaliconpack.Key
+import net.primal.android.core.compose.icons.primaliconpack.Document
+import net.primal.android.core.compose.icons.primaliconpack.NavWallet
 import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.core.logging.AppLogExporter
 import net.primal.android.core.utils.copyText
@@ -180,6 +182,7 @@ private fun DeveloperToolsScreen(
                 SettingsItem(
                     headlineText = stringResource(id = R.string.settings_developer_tools_logging_title),
                     supportText = stringResource(id = R.string.settings_developer_tools_logging_description),
+                    leadingIcon = PrimalIcons.Document,
                     trailingContent = {
                         PrimalSwitch(
                             checked = state.isLoggingEnabled,
@@ -255,6 +258,7 @@ private fun DeveloperToolsScreen(
                 SettingsItem(
                     headlineText = stringResource(id = R.string.settings_developer_tools_wallet_picker_title),
                     supportText = stringResource(id = R.string.settings_developer_tools_wallet_picker_description),
+                    leadingIcon = PrimalIcons.NavWallet,
                     trailingContent = {
                         PrimalSwitch(
                             checked = state.isWalletPickerEnabled,
@@ -304,6 +308,7 @@ private fun DeveloperToolsScreen(
                     supportText = stringResource(
                         id = R.string.settings_developer_tools_data_inspector_description,
                     ),
+                    leadingIcon = PrimalIcons.Key,
                     onClick = onInspectUserDataClick,
                 )
 

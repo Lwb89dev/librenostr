@@ -29,9 +29,7 @@ interface PremiumHomeContract {
         val onClose: () -> Unit,
         val onRenewSubscription: (primalName: String) -> Unit,
         val onManagePremium: () -> Unit,
-        val onLegendCardClick: (String) -> Unit,
         val onSupportPrimal: () -> Unit,
         val onUpgradeToProClick: () -> Unit,
-        val onContributePrimal: () -> Unit,
     )
 }

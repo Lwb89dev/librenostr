@@ -2,8 +2,12 @@ package net.primal.android.settings.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +35,17 @@ import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
+import net.primal.android.core.compose.icons.primaliconpack.ConnectRelay
+import net.primal.android.core.compose.icons.primaliconpack.DarkMode
+import net.primal.android.core.compose.icons.primaliconpack.FontSize
+import net.primal.android.core.compose.icons.primaliconpack.ImportPhotoFromGallery
+import net.primal.android.core.compose.icons.primaliconpack.Key
+import net.primal.android.core.compose.icons.primaliconpack.MenuAccount
+import net.primal.android.core.compose.icons.primaliconpack.MuteUser
+import net.primal.android.core.compose.icons.primaliconpack.Notifications
+import net.primal.android.core.compose.icons.primaliconpack.NostrConnectSession
+import net.primal.android.core.compose.icons.primaliconpack.NavWallet
+import net.primal.android.core.compose.icons.primaliconpack.Zap
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
@@ -73,44 +88,53 @@ private fun SettingsHomeScreen(
             )
         },
         content = { paddingValues ->
-            LazyColumn(
-                modifier = Modifier.padding(paddingValues),
-            ) {
-                items(
-                    items = PrimalSettingsSection.entries.filter {
-                        it != PrimalSettingsSection.Wallet &&
-                            it != PrimalSettingsSection.ConnectedApps &&
-                            it != PrimalSettingsSection.Account &&
-                            it != PrimalSettingsSection.Zaps
-                    },
-                    key = { it.name },
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(bottom = 64.dp),
                 ) {
-                    SettingsListItem(
-                        title = it.title(),
-                        onClick = { onSettingsSectionClick(it) },
-                        trailingIcon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                        walletNeedsBackup = it == PrimalSettingsSection.Wallet && state.walletNeedsBackup,
-                    )
-                    PrimalDivider()
-                }
-
-                if (state.developerToolsEnabled) {
-                    item(key = "developer_tools") {
+                    items(
+                        items = PrimalSettingsSection.entries.filter {
+                            it != PrimalSettingsSection.Wallet &&
+                                it != PrimalSettingsSection.ConnectedApps &&
+                                it != PrimalSettingsSection.Account &&
+                                it != PrimalSettingsSection.Zaps
+                        },
+                        key = { it.name },
+                    ) {
                         SettingsListItem(
-                            title = stringResource(id = R.string.settings_developer_tools_title),
-                            onClick = onDeveloperToolsClick,
+                            title = it.title(),
+                            leadingIcon = it.icon(),
+                            onClick = { onSettingsSectionClick(it) },
                             trailingIcon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                            walletNeedsBackup = it == PrimalSettingsSection.Wallet && state.walletNeedsBackup,
                         )
                         PrimalDivider()
                     }
+
+                    if (state.developerToolsEnabled) {
+                        item(key = "developer_tools") {
+                            SettingsListItem(
+                                title = stringResource(id = R.string.settings_developer_tools_title),
+                                leadingIcon = PrimalIcons.Key,
+                                onClick = onDeveloperToolsClick,
+                                trailingIcon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                            )
+                            PrimalDivider()
+                        }
+                    }
                 }
 
-                item {
-                    VersionListItem(
-                        versionName = state.version,
-                        onClick = { eventPublisher(SettingsHomeContract.UiEvent.VersionTapped) },
-                    )
-                }
+                VersionBadge(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .navigationBarsPadding()
+                        .padding(end = 18.dp, bottom = 12.dp),
+                    versionName = state.version,
+                    onClick = { eventPublisher(SettingsHomeContract.UiEvent.VersionTapped) },
+                )
             }
         },
     )
@@ -127,14 +151,19 @@ private fun SettingsListItem(
 ) {
     ListItem(
         modifier = Modifier
-            .height(60.dp)
+            .height(64.dp)
             .clickable { onClick() },
         colors = ListItemDefaults.colors(
-            containerColor = AppTheme.colorScheme.surfaceVariant,
+            containerColor = AppTheme.colorScheme.background,
         ),
         leadingContent = if (leadingIcon != null) {
             {
-                Icon(imageVector = leadingIcon, contentDescription = null)
+                Icon(
+                    modifier = Modifier.size(24.dp),
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = AppTheme.colorScheme.primary,
+                )
             }
         } else {
             null
@@ -143,7 +172,7 @@ private fun SettingsListItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = title,
-                    style = AppTheme.typography.titleLarge,
+                    style = AppTheme.typography.titleMedium,
                 )
                 if (walletNeedsBackup) {
                     Badge(
@@ -183,23 +212,28 @@ private fun SettingsListItem(
 }
 
 @Composable
-private fun VersionListItem(versionName: String, onClick: () -> Unit) {
-    ListItem(
-        modifier = Modifier.clickable { onClick() },
-        headlineContent = {
-            Text(
-                text = stringResource(id = R.string.settings_version_title).uppercase(),
-                style = AppTheme.typography.bodySmall,
-            )
-        },
-        supportingContent = {
-            Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text = versionName,
-                style = AppTheme.typography.titleLarge,
-            )
-        },
+private fun VersionBadge(modifier: Modifier, versionName: String, onClick: () -> Unit) {
+    Text(
+        modifier = modifier.clickable(onClick = onClick),
+        text = "ver. $versionName",
+        style = AppTheme.typography.labelSmall,
+        color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
     )
+}
+
+private fun PrimalSettingsSection.icon(): ImageVector {
+    return when (this) {
+        PrimalSettingsSection.Account -> PrimalIcons.MenuAccount
+        PrimalSettingsSection.Wallet -> PrimalIcons.NavWallet
+        PrimalSettingsSection.Network -> PrimalIcons.ConnectRelay
+        PrimalSettingsSection.Appearance -> PrimalIcons.DarkMode
+        PrimalSettingsSection.ConnectedApps -> PrimalIcons.NostrConnectSession
+        PrimalSettingsSection.ContentDisplay -> PrimalIcons.FontSize
+        PrimalSettingsSection.MutedAccounts -> PrimalIcons.MuteUser
+        PrimalSettingsSection.MediaUploads -> PrimalIcons.ImportPhotoFromGallery
+        PrimalSettingsSection.Notifications -> PrimalIcons.Notifications
+        PrimalSettingsSection.Zaps -> PrimalIcons.Zap
+    }
 }
 
 @Composable

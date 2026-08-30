@@ -31,7 +31,6 @@ import net.primal.android.messages.chat.ChatContract.UiState
 import net.primal.android.messages.chat.model.ChatMessageUi
 import net.primal.android.navigation.profileIdOrThrow
 import net.primal.android.networking.relays.errors.NostrPublishException
-import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
@@ -52,8 +51,6 @@ class ChatViewModel @Inject constructor(
     private val subscriptionsManager: SubscriptionsManager,
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
-    @Suppress("UnusedPrivateProperty")
-    private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
     private val participantId = savedStateHandle.profileIdOrThrow

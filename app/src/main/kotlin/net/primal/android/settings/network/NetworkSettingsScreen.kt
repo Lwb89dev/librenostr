@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
@@ -39,13 +42,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.primal.android.R
 import net.primal.android.core.compose.ConfirmActionAlertDialog
-import net.primal.android.core.compose.DeleteListItemImage
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
+import net.primal.android.core.compose.icons.primaliconpack.Close
+import net.primal.android.core.compose.icons.primaliconpack.ConnectRelay
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.settings.DecoratedSettingsOutlinedTextField
 import net.primal.android.theme.AppTheme
@@ -204,6 +208,10 @@ private fun LazyListScope.relaysSectionItems(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                 text = stringResource(id = R.string.settings_network_relays_section).uppercase(),
             )
+            TextSubSection(
+                modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp),
+                text = stringResource(id = R.string.settings_network_relays_recommendation),
+            )
             PrimalDivider()
         }
     }
@@ -344,16 +352,26 @@ fun NetworkDestinationListItem(
     val failed = AppTheme.colorScheme.error
     ListItem(
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .padding(start = 2.dp, top = 2.dp)
-                    .size(10.dp)
-                    .drawWithCache {
-                        this.onDrawWithContent {
-                            drawCircle(color = if (connected) success else failed)
-                        }
-                    },
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Icon(
+                    modifier = Modifier.size(22.dp),
+                    imageVector = PrimalIcons.ConnectRelay,
+                    contentDescription = null,
+                    tint = AppTheme.colorScheme.primary,
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .drawWithCache {
+                            this.onDrawWithContent {
+                                drawCircle(color = if (connected) success else failed)
+                            }
+                        },
+                )
+            }
         },
         headlineContent = {
             Text(text = destinationUrl)
@@ -362,9 +380,13 @@ fun NetworkDestinationListItem(
             Row {
                 trailingPermissions?.invoke()
                 if (onRemoveClick != null) {
-                    DeleteListItemImage(
-                        modifier = Modifier.clickable { onRemoveClick() },
-                    )
+                    IconButton(onClick = onRemoveClick) {
+                        Icon(
+                            imageVector = PrimalIcons.Close,
+                            contentDescription = stringResource(R.string.accessibility_delete_list_item),
+                            tint = AppTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         },

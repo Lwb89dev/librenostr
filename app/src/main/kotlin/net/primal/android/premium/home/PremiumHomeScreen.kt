@@ -22,7 +22,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -137,8 +136,6 @@ private fun PremiumHomeScreen(
                 .navigationBarsPadding(),
             state = state,
             eventPublisher = eventPublisher,
-            onLegendCardClick = callbacks.onLegendCardClick,
-            onContributePrimal = callbacks.onContributePrimal,
             onSupportPrimal = callbacks.onSupportPrimal,
             onUpgradeToProClick = callbacks.onUpgradeToProClick,
         )
@@ -151,8 +148,6 @@ private fun PremiumHomeContent(
     modifier: Modifier,
     state: PremiumHomeContract.UiState,
     eventPublisher: (PremiumHomeContract.UiEvent) -> Unit,
-    onLegendCardClick: (String) -> Unit,
-    onContributePrimal: () -> Unit,
     onSupportPrimal: () -> Unit,
     onUpgradeToProClick: () -> Unit,
 ) {
@@ -164,22 +159,10 @@ private fun PremiumHomeContent(
         PremiumAvatarHeader(
             primalName = state.membership?.premiumName ?: "",
             avatarCdnImage = state.avatarCdnImage,
-            avatarLegendaryCustomization = state.avatarLegendaryCustomization,
             profileId = state.profileId,
         )
 
         if (state.membership != null) {
-            PremiumBadge(
-                modifier = Modifier.clickable(enabled = state.membership.isPrimalLegendTier()) {
-                    state.profileId?.let { onLegendCardClick(it) }
-                },
-                firstCohort = state.membership.cohort1,
-                secondCohort = state.membership.cohort2,
-                membershipExpired = state.membership.isExpired(),
-                legendaryStyle = state.avatarLegendaryCustomization?.legendaryStyle
-                    ?: LegendaryStyle.NO_CUSTOMIZATION,
-            )
-
             if (state.membership.isPremiumFreeTier()) {
                 Text(
                     modifier = Modifier.padding(horizontal = 36.dp),
@@ -359,59 +342,5 @@ private fun SupportUsNoticePremium(onSupportPrimal: () -> Unit) {
                 },
             )
         }
-    }
-}
-
-@Suppress("UnusedPrivateMember")
-@Composable
-private fun SupportUsNoticeLegend(
-    visible: Boolean,
-    donatedSats: Long,
-    onContributePrimal: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.alpha(if (visible) 1.0f else 0.0f),
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Row {
-            Text(
-                color = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-                text = stringResource(id = R.string.premium_home_legend_contribution_title) + " ",
-                style = AppTheme.typography.bodyMedium,
-            )
-            Text(
-                modifier = Modifier.clickable(onClick = onContributePrimal),
-                style = AppTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                text = buildAnnotatedString {
-                    withStyle(
-                        style = SpanStyle(
-                            color = AppTheme.colorScheme.onBackground,
-                        ),
-                    ) {
-                        append(donatedSats.let { "%,d sats".format(it) })
-                    }
-                },
-            )
-        }
-        if (donatedSats > 0L) {
-            Text(
-                color = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-                text = stringResource(id = R.string.premium_home_legend_support_appreciation),
-                style = AppTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-            )
-        }
-        Text(
-            modifier = Modifier
-                .clickable(
-                    onClick = onContributePrimal,
-                ),
-            color = AppTheme.colorScheme.secondary,
-            text = stringResource(id = R.string.premium_home_legend_contribute_more),
-            style = AppTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-        )
     }
 }

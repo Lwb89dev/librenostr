@@ -22,6 +22,9 @@ import net.primal.android.core.compose.PrimalSwitch
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
+import net.primal.android.core.compose.icons.primaliconpack.AvatarNostrich
+import net.primal.android.core.compose.icons.primaliconpack.Play
+import net.primal.android.core.compose.icons.primaliconpack.VideoPlay
 import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.settings.content.ContentDisplaySettingsContract.UiEvent
 import net.primal.android.theme.AppTheme
@@ -71,6 +74,7 @@ private fun ContentDisplaySettingsScreen(
                 SettingsItem(
                     headlineText = stringResource(id = R.string.settings_content_display_auto_play_videos),
                     supportText = stringResource(id = R.string.settings_content_display_auto_play_videos_hint),
+                    leadingIcon = PrimalIcons.VideoPlay,
                     trailingContent = {
                         PrimalSwitch(
                             checked = state.autoPlayVideos == ContentDisplaySettings.AUTO_PLAY_VIDEO_ALWAYS,
@@ -105,6 +109,7 @@ private fun ContentDisplaySettingsScreen(
                 SettingsItem(
                     headlineText = stringResource(id = R.string.settings_content_display_animated_avatars),
                     supportText = stringResource(id = R.string.settings_content_display_animated_avatars_hint),
+                    leadingIcon = PrimalIcons.AvatarNostrich,
                     trailingContent = {
                         PrimalSwitch(
                             checked = state.showAnimatedAvatars,
@@ -121,26 +126,9 @@ private fun ContentDisplaySettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsItem(
-                    headlineText = stringResource(id = R.string.settings_content_display_full_screen_feed_display),
-                    supportText = stringResource(id = R.string.settings_content_display_full_screen_feed_display_hint),
-                    trailingContent = {
-                        PrimalSwitch(
-                            checked = state.focusMode,
-                            onCheckedChange = {
-                                eventPublisher(UiEvent.UpdateShowFocusMode(enabled = it))
-                            },
-                        )
-                    },
-                    onClick = {
-                        eventPublisher(UiEvent.UpdateShowFocusMode(enabled = !state.focusMode))
-                    },
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SettingsItem(
                     headlineText = stringResource(id = R.string.settings_content_display_live_streams),
                     supportText = stringResource(id = R.string.settings_content_display_live_streams_hint),
+                    leadingIcon = PrimalIcons.Play,
                     trailingContent = {
                         PrimalSwitch(
                             checked = state.showLiveStreams,

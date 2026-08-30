@@ -129,7 +129,6 @@ fun ProfileHeaderDetails(
         onDrawerQrCodeClick = { state.profileId?.let { callbacks.onDrawerQrCodeClick(it) } },
         onProfileClick = { noteCallbacks.onProfileClick?.invoke(it) },
         onHashtagClick = { noteCallbacks.onHashtagClick?.invoke(it) },
-        onPremiumBadgeClick = callbacks.onPremiumBadgeClick,
     )
 }
 
@@ -147,7 +146,6 @@ private fun ProfileHeaderDetails(
     onUnfollow: () -> Unit,
     onProfileClick: (String) -> Unit,
     onHashtagClick: (String) -> Unit,
-    onPremiumBadgeClick: (tier: String, profileId: String) -> Unit,
 ) {
     val localUriHandler = LocalUriHandler.current
 
@@ -196,8 +194,6 @@ private fun ProfileHeaderDetails(
                 profileId = profileId,
                 displayName = state.profileDetails?.authorDisplayName ?: profileId.asEllipsizedNpub(),
                 internetIdentifier = state.profileDetails?.internetIdentifier,
-                profilePremiumDetails = state.profileDetails?.premiumDetails,
-                onPremiumBadgeClick = onPremiumBadgeClick,
             )
         }
 
@@ -338,8 +334,6 @@ private fun UserDisplayName(
     profileId: String,
     displayName: String,
     internetIdentifier: String?,
-    profilePremiumDetails: PremiumProfileDataUi?,
-    onPremiumBadgeClick: (tier: String, profileId: String) -> Unit,
 ) {
     Row(
         modifier = modifier.padding(top = 12.dp, bottom = 3.dp, end = 16.dp),
@@ -359,20 +353,8 @@ private fun UserDisplayName(
                 lineHeight = 20.sp,
                 fontWeight = FontWeight.Bold,
             ),
-            legendaryCustomization = profilePremiumDetails?.legendaryCustomization,
             profileId = profileId,
         )
-
-        if (profilePremiumDetails?.shouldShowPremiumBadge() == true) {
-            ProfilePremiumBadge(
-                modifier = Modifier.clickable(enabled = profilePremiumDetails.tier != null) {
-                    profilePremiumDetails.tier?.let { onPremiumBadgeClick(profilePremiumDetails.tier, profileId) }
-                },
-                firstCohort = profilePremiumDetails.cohort1 ?: "",
-                secondCohort = profilePremiumDetails.cohort2 ?: "",
-                legendaryStyle = profilePremiumDetails.legendaryCustomization?.legendaryStyle,
-            )
-        }
     }
 }
 
@@ -506,7 +488,6 @@ private fun PreviewProfileHeaderDetails() {
                 onUnfollow = {},
                 onProfileClick = {},
                 onHashtagClick = {},
-                onPremiumBadgeClick = { _, _ -> },
             )
         }
     }

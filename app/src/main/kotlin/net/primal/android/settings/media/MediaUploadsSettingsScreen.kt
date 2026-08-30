@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
@@ -59,6 +60,7 @@ import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.ConnectRelay
+import net.primal.android.core.compose.icons.primaliconpack.MediaGalleryFilled
 import net.primal.android.core.compose.settings.DecoratedSettingsOutlinedTextField
 import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.settings.network.TextSection
@@ -476,16 +478,26 @@ private fun BlossomServerDestination(
             .padding(horizontal = 16.dp)
             .clip(AppTheme.shapes.medium),
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .padding(start = 2.dp, top = 2.dp)
-                    .size(10.dp)
-                    .drawWithCache {
-                        this.onDrawWithContent {
-                            drawCircle(color = if (connected) success else failed)
-                        }
-                    },
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Icon(
+                    modifier = Modifier.size(22.dp),
+                    imageVector = PrimalIcons.MediaGalleryFilled,
+                    contentDescription = null,
+                    tint = AppTheme.colorScheme.primary,
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .drawWithCache {
+                            this.onDrawWithContent {
+                                drawCircle(color = if (connected) success else failed)
+                            }
+                        },
+                )
+            }
         },
         headlineContent = {
             Text(text = destinationUrl.removeHttpPrefix())
@@ -547,16 +559,26 @@ private fun MirrorBlossomServerDestination(
     ListItem(
         modifier = modifier,
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .padding(start = 2.dp, top = 2.dp)
-                    .size(10.dp)
-                    .drawWithCache {
-                        this.onDrawWithContent {
-                            drawCircle(color = gray)
-                        }
-                    },
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Icon(
+                    modifier = Modifier.size(22.dp),
+                    imageVector = PrimalIcons.MediaGalleryFilled,
+                    contentDescription = null,
+                    tint = AppTheme.colorScheme.primary,
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .drawWithCache {
+                            this.onDrawWithContent {
+                                drawCircle(color = gray)
+                            }
+                        },
+                )
+            }
         },
         headlineContent = {
             Text(text = destinationUrl.removeHttpPrefix())

@@ -78,15 +78,10 @@ fun PremiumManageScreen(state: PremiumManageContract.UiState, callbacks: Premium
                 destinations = listOfNotNull(
                     ManageDestination.ManageSubscription,
                     ManageDestination.ChangePrimalName,
-                    if (!state.isLegend && !state.isRecurring) {
+                    if (!state.isRecurring) {
                         ManageDestination.ExtendSubscription(state.primalName)
                     } else {
                         null
-                    },
-                    if (state.isLegend) {
-                        ManageDestination.LegendaryProfileCustomization
-                    } else {
-                        ManageDestination.BecomeALegend
                     },
                 ),
                 onDestination = callbacks.onDestination,
@@ -206,9 +201,4 @@ private fun ManageDestination.toDisplayString(): String =
         is ManageDestination.ExtendSubscription ->
             stringResource(id = R.string.premium_manage_extend_subscription)
 
-        ManageDestination.LegendaryProfileCustomization ->
-            stringResource(id = R.string.premium_manage_legendary_customization)
-
-        ManageDestination.BecomeALegend ->
-            stringResource(R.string.premium_manage_become_a_legend)
     }

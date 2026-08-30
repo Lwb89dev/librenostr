@@ -58,6 +58,7 @@ import net.primal.android.core.activity.LocalExchangeRate
 import net.primal.android.core.activity.LocalZappingState
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.UniversalAvatarThumbnail
+import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.errors.UiError
 import net.primal.android.core.ext.openUriSafely
@@ -187,6 +188,7 @@ private fun FeedNoteCard(
 ) {
     val zappingState = LocalZappingState.current
     val dialogsState = rememberNoteCardDialogsState()
+    val repostAnchor = remember { AnchorHandle() }
     NoteCardDialogs(
         dialogsState = dialogsState,
         data = data,
@@ -194,6 +196,7 @@ private fun FeedNoteCard(
         eventPublisher = eventPublisher,
         noteCallbacks = noteCallbacks,
         onGoToWallet = onGoToWallet,
+        repostAnchor = repostAnchor,
     )
 
     val interactionSource = remember { MutableInteractionSource() }
@@ -403,6 +406,7 @@ private fun FeedNoteCard(
                                 }
                             }
                         },
+                        repostAnchor = repostAnchor,
                         onPostLongClickAction = { postAction ->
                             when (postAction) {
                                 FeedPostAction.Zap -> {
@@ -509,6 +513,7 @@ private fun FeedNote(
     nestingCutOffLimit: Int = Int.MAX_VALUE,
     onPostAction: ((FeedPostAction) -> Unit)? = null,
     onPostLongClickAction: ((FeedPostAction) -> Unit)? = null,
+    repostAnchor: AnchorHandle? = null,
     contentFooter: @Composable () -> Unit = {},
     onVideoSoundToggle: ((soundOn: Boolean) -> Unit)? = null,
     onPollOptionSelected: ((optionId: String) -> Unit)? = null,
@@ -631,10 +636,9 @@ private fun FeedNote(
                     eventStats = data.stats,
                     showCounts = showNoteStatCounts,
                     highlightedNote = !showNoteStatCounts,
-                    isBookmarked = data.isBookmarked,
                     onPostAction = onPostAction,
                     onPostLongPressAction = onPostLongClickAction,
-                    showBookmark = fullWidthContent,
+                    repostAnchor = repostAnchor,
                 )
             }
         }

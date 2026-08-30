@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
@@ -12,13 +11,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarState
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,7 +23,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -47,7 +38,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import net.primal.android.R
-import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.compose.AppBarPage
 import net.primal.android.core.compose.PrimalOverlay
 import net.primal.android.core.compose.PrimalTopLevelAppBar
@@ -179,16 +169,8 @@ fun MainScreen(
         }
     }
 
-    val focusModeEnabled = when (activeTab) {
-        PrimalTopLevelDestination.Wallet,
-        PrimalTopLevelDestination.Explore,
-        // Notifications has no collapsible app bar. Do not attach the home top-bar nested
-        // scroll connection, otherwise it consumes the list's vertical drag on this tab.
-        PrimalTopLevelDestination.Alerts,
-        -> false
-
-        else -> LocalContentDisplaySettings.current.focusModeEnabled
-    }
+    // The bottom navigation is persistent, so the former full-screen feed mode is disabled.
+    val focusModeEnabled = false
 
     BackHandler(enabled = activeTab != PrimalTopLevelDestination.Feeds) {
         activeTab = PrimalTopLevelDestination.Feeds
@@ -479,32 +461,18 @@ private fun MainScreenContent(
                 PrimalTopLevelDestination.Explore -> {
                     val active = sharedState.homeActiveFeed.value ?: homeState.feeds.firstOrNull()
                     if (active != null) {
-                        Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn() + scaleIn(initialScale = 0.92f),
-                                exit = fadeOut(),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 24.dp)
-                                        .shadow(18.dp, RoundedCornerShape(28.dp))
-                                        .clip(RoundedCornerShape(28.dp))
-                                        .background(AppTheme.colorScheme.surface.copy(alpha = 0.98f)),
-                                ) {
-                                    FeedListOverlayContent(
-                                        activeFeed = active,
-                                        feedSpecKind = FeedSpecKind.Notes,
-                                        onFeedClick = { feed ->
-                                            sharedState.homeActiveFeed.value = feed
-                                            onTabChanged(PrimalTopLevelDestination.Feeds)
-                                        },
-                                        onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
-                                        onGoToWallet = onGoToWallet,
-                                    )
-                                }
-                            }
+                        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                            FeedListOverlayContent(
+                                activeFeed = active,
+                                feedSpecKind = FeedSpecKind.Notes,
+                                inlineActions = true,
+                                onFeedClick = { feed ->
+                                    sharedState.homeActiveFeed.value = feed
+                                    onTabChanged(PrimalTopLevelDestination.Feeds)
+                                },
+                                onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
+                                onGoToWallet = onGoToWallet,
+                            )
                         }
                     }
                 }

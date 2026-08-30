@@ -31,6 +31,10 @@ import androidx.core.text.isDigitsOnly
 import java.text.NumberFormat
 import net.primal.android.R
 import net.primal.android.core.compose.settings.SettingsItem
+import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Downloads
+import net.primal.android.core.compose.icons.primaliconpack.WalletBitcoinPayment
+import net.primal.android.core.compose.icons.primaliconpack.WalletLightningPayment
 import net.primal.android.settings.wallet.settings.WalletSettingsContract
 import net.primal.android.settings.wallet.settings.WalletSettingsContract.UiEvent
 import net.primal.android.theme.AppTheme
@@ -58,6 +62,7 @@ fun PrimalWalletSettings(
                 id = R.string.settings_wallet_hide_transactions_below,
             ),
             supportText = "$spamThresholdAmountInSats sats",
+            leadingIcon = PrimalIcons.WalletLightningPayment,
             onClick = { spamThresholdAmountEditorDialog = true },
         )
 
@@ -80,6 +85,7 @@ fun PrimalWalletSettings(
             SettingsItem(
                 headlineText = stringResource(id = R.string.settings_wallet_max_wallet_balance),
                 supportText = "$maxBalanceInSats sats",
+                leadingIcon = PrimalIcons.WalletBitcoinPayment,
                 trailingContent = {
                     IconButton(onClick = { maxWalletBalanceShown = true }) {
                         Icon(
@@ -100,6 +106,7 @@ fun PrimalWalletSettings(
             SettingsItem(
                 headlineText = stringResource(id = R.string.settings_wallet_backup_wallet_title),
                 supportText = stringResource(id = R.string.settings_wallet_backup_wallet_subtitle),
+                leadingIcon = PrimalIcons.Downloads,
                 trailingContent = {
                     Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null)
                 },

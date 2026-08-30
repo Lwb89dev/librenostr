@@ -138,14 +138,10 @@ fun SearchScreen(
                     contentPadding = paddingValues,
                 ) {
                     items(
-                        items = state.searchResults.ifEmpty {
-                            when (state.searchQuery.isEmpty()) {
-                                true -> state.recommendedUsers
-                                false -> when (state.searching) {
-                                    true -> state.recommendedUsers
-                                    false -> state.searchResults
-                                }
-                            }
+                        items = if (state.searchQuery.isEmpty() || state.searching) {
+                            state.recommendedUsers
+                        } else {
+                            state.searchResults
                         },
                         key = { it.profileId },
                     ) {

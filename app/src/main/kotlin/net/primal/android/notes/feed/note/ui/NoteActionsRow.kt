@@ -23,16 +23,16 @@ import java.text.NumberFormat
 import kotlinx.coroutines.delay
 import net.primal.android.R
 import net.primal.android.core.compose.IconText
+import net.primal.android.core.compose.bubble.AnchorHandle
+import net.primal.android.core.compose.bubble.anchor
 import net.primal.android.core.compose.icons.PrimalIcons
-import net.primal.android.core.compose.icons.primaliconpack.FeedBookmark
-import net.primal.android.core.compose.icons.primaliconpack.FeedBookmarkFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewLike
+import net.primal.android.core.compose.icons.primaliconpack.FeedLikeOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewLikeFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewReply
+import net.primal.android.core.compose.icons.primaliconpack.FeedReplyOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewReplyFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewReposts
+import net.primal.android.core.compose.icons.primaliconpack.FeedRepostsOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewRepostsFilled
-import net.primal.android.core.compose.icons.primaliconpack.FeedNewZap
+import net.primal.android.core.compose.icons.primaliconpack.FeedZapOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewZapFilled
 import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.notes.feed.model.EventStatsUi
@@ -43,12 +43,11 @@ import net.primal.android.theme.AppTheme
 fun FeedNoteActionsRow(
     modifier: Modifier,
     eventStats: EventStatsUi,
-    isBookmarked: Boolean,
     highlightedNote: Boolean = false,
-    showBookmark: Boolean = false,
     showCounts: Boolean = true,
     onPostAction: ((FeedPostAction) -> Unit)? = null,
     onPostLongPressAction: ((FeedPostAction) -> Unit)? = null,
+    repostAnchor: AnchorHandle? = null,
 ) {
     val iconSize = if (highlightedNote) 26.sp else 17.sp
     val numberFormat = remember { NumberFormat.getNumberInstance() }
@@ -69,7 +68,7 @@ fun FeedNoteActionsRow(
             textCount = if (showCounts) eventStats.repliesCount.toPostStatString(numberFormat) else "",
             highlighted = eventStats.userReplied,
             iconSize = iconSize,
-            iconVector = PrimalIcons.FeedNewReply,
+            iconVector = PrimalIcons.FeedReplyOutline,
             iconVectorHighlight = PrimalIcons.FeedNewReplyFilled,
             colorHighlight = AppTheme.extraColorScheme.replied,
             onClick = onPostAction?.let {
@@ -84,7 +83,7 @@ fun FeedNoteActionsRow(
         SingleEventStat(
             textCount = if (showCounts) eventStats.satsZapped.toPostStatString(numberFormat) else "",
             highlighted = eventStats.userZapped,
-            iconVector = PrimalIcons.FeedNewZap,
+            iconVector = PrimalIcons.FeedZapOutline,
             // Zaps icons are tiny when below 18.sp so we have to increase it by 20% to fit in
             iconSize = if (!highlightedNote) iconSize.times(other = 1.2f) else iconSize,
             iconVectorHighlight = PrimalIcons.FeedNewZapFilled,
@@ -109,7 +108,7 @@ fun FeedNoteActionsRow(
             textCount = if (showCounts) eventStats.likesCount.toPostStatString(numberFormat) else "",
             highlighted = eventStats.userLiked,
             iconSize = iconSize,
-            iconVector = PrimalIcons.FeedNewLike,
+            iconVector = PrimalIcons.FeedLikeOutline,
             iconVectorHighlight = PrimalIcons.FeedNewLikeFilled,
             colorHighlight = AppTheme.extraColorScheme.liked,
             onClick = if (!eventStats.userLiked && onPostAction != null) {
@@ -124,10 +123,11 @@ fun FeedNoteActionsRow(
         )
 
         SingleEventStat(
+            modifier = repostAnchor?.let { Modifier.anchor(it) } ?: Modifier,
             textCount = if (showCounts) eventStats.repostsCount.toPostStatString(numberFormat) else "",
             highlighted = eventStats.userReposted,
             iconSize = iconSize,
-            iconVector = PrimalIcons.FeedNewReposts,
+            iconVector = PrimalIcons.FeedRepostsOutline,
             iconVectorHighlight = PrimalIcons.FeedNewRepostsFilled,
             colorHighlight = AppTheme.extraColorScheme.reposted,
             onClick = onPostAction?.let {
@@ -139,29 +139,13 @@ fun FeedNoteActionsRow(
             iconContentDescription = stringResource(id = R.string.accessibility_repost_count),
         )
 
-        if (showBookmark) {
-            SingleEventStat(
-                textCount = "",
-                highlighted = isBookmarked,
-                iconSize = iconSize,
-                iconVector = PrimalIcons.FeedBookmark,
-                iconVectorHighlight = PrimalIcons.FeedBookmarkFilled,
-                colorHighlight = AppTheme.extraColorScheme.bookmarked,
-                onClick = onPostAction?.let {
-                    { onPostAction(FeedPostAction.Bookmark) }
-                },
-                onLongClick = onPostLongPressAction?.let {
-                    { onPostLongPressAction(FeedPostAction.Bookmark) }
-                },
-                iconContentDescription = stringResource(id = R.string.accessibility_bookmark),
-            )
-        }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SingleEventStat(
+    modifier: Modifier = Modifier,
     textCount: String,
     highlighted: Boolean,
     iconSize: TextUnit,
@@ -174,7 +158,7 @@ fun SingleEventStat(
     textStyle: TextStyle = AppTheme.typography.bodySmall,
 ) {
     IconText(
-        modifier = Modifier
+        modifier = modifier
             .animateContentSize()
             .combinedClickable(
                 enabled = onClick != null || onLongClick != null,

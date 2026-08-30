@@ -11,6 +11,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,8 @@ fun BasePickerListItem(
     title: String,
     selected: Boolean,
     modifier: Modifier = Modifier,
+    containerColor: Color? = null,
+    leadingContent: @Composable (() -> Unit)? = null,
     subtitle: String? = null,
     titleAlignment: TextAlign = TextAlign.Start,
     supportingContent: @Composable (() -> Unit)? = subtitle?.let { text ->
@@ -36,7 +39,7 @@ fun BasePickerListItem(
     ListItem(
         modifier = modifier,
         colors = ListItemDefaults.colors(
-            containerColor = if (selected) {
+            containerColor = containerColor ?: if (selected) {
                 AppTheme.extraColorScheme.surfaceVariantAlt1
             } else {
                 AppTheme.extraColorScheme.surfaceVariantAlt2
@@ -53,6 +56,7 @@ fun BasePickerListItem(
                 overflow = TextOverflow.Ellipsis,
             )
         },
+        leadingContent = leadingContent,
         supportingContent = supportingContent,
         trailingContent = trailingContent,
     )

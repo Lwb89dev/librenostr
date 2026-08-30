@@ -1,7 +1,6 @@
 package net.primal.android.explore.search
 
 import net.primal.android.core.compose.profile.model.UserProfileItemUi
-import net.primal.android.explore.search.ui.SearchScope
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 
 interface SearchContract {
@@ -28,9 +27,7 @@ interface SearchContract {
         val onClose: () -> Unit,
         val onAdvancedSearchClick: (query: String) -> Unit,
         val onProfileClick: (String) -> Unit,
-        val onNoteClick: (String) -> Unit,
         val onNaddrClick: (String) -> Unit,
-        val onSearchContent: (scope: SearchScope, query: String) -> Unit,
         val noteCallbacks: NoteCallbacks = NoteCallbacks(),
         val onGoToWallet: () -> Unit = {},
     )

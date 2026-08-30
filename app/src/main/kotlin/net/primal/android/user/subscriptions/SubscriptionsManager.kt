@@ -16,34 +16,18 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.primal.android.messages.domain.MessagesUnreadCount
-import net.primal.android.networking.di.PrimalCacheApiClient
-import net.primal.android.nostr.ext.asMessagesTotalCount
-import net.primal.android.nostr.ext.asNotificationSummary
-import net.primal.android.notifications.domain.NotificationsSummary
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.Badges
-import net.primal.android.wallet.di.ActiveWalletBalanceSyncerFactory
 import net.primal.core.networking.factory.PrimalApiClientFactory
-import net.primal.core.networking.primal.PrimalApiClient
-import net.primal.core.networking.primal.PrimalCacheFilter
-import net.primal.core.networking.primal.PrimalSocketSubscription
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
-import net.primal.core.utils.serialization.encodeToJsonString
-import net.primal.data.remote.api.notifications.model.PubkeyRequestBody
 import net.primal.domain.streams.StreamRepository
-import net.primal.domain.wallet.sync.WalletDataSyncer
 
 @Singleton
 class SubscriptionsManager @Inject constructor(
     dispatcherProvider: DispatcherProvider,
     private val activeAccountStore: ActiveAccountStore,
     private val streamRepository: StreamRepository,
-    @Suppress("UnusedPrivateProperty")
-    @PrimalCacheApiClient private val cacheApiClient: PrimalApiClient,
-    @Suppress("UnusedPrivateProperty")
-    private val activeWalletBalanceSyncerFactory: ActiveWalletBalanceSyncerFactory,
 ) {
 
     private val lifecycle: Lifecycle = ProcessLifecycleOwner.get().lifecycle
@@ -51,10 +35,6 @@ class SubscriptionsManager @Inject constructor(
     private var subscriptionsActive = false
 
     private var streamsFromFollowsSubscription: Job? = null
-    private var notificationsSummarySubscription: PrimalSocketSubscription<NotificationsSummary>? = null
-    private var messagesUnreadCountSubscription: PrimalSocketSubscription<MessagesUnreadCount>? = null
-
-    private var activeWalletBalanceSyncer: WalletDataSyncer? = null
 
     private val _badges = MutableSharedFlow<Badges>(
         replay = 1,
@@ -131,9 +111,6 @@ class SubscriptionsManager @Inject constructor(
     private suspend fun unsubscribeAll() {
         subscriptionsActive = false
         streamsFromFollowsSubscription?.cancel()
-        notificationsSummarySubscription?.unsubscribe()
-        messagesUnreadCountSubscription?.unsubscribe()
-        activeWalletBalanceSyncer?.stop()
     }
 
     private fun launchStreamsFromFollowsSubscription(userId: String) =

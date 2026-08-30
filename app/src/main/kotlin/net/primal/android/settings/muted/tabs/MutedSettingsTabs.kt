@@ -11,6 +11,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import net.primal.android.R
 import net.primal.android.core.compose.PrimalSingleTab
+import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Discuss
+import net.primal.android.core.compose.icons.primaliconpack.Document
+import net.primal.android.core.compose.icons.primaliconpack.MuteUser
+import net.primal.android.core.compose.icons.primaliconpack.Search
 import net.primal.android.theme.AppTheme
 
 internal const val MUTE_SETTINGS_TAB_COUNT = 4
@@ -49,21 +54,25 @@ fun MutedSettingsTabs(
             selected = selectedTabIndex == USERS_INDEX,
             onClick = onUsersTabClick,
             text = stringResource(id = R.string.settings_muted_users_tab).uppercase(),
+            icon = PrimalIcons.MuteUser,
         )
         PrimalSingleTab(
             selected = selectedTabIndex == WORDS_INDEX,
             onClick = onWordsTabClick,
             text = stringResource(id = R.string.settings_muted_words_tab).uppercase(),
+            icon = PrimalIcons.Document,
         )
         PrimalSingleTab(
             selected = selectedTabIndex == HASHTAGS_INDEX,
             onClick = onHashtagsTabClick,
             text = stringResource(id = R.string.settings_muted_hashtags_tab).uppercase(),
+            icon = PrimalIcons.Search,
         )
         PrimalSingleTab(
             selected = selectedTabIndex == THREADS_INDEX,
             onClick = onThreadsTabClick,
             text = stringResource(id = R.string.settings_muted_threads_tab).uppercase(),
+            icon = PrimalIcons.Discuss,
         )
     }
 }

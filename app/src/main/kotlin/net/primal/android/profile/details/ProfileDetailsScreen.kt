@@ -376,13 +376,9 @@ private fun ProfileDetailsFeeds(
         ProfileTabs(
             selectedTabIndex = pagerState.currentPage,
             modifier = Modifier.padding(vertical = tabVerticalPadding),
-            notesCount = state.profileStats?.notesCount,
             onNotesCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = NOTES_TAB_INDEX) } },
-            repliesCount = state.profileStats?.repliesCount,
             onRepliesCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = REPLIES_TAB_INDEX) } },
-            readsCount = state.profileStats?.readsCount,
             onReadsCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = READS_TAB_INDEX) } },
-            mediaCount = state.profileStats?.mediaCount,
             onMediaCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = MEDIA_TAB_INDEX) } },
         )
 
@@ -540,7 +536,6 @@ private fun PreviewProfileScreen() {
                 onLiveStreamClick = {},
                 onFollowsClick = { _, _ -> },
                 onGoToWallet = {},
-                onPremiumBadgeClick = { _, _ -> },
                 onNewPostClick = {},
             ),
             snackbarHostState = SnackbarHostState(),

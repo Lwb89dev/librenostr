@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import net.primal.android.premium.manage.PremiumManageContract.UiState
-import net.primal.android.premium.utils.isPrimalLegendTier
 import net.primal.android.user.accounts.active.ActiveAccountStore
 
 @HiltViewModel
@@ -31,7 +30,6 @@ class PremiumManageViewModel @Inject constructor(
                 setState {
                     copy(
                         primalName = it.premiumMembership?.premiumName ?: "",
-                        isLegend = it.premiumMembership.isPrimalLegendTier(),
                         isRecurring = it.premiumMembership?.recurring == true,
                     )
                 }

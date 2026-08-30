@@ -7,11 +7,14 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,8 +43,13 @@ import net.primal.android.core.compose.ConfirmActionAlertDialog
 import net.primal.android.core.compose.PrimalOverlayBottomBar
 import net.primal.android.core.compose.PrimalOverlayCloseButton
 import net.primal.android.core.compose.PrimalSwitch
+import net.primal.android.core.compose.button.PrimalFilledButton
 import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.Check
+import net.primal.android.core.compose.icons.primaliconpack.Close
+import net.primal.android.core.compose.icons.primaliconpack.Edit
 import net.primal.android.core.compose.icons.primaliconpack.PencilUnderline
+import net.primal.android.core.compose.icons.primaliconpack.UserFeedAdd
 import net.primal.android.feeds.list.ui.model.FeedUi
 import net.primal.android.theme.AppTheme
 import net.primal.domain.feeds.isAdvancedSearchFeedSpec
@@ -67,6 +75,7 @@ fun FeedList(
     onFeedEnabled: ((feed: FeedUi, enabled: Boolean) -> Unit)? = null,
     onFeedRemoved: ((feed: FeedUi) -> Unit)? = null,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
+    inlineActions: Boolean = false,
 ) {
     var data by remember(feeds) { mutableStateOf(feeds) }
     val haptic = rememberReorderHapticFeedback()
@@ -95,7 +104,10 @@ fun FeedList(
     Column(modifier = modifier) {
         LazyColumn(
             modifier = Modifier
-                .background(color = AppTheme.extraColorScheme.surfaceVariantAlt2)
+                .background(
+                    color = if (inlineActions) AppTheme.colorScheme.background
+                    else AppTheme.extraColorScheme.surfaceVariantAlt2,
+                )
                 .weight(1f),
             state = feedsListState,
             // https://github.com/Calvin-LL/Reorderable/issues/32
@@ -123,6 +135,7 @@ fun FeedList(
                         data = item,
                         selected = item.spec == activeFeed?.spec,
                         isEditMode = isEditMode,
+                        containerColor = if (inlineActions) AppTheme.colorScheme.background else null,
                         editOptions = {
                             FeedEditOptions(
                                 item = item,
@@ -141,16 +154,94 @@ fun FeedList(
                     RestoreDefaultFeedsItem(onRestoreClick = { restoreDefaultDialogVisible = true })
                 }
             }
+            if (inlineActions) {
+                item {
+                    AlgorithmActionsRow(
+                        isEditMode = isEditMode,
+                        onEditClick = { onEditFeedClick?.invoke() },
+                        onCloseClick = { onCloseClick?.invoke() },
+                        onAddFeedClick = { onAddFeedClick?.invoke() },
+                        onDoneClick = { onEditDoneClick?.invoke() },
+                    )
+                }
+            }
         }
 
-        FeedListBottomBar(
-            enableEditMode = enableEditMode,
-            isEditMode = isEditMode,
-            onEditFeedClick = onEditFeedClick,
-            onCloseClick = onCloseClick,
-            onAddFeedClick = onAddFeedClick,
-            onEditDoneClick = onEditDoneClick,
-        )
+        if (!inlineActions) {
+            FeedListBottomBar(
+                enableEditMode = enableEditMode,
+                isEditMode = isEditMode,
+                onEditFeedClick = onEditFeedClick,
+                onCloseClick = onCloseClick,
+                onAddFeedClick = onAddFeedClick,
+                onEditDoneClick = onEditDoneClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AlgorithmActionsRow(
+    isEditMode: Boolean,
+    onEditClick: () -> Unit,
+    onCloseClick: () -> Unit,
+    onAddFeedClick: () -> Unit,
+    onDoneClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (isEditMode) {
+            AlgorithmActionButton(
+                modifier = Modifier.weight(1f),
+                icon = PrimalIcons.UserFeedAdd,
+                label = stringResource(id = R.string.feed_list_add_feed),
+                onClick = onAddFeedClick,
+            )
+            AlgorithmActionButton(
+                modifier = Modifier.weight(1f),
+                icon = PrimalIcons.Check,
+                label = stringResource(id = R.string.feed_list_done),
+                onClick = onDoneClick,
+            )
+        } else {
+            AlgorithmActionButton(
+                modifier = Modifier.weight(1f),
+                icon = PrimalIcons.Edit,
+                label = stringResource(id = R.string.feed_list_edit),
+                onClick = onEditClick,
+            )
+            AlgorithmActionButton(
+                modifier = Modifier.weight(1f),
+                icon = PrimalIcons.Close,
+                label = stringResource(id = R.string.overlay_action_close),
+                onClick = onCloseClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AlgorithmActionButton(
+    modifier: Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    PrimalFilledButton(
+        modifier = modifier,
+        height = 46.dp,
+        containerColor = AppTheme.colorScheme.primary.copy(alpha = 0.82f),
+        contentColor = AppTheme.colorScheme.onPrimary,
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 12.dp),
+    ) {
+        Icon(modifier = Modifier.size(18.dp), imageVector = icon, contentDescription = null)
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(text = label)
     }
 }
 

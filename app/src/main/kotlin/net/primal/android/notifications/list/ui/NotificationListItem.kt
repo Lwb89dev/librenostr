@@ -242,7 +242,6 @@ private fun NotificationContent(
                     .padding(vertical = 16.dp)
                     .padding(end = 16.dp),
                 eventStats = actionPost.stats,
-                isBookmarked = actionPost.isBookmarked,
                 onPostAction = onPostAction,
                 onPostLongPressAction = onPostLongPressAction,
             )

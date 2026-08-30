@@ -9,17 +9,13 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.unit.sp
-import java.text.NumberFormat
 import net.primal.android.R
-import net.primal.android.core.utils.shortened
 import net.primal.android.profile.details.MEDIA_TAB_INDEX
 import net.primal.android.profile.details.NOTES_TAB_INDEX
 import net.primal.android.profile.details.READS_TAB_INDEX
@@ -32,16 +28,11 @@ internal const val PROFILE_TAB_COUNT = 4
 @Composable
 fun ProfileTabs(
     selectedTabIndex: Int,
-    notesCount: Int?,
     onNotesCountClick: () -> Unit,
-    repliesCount: Int?,
     onRepliesCountClick: () -> Unit,
-    readsCount: Int?,
     onReadsCountClick: () -> Unit,
-    mediaCount: Int?,
     onMediaCountClick: () -> Unit,
     modifier: Modifier = Modifier,
-    placeholderText: String = "-",
 ) {
     SecondaryTabRow(
         modifier = modifier,
@@ -60,7 +51,6 @@ fun ProfileTabs(
             modifier = Modifier.fillMaxWidth(),
             selected = selectedTabIndex == NOTES_TAB_INDEX,
             onClick = onNotesCountClick,
-            text = "",
             icon = LibreNavigationIcons.Notes,
             label = stringResource(id = R.string.profile_notes_stat),
         )
@@ -69,7 +59,6 @@ fun ProfileTabs(
             modifier = Modifier.fillMaxWidth(),
             selected = selectedTabIndex == REPLIES_TAB_INDEX,
             onClick = onRepliesCountClick,
-            text = "",
             icon = LibreNavigationIcons.Replies,
             label = stringResource(id = R.string.profile_replies_stat),
         )
@@ -77,7 +66,6 @@ fun ProfileTabs(
         CustomTab(
             selected = selectedTabIndex == READS_TAB_INDEX,
             onClick = onReadsCountClick,
-            text = "",
             icon = LibreNavigationIcons.Reads,
             label = stringResource(id = R.string.profile_reads_stat),
         )
@@ -85,20 +73,10 @@ fun ProfileTabs(
         CustomTab(
             selected = selectedTabIndex == MEDIA_TAB_INDEX,
             onClick = onMediaCountClick,
-            text = "",
             icon = LibreNavigationIcons.Media,
             label = stringResource(id = R.string.profile_media_stat),
         )
     }
-}
-
-private const val MAX_ORIGINAL_COUNT = 9999
-
-@Composable
-private fun Int.asTabText(): String {
-    val numberFormat = remember { NumberFormat.getNumberInstance() }
-    val formattedInt = numberFormat.format(this)
-    return if (this > MAX_ORIGINAL_COUNT) this.shortened() else formattedInt
 }
 
 @Composable
@@ -106,7 +84,6 @@ private fun CustomTab(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    text: String,
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
