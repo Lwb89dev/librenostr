@@ -8,7 +8,7 @@ class StringUtilsTest {
 
     @Test
     fun `isPrimalIdentifier returns true for correct domain`() {
-        "alex@primal.net".isPrimalIdentifier() shouldBe true
+        "alex@nostrich.org".isPrimalIdentifier() shouldBe true
     }
 
     @Test

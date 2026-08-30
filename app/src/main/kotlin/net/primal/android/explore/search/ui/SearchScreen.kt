@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import net.primal.android.R
 import net.primal.android.articles.feed.ArticleFeedList
 import net.primal.android.core.compose.AppBarIcon
+import net.primal.android.core.compose.LibreNostrLoadingSpinner
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.AdvancedSearch
@@ -134,21 +135,34 @@ fun SearchScreen(
                     }
                 }
             } else {
-                LazyColumn(
-                    contentPadding = paddingValues,
-                ) {
-                    items(
-                        items = if (state.searchQuery.isEmpty() || state.searching) {
-                            state.recommendedUsers
-                        } else {
-                            state.searchResults
-                        },
-                        key = { it.profileId },
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        contentPadding = paddingValues,
                     ) {
-                        UserProfileListItem(
-                            data = it,
-                            onClick = { item -> callbacks.onProfileClick(item.profileId) },
-                        )
+                        items(
+                            items = if (state.searchQuery.isEmpty() || state.searching) {
+                                state.recommendedUsers
+                            } else {
+                                state.searchResults
+                            },
+                            key = { it.profileId },
+                        ) {
+                            UserProfileListItem(
+                                data = it,
+                                onClick = { item -> callbacks.onProfileClick(item.profileId) },
+                            )
+                        }
+                    }
+
+                    if (state.searching && state.searchQuery.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues),
+                            contentAlignment = androidx.compose.ui.Alignment.Center,
+                        ) {
+                            LibreNostrLoadingSpinner()
+                        }
                     }
                 }
             }

@@ -59,6 +59,7 @@ import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.theme.AppTheme
 import net.primal.core.caching.MediaCacher
 import net.primal.domain.feeds.isImageSpec
+import net.primal.domain.feeds.isSearchFeedSpec
 import net.primal.domain.feeds.isVideoSpec
 import net.primal.domain.links.EventUriType
 
@@ -121,6 +122,7 @@ fun NoteFeedList(
         useMediaCards = feedSpec.isImageSpec() || feedSpec.isVideoSpec(),
         bigPillStreams = bigPillStreams,
         showTopZaps = showTopZaps,
+        showCentralLoadingSpinner = feedSpec.isSearchFeedSpec(),
         contentPadding = contentPadding,
         onUiError = onUiError,
         header = header,
@@ -141,6 +143,7 @@ private fun NoteFeedList(
     onGoToWallet: () -> Unit,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
+    showCentralLoadingSpinner: Boolean = false,
     bigPillStreams: List<StreamPillUi> = emptyList(),
     pullToRefreshEnabled: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -188,6 +191,7 @@ private fun NoteFeedList(
             showPaywall = state.paywall,
             useMediaCards = useMediaCards,
             showTopZaps = showTopZaps,
+            showCentralLoadingSpinner = showCentralLoadingSpinner,
             noteCallbacks = noteCallbacks,
             onGoToWallet = onGoToWallet,
             paddingValues = contentPadding,
@@ -258,6 +262,7 @@ fun NoteFeedList(
     onGoToWallet: () -> Unit,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
+    showCentralLoadingSpinner: Boolean = false,
     pullToRefreshEnabled: Boolean = true,
     paddingValues: PaddingValues = PaddingValues(0.dp),
     noContentVerticalArrangement: Arrangement.Vertical = Arrangement.Center,
@@ -327,6 +332,7 @@ fun NoteFeedList(
             streamPills = streamPills,
             listState = feedListState,
             showPaywall = showPaywall,
+            showCentralLoadingSpinner = showCentralLoadingSpinner,
             noteCallbacks = noteCallbacks,
             onGoToWallet = onGoToWallet,
             useMediaCards = useMediaCards,

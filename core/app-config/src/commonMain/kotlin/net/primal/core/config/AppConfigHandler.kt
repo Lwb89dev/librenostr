@@ -1,9 +1,6 @@
 package net.primal.core.config
 
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.withContext
-import net.primal.core.config.api.ApiConfigResponse
-import net.primal.core.config.api.WellKnownApi
 import net.primal.core.config.store.AppConfigDataStore
 import net.primal.core.utils.Result
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -11,32 +8,24 @@ import net.primal.core.utils.runCatching
 import net.primal.core.utils.updater.Updater
 
 class AppConfigHandler internal constructor(
-    private val dispatcherProvider: DispatcherProvider,
+    @Suppress("UNUSED_PARAMETER")
+    dispatcherProvider: DispatcherProvider,
     private val appConfigStore: AppConfigDataStore,
-    private val wellKnownApi: WellKnownApi,
+    @Suppress("UNUSED_PARAMETER")
+    private val wellKnownApi: Any? = null,
 ) : Updater() {
 
     override suspend fun doUpdate(): Result<Unit> {
-        Napier.d { "Skipping primal.net endpoint discovery." }
+        Napier.d { "Relay-only mode: centralized endpoint discovery is disabled." }
         return Result.success(Unit)
-    }
-
-    private suspend fun fetchAppConfigOrNull(): ApiConfigResponse? {
-        val result = runCatching {
-            withContext(dispatcherProvider.io()) { wellKnownApi.fetchApiConfig() }
-        }
-        result.exceptionOrNull()?.let { Napier.w("Unable to fetch app config", it) }
-        return result.getOrNull()
     }
 
     suspend fun overrideCacheUrl(url: String) = appConfigStore.overrideCacheUrl(url = url)
 
     suspend fun restoreDefaultCacheUrl() {
-        val response = fetchAppConfigOrNull()
-        val wellKnownCacheUrl = response?.cacheServers?.firstOrNull()
         appConfigStore.revertCacheUrlOverrideFlag()
         appConfigStore.updateConfig {
-            copy(cacheUrl = wellKnownCacheUrl ?: DEFAULT_APP_CONFIG.cacheUrl)
+            copy(cacheUrl = DEFAULT_APP_CONFIG.cacheUrl)
         }
     }
 }

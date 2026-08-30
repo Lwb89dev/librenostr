@@ -234,7 +234,7 @@ private fun ProfileSummary(
         NostrUserText(
             modifier = Modifier.padding(start = 8.dp),
             displayName = primalName,
-            internetIdentifier = "$primalName@primal.net",
+            internetIdentifier = "$primalName@nostrich.org",
             internetIdentifierBadgeSize = 24.dp,
             legendaryCustomization = LegendaryCustomization(
                 customBadge = customBadge == true,

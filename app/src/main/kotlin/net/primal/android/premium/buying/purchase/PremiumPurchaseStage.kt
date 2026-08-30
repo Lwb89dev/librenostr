@@ -143,7 +143,7 @@ fun PremiumPurchaseStage(
                 )
                 NostrUserText(
                     displayName = state.primalName,
-                    internetIdentifier = "${state.primalName}@primal.net",
+                    internetIdentifier = "${state.primalName}@nostrich.org",
                     internetIdentifierBadgeSize = 24.dp,
                     fontSize = 20.sp,
                     legendaryCustomization = if (state.subscriptionTier.isProTier()) {

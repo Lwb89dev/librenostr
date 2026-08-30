@@ -16,6 +16,7 @@ import net.primal.data.account.signer.local.model.SignerMethod
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
+import net.primal.domain.nostr.utils.asHexPubkeyOrNull
 
 internal const val AMBER_PACKAGE_NAME = "com.greenart7c3.nostrsigner"
 private const val URI_PREFIX = "nostrsigner:"
@@ -49,10 +50,12 @@ fun rememberAmberPubkeyLauncher(onFailure: ((ActivityResult) -> Unit)? = null, o
             return@rememberAmberLauncher
         }
 
-        val pubkey = result.data?.signerResultExtra() ?: run {
-            onFailure?.invoke(result)
-            return@rememberAmberLauncher
-        }
+        val pubkey = result.data?.signerResultExtra()
+            ?.asHexPubkeyOrNull()
+            ?: run {
+                onFailure?.invoke(result)
+                return@rememberAmberLauncher
+            }
 
         onSuccess(pubkey)
     }
@@ -100,8 +103,8 @@ fun rememberAmberSignerLauncher(onFailure: ((ActivityResult) -> Unit)? = null, o
 @Throws(ActivityNotFoundException::class)
 fun AmberLauncher.launchGetPublicKey() {
     val intent = Intent(Intent.ACTION_VIEW, URI_PREFIX.toUri())
-    intent.`package` = AMBER_PACKAGE_NAME
-    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    // NIP-55 requires get_public_key to be an unqualified request so the signer
+    // can return its package name along with the user key.
     val permissions = listOf(
         Permission(
             type = SignerMethod.NIP04_ENCRYPT,
@@ -147,4 +150,9 @@ fun AmberLauncher.launchSignEvent(event: NostrUnsignedEvent) {
 private fun Intent.isRejected(): Boolean = getBooleanExtra("rejected", false)
 
 private fun Intent.signerResultExtra(): String? =
-    getStringExtra("result") ?: getStringExtra("signature")
+    (
+        getStringExtra("result")
+            ?: getStringExtra("user-pubkey")
+            ?: getStringExtra("pubkey")
+            ?: getStringExtra("signature")
+        )?.trim()

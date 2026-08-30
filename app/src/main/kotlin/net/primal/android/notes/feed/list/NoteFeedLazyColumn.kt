@@ -1,6 +1,7 @@
 package net.primal.android.notes.feed.list
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,7 @@ import net.primal.android.BuildConfig
 import net.primal.android.R
 import net.primal.android.core.compose.ListLoadingError
 import net.primal.android.core.compose.ListNoContent
+import net.primal.android.core.compose.LibreNostrLoadingSpinner
 import net.primal.android.core.compose.PremiumFeedPaywall
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.heightAdjustableLoadingLazyListPlaceholder
@@ -57,6 +60,7 @@ fun NoteFeedLazyColumn(
     onGoToWallet: () -> Unit,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
+    showCentralLoadingSpinner: Boolean = false,
     shouldShowLoadingState: Boolean = true,
     shouldShowNoContentState: Boolean = true,
     showReplyTo: Boolean = true,
@@ -190,7 +194,18 @@ fun NoteFeedLazyColumn(
             when (val refreshLoadState = pagingItems.loadState.refresh) {
                 LoadState.Loading -> {
                     if (shouldShowLoadingState) {
-                        heightAdjustableLoadingLazyListPlaceholder()
+                        if (showCentralLoadingSpinner) {
+                            item(contentType = "SearchLoading") {
+                                Box(
+                                    modifier = Modifier.fillParentMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    LibreNostrLoadingSpinner()
+                                }
+                            }
+                        } else {
+                            heightAdjustableLoadingLazyListPlaceholder()
+                        }
                     }
                 }
 

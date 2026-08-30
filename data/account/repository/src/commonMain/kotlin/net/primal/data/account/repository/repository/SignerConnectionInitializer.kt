@@ -20,7 +20,6 @@ import net.primal.domain.account.repository.ConnectionRepository
 import net.primal.domain.account.repository.SessionRepository
 
 private const val NOSTR_CONNECT_PREFIX = "nostrconnect://"
-private const val PRIMAL_CONNECT_PREFIX = "primalconnect://"
 private const val NAME_PARAM = "name"
 private const val IMAGE_PARAM = "image"
 private const val URL_PARAM = "url"
@@ -92,9 +91,8 @@ class SignerConnectionInitializer internal constructor(
         trustLevel: TrustLevel,
     ): Pair<RemoteAppConnection, String> {
         val isNostrConnect = connectionUrl.startsWith(prefix = NOSTR_CONNECT_PREFIX, ignoreCase = true)
-        val isPrimalConnect = connectionUrl.startsWith(prefix = PRIMAL_CONNECT_PREFIX, ignoreCase = true)
-        require(isNostrConnect || isPrimalConnect) {
-            "Invalid `connectionUrl`. It should start with `$NOSTR_CONNECT_PREFIX` or `$PRIMAL_CONNECT_PREFIX`."
+        require(isNostrConnect) {
+            "Invalid `connectionUrl`. It should start with `$NOSTR_CONNECT_PREFIX`."
         }
 
         val parsedUrl = Url(urlString = connectionUrl)

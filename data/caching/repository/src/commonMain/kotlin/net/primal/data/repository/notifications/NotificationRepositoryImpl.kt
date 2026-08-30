@@ -19,6 +19,7 @@ import net.primal.data.remote.api.notifications.NotificationsApi
 import net.primal.data.repository.mappers.local.asNotificationDO
 import net.primal.data.repository.notifications.paging.NotificationsRemoteMediator
 import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.notifications.Notification as NotificationDO
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.notifications.NotificationRepository
@@ -29,6 +30,7 @@ class NotificationRepositoryImpl(
     private val database: CachingDatabase,
     private val notificationsApi: NotificationsApi,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : NotificationRepository {
 
     override fun observeUnseenNotifications(ownerId: String, group: NotificationGroup): Flow<List<NotificationDO>> =
@@ -39,9 +41,6 @@ class NotificationRepositoryImpl(
         withContext(dispatcherProvider.io()) {
             val seenAt = Clock.System.now()
             val userId = authorization.pubKey
-            notificationsApi.setLastSeenTimestamp(authorization = authorization)
-            constructRemoteMediator(userId = userId, group = NotificationGroup.ALL)
-                .updateLastSeenTimestamp(lastSeen = seenAt)
             database.notifications().markAllUnseenNotificationsAsSeen(
                 ownerId = userId,
                 seenAt = seenAt.epochSeconds,
@@ -73,6 +72,7 @@ class NotificationRepositoryImpl(
             notificationsApi = notificationsApi,
             database = database,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     private fun createPager(

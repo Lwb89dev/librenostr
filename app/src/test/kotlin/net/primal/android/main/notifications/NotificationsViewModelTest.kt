@@ -29,7 +29,6 @@ class NotificationsViewModelTest {
             activeAccountStore = mockk(relaxed = true),
             notificationRepository = notificationsRepository,
             subscriptionsManager = mockk(relaxed = true),
-            nostrNotary = mockk(relaxed = true),
         )
     }
 

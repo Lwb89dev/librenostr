@@ -110,7 +110,7 @@ fun PreviewLegendaryUserProfileListItemWithFollow() {
                 data = UserProfileItemUi(
                     profileId = "b10b0d5e5fae9c6c48a8c77f7e5abd42a79e9480e25a4094051d4ba4ce14456b",
                     displayName = "alex",
-                    internetIdentifier = "alex@primal.net",
+                    internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
                     legendaryCustomization = LegendaryCustomization(
                         avatarGlow = true,
@@ -135,7 +135,7 @@ fun PreviewLegendaryUserProfileListItemWithUnfollow() {
                 data = UserProfileItemUi(
                     profileId = "b10b0d5e5fae9c6c48a8c77f7e5abd42a79e9480e25a4094051d4ba4ce14456b",
                     displayName = "alex",
-                    internetIdentifier = "alex@primal.net",
+                    internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
                     legendaryCustomization = LegendaryCustomization(
                         avatarGlow = true,
@@ -160,7 +160,7 @@ fun PreviewUserProfileListItemWithFollow() {
                 data = UserProfileItemUi(
                     profileId = "b10b0d5e5fae9c6c48a8c77f7e5abd42a79e9480e25a4094051d4ba4ce14456b",
                     displayName = "alex",
-                    internetIdentifier = "alex@primal.net",
+                    internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
                 ),
                 followUnfollowVisibility = FollowUnfollowVisibility.Visible,
@@ -180,7 +180,7 @@ fun PreviewUserProfileListItemWithUnfollow() {
                 data = UserProfileItemUi(
                     profileId = "b10b0d5e5fae9c6c48a8c77f7e5abd42a79e9480e25a4094051d4ba4ce14456b",
                     displayName = "alex",
-                    internetIdentifier = "alex@primal.net",
+                    internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
                 ),
                 followUnfollowVisibility = FollowUnfollowVisibility.Visible,
@@ -200,7 +200,7 @@ fun PreviewUserProfileListItemWithInvisibleUnfollow() {
                 data = UserProfileItemUi(
                     profileId = "b10b0d5e5fae9c6c48a8c77f7e5abd42a79e9480e25a4094051d4ba4ce14456b",
                     displayName = "alex",
-                    internetIdentifier = "alex@primal.net",
+                    internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
                 ),
                 followUnfollowVisibility = FollowUnfollowVisibility.Invisible,
@@ -220,7 +220,7 @@ fun PreviewUserProfileListItemWithGoneUnfollow() {
                 data = UserProfileItemUi(
                     profileId = "b10b0d5e5fae9c6c48a8c77f7e5abd42a79e9480e25a4094051d4ba4ce14456b",
                     displayName = "alex",
-                    internetIdentifier = "alex@primal.net",
+                    internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
                 ),
                 followUnfollowVisibility = FollowUnfollowVisibility.Gone,

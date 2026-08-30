@@ -259,6 +259,6 @@ class OnboardingViewModel @Inject constructor(
 
     companion object {
         internal const val DEFAULT_BANNER_URL =
-            "https://blossom.primal.net/c15e22a2a8d1c7971f86adc758f944f3cbec6ef791fafd2604d85ee6beadaabb.png"
+            "https://blossom.band/assets/librenostr-default-banner.png"
     }
 }

@@ -14,9 +14,7 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.primal.android.core.utils.isPrimalIdentifier
 import net.primal.android.networking.relays.errors.NostrPublishException
-import net.primal.android.premium.utils.hasPremiumMembership
 import net.primal.android.profile.domain.ProfileMetadata
 import net.primal.android.profile.editor.ProfileEditorContract.SideEffect
 import net.primal.android.profile.editor.ProfileEditorContract.UiEvent
@@ -148,20 +146,15 @@ class ProfileEditorViewModel @Inject constructor(
                     }
                 }
 
-                val isActiveAccountPremium = activeAccountStore.activeUserAccount().hasPremiumMembership()
-                if (profile.hasPrimalPremiumAddress() && !isActiveAccountPremium) {
-                    setState { copy(showPremiumPaywallDialog = true) }
-                } else {
-                    withContext(dispatcherProvider.io()) {
-                        val lud16 = profile.lightningAddress
-                        if (!lud16.isNullOrEmpty()) {
-                            lightningAddressChecker.validateLightningAddress(lud16 = lud16)
-                        }
-
-                        userRepository.setProfileMetadata(userId = profileId, profileMetadata = profile)
+                withContext(dispatcherProvider.io()) {
+                    val lud16 = profile.lightningAddress
+                    if (!lud16.isNullOrEmpty()) {
+                        lightningAddressChecker.validateLightningAddress(lud16 = lud16)
                     }
-                    setEffect(effect = SideEffect.AccountSuccessfulyEdited)
+
+                    userRepository.setProfileMetadata(userId = profileId, profileMetadata = profile)
                 }
+                setEffect(effect = SideEffect.AccountSuccessfulyEdited)
             } catch (error: SignatureException) {
                 Napier.w(throwable = error) { "Failed to save profile due to signature error." }
                 setErrorState(error = EditProfileError.FailedToPublishMetadata(error))
@@ -201,5 +194,4 @@ class ProfileEditorViewModel @Inject constructor(
         )
     }
 
-    private fun ProfileMetadata.hasPrimalPremiumAddress() = this.nostrVerification.isPrimalIdentifier()
 }

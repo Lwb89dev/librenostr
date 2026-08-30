@@ -10,28 +10,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import net.primal.android.networking.di.PrimalCacheApiClient
-import net.primal.android.nostr.ext.takeContentOrNull
-import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.premium.manage.content.PremiumContentBackupContract.UiEvent
 import net.primal.android.premium.manage.content.PremiumContentBackupContract.UiState
 import net.primal.android.premium.manage.content.model.ContentGroup
 import net.primal.android.premium.manage.content.model.ContentType
 import net.primal.android.user.accounts.active.ActiveAccountStore
-import net.primal.core.networking.primal.PrimalApiClient
-import net.primal.core.networking.primal.PrimalCacheFilter
-import net.primal.core.networking.primal.PrimalSocketSubscription
-import net.primal.core.networking.utils.retryNetworkCall
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
-import net.primal.core.utils.serialization.encodeToJsonString
-import net.primal.data.remote.model.AppSpecificDataRequest
 import net.primal.domain.common.exception.NetworkException
-import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.nostr.cryptography.SignatureException
-import net.primal.domain.nostr.cryptography.utils.unwrapOrThrow
 import net.primal.domain.premium.BroadcastingStatus
 import net.primal.domain.premium.PremiumBroadcastRepository
 
@@ -39,8 +25,6 @@ import net.primal.domain.premium.PremiumBroadcastRepository
 class PremiumContentBackupViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val premiumBroadcastRepository: PremiumBroadcastRepository,
-    @PrimalCacheApiClient private val primalCachingApiClient: PrimalApiClient,
-    private val nostrNotary: NostrNotary,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -49,9 +33,6 @@ class PremiumContentBackupViewModel @Inject constructor(
 
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
-
-    private var monitorBroadcasting: PrimalSocketSubscription<BroadcastingStatus>? = null
-    private var monitorMutex = Mutex()
 
     init {
         observeEvents()
@@ -62,15 +43,12 @@ class PremiumContentBackupViewModel @Inject constructor(
     private fun fetchBroadcastStatus() {
         viewModelScope.launch {
             try {
-                val status = retryNetworkCall(retries = 2) {
-                    premiumBroadcastRepository.fetchBroadcastStatus(userId = activeAccountStore.activeUserId())
-                        .getOrThrow()
-                }
+                val status = premiumBroadcastRepository.fetchBroadcastStatus(
+                    userId = activeAccountStore.activeUserId(),
+                ).getOrThrow()
                 handleBroadcastStatus(status)
             } catch (error: NetworkException) {
                 Napier.e(throwable = error) { "Failed to fetch broadcast status due to network error." }
-            } catch (error: SignatureException) {
-                Napier.e(throwable = error) { "Failed to fetch broadcast status due to signature error." }
             }
         }
     }
@@ -109,31 +87,6 @@ class PremiumContentBackupViewModel @Inject constructor(
         }
     }
 
-    private suspend fun subscribeToBroadcastMonitor(userId: String): PrimalSocketSubscription<BroadcastingStatus>? {
-        val nostrEvent = nostrNotary.signAppSpecificDataNostrEvent(
-            userId = userId,
-            content = "",
-        ).unwrapOrThrow()
-
-        return PrimalSocketSubscription.launch(
-            scope = viewModelScope,
-            primalApiClient = primalCachingApiClient,
-            cacheFilter = PrimalCacheFilter(
-                primalVerb = net.primal.data.remote.PrimalVerb.MEMBERSHIP_MONITOR_CONTENT_BROADCAST_STATUS.id,
-                optionsJson = AppSpecificDataRequest(
-                    eventFromUser = nostrEvent,
-                ).encodeToJsonString(),
-            ),
-            transformer = {
-                if (primalEvent?.kind == NostrEventKind.PrimalContentBroadcastStatus.value) {
-                    primalEvent.takeContentOrNull<BroadcastingStatus>()
-                } else {
-                    null
-                }
-            },
-        ) { status -> handleBroadcastStatus(status) }
-    }
-
     private fun handleBroadcastStatus(status: BroadcastingStatus) {
         setState {
             val newContentTypes = this.contentTypes.toMutableList().apply {
@@ -150,26 +103,11 @@ class PremiumContentBackupViewModel @Inject constructor(
     }
 
     private fun startBroadcastMonitorIfStopped() {
-        viewModelScope.launch {
-            monitorMutex.withLock {
-                if (monitorBroadcasting == null) {
-                    try {
-                        monitorBroadcasting = subscribeToBroadcastMonitor(userId = activeAccountStore.activeUserId())
-                    } catch (error: SignatureException) {
-                        Napier.w(throwable = error) { "Failed to subscribe to broadcast monitor." }
-                    }
-                }
-            }
-        }
+        // No remote monitor exists: content rebroadcast is not a LibreNostr feature.
     }
 
     private fun stopBroadcastMonitor() {
-        viewModelScope.launch {
-            monitorMutex.withLock {
-                monitorBroadcasting?.unsubscribe()
-                monitorBroadcasting = null
-            }
-        }
+        // No remote monitor exists: content rebroadcast is not a LibreNostr feature.
     }
 
     private fun startBroadcasting(type: ContentType) {

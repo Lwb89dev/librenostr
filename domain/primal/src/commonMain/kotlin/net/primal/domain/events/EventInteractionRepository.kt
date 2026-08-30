@@ -14,7 +14,7 @@ interface EventInteractionRepository {
 
     private companion object {
         const val DEFAULT_DELETION_CONTENT =
-            "This is a deletion request created in https://primal.net Android application"
+            "This is a deletion request created in the LibreNostr Android application"
     }
 
     @Throws(

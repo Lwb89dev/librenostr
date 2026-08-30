@@ -5,13 +5,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import net.primal.android.networking.di.PrimalCacheApiClient
 import net.primal.android.networking.di.PrimalWalletApiClient
 import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.wallet.nwc.handler.Nip47EventsHandlerImpl
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.data.remote.factory.PrimalApiServiceFactory
 import net.primal.domain.account.PrimalWalletAccountRepository
 import net.primal.domain.account.SparkWalletAccountRepository
 import net.primal.domain.account.WalletAccountRepository
@@ -25,6 +23,7 @@ import net.primal.domain.rates.fees.TransactionFeeRepository
 import net.primal.domain.wallet.SparkWalletManager
 import net.primal.domain.wallet.WalletRepository
 import net.primal.domain.wallet.nwc.NwcLogRepository
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.wallet.data.repository.WalletSessionProvider
 import net.primal.wallet.data.repository.factory.WalletRepositoryFactory
 
@@ -117,24 +116,19 @@ object WalletRepositoriesModule {
     @Provides
     @Singleton
     fun providePrimalWalletNwcRepository(
-        @PrimalWalletApiClient primalApiClient: PrimalApiClient,
-        nostrNotary: NostrNotary,
     ): PrimalWalletNwcRepository =
-        WalletRepositoryFactory.createPrimalWalletNwcRepository(
-            primalWalletApiClient = primalApiClient,
-            nostrEventSignatureHandler = nostrNotary,
-        )
+        WalletRepositoryFactory.createPrimalWalletNwcRepository()
 
     @Provides
     @Singleton
     fun provideNwcRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         dispatchers: DispatcherProvider,
+        relayEventQuerier: RelayEventQuerier,
     ): NwcRepository =
         WalletRepositoryFactory.createNwcRepository(
             nip47EventsHandler = Nip47EventsHandlerImpl(
-                eventStatsApi = PrimalApiServiceFactory.createEventsApi(primalApiClient = primalApiClient),
                 dispatchers = dispatchers,
+                relayEventQuerier = relayEventQuerier,
             ),
         )
 

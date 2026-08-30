@@ -199,7 +199,7 @@ fun PreviewArticleAuthorRow() {
                 modifier = Modifier.fillMaxWidth(),
                 authorFollowed = true,
                 authorDisplayName = "miljan",
-                authorInternetIdentifier = "miljan@primal.net",
+                authorInternetIdentifier = "miljan@nostrich.org",
             )
         }
     }
@@ -214,7 +214,7 @@ fun PreviewArticleLegendaryAuthorRow() {
                 modifier = Modifier.fillMaxWidth(),
                 authorFollowed = true,
                 authorDisplayName = "miljan",
-                authorInternetIdentifier = "miljan@primal.net",
+                authorInternetIdentifier = "miljan@nostrich.org",
                 authorLegendaryCustomization = LegendaryCustomization(
                     avatarGlow = true,
                     customBadge = true,

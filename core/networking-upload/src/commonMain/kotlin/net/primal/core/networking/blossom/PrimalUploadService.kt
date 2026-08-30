@@ -60,31 +60,17 @@ internal class PrimalUploadService(
                 var lastUploadError: Throwable? = null
                 blossomApis.forEach { blossomApi ->
                     if (descriptor != null) return@forEach
-                    try {
-                        // BUD-01 specifies /upload. A few older servers still
-                        // expose /media, so keep it as a compatibility fallback.
-                        // Try both for any transport/protocol failure: Ktor may
-                        // throw a non-Blossom exception before we receive a HTTP
-                        // response (for example on a reset connection).
-                        descriptor = try {
-                            blossomApi.putUpload(
-                                authorization = uploadAuthorizationHeader,
-                                fileMetadata = fileMetadata,
-                                bufferedSource = openBufferedSource(),
-                                onProgress = onProgress,
-                            )
-                        } catch (firstError: Throwable) {
-                            if (firstError is CancellationException) throw firstError
-                            Napier.w(firstError) { "Blossom /upload failed; trying legacy /media endpoint." }
-                            blossomApi.putMedia(
-                                authorization = uploadAuthorizationHeader,
-                                fileMetadata = fileMetadata,
-                                bufferedSource = openBufferedSource(),
-                                onProgress = onProgress,
-                            )
-                        }
-                    } catch (error: Throwable) {
-                        if (error is CancellationException) throw error
+                    val uploadResult = runCatching {
+                        uploadToServer(
+                            blossomApi = blossomApi,
+                            authorization = uploadAuthorizationHeader,
+                            fileMetadata = fileMetadata,
+                            openBufferedSource = openBufferedSource,
+                            onProgress = onProgress,
+                        )
+                    }
+                    descriptor = uploadResult.getOrNull()
+                    uploadResult.exceptionOrNull()?.let { error ->
                         lastUploadError = error
                         Napier.w(error) { "Blossom upload failed; trying the next configured server." }
                     }
@@ -119,32 +105,60 @@ internal class PrimalUploadService(
             }
         }
 
-        return try {
-            val descriptor = result.getOrThrow()
+        return result.getOrNull()?.let { descriptor ->
             UploadResult.Success(
                 remoteUrl = descriptor.url,
                 originalFileSize = descriptor.sizeInBytes,
                 originalHash = descriptor.sha256,
                 nip94 = descriptor.nip94?.toNip94Metadata(),
             )
+        } ?: run {
+            val error = result.exceptionOrNull() ?: IllegalStateException("Upload failed.")
+            val uploadError = error as? BlossomException ?: BlossomException(cause = error)
+            UploadResult.Failed(error = uploadError, message = uploadError.message)
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun uploadToServer(
+        blossomApi: BlossomApi,
+        authorization: String,
+        fileMetadata: FileMetadata,
+        openBufferedSource: () -> BufferedSource,
+        onProgress: ((uploadedBytes: Int, totalBytes: Int) -> Unit)?,
+    ): BlobDescriptor {
+        return try {
+            blossomApi.putUpload(
+                authorization = authorization,
+                fileMetadata = fileMetadata,
+                bufferedSource = openBufferedSource(),
+                onProgress = onProgress,
+            )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
-            val uploadError = when {
-                error is BlossomException -> error
-                else -> BlossomException(cause = error)
-            }
-            UploadResult.Failed(
-                error = uploadError,
-                message = uploadError.message,
+            Napier.w(error) { "Blossom /upload failed; trying legacy /media endpoint." }
+            blossomApi.putMedia(
+                authorization = authorization,
+                fileMetadata = fileMetadata,
+                bufferedSource = openBufferedSource(),
+                onProgress = onProgress,
             )
         }
     }
 
     private suspend fun resolveBlossomApisOrThrow(userId: String): List<BlossomApi> {
-        return blossomResolver.provideBlossomServerList(userId).mapNotNull {
-            runCatching { BlossomApiFactory.create(baseBlossomUrl = it.trimTrailingSlashes()) }.getOrNull()
-        }.ifEmpty {
-            throw BlossomUploadException(cause = IllegalStateException("Invalid blossom server list."))
-        }
+        return blossomResolver.provideBlossomServerList(userId)
+            .asSequence()
+            .map { it.trimTrailingSlashes() }
+            .filter { it.isSecureBlossomUrl() }
+            .distinct()
+            .take(MAX_BLOSSOM_SERVERS)
+            .mapNotNull { runCatching { BlossomApiFactory.create(baseBlossomUrl = it) }.getOrNull() }
+            .toList()
+            .ifEmpty {
+                throw BlossomUploadException(cause = IllegalStateException("Invalid blossom server list."))
+            }
     }
 
     private suspend fun signAuthorizationOrThrow(
@@ -223,6 +237,7 @@ internal class PrimalUploadService(
     private companion object {
         private const val DEFAULT_BUFFER_SIZE = 8 * 1024L
         private const val FILE_HEAD_PEEK_BYTES = 512L
+        private const val MAX_BLOSSOM_SERVERS = 6
     }
 
     private fun String.trimTrailingSlashes(): String = this.trimEnd('/')

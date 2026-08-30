@@ -61,10 +61,12 @@ fun PrimalNavigationBar(
     activeDestination: PrimalTopLevelDestination,
     onTopLevelDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     onActiveDestinationClick: (() -> Unit)? = null,
+    onMessagesClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     profileAvatarCdnImage: CdnImage? = null,
     profileLabel: String = "Profile",
+    profileSelected: Boolean = false,
     settingsSelected: Boolean = false,
     badges: Badges = Badges(),
     exploreAnchorHandle: AnchorHandle? = null,
@@ -86,11 +88,11 @@ fun PrimalNavigationBar(
                 val horizontalPadding = 12.dp
                 val topPadding = 4.dp
                 val pillWidth = 72.dp
-                // Keep the profile button centered, with Algorithms before it and
-                // Notifications after it in the persistent bottom bar.
+                // Keep the profile button centered while using the former algorithm
+                // slot for the direct-message inbox.
                 val destinations = listOf(
                     PrimalTopLevelDestination.Feeds,
-                    PrimalTopLevelDestination.Explore,
+                    PrimalTopLevelDestination.Messages,
                     PrimalTopLevelDestination.Alerts,
                     PrimalTopLevelDestination.Settings,
                 )
@@ -101,8 +103,13 @@ fun PrimalNavigationBar(
                 }
                 val itemCount = destinations.size + 1
                 val itemWidth = (maxWidth - horizontalPadding * 2) / itemCount
-                val selectedIndex = (destinations.indexOf(visualSelected) +
-                    if (destinations.indexOf(visualSelected) >= 2) 1 else 0).coerceAtLeast(0)
+                val selectedIndex = if (profileSelected) {
+                    // The profile item is inserted between messages and alerts.
+                    2
+                } else {
+                    (destinations.indexOf(visualSelected) +
+                        if (destinations.indexOf(visualSelected) >= 2) 1 else 0).coerceAtLeast(0)
+                }
 
                 val pillOffset by animateDpAsState(
                     targetValue = horizontalPadding + itemWidth * selectedIndex + (itemWidth - pillWidth) / 2,
@@ -151,7 +158,7 @@ fun PrimalNavigationBar(
                             PrimalProfileNavigationBarItem(
                                 modifier = Modifier.weight(1f),
                                 label = profileLabel,
-                                selected = false,
+                                selected = profileSelected,
                                 avatarCdnImage = profileAvatarCdnImage,
                                 onClick = onProfileClick,
                             )
@@ -161,10 +168,13 @@ fun PrimalNavigationBar(
                                 .weight(1f)
                                 .anchorIfExplore(destination, exploreAnchorHandle),
                             destination = destination,
-                            selected = destination == visualSelected,
+                            selected = destination != PrimalTopLevelDestination.Messages &&
+                                destination == visualSelected,
                             badge = badgesMap.getOrDefault(destination, 0),
                             onClick = {
-                                if (destination == PrimalTopLevelDestination.Settings) {
+                                if (destination == PrimalTopLevelDestination.Messages) {
+                                    onMessagesClick()
+                                } else if (destination == PrimalTopLevelDestination.Settings) {
                                     onSettingsClick()
                                 } else if (activeDestination != destination) {
                                     onTopLevelDestinationChanged(destination)
@@ -277,6 +287,7 @@ enum class PrimalTopLevelDestination {
     Feeds,
     Reads,
     Wallet,
+    Messages,
     Alerts,
     Explore,
     Settings,
@@ -288,6 +299,7 @@ private fun PrimalTopLevelDestination.imageVector(): ImageVector {
         PrimalTopLevelDestination.Reads -> LibreNavigationIcons.Home
         PrimalTopLevelDestination.Wallet -> LibreNavigationIcons.Settings
         PrimalTopLevelDestination.Alerts -> LibreNavigationIcons.Notifications
+        PrimalTopLevelDestination.Messages -> LibreNavigationIcons.Envelope
         PrimalTopLevelDestination.Explore -> LibreNavigationIcons.Algorithm
         PrimalTopLevelDestination.Settings -> LibreNavigationIcons.Settings
     }
@@ -300,6 +312,7 @@ private fun PrimalTopLevelDestination.label(): String {
         PrimalTopLevelDestination.Reads -> stringResource(id = R.string.primary_destination_reads_label)
         PrimalTopLevelDestination.Wallet -> stringResource(id = R.string.primary_destination_wallet_label)
         PrimalTopLevelDestination.Alerts -> stringResource(id = R.string.primary_destination_notifications_label)
+        PrimalTopLevelDestination.Messages -> stringResource(id = R.string.primary_destination_messages_label)
         PrimalTopLevelDestination.Explore -> stringResource(id = R.string.primary_destination_explore_label)
         PrimalTopLevelDestination.Settings -> stringResource(id = R.string.drawer_destination_settings)
     }

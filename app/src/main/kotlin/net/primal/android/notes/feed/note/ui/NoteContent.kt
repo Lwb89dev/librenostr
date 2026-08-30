@@ -103,13 +103,7 @@ fun NoteContent(
 
                     annotation?.handleAnnotationClick(
                         onProfileClick = noteCallbacks.onProfileClick,
-                        onUrlClick = {
-                            if (it.isPrimalLegendsUrl()) {
-                                noteCallbacks.onPrimalLegendsLeaderboardClick?.invoke()
-                            } else {
-                                onUrlClick?.invoke(it)
-                            }
-                        },
+                        onUrlClick = { onUrlClick?.invoke(it) },
                         onPostClick = noteCallbacks.onNoteClick,
                         onHashtagClick = noteCallbacks.onHashtagClick,
                         onArticleClick = noteCallbacks.onArticleClick,
@@ -183,12 +177,7 @@ fun NoteContent(
                 blossoms = data.blossoms,
                 expanded = expanded,
                 couldAutoPlay = couldAutoPlay,
-                onUrlClick = { url ->
-                    when {
-                        url.isPrimalLegendsUrl() -> noteCallbacks.onPrimalLegendsLeaderboardClick?.invoke()
-                        else -> onUrlClick?.invoke(url)
-                    }
-                },
+                onUrlClick = { url -> onUrlClick?.invoke(url) },
                 onMediaClick = noteCallbacks.onMediaClick,
                 onVideoSoundToggle = onVideoSoundToggle,
             )
@@ -344,12 +333,6 @@ fun renderContentAsAnnotatedString(
         shouldKeepNostrNoteUris = shouldKeepNostrNoteUris,
     ).toAnnotatedString(seeMoreText = seeMoreText, highlightColor = highlightColor)
 
-private const val PRIMAL_LEGENDS_URL = "primal.net/legends"
-
-private fun String.isPrimalLegendsUrl(): Boolean {
-    return this.endsWith(PRIMAL_LEGENDS_URL)
-}
-
 @Preview
 @Composable
 fun PreviewPostContent() {
@@ -491,7 +474,7 @@ fun PreviewPostContentWithReferencedPost() {
                                 authorId = "authorId",
                                 authorName = "librenostr",
                                 authorAvatarCdnImage = null,
-                                authorInternetIdentifier = "hi@primal.net",
+                                authorInternetIdentifier = "hi@nostrich.org",
                                 authorLightningAddress = "h@getalby.com",
                                 attachments = emptyList(),
                                 nostrUris = emptyList(),
@@ -517,7 +500,7 @@ fun PreviewPostContentWithReferencedPost() {
                                 authorId = "authorId",
                                 authorName = "librenostr",
                                 authorAvatarCdnImage = null,
-                                authorInternetIdentifier = "hi@primal.net",
+                                authorInternetIdentifier = "hi@nostrich.org",
                                 authorLightningAddress = "h@getalby.com",
                                 attachments = emptyList(),
                                 nostrUris = emptyList(),

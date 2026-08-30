@@ -29,6 +29,8 @@ import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asPubkeyTag
 import net.primal.domain.nostr.cryptography.MessageCipher
+import net.primal.domain.nostr.findFirstProfileId
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.publisher.PrimalPublisher
 
 @OptIn(ExperimentalPagingApi::class)
@@ -40,11 +42,19 @@ internal class ChatRepositoryImpl(
     private val messagesProcessor: MessagesProcessor,
     private val primalPublisher: PrimalPublisher,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : ChatRepository {
 
     override fun newestConversations(userId: String, relation: ConversationRelation) =
         createConversationsPager {
-            database.messageConversations().newestConversationsPagedByOwnerId(ownerId = userId, relation = relation)
+            database.messageConversations().newestConversationsPagedByOwnerId(
+                ownerId = userId,
+                relation = relation,
+                // NIP-04 relay events do not carry Primal's follows/other contact
+                // classification. Keep the local list visible in either tab, including
+                // rows written by an older session before relay mode was enabled.
+                includeAll = true,
+            )
         }.flow.map { it.map { it.asDMConversation() } }
 
     override fun newestMessages(userId: String, participantId: String) =
@@ -53,6 +63,15 @@ internal class ChatRepositoryImpl(
         }.flow.map { it.map { it.asDirectMessageDO() } }
 
     private suspend fun fetchConversations(userId: String, relation: ConversationRelation) {
+        // A relay has no notion of Primal's Follows/Other conversation relation: both
+        // requests query the same kind-4 event set. The list screen requests both
+        // relations to keep the legacy tabs available, so skip the duplicate request
+        // in relay-only mode. Two snapshots arriving in either order used to make the
+        // Paging source flash and briefly render an empty state.
+        if (relayEventQuerier != null && relation == ConversationRelation.Other) {
+            return
+        }
+
         val response = withContext(dispatcherProvider.io()) {
             messagesApi.getConversations(
                 body = ConversationRequestBody(
@@ -63,26 +82,39 @@ internal class ChatRepositoryImpl(
         }
         mediaCacher?.cacheAvatarUrls(metadata = response.profileMetadata, cdnResources = response.cdnResources)
         val summary = response.conversationsSummary
-        val rawConversations = summary?.summaryPerParticipantId?.keys ?: emptyList()
-        val messageConversation = rawConversations
-            .mapNotNull { participantId ->
-                summary?.summaryPerParticipantId?.get(participantId)?.let { summary ->
-                    participantId to summary
-                }
-            }
-            .map { (participantId, summary) ->
+        val messageConversation = summary?.summaryPerParticipantId
+            ?.map { (participantId, conversation) ->
                 MessageConversationData(
                     ownerId = userId,
                     participantId = participantId,
                     participantMetadataId = response.profileMetadata
                         .find { it.pubKey == participantId }
                         ?.id,
-                    lastMessageId = summary.lastMessageId,
-                    lastMessageAt = summary.lastMessageAt,
-                    unreadMessagesCount = summary.count,
+                    lastMessageId = conversation.lastMessageId,
+                    lastMessageAt = conversation.lastMessageAt,
+                    unreadMessagesCount = conversation.count,
                     relation = relation,
                 )
             }
+            ?: response.messages
+                .mapNotNull { event ->
+                    val recipientId = event.tags.findFirstProfileId() ?: return@mapNotNull null
+                    val participantId = if (event.pubKey == userId) recipientId else event.pubKey
+                    participantId to event
+                }
+                .groupBy { it.first }
+                .mapNotNull { (participantId, events) ->
+                    val latest = events.maxByOrNull { it.second.createdAt } ?: return@mapNotNull null
+                    MessageConversationData(
+                        ownerId = userId,
+                        participantId = participantId,
+                        participantMetadataId = null,
+                        lastMessageId = latest.second.id,
+                        lastMessageAt = latest.second.createdAt,
+                        unreadMessagesCount = 0,
+                        relation = relation,
+                    )
+                }
 
         withContext(dispatcherProvider.io()) {
             messagesProcessor.processMessageEventsAndSave(
@@ -95,7 +127,13 @@ internal class ChatRepositoryImpl(
                 primalLegendProfiles = response.primalLegendProfiles,
                 blossomServerEvents = response.blossomServers,
             )
-            database.messageConversations().upsertAll(data = messageConversation)
+            // An unavailable/slow relay is a valid empty response. Do not invalidate
+            // the conversation PagingSource when it contains no new rows: keeping the
+            // last known local snapshot avoids replacing visible conversations with
+            // the empty-state placeholder during a refresh.
+            if (messageConversation.isNotEmpty()) {
+                database.messageConversations().upsertAll(data = messageConversation)
+            }
         }
     }
 

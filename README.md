@@ -26,31 +26,40 @@ The imported codebase still contains upstream namespaces and compatibility servi
 
 ## Current state
 
-The current AOSP debug build is usable as a daily development client for the core Nostr workflow:
+**100% of active Android data paths are relay-native.** Feeds, profiles, threads,
+notifications, direct messages, search, bookmarks, mute lists, articles and
+zaps are all read and written directly against Nostr relays; no Primal cache
+or aggregation server is required for any of them. Full detail and
+verification evidence: [`docs/RELAY_ONLY_MIGRATION_STATUS.md`](docs/RELAY_ONLY_MIGRATION_STATUS.md)
+and [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
 
 - direct relay read/write through `RelayPool`, including EOSE handling, timeouts, deduplication and clean subscription shutdown;
-- relay-first following feeds, including **Latest** and **Latest with replies**;
-- relay-first profile metadata, follow lists and NIP-65 relay lists, backed by local Room storage;
-- note threads fetched from relay events and replies;
+- relay-first feeds (**Latest**, **Latest with replies**), profiles, follow lists, threads, notifications, direct messages (NIP-04), bookmarks, mute lists and live-stream lookup;
+- relay-first Reads: article feed, article details/comments (NIP-22/NIP-23) and highlights (NIP-84);
+- relay-first Explore: profile search, popular people, trending topics/zaps and note reaction/repost action lists;
+- relay-first polls (kind 1068/6969/1018) and zap receipts (NIP-57, kind 9735), including invoice-to-zap enrichment;
 - local-key note publishing to write relays, with the published event persisted locally;
-- notifications with scrolling, pull-to-refresh and read-state handling;
+- NWC (NIP-47) as the only in-app wallet transport; legacy centralized/embedded wallet, premium and FCM push services are removed or fail closed;
+- Android Keystore AES-GCM local credential storage, disabled Android backup, HTTPS-only/cleartext-disabled networking;
 - LibreNostr-branded Compose UI with home, notifications, profile, algorithm and settings navigation;
 - profile sharing through `nostrich.org/p/<npub>` and Android deep-link handling;
 - inline search: profile results appear below the search field and note/read results render in the same screen, without an intermediate results page;
 - persistent recent searches and recent profiles, capped at five entries per group and shown with profile images;
 - note composer attachments, camera/gallery selection, polls and a GIF picker backed by Wikimedia Commons previews.
 
-The app name and launcher icon are LibreNostr. The Android application/package namespace is still `net.primal.android`; renaming it is intentionally postponed until the networking migration is complete.
+The app name and launcher icon are LibreNostr. The Android application ID is
+`com.librenostr.android`; the internal Kotlin/Java package namespace is still
+`net.primal.android` and is renamed separately from the networking migration.
 
 ## Remaining boundaries
 
 LibreNostr is not yet a complete removal of every upstream-specific component. In particular:
 
-- some discovery/search and metadata-enrichment calls still use compatibility services;
-- wallet/NWC, premium, external-signer and legacy service modules remain in the imported tree and are under audit or scheduled for removal;
-- some upstream class names still use the original namespace.
+- wallet/premium/external-signer UI and compatibility modules remain in the imported tree; their centralized transports are fail-closed but the modules themselves (including the optional Breez/Spark native library) are still compiled in and scheduled for removal;
+- some upstream class, package and module names (e.g. `networking-primal`, `domain-primal`) still reflect the original codebase;
+- historical test fixtures and event text may still reference the upstream domain; these are not live endpoints.
 
-Basic relay-backed feeds, profiles, threads, notifications and publishing do not depend on a remote cache. Remaining paths are tracked in [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
+Remaining paths and phased removal are tracked in [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md).
 
 ## Project layout
 
@@ -96,6 +105,17 @@ Signing properties are optional and use the `playStore` or `alternative` signing
 ./gradlew :app:installAospAltRelease
 ```
 
+## Releases
+
+Signed release APKs (`aospAltRelease`, split per ABI: `armeabi-v7a`,
+`arm64-v8a`, `x86_64`) are published on the
+[GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page,
+starting with `v0.1.0`. Verify the APK signature before installing:
+
+```bash
+apksigner verify --print-certs app-aosp-altRelease-<abi>.apk
+```
+
 ## Documentation
 
 | File | Description |
@@ -106,6 +126,8 @@ Signing properties are optional and use the `playStore` or `alternative` signing
 | [`docs/PRIMAL_SERVER_DEPENDENCIES.md`](docs/PRIMAL_SERVER_DEPENDENCIES.md) | Inventory of remaining server verbs |
 | [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md) | Migration phases and stop conditions |
 | [`docs/LIBRENOSTR_BACKLOG.md`](docs/LIBRENOSTR_BACKLOG.md) | Atomic implementation tasks |
+| [`docs/RELAY_ONLY_MIGRATION_STATUS.md`](docs/RELAY_ONLY_MIGRATION_STATUS.md) | Relay-only migration status per data path |
+| [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) | Security and relay-only audit results and verification evidence |
 
 ## Git remotes
 
@@ -118,7 +140,10 @@ Do not push to `upstream`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Open issues and pull requests on this repository.
+Open issues and pull requests on this repository. Discuss non-trivial changes
+first, and check [`docs/LIBRENOSTR_ROADMAP.md`](docs/LIBRENOSTR_ROADMAP.md)
+and [`docs/LIBRENOSTR_BACKLOG.md`](docs/LIBRENOSTR_BACKLOG.md) for the current
+migration phase before starting work on the networking layer.
 
 ## License
 

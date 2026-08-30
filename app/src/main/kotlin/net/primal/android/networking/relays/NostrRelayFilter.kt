@@ -16,7 +16,10 @@ fun RelayFilter.toJsonObject(): JsonObject =
         since = since,
         until = until,
         eventTags = eventTags,
+        addressTags = addressTags,
         pubkeyTags = pubkeyTags,
+        bolt11Tags = bolt11Tags,
+        search = search,
     )
 
 fun buildRelayFilter(
@@ -27,7 +30,10 @@ fun buildRelayFilter(
     since: Long? = null,
     until: Long? = null,
     eventTags: List<String>? = null,
+    addressTags: List<String>? = null,
     pubkeyTags: List<String>? = null,
+    bolt11Tags: List<String>? = null,
+    search: String? = null,
 ): JsonObject =
     buildJsonObject {
         if (!kinds.isNullOrEmpty()) {
@@ -45,7 +51,14 @@ fun buildRelayFilter(
         if (!eventTags.isNullOrEmpty()) {
             put("#e", buildJsonArray { eventTags.forEach { add(it) } })
         }
+        if (!addressTags.isNullOrEmpty()) {
+            put("#a", buildJsonArray { addressTags.forEach { add(it) } })
+        }
         if (!pubkeyTags.isNullOrEmpty()) {
             put("#p", buildJsonArray { pubkeyTags.forEach { add(it) } })
         }
+        if (!bolt11Tags.isNullOrEmpty()) {
+            put("#bolt11", buildJsonArray { bolt11Tags.forEach { add(it) } })
+        }
+        if (!search.isNullOrBlank()) put("search", JsonPrimitive(search))
     }

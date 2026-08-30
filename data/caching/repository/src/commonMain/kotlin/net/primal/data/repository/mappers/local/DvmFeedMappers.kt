@@ -1,7 +1,6 @@
 package net.primal.data.repository.mappers.local
 
 import net.primal.data.local.dao.feeds.DvmFeedData
-import net.primal.data.local.dao.feeds.DvmFeedFeaturedUserCrossRef
 import net.primal.data.local.dao.feeds.RecommendedDvmFeedCrossRef
 import net.primal.data.local.dao.feeds.asSpecKindFilter
 import net.primal.domain.feeds.DvmFeed
@@ -22,16 +21,6 @@ internal fun DvmFeed.asDvmFeedPO(): DvmFeedData =
         primalSpec = primalSpec,
         isPrimalFeed = isPrimalFeed,
     )
-
-internal fun DvmFeed.asFeaturedCrossRefs(ownerId: String): List<DvmFeedFeaturedUserCrossRef> =
-    featuredUserIds.mapIndexed { index, profileId ->
-        DvmFeedFeaturedUserCrossRef(
-            ownerId = ownerId,
-            dvmEventId = eventId,
-            profileId = profileId,
-            position = index,
-        )
-    }
 
 internal fun List<DvmFeed>.asRecommendedCrossRefs(
     ownerId: String,

@@ -5,6 +5,8 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
@@ -30,6 +32,23 @@ fun Context.copySensitiveText(text: String, label: String = "") {
         }
     }
     clipboard.setPrimaryClip(clip)
+    // A private key must not remain in the global clipboard indefinitely. Clear only if the
+    // clipboard still contains this exact value, so a user's subsequent copy is never lost.
+    Handler(Looper.getMainLooper()).postDelayed({
+        val current = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+        if (current == text) clipboard.clearSensitiveContent()
+    }, SENSITIVE_CLIPBOARD_TTL_MS)
+}
+
+/** Clears the clipboard on every supported Android version without touching newer user data. */
+private fun ClipboardManager.clearSensitiveContent() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        clearPrimaryClip()
+    } else {
+        // clearPrimaryClip() was added in API 28; replacing with an empty clip is the
+        // equivalent operation on API 26–27.
+        setPrimaryClip(ClipData.newPlainText("", ""))
+    }
 }
 
 fun Context.pasteText(): String {
@@ -55,7 +74,7 @@ suspend fun copyBitmapToClipboard(
                 else -> "jpg"
             }
 
-            val imageFile = File(clipboardDir, "PrimalCopyImage.$fileExtension")
+            val imageFile = File(clipboardDir, "LibreNostrCopyImage.$fileExtension")
 
             FileOutputStream(imageFile).use { outputStream ->
                 bitmap.compress(format ?: getBitmapFormat(bitmap), IMAGE_COMPRESSION_QUALITY, outputStream)
@@ -89,3 +108,5 @@ private fun getBitmapFormat(bitmap: Bitmap): Bitmap.CompressFormat {
 private fun showToast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
+
+private const val SENSITIVE_CLIPBOARD_TTL_MS = 60_000L

@@ -164,7 +164,7 @@ private fun FollowPackListItemPreview() {
                 authorProfileData = UserProfileItemUi(
                     profileId = "",
                     displayName = "ODELL",
-                    internetIdentifier = "odell@primal.net",
+                    internetIdentifier = "odell@nostrich.org",
                 ),
                 profiles = emptyList(),
                 profilesCount = 148,

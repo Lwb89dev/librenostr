@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import java.time.Instant
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.primal.android.core.compose.attachment.model.asEventUriUiModel
 import net.primal.android.core.utils.usernameUiFriendly
 import net.primal.android.messages.conversation.MessageConversationListContract.UiEvent
@@ -55,6 +58,7 @@ class MessageConversationListViewModel @Inject constructor(
     private fun setState(reducer: UiState.() -> UiState) = _state.getAndUpdate { it.reducer() }
 
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
+    private val conversationFetchMutex = Mutex()
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
     init {
@@ -87,24 +91,35 @@ class MessageConversationListViewModel @Inject constructor(
 
     private fun fetchConversations() =
         viewModelScope.launch {
-            setState { copy(loading = true) }
-            try {
-                val userId = activeAccountStore.activeUserId()
-                when (state.value.activeRelation) {
-                    ConversationRelation.Follows -> {
-                        chatRepository.fetchFollowConversations(userId = userId)
-                        chatRepository.fetchNonFollowsConversations(userId = userId)
-                    }
+            // Badge updates, lifecycle events and pull-to-refresh can arrive at the
+            // same time. Serialize them so an older empty relay response cannot race
+            // a populated response and make Paging render the empty state.
+            conversationFetchMutex.withLock {
+                setState { copy(loading = true) }
+                try {
+                    val userId = activeAccountStore.activeUserId()
+                    when (state.value.activeRelation) {
+                        ConversationRelation.Follows -> {
+                            chatRepository.fetchFollowConversations(userId = userId)
+                            chatRepository.fetchNonFollowsConversations(userId = userId)
+                        }
 
-                    ConversationRelation.Other -> {
-                        chatRepository.fetchNonFollowsConversations(userId = userId)
-                        chatRepository.fetchFollowConversations(userId = userId)
+                        ConversationRelation.Other -> {
+                            chatRepository.fetchNonFollowsConversations(userId = userId)
+                            chatRepository.fetchFollowConversations(userId = userId)
+                        }
                     }
+                } catch (error: NetworkException) {
+                    Napier.w(throwable = error) { "Failed to fetch conversations" }
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    // Relay decoding/Room failures must not leave the screen stuck in a loading
+                    // state, nor prevent a later pull-to-refresh from retrying the request.
+                    Napier.w(throwable = error) { "Failed to process relay conversations" }
+                } finally {
+                    setState { copy(loading = false) }
                 }
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to fetch conversations" }
-            } finally {
-                setState { copy(loading = false) }
             }
         }
 

@@ -86,7 +86,6 @@ internal class KlipyApiImpl(
     companion object {
         private const val COMMONS_API = "https://commons.wikimedia.org"
         private const val COMMONS_REFERRER = "$COMMONS_API/"
-        private const val LIBRENOSTR_USER_AGENT =
-            "LibreNostr/1.0 (https://github.com/PrimalSystems/primal-android-app)"
+        private const val LIBRENOSTR_USER_AGENT = "LibreNostr/1.0"
     }
 }

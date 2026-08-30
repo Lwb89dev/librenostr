@@ -1,7 +1,6 @@
 package net.primal.data.repository.factory
 
 import net.primal.core.caching.MediaCacher
-import net.primal.core.networking.factory.PrimalHttpApiClientFactory
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.core.utils.coroutines.createDispatcherProvider
 import net.primal.data.local.db.CachingDatabase
@@ -37,13 +36,12 @@ import net.primal.domain.events.EventRepository
 import net.primal.domain.explore.ExploreRepository
 import net.primal.domain.feeds.FeedsRepository
 import net.primal.domain.global.CachingImportRepository
-import net.primal.domain.global.PrimalServerType
 import net.primal.domain.links.EventUriRepository
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
-import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
 import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
@@ -67,14 +65,14 @@ abstract class CommonRepositoryFactory {
     abstract fun resolveCachingDatabase(): CachingDatabase
 
     fun createArticleRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier,
     ): ArticleRepository {
         return ArticleRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
-            articlesApi = PrimalApiServiceFactory.createArticlesApi(cachingPrimalApiClient),
             database = resolveCachingDatabase(),
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
@@ -89,26 +87,19 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createCachingImportRepository(cachingPrimalApiClient: PrimalApiClient): CachingImportRepository {
+    fun createCachingImportRepository(): CachingImportRepository {
         return CachingImportRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
-            importApi = PrimalApiServiceFactory.createImportApi(
-                primalHttpApiClient = PrimalHttpApiClientFactory.getDefault(PrimalServerType.Caching),
-            ),
-            broadcastApi = PrimalApiServiceFactory.createBroadcastApi(cachingPrimalApiClient),
+            importApi = null,
+            broadcastApi = null,
             invalidationTracker = feedSpecInvalidationTracker,
         )
     }
 
     fun createPremiumBroadcastRepository(
-        cachingPrimalApiClient: PrimalApiClient,
-        nostrEventSignatureHandler: NostrEventSignatureHandler,
     ): PremiumBroadcastRepository {
         return PremiumBroadcastRepositoryImpl(
-            dispatchers = dispatcherProvider,
-            premiumBroadcastApi = PrimalApiServiceFactory.createPremiumBroadcastApi(cachingPrimalApiClient),
-            nostrEventSignatureHandler = nostrEventSignatureHandler,
         )
     }
 
@@ -116,22 +107,26 @@ abstract class CommonRepositoryFactory {
         cachingPrimalApiClient: PrimalApiClient,
         messageCipher: MessageCipher,
         primalPublisher: PrimalPublisher,
+        relayEventQuerier: RelayEventQuerier? = null,
         mediaCacher: MediaCacher? = null,
     ): ChatRepository {
         return ChatRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
             messageCipher = messageCipher,
-            messagesApi = PrimalApiServiceFactory.createMessagesApi(cachingPrimalApiClient),
+            messagesApi = PrimalApiServiceFactory.createMessagesApi(
+                primalApiClient = cachingPrimalApiClient,
+                relayEventQuerier = relayEventQuerier,
+            ),
             messagesProcessor = MessagesProcessor(
                 database = resolveCachingDatabase(),
-                feedApi = PrimalApiServiceFactory.createFeedApi(cachingPrimalApiClient),
-                usersApi = PrimalApiServiceFactory.createUsersApi(cachingPrimalApiClient),
                 messageCipher = messageCipher,
                 mediaCacher = mediaCacher,
+                relayEventQuerier = relayEventQuerier,
             ),
             primalPublisher = primalPublisher,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
@@ -151,32 +146,26 @@ abstract class CommonRepositoryFactory {
     }
 
     fun createFeedsRepository(
-        cachingPrimalApiClient: PrimalApiClient,
-        signatureHandler: NostrEventSignatureHandler,
-        mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): FeedsRepository {
         return FeedsRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
-            feedsApi = PrimalApiServiceFactory.createFeedsApi(cachingPrimalApiClient),
             database = resolveCachingDatabase(),
-            signatureHandler = signatureHandler,
-            mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
     fun createEventRepository(
-        cachingPrimalApiClient: PrimalApiClient,
-        mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier,
     ): EventRepository {
         return EventRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
-            eventStatsApi = PrimalApiServiceFactory.createEventsApi(cachingPrimalApiClient),
             database = resolveCachingDatabase(),
-            mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
-    fun createEventUriRepository(cachingPrimalApiClient: PrimalApiClient): EventUriRepository {
+    fun createEventUriRepository(): EventUriRepository {
         return EventUriRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
@@ -184,7 +173,6 @@ abstract class CommonRepositoryFactory {
     }
 
     fun createEventInteractionRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         nostrZapperFactory: NostrZapperFactory,
     ): EventInteractionRepository {
@@ -196,7 +184,7 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createEventRelayHintsRepository(cachingPrimalApiClient: PrimalApiClient): EventRelayHintsRepository {
+    fun createEventRelayHintsRepository(): EventRelayHintsRepository {
         return EventRelayHintsRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
@@ -204,38 +192,40 @@ abstract class CommonRepositoryFactory {
     }
 
     fun createExploreRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier,
     ): ExploreRepository {
         return ExploreRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
-            exploreApi = PrimalApiServiceFactory.createExploreApi(cachingPrimalApiClient),
             database = resolveCachingDatabase(),
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
     fun createMutedItemRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
+        relayEventQuerier: RelayEventQuerier,
     ): MutedItemRepository {
         return MutedItemRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
-            settingsApi = PrimalApiServiceFactory.createSettingsApi(cachingPrimalApiClient),
             primalPublisher = primalPublisher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
     fun createNotificationRepository(
         cachingPrimalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): NotificationRepository {
         return NotificationRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
             notificationsApi = PrimalApiServiceFactory.createNotificationsApi(cachingPrimalApiClient),
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
@@ -247,19 +237,14 @@ abstract class CommonRepositoryFactory {
     }
 
     fun createProfileRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
-        mediaCacher: MediaCacher? = null,
         nip05VerificationService: Nip05VerificationService? = null,
         relayEventQuerier: RelayEventQuerier? = null,
     ): ProfileRepository {
         return ProfileRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
-            usersApi = PrimalApiServiceFactory.createUsersApi(cachingPrimalApiClient),
-            wellKnownApi = PrimalApiServiceFactory.createUserWellKnownApi(),
             primalPublisher = primalPublisher,
-            mediaCacher = mediaCacher,
             nip05VerificationService = nip05VerificationService,
             relayEventQuerier = relayEventQuerier,
         )
@@ -268,12 +253,14 @@ abstract class CommonRepositoryFactory {
     fun createPublicBookmarksRepository(
         cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): PublicBookmarksRepository {
         return PublicBookmarksRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
             primalPublisher = primalPublisher,
             usersApi = PrimalApiServiceFactory.createUsersApi(cachingPrimalApiClient),
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
@@ -285,23 +272,19 @@ abstract class CommonRepositoryFactory {
     }
 
     fun createStreamRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         nip05VerificationService: Nip05VerificationService? = null,
-        mediaCacher: MediaCacher? = null,
-        relayEventQuerier: RelayEventQuerier? = null,
+        relayEventSubscriber: RelayEventSubscriber,
     ): StreamRepository =
         StreamRepositoryImpl(
             database = resolveCachingDatabase(),
             dispatcherProvider = dispatcherProvider,
             profileRepository = createProfileRepository(
-                cachingPrimalApiClient = cachingPrimalApiClient,
                 primalPublisher = primalPublisher,
-                mediaCacher = mediaCacher,
                 nip05VerificationService = nip05VerificationService,
-                relayEventQuerier = relayEventQuerier,
+                relayEventQuerier = relayEventSubscriber,
             ),
-            liveStreamApi = PrimalApiServiceFactory.createStreamMonitor(cachingPrimalApiClient),
+            liveStreamApi = PrimalApiServiceFactory.createStreamMonitor(relayEventSubscriber),
         )
 
     fun createStreamChatRepository(primalPublisher: PrimalPublisher): LiveStreamChatRepository {
@@ -316,6 +299,7 @@ abstract class CommonRepositoryFactory {
         cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         mediaCacher: MediaCacher? = null,
+        relayEventQuerier: RelayEventQuerier? = null,
     ): PollsRepository {
         return PollsRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
@@ -323,6 +307,7 @@ abstract class CommonRepositoryFactory {
             primalPublisher = primalPublisher,
             database = resolveCachingDatabase(),
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 }

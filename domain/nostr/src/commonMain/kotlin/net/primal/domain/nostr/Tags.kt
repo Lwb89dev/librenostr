@@ -352,7 +352,7 @@ fun String.asFollowedMuteListPubkeyTag(): JsonArray =
     buildJsonArray {
         add("p")
         add(this@asFollowedMuteListPubkeyTag)
-        add("wss://relay.primal.net")
+        add("wss://relay.damus.io")
         add("")
         add("""["content","trending"]""")
     }

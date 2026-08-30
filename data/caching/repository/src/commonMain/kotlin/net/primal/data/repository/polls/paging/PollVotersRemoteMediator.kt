@@ -32,6 +32,7 @@ import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.shared.data.local.db.withTransaction
@@ -44,6 +45,7 @@ internal class PollVotersRemoteMediator(
     private val database: CachingDatabase,
     private val dispatcherProvider: DispatcherProvider,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : RemoteMediator<Int, PollVoteWithProfile>() {
 
     private val lastRequests: MutableMap<LoadType, Pair<PollVotesRequestBody, Long>> =
@@ -68,6 +70,29 @@ internal class PollVotersRemoteMediator(
     }
 
     override suspend fun load(loadType: LoadType, state: PagingState<Int, PollVoteWithProfile>): MediatorResult {
+        relayEventQuerier?.let { querier ->
+            if (loadType != LoadType.REFRESH) {
+                return MediatorResult.Success(endOfPaginationReached = true)
+            }
+
+            return try {
+                val relayResult = net.primal.data.repository.polls.RelayPollVotesFetcher(querier)
+                    .fetch(postId = postId, optionId = optionId, limit = state.config.pageSize)
+                withContext(dispatcherProvider.io()) {
+                    database.withTransaction {
+                        database.pollVoterRemoteKeys().deleteByPostIdAndOptionId(postId, optionId)
+                        database.pollVotes().deleteByPostIdAndOptionId(postId, optionId)
+                        database.profiles().insertOrUpdateAll(data = relayResult.profiles)
+                        relayResult.poll?.let { database.polls().upsertAll(data = listOf(it)) }
+                        database.pollVotes().upsertAll(data = relayResult.votes)
+                    }
+                }
+                MediatorResult.Success(endOfPaginationReached = true)
+            } catch (error: NetworkException) {
+                MediatorResult.Error(error)
+            }
+        }
+
         val nextUntil = when (loadType) {
             LoadType.APPEND -> findLastRemoteKey(state = state)?.sinceId
                 ?: run {

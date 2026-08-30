@@ -16,8 +16,6 @@ import net.primal.data.account.repository.repository.factory.AccountRepositoryFa
 import net.primal.data.account.repository.service.AndroidAccountServiceFactory
 import net.primal.data.account.repository.service.LocalSignerService
 import net.primal.data.account.repository.service.factory.AccountServiceFactory
-import net.primal.data.remote.factory.PrimalApiServiceFactory
-import net.primal.domain.account.blossom.BlossomRepository
 import net.primal.domain.account.pushnotifications.PushNotificationRepository
 import net.primal.domain.account.repository.ConnectionRepository
 import net.primal.domain.account.repository.LocalAppRepository
@@ -26,6 +24,7 @@ import net.primal.domain.account.repository.SessionEventRepository
 import net.primal.domain.account.repository.SessionRepository
 import net.primal.domain.nostr.cryptography.NostrEncryptionHandler
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
+import net.primal.domain.nostr.relay.RelayEventQuerier
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,13 +38,13 @@ object AccountRepositoriesModule {
 
     @Provides
     fun provideSessionEventRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         dispatchers: DispatcherProvider,
+        relayEventQuerier: RelayEventQuerier,
     ): SessionEventRepository =
         AccountRepositoryFactory.createSessionEventRepository(
             nip46EventsHandler = Nip46EventsHandlerImpl(
-                eventStatsApi = PrimalApiServiceFactory.createEventsApi(primalApiClient = primalApiClient),
                 dispatchers = dispatchers,
+                relayEventQuerier = relayEventQuerier,
             ),
         )
 
@@ -87,16 +86,6 @@ object AccountRepositoriesModule {
         AccountServiceFactory.getRemoteAppConnectionManager()
 
     @Provides
-    fun provideBlossomRepository(@PrimalCacheApiClient primalApiClient: PrimalApiClient): BlossomRepository =
-        AccountRepositoryFactory.createBlossomRepository(
-            primalApiClient = primalApiClient,
-        )
-
-    @Provides
-    fun providePushNotificationRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
-    ): PushNotificationRepository =
-        AccountRepositoryFactory.createPushNotificationRepository(
-            primalApiClient = primalApiClient,
-        )
+    fun providePushNotificationRepository(): PushNotificationRepository =
+        AccountRepositoryFactory.createPushNotificationRepository()
 }

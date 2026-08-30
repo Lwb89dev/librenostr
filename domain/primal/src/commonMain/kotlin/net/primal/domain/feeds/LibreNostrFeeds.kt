@@ -24,6 +24,20 @@ fun defaultLibreNostrNoteFeeds(userId: String): List<PrimalFeed> =
         ),
     )
 
+fun defaultLibreNostrReadFeeds(userId: String): List<PrimalFeed> =
+    listOf(
+        PrimalFeed(
+            ownerId = userId,
+            spec = "{\"id\":\"latest\",\"kind\":\"reads\"}",
+            specKind = FeedSpecKind.Reads,
+            feedKind = FEED_KIND_USER,
+            title = "Latest reads",
+            description = "Articles from people you follow",
+            enabled = true,
+            position = 0,
+        ),
+    )
+
 fun mergeDefaultNoteFeeds(userId: String, existing: List<PrimalFeed>): List<PrimalFeed> {
     val defaults = defaultLibreNostrNoteFeeds(userId)
     if (existing.isEmpty()) return defaults

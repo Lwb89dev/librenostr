@@ -2,11 +2,8 @@ package net.primal.core.networking.factory
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.WebSockets
-import net.primal.core.config.AppConfigFactory
 import net.primal.core.networking.primal.PrimalApiClient
-import net.primal.core.networking.primal.ProxyPrimalApiClient
-import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.core.utils.coroutines.createDispatcherProvider
+import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.global.PrimalServerType
 
 internal val defaultSocketsHttpClient by lazy {
@@ -25,41 +22,22 @@ internal val keepAliveSocketsHttpClient by lazy {
 
 object PrimalApiClientFactory {
 
-    private val clients: MutableMap<PrimalServerType, PrimalApiClient> = mutableMapOf()
+    /** Legacy centralized cache transport; deliberately fail-closed. */
+    fun getDefault(serverType: PrimalServerType): PrimalApiClient = unavailable(serverType)
 
-    fun getDefault(serverType: PrimalServerType): PrimalApiClient {
-        return clients.getOrPut(serverType) {
-            create(serverType = serverType)
-        }
-    }
-
-    fun create(serverType: PrimalServerType): PrimalApiClient {
-        return create(
-            dispatcherProvider = createDispatcherProvider(),
-            httpClient = keepAliveSocketsHttpClient,
-            serverType = serverType,
-        )
-    }
+    fun create(serverType: PrimalServerType): PrimalApiClient = unavailable(serverType)
 
     fun create(
-        dispatcherProvider: DispatcherProvider,
+        dispatcherProvider: net.primal.core.utils.coroutines.DispatcherProvider,
         serverType: PrimalServerType,
         httpClient: HttpClient,
-    ): PrimalApiClient {
-        return ProxyPrimalApiClient(
-            dispatcherProvider = dispatcherProvider,
-            httpClient = httpClient,
-            serverType = serverType,
-            appConfigProvider = AppConfigFactory.createAppConfigProvider(),
-            appConfigHandler = AppConfigFactory.createAppConfigHandler(),
-        )
-    }
+    ): PrimalApiClient = unavailable(serverType)
 
-    fun pauseAll() {
-        clients.values.forEach { (it as? ProxyPrimalApiClient)?.pause() }
-    }
+    fun pauseAll() = Unit
 
-    fun resumeAll() {
-        clients.values.forEach { (it as? ProxyPrimalApiClient)?.resume() }
-    }
+    fun resumeAll() = Unit
+
+    private fun unavailable(serverType: PrimalServerType): Nothing = throw NetworkException(
+        "Centralized API clients are disabled for LibreNostr (${serverType.name}). Use RelayPool.",
+    )
 }

@@ -458,7 +458,7 @@ private fun PreviewProfileHeaderDetails() {
                         pubkey = "88cc134b1a65f54ef48acc1df3665063d3ea45f04eab8af4646e561c5ae99079",
                         userDisplayName = "qauser",
                         authorDisplayName = "qauser",
-                        internetIdentifier = "qa@primal.net",
+                        internetIdentifier = "qa@nostrich.org",
                         about = "qauser",
                         premiumDetails = PremiumProfileDataUi(
                             primalName = "qa",

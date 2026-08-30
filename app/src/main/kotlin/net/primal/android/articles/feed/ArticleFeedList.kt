@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -48,6 +50,7 @@ import net.primal.android.R
 import net.primal.android.articles.feed.ui.FeedArticleListItem
 import net.primal.android.articles.feed.ui.FeedArticleUi
 import net.primal.android.core.compose.ListLoadingError
+import net.primal.android.core.compose.LibreNostrLoadingSpinner
 import net.primal.android.core.compose.PremiumFeedPaywall
 import net.primal.android.core.activity.LocalActiveAccountId
 import net.primal.android.core.compose.PrimalDivider
@@ -63,6 +66,7 @@ import net.primal.android.core.utils.copyText
 import net.primal.android.theme.AppTheme
 import net.primal.android.thread.articles.ArticleContract
 import net.primal.android.thread.articles.ArticleViewModel
+import net.primal.domain.feeds.isSearchFeedSpec
 
 @Composable
 fun ArticleFeedList(
@@ -128,6 +132,7 @@ fun ArticleFeedList(
         noContentVerticalArrangement = noContentVerticalArrangement,
         noContentPaddingValues = noContentPaddingValues,
         shouldAnimateScrollToTop = shouldAnimateScrollToTop,
+        showCentralLoadingSpinner = feedSpec.isSearchFeedSpec(),
         articleEventPublisher = articleViewModel::setEvent,
     )
 }
@@ -146,6 +151,7 @@ private fun ArticleFeedList(
     noContentVerticalArrangement: Arrangement.Vertical = Arrangement.Center,
     noContentPaddingValues: PaddingValues = PaddingValues(all = 0.dp),
     shouldAnimateScrollToTop: Boolean = false,
+    showCentralLoadingSpinner: Boolean = false,
     onArticleClick: (naddr: String) -> Unit,
     header: @Composable (LazyItemScope.() -> Unit)? = null,
     stickyHeader: @Composable (LazyItemScope.() -> Unit)? = null,
@@ -211,6 +217,7 @@ private fun ArticleFeedList(
             noContentText = noContentText,
             noContentVerticalArrangement = noContentVerticalArrangement,
             noContentPaddingValues = noContentPaddingValues,
+            showCentralLoadingSpinner = showCentralLoadingSpinner,
         )
     }
 }
@@ -230,6 +237,7 @@ private fun ArticleFeedLazyColumn(
     noContentText: String = stringResource(id = R.string.article_feed_no_content),
     noContentVerticalArrangement: Arrangement.Vertical = Arrangement.Center,
     noContentPaddingValues: PaddingValues = PaddingValues(all = 0.dp),
+    showCentralLoadingSpinner: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(all = 0.dp),
     header: @Composable (LazyItemScope.() -> Unit)? = null,
     stickyHeader: @Composable (LazyItemScope.() -> Unit)? = null,
@@ -327,12 +335,23 @@ private fun ArticleFeedLazyColumn(
         }
 
         if (pagingItems.isEmpty()) {
-            handleRefreshLoadState<FeedArticleUi>(
-                pagingItems = pagingItems,
-                noContentText = noContentText,
-                noContentVerticalArrangement = noContentVerticalArrangement,
-                noContentPaddingValues = noContentPaddingValues,
-            )
+            if (showCentralLoadingSpinner && pagingItems.loadState.refresh == LoadState.Loading) {
+                item(contentType = "SearchLoading") {
+                    Box(
+                        modifier = Modifier.fillParentMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        LibreNostrLoadingSpinner()
+                    }
+                }
+            } else {
+                handleRefreshLoadState<FeedArticleUi>(
+                    pagingItems = pagingItems,
+                    noContentText = noContentText,
+                    noContentVerticalArrangement = noContentVerticalArrangement,
+                    noContentPaddingValues = noContentPaddingValues,
+                )
+            }
         }
 
         handleMediatorAppendState(pagingItems)

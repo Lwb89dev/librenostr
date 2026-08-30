@@ -70,12 +70,9 @@ class NetworkSettingsViewModel @Inject constructor(
             events.collect {
                 when (it) {
                     UiEvent.RestoreDefaultRelays -> restoreDefaultRelays()
-                    UiEvent.RestoreDefaultCachingService -> Unit
                     is UiEvent.DeleteRelay -> deleteRelay(url = it.url)
                     is UiEvent.ConfirmRelayInsert -> addRelay(url = it.url)
                     is UiEvent.UpdateNewRelayUrl -> setState { copy(newRelayUrl = it.url) }
-                    is UiEvent.ConfirmCachingServiceChange -> Unit
-                    is UiEvent.UpdateNewCachingServiceUrl -> setState { copy(newCachingServiceUrl = it.url) }
                     is UiEvent.UpdateRelayRead -> updateRelayPermissions(url = it.url, read = it.read, write = null)
                     is UiEvent.UpdateRelayWrite -> updateRelayPermissions(url = it.url, read = null, write = it.write)
                     UiEvent.DismissError -> setState { copy(error = null) }

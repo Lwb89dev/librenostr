@@ -255,7 +255,7 @@ private fun PremiumAvatarHeader(
         NostrUserText(
             modifier = Modifier.padding(start = 8.dp),
             displayName = primalName,
-            internetIdentifier = "$primalName@primal.net",
+            internetIdentifier = "$primalName@nostrich.org",
             internetIdentifierBadgeSize = 24.dp,
             fontSize = 20.sp,
             legendaryCustomization = avatarLegendaryCustomization,

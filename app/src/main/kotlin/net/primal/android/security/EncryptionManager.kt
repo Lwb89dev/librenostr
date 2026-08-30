@@ -6,6 +6,7 @@ import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.IvParameterSpec
 
 class EncryptionManager(
@@ -16,6 +17,7 @@ class EncryptionManager(
 
     companion object {
         private const val KEY_STORE_PROVIDER = "AndroidKeyStore"
+        private const val GCM_TAG_LENGTH_BITS = 128
     }
 
     private val transformation = "$algorithm/$blockMode/$padding"
@@ -34,7 +36,12 @@ class EncryptionManager(
 
     fun getDecryptCipherForIv(keyAlias: String, iv: ByteArray): Cipher {
         return Cipher.getInstance(transformation).apply {
-            init(Cipher.DECRYPT_MODE, resolveSecretKey(keyAlias), IvParameterSpec(iv))
+            val parameterSpec = if (blockMode == KeyProperties.BLOCK_MODE_GCM) {
+                GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
+            } else {
+                IvParameterSpec(iv)
+            }
+            init(Cipher.DECRYPT_MODE, resolveSecretKey(keyAlias), parameterSpec)
         }
     }
 

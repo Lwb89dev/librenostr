@@ -63,9 +63,9 @@ class NoteContentPartitionsTest {
     }
 
     @Test
-    fun `event uris duplicating referenced notes via primal links are filtered out`() {
+    fun `event uris duplicating referenced notes via nostrich links are filtered out`() {
         val note = nostrUri(uri = "note1abc", type = EventUriNostrType.Note)
-        val duplicate = eventUri(url = "https://primal.net/e/note1abc")
+        val duplicate = eventUri(url = "https://nostrich.org/e/note1abc")
         val kept = eventUri(url = "https://example.com/e/note1abc")
         val partitions = noteContent(uris = listOf(duplicate, kept), nostrUris = listOf(note)).partitions
 

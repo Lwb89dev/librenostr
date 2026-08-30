@@ -52,6 +52,10 @@
     <string name="welcome_create_account_button_title">Create Account</string>
     <string name="welcome_tos_prefix">By proceeding you accept our</string>
 
+    <string name="onboarding_welcome_title">LibreNostr</string>
+    <string name="onboarding_welcome_description">LibreNostr is a community-first Nostr client: a liberated fork of Primal with the proprietary caching server, Primal wallet and other centralized dependencies removed. Your keys stay yours and your data comes directly from Nostr relays.</string>
+    <string name="login_security_notice">Amber is recommended for safer key management. Don’t rawdog your nsec into an app you don’t know. Don’t trust, verify: if you don’t understand the code, have an AI review the repository before entering sensitive keys.</string>
+
     <string name="legal_tos_hint_highlighted_word">Terms of Service</string>
     <string name="legal_privacy_policy_hint_highlighted_word">Privacy Policy</string>
 
@@ -86,6 +90,8 @@
 
     <string name="login_title">Sign In</string>
     <string name="login_with_amber_button">Login with Amber</string>
+    <string name="login_amber_primary_hint">Amber keeps your private key in a dedicated signer and approves access securely.</string>
+    <string name="login_nsec_unsafe">Login with nsec – unsafe</string>
     <string name="login_amber_required">LibreNostr signs with Amber. Install Amber to continue.</string>
     <string name="login_description">Enter your Nostr key to sign in:</string>
     <string name="login_button_sign_in">Sign In</string>
@@ -132,6 +138,7 @@
     <string name="primary_destination_reads_label">Reads</string>
     <string name="primary_destination_wallet_label">Wallet</string>
     <string name="primary_destination_notifications_label">Notifications</string>
+    <string name="primary_destination_messages_label">Messages</string>
     <string name="pull_down_to_update">Update feed</string>
     <string name="primary_destination_explore_label">Algorithm</string>
     <string name="algorithm_title">Your algorithms</string>

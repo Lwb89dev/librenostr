@@ -185,7 +185,7 @@ internal fun List<NostrEvent>.toFeedResponse(metadata: List<NostrEvent>): FeedRe
         paging = paging,
         metadata = metadata,
         notes = notes,
-        articles = emptyList(),
+        articles = filter { it.kind == NostrEventKind.LongFormContent.value },
         reposts = reposts,
         zaps = emptyList(),
         referencedEvents = emptyList(),

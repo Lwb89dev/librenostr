@@ -37,7 +37,7 @@ abstract class RepositoryFactory {
 
     private val wellKnownApi: WellKnownApi by lazy {
         Ktorfit.Builder()
-            .baseUrl("https://primal.net/")
+            .baseUrl("https://nostrich.org/")
             .httpClient(client = httpClient)
             .build()
             .createWellKnownApi()
@@ -101,11 +101,8 @@ abstract class RepositoryFactory {
             blossomsApi = AccountApiServiceFactory.createBlossomsApi(primalApiClient = primalApiClient),
         )
 
-    fun createPushNotificationRepository(primalApiClient: PrimalApiClient): PushNotificationRepository =
-        PushNotificationRepositoryImpl(
-            dispatchers = dispatcherProvider,
-            pushNotificationApi = AccountApiServiceFactory.createPushNotificationApi(primalApiClient = primalApiClient),
-        )
+    fun createPushNotificationRepository(): PushNotificationRepository =
+        PushNotificationRepositoryImpl()
 }
 
 internal expect fun provideAccountDatabase(): AccountDatabase

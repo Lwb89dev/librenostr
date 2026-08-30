@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +74,7 @@ import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.NewDM
 import net.primal.android.core.compose.isEmpty
 import net.primal.android.core.compose.isNotEmpty
+import net.primal.android.core.compose.pulltorefresh.PrimalPullToRefreshBox
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
 import net.primal.android.messages.conversation.MessageConversationListContract.UiEvent
 import net.primal.android.messages.conversation.MessageConversationListContract.UiEvent.ChangeRelation
@@ -116,6 +118,14 @@ fun MessageListScreen(
 ) {
     val conversations = state.conversations.collectAsLazyPagingItems()
     val listState = conversations.rememberLazyListStatePagingWorkaround()
+    var pullToRefreshing by remember { mutableStateOf(false) }
+    val pullToRefreshState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+
+    LaunchedEffect(conversations.loadState.refresh, state.loading) {
+        if (conversations.loadState.refresh !is LoadState.Loading && !state.loading) {
+            pullToRefreshing = false
+        }
+    }
 
     val firstConversationId = if (conversations.isNotEmpty()) conversations[0]?.participantId else null
     LaunchedEffect(firstConversationId) {
@@ -147,18 +157,29 @@ fun MessageListScreen(
             )
         },
         content = { paddingValues ->
-            ConversationsList(
-                loading = state.loading,
-                conversations = conversations,
+            PrimalPullToRefreshBox(
                 modifier = Modifier
                     .background(color = AppTheme.colorScheme.surfaceVariant)
                     .fillMaxSize(),
-                state = listState,
-                contentPadding = paddingValues,
-                onConversationClick = callbacks.onConversationClick,
-                onProfileClick = callbacks.onProfileClick,
-                onRefreshClick = { eventPublisher(UiEvent.RefreshConversations) },
-            )
+                isRefreshing = pullToRefreshing,
+                onRefresh = {
+                    pullToRefreshing = true
+                    eventPublisher(UiEvent.RefreshConversations)
+                },
+                state = pullToRefreshState,
+                indicatorPaddingValues = paddingValues,
+            ) {
+                ConversationsList(
+                    loading = state.loading,
+                    conversations = conversations,
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    contentPadding = paddingValues,
+                    onConversationClick = callbacks.onConversationClick,
+                    onProfileClick = callbacks.onProfileClick,
+                    onRefreshClick = { eventPublisher(UiEvent.RefreshConversations) },
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(

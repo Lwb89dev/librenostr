@@ -8,14 +8,13 @@ import io.ktor.http.set
  * Required by Ktorfit, but never used to build a request: every call passes an absolute url
  * resolved through [asPrimalHttpApiUrl].
  */
-internal const val DEFAULT_HTTP_API_BASE_URL = "https://cache1.primal.net/"
+internal const val DEFAULT_HTTP_API_BASE_URL = "https://relay.damus.io/"
 
 private const val HTTP_API_PATH = "/api"
 
 /**
- * Maps a Primal server socket url to its HTTP counterpart, e.g. `wss://cache1.primal.net/v1` ->
- * `https://cache1.primal.net/api`. Derived rather than configured because
- * `.well-known/primal-endpoints.json` only publishes socket urls.
+ * Maps a legacy socket url to its HTTP counterpart. The application does not use this transport;
+ * it remains only as a compatibility boundary for optional legacy modules.
  */
 internal fun String.asPrimalHttpApiUrl(): String {
     val source = URLBuilder(this)

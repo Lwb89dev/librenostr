@@ -44,7 +44,7 @@ fun ConfirmNameChangeStage(
         )
         NostrUserText(
             displayName = primalName,
-            internetIdentifier = "$primalName@primal.net",
+            internetIdentifier = "$primalName@nostrich.org",
             internetIdentifierBadgeSize = 24.dp,
             fontSize = 20.sp,
             legendaryCustomization = profileLegendaryCustomization,

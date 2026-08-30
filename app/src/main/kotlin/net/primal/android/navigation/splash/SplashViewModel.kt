@@ -12,7 +12,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import net.primal.android.migration.AppMigrationRunner
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
-import net.primal.core.config.AppConfigHandler
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.runCatching
@@ -22,7 +21,6 @@ import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 @HiltViewModel
 class SplashViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
-    private val appConfigHandler: AppConfigHandler,
     private val appMigrationRunner: AppMigrationRunner,
     private val credentialsStore: CredentialsStore,
     private val feedsRepository: FeedsRepository,
@@ -40,7 +38,6 @@ class SplashViewModel @Inject constructor(
         if (started) return
         started = true
         runStartupSequence(prefetchFeeds = prefetchFeeds)
-        fetchLatestAppConfig()
     }
 
     private fun runStartupSequence(prefetchFeeds: Boolean) =
@@ -67,11 +64,6 @@ class SplashViewModel @Inject constructor(
             } ?: Napier.w { "Note feeds prefetch timed out during splash." }
         }.onFailure { error ->
             Napier.w(throwable = error) { "Failed to prefetch note feeds during splash." }
-        }
-
-    private fun fetchLatestAppConfig() =
-        viewModelScope.launch {
-            appConfigHandler.updateImmediately()
         }
 
     companion object {

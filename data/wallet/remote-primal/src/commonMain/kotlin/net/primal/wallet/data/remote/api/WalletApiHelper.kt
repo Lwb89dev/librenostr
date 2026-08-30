@@ -11,5 +11,5 @@ internal suspend fun buildWalletOptionsJson(
     @Suppress("UNUSED_PARAMETER") requestBody: WalletOperationRequestBody,
     @Suppress("UNUSED_PARAMETER") signatureHandler: NostrEventSignatureHandler,
 ): String {
-    throw NetworkException("Primal wallet is disabled ($walletVerb for $userId)")
+    throw NetworkException("Legacy wallet transport is disabled ($walletVerb for $userId)")
 }

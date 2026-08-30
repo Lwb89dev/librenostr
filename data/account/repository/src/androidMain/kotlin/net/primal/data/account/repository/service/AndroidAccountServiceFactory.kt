@@ -24,7 +24,7 @@ object AndroidAccountServiceFactory {
 
     private val wellKnownApi: WellKnownApi by lazy {
         Ktorfit.Builder()
-            .baseUrl("https://primal.net/")
+            .baseUrl("https://nostrich.org/")
             .httpClient(client = httpClient)
             .build()
             .createWellKnownApi()

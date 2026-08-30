@@ -77,28 +77,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="live"
-                    android:scheme="primal" />
-            </intent-filter>
-
-            <intent-filter
-                android:autoVerify="true"
-                android:label="Primal Home">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="https" />
-                <data android:host="primal.net" />
-            </intent-filter>
             <intent-filter
                 android:autoVerify="true"
                 android:label="LibreNostr profile">
@@ -112,184 +90,119 @@
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Home">
+                android:label="LibreNostr Home">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/home"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Reads">
+                android:label="LibreNostr Reads">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/reads"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Notifications">
+                android:label="LibreNostr Notifications">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/notifications"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Explore">
+                android:label="LibreNostr Explore">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/explore"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal DMs">
+                android:label="LibreNostr DMs">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/dms"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Bookmarks">
+                android:label="LibreNostr Bookmarks">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/bookmarks"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Premium">
+                android:label="LibreNostr Note">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
-                    android:pathPrefix="/premium"
-                    android:scheme="https" />
-            </intent-filter>
-            <intent-filter
-                android:autoVerify="true"
-                android:label="Primal Legends">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="primal.net"
-                    android:pathPrefix="/legends"
-                    android:scheme="https" />
-            </intent-filter>
-            <intent-filter
-                android:autoVerify="true"
-                android:label="Primal Note">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/e/"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Article">
+                android:label="LibreNostr Article">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/a/"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Primal Article">
+                android:label="LibreNostr Profile">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
-                    android:pathPrefix="/.+/.+"
-                    android:scheme="https" />
-            </intent-filter>
-            <intent-filter
-                android:autoVerify="true"
-                android:label="Primal Profile">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="primal.net"
-                    android:pathPrefix="/p/"
-                    android:scheme="https" />
-            </intent-filter>
-            <intent-filter
-                android:autoVerify="true"
-                android:label="Primal Profile">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/profile/"
-                    android:scheme="https" />
-            </intent-filter>
-            <intent-filter
-                android:autoVerify="true"
-                android:label="Primal Profile">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="primal.net"
-                    android:pathPrefix="/.+"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter
@@ -301,7 +214,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="primal.net"
+                    android:host="nostrich.org"
                     android:pathPrefix="/search/"
                     android:scheme="https" />
             </intent-filter>

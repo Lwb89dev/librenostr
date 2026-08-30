@@ -22,12 +22,15 @@ import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
+import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
+import net.primal.data.repository.feed.RelayEventStatsFetcher
 import net.primal.data.repository.feed.RelayNotesFeedFetcher
 import net.primal.data.repository.feed.processors.FeedProcessor
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.feeds.isFollowSetFeedSpec
 import net.primal.domain.feeds.isFollowingNotesFeedSpec
+import net.primal.domain.feeds.isAdvancedSearchFeedSpec
 import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNotesFeedSpec
@@ -35,6 +38,7 @@ import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.supportsUpwardsNotesPagination
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.posts.FeedRepository
+import net.primal.shared.data.local.db.withTransaction
 
 @ExperimentalPagingApi
 internal class NoteFeedRemoteMediator(
@@ -50,6 +54,9 @@ internal class NoteFeedRemoteMediator(
 ) : RemoteMediator<Int, FeedPost>() {
 
     private val relayFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }
+    private val relayAdvancedSearchFetcher = relayEventQuerier?.let { RelayAdvancedSearchFeedFetcher(it) }
+    private val relayEventStatsFetcher = relayEventQuerier?.let { RelayEventStatsFetcher(it) }
+    private val useRelayAdvancedSearch = relayAdvancedSearchFetcher != null && feedSpec.isAdvancedSearchFeedSpec()
     private val useRelayFollowingFeed =
         relayFeedFetcher != null &&
             (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
@@ -73,6 +80,10 @@ internal class NoteFeedRemoteMediator(
 
     private suspend fun shouldResetLocalCache() =
         when {
+            // A search is a new relay query every time it is opened. Never
+            // reuse an older local page for the same text, otherwise results
+            // can appear stale even though the relay fetch completed.
+            feedSpec.isAdvancedSearchFeedSpec() -> true
             feedSpec.isNotesBookmarkFeedSpec() -> true
             feedSpec.isProfileAuthoredNotesFeedSpec() -> true
             feedSpec.isProfileAuthoredNoteRepliesFeedSpec() -> true
@@ -168,8 +179,22 @@ internal class NoteFeedRemoteMediator(
             response = response,
             clearFeed = loadType == LoadType.REFRESH,
         )
+        refreshRelayEventStats(response = response)
 
         lastRequests[loadType] = request to Clock.System.now().epochSeconds
+    }
+
+    private suspend fun refreshRelayEventStats(response: FeedResponse) {
+        val statsFetcher = relayEventStatsFetcher ?: return
+        val eventIds = (response.notes + response.articles).map { it.id }.distinct()
+        if (eventIds.isEmpty()) return
+        val stats = statsFetcher.fetch(eventIds = eventIds, userId = userId)
+        database.withTransaction {
+            database.eventStats().upsertAll(stats.eventStats)
+            if (stats.userStats.isNotEmpty()) {
+                database.eventUserStats().upsertAll(stats.userStats)
+            }
+        }
     }
 
     private suspend fun syncRefresh(pageSize: Int): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
@@ -229,6 +254,17 @@ internal class NoteFeedRemoteMediator(
     }
 
     private suspend fun fetchFeedPage(requestBody: MultiKindFeedBySpecRequestBody): FeedResponse {
+        val advancedSearchFetcher = relayAdvancedSearchFetcher
+        if (useRelayAdvancedSearch && advancedSearchFetcher != null) {
+            return advancedSearchFetcher.fetch(
+                userId = userId,
+                feedSpec = feedSpec,
+                fallbackKinds = kinds,
+                limit = requestBody.limit ?: FeedRepository.DEFAULT_PAGE_SIZE,
+                until = requestBody.until,
+                since = requestBody.since,
+            )
+        }
         val fetcher = relayFeedFetcher
         if (useRelayFollowingFeed && fetcher != null) {
             return fetcher.fetch(

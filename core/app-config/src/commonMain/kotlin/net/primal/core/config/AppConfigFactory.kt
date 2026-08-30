@@ -10,14 +10,15 @@ import net.primal.core.networking.factory.HttpClientFactory
 import net.primal.core.utils.coroutines.createDispatcherProvider
 import net.primal.domain.global.AppConfig
 
-private const val CONFIG_CACHE_API = "wss://cache1.primal.net/v1"
-private const val CONFIG_UPLOAD_API = "wss://uploads.primal.net/v1"
-private const val CONFIG_WALLET_API = "wss://wallet.primal.net/v1"
+// Kept only for binary compatibility with the legacy API-client module. The application
+// data paths use RelayPool/Blossom directly and never consume these service endpoints.
+private const val CONFIG_RELAY_COMPAT = "wss://relay.damus.io"
+private const val CONFIG_BLOSSOM_COMPAT = "https://blossom.band"
 
 internal val DEFAULT_APP_CONFIG = AppConfig(
-    cacheUrl = CONFIG_CACHE_API,
-    uploadUrl = CONFIG_UPLOAD_API,
-    walletUrl = CONFIG_WALLET_API,
+    cacheUrl = CONFIG_RELAY_COMPAT,
+    uploadUrl = CONFIG_BLOSSOM_COMPAT,
+    walletUrl = CONFIG_RELAY_COMPAT,
 )
 
 object AppConfigFactory {
@@ -28,14 +29,14 @@ object AppConfigFactory {
 
     private val wellKnownApi: WellKnownApi by lazy {
         Ktorfit.Builder()
-            .baseUrl("https://primal.net/")
+            .baseUrl("https://nostrich.org/")
             .httpClient(client = httpClient)
             .build()
             .createWellKnownApi()
     }
 
     private val persistence: DataStore<AppConfig> by lazy {
-        createAppConfigDataStorePersistence("primal_app_config.json")
+        createAppConfigDataStorePersistence("librenostr_app_config.json")
     }
 
     private val appConfigDataStore: AppConfigDataStore by lazy {

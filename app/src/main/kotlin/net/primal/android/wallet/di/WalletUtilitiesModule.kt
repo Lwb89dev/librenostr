@@ -5,11 +5,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import net.primal.android.networking.di.PrimalWalletApiClient
-import net.primal.android.nostr.notary.NostrNotary
 import net.primal.core.lightning.LightningAddressChecker
 import net.primal.core.lightning.LightningPayHelper
-import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.events.EventRepository
 import net.primal.domain.nostr.zaps.NostrZapperFactory
@@ -43,14 +40,10 @@ object WalletUtilitiesModule {
     @Singleton
     fun providesNostrZapperFactory(
         walletRepository: WalletRepository,
-        @PrimalWalletApiClient primalApiClient: PrimalApiClient,
-        nostrNotary: NostrNotary,
         eventRepository: EventRepository,
     ): NostrZapperFactory =
         NostrZapperFactoryProvider.createNostrZapperFactory(
             walletRepository = walletRepository,
-            primalWalletApiClient = primalApiClient,
-            nostrEventSignatureHandler = nostrNotary,
             eventRepository = eventRepository,
         )
 }

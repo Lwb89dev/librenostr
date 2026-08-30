@@ -129,23 +129,6 @@ private fun NetworkLazyColumn(
     state: NetworkSettingsContract.UiState,
     eventsPublisher: (NetworkSettingsContract.UiEvent) -> Unit,
 ) {
-    var confirmingRestoreCachingServiceDialog by remember { mutableStateOf(false) }
-    if (confirmingRestoreCachingServiceDialog) {
-        ConfirmActionAlertDialog(
-            confirmText = stringResource(id = R.string.settings_network_dialog_confirm),
-            dismissText = stringResource(id = R.string.settings_network_dialog_dismiss),
-            dialogTitle = stringResource(id = R.string.settings_network_restore_default_caching_service_title),
-            dialogText = stringResource(id = R.string.settings_network_restore_default_caching_service_description),
-            onDismissRequest = {
-                confirmingRestoreCachingServiceDialog = false
-            },
-            onConfirmation = {
-                confirmingRestoreCachingServiceDialog = false
-                eventsPublisher(NetworkSettingsContract.UiEvent.RestoreDefaultCachingService)
-            },
-        )
-    }
-
     var confirmingRestoreDefaultRelaysDialog by remember { mutableStateOf(false) }
     if (confirmingRestoreDefaultRelaysDialog) {
         ConfirmActionAlertDialog(
@@ -181,17 +164,6 @@ private fun NetworkLazyColumn(
 
     val keyboardController = LocalSoftwareKeyboardController.current
     LazyColumn(modifier = modifier) {
-        if (state.cachingService != null) {
-            cachingServiceSectionItems(
-                state = state,
-                onRestoreDefaultCachingService = { confirmingRestoreCachingServiceDialog = true },
-                keyboardController = keyboardController,
-                eventsPublisher = eventsPublisher,
-            )
-        }
-
-        item { PrimalDivider() }
-
         relaysSectionItems(
             state = state,
             onRemoveRelayClick = { url -> confirmingRelayDeletionDialog = url },
@@ -271,61 +243,6 @@ private fun LazyListScope.relaysSectionItems(
             },
             placeholderText = "wss://",
         )
-    }
-}
-
-private fun LazyListScope.cachingServiceSectionItems(
-    state: NetworkSettingsContract.UiState,
-    onRestoreDefaultCachingService: () -> Unit,
-    keyboardController: SoftwareKeyboardController?,
-    eventsPublisher: (NetworkSettingsContract.UiEvent) -> Unit,
-) {
-    if (state.cachingService == null) return
-
-    item {
-        CachingServiceSection(
-            url = state.cachingService.url,
-            connected = state.cachingService.connected,
-        )
-    }
-
-    item {
-        DecoratedSettingsOutlinedTextField(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 8.dp),
-            value = state.newCachingServiceUrl,
-            onValueChanged = {
-                eventsPublisher(NetworkSettingsContract.UiEvent.UpdateNewCachingServiceUrl(it))
-            },
-            title = stringResource(id = R.string.settings_network_switch_caching_service),
-            showSupportContent = true,
-            supportingActionText = stringResource(
-                R.string.settings_network_restore_default_caching_service_text_button,
-            ),
-            onSupportActionClick = onRestoreDefaultCachingService,
-            buttonEnabled = !state.updatingCachingService && state.newCachingServiceUrl.isValidRelayUrl(),
-            onActionClick = {
-                keyboardController?.hide()
-                eventsPublisher(
-                    NetworkSettingsContract.UiEvent.ConfirmCachingServiceChange(url = state.newCachingServiceUrl),
-                )
-            },
-            placeholderText = "wss://",
-        )
-    }
-}
-
-@Composable
-private fun CachingServiceSection(url: String, connected: Boolean) {
-    Column {
-        Spacer(modifier = Modifier.height(24.dp))
-        TextSection(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            text = stringResource(id = R.string.settings_network_caching_service_section).uppercase(),
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        NetworkDestinationListItem(destinationUrl = url, connected = connected)
     }
 }
 
@@ -449,9 +366,15 @@ private fun PermissionLabel(
     )
 }
 
-private fun String.isValidRelayUrl() =
-    (startsWith("wss://") || startsWith("ws://")) &&
-        !this.split("://").lastOrNull().isNullOrEmpty()
+private fun String.isValidRelayUrl(): Boolean {
+    val normalized = trim().lowercase()
+    if (!normalized.startsWith("wss://")) return false
+    val host = normalized.removePrefix("wss://").substringBefore('/').substringBefore(':')
+    return host.contains('.') &&
+        !host.startsWith('.') &&
+        !host.endsWith('.') &&
+        host.none { it.isWhitespace() }
+}
 
 @Composable
 @Preview
@@ -466,10 +389,6 @@ private fun PreviewNetworksScreen() {
                         read = true,
                         write = true,
                     ),
-                ),
-                cachingService = SocketDestinationUiState(
-                    url = "wss://cache.primal.net/v1",
-                    connected = true,
                 ),
             ),
             onClose = {},

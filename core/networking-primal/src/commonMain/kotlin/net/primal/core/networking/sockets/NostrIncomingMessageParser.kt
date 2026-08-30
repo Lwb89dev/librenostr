@@ -130,7 +130,8 @@ private fun JsonArray.takeAsEventsIncomingMessage(): NostrIncomingMessage? {
                 if (primalEvent != null) {
                     primalEvents.add(primalEvent)
                 } else {
-                    Napier.w("Unable to process as primal event: $jsonEvent")
+                    // Do not put the full event (which may contain private content) in logcat.
+                    Napier.w("Unable to process a legacy event payload.")
                 }
             }
         }
@@ -155,7 +156,7 @@ private fun JsonObject.getMessageNostrEventKind(): NostrEventKind {
 }
 
 private fun JsonArray.takeAsNoticeIncomingMessage(): NostrIncomingMessage {
-    // Primal's cache server sends ["NOTICE", subscriptionId, message]; the Nostr spec form is
+    // Some legacy relays send ["NOTICE", subscriptionId, message]; the Nostr spec form is
     // ["NOTICE", message]. Only the 3-element form is addressed to a subscription - without this
     // check the spec form's text lands in subscriptionId and the message itself is lost.
     val hasSubscriptionId = size >= 3

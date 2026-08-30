@@ -216,7 +216,7 @@ fun PreviewNostrUserTextWithPrimalBadge() {
         Surface {
             NostrUserText(
                 displayName = "Nostr Adamus",
-                internetIdentifier = "adam@primal.net",
+                internetIdentifier = "adam@nostrich.org",
                 annotatedStringSuffixBuilder = {
                     append("• 42 y. ago")
                 },
@@ -267,7 +267,7 @@ fun PreviewNostrUserTextWithCustomBadge() {
         Surface {
             NostrUserText(
                 displayName = "Nostr Adamus",
-                internetIdentifier = "legend@primal.net",
+                internetIdentifier = "legend@nostrich.org",
                 annotatedStringSuffixBuilder = {
                     append(" • 42 y. ago")
                 },

@@ -12,33 +12,32 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.networking.utils.orderByPagingIfNotNull
-import net.primal.core.networking.utils.retryNetworkCall
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.data.local.dao.notes.FeedPostRemoteKey
 import net.primal.data.local.dao.reads.ArticleFeedCrossRef
 import net.primal.data.local.dao.reads.ArticleFeedItem
 import net.primal.data.local.db.CachingDatabase
-import net.primal.data.remote.api.articles.ArticlesApi
-import net.primal.data.remote.api.articles.model.ArticleFeedRequestBody
 import net.primal.data.remote.api.articles.model.ArticleResponse
 import net.primal.data.repository.articles.processors.persistToDatabase
 import net.primal.data.repository.mappers.remote.mapNotNullAsArticleDataPO
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.ContentPrimalPaging
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.shared.data.local.db.withTransaction
 
 @ExperimentalPagingApi
 internal class ArticleFeedMediator(
     private val userId: String,
     private val feedSpec: String,
-    private val articlesApi: ArticlesApi,
     private val database: CachingDatabase,
     private val dispatcherProvider: DispatcherProvider,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier,
 ) : RemoteMediator<Int, ArticleFeedItem>() {
 
-    private val lastRequests: MutableMap<LoadType, Pair<ArticleFeedRequestBody, Long>> = mutableMapOf()
+    private val lastRequests: MutableMap<LoadType, Long> = mutableMapOf()
+    private val relayFetcher = RelayArticleFeedFetcher(relayEventQuerier)
 
     override suspend fun initialize(): InitializeAction {
         val latestRemoteKey = withContext(dispatcherProvider.io()) {
@@ -95,28 +94,22 @@ internal class ArticleFeedMediator(
         nextUntil: Long?,
         loadType: LoadType,
     ): ArticleResponse {
-        val request = ArticleFeedRequestBody(
-            spec = feedSpec,
-            userId = userId,
-            limit = pageSize,
-            until = nextUntil,
-        )
-
-        lastRequests[loadType]?.let { (lastRequest, lastRequestAt) ->
-            if (request == lastRequest && !lastRequestAt.isRequestCacheExpired() && loadType != LoadType.REFRESH) {
+        lastRequests[loadType]?.let { lastRequestAt ->
+            if (!lastRequestAt.isRequestCacheExpired() && loadType != LoadType.REFRESH) {
                 throw RepeatingRequestBodyException()
             }
         }
 
         val response = withContext(dispatcherProvider.io()) {
-            retryNetworkCall {
-                articlesApi.getArticleFeed(
-                    body = request,
-                )
-            }
+            relayFetcher.fetch(
+                userId = userId,
+                feedSpec = feedSpec,
+                limit = pageSize,
+                until = nextUntil,
+            )
         }
         mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-        lastRequests[loadType] = request to Clock.System.now().epochSeconds
+        lastRequests[loadType] = Clock.System.now().epochSeconds
         return response
     }
 

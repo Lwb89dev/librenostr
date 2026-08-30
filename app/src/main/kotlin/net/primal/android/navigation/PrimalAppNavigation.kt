@@ -14,16 +14,22 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavDeepLink
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -31,6 +37,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.navOptions
@@ -45,12 +52,16 @@ import net.primal.android.auth.onboarding.account.OnboardingContract
 import net.primal.android.auth.onboarding.account.OnboardingViewModel
 import net.primal.android.auth.onboarding.account.ui.OnboardingScreen
 import net.primal.android.auth.welcome.WelcomeContract
+import net.primal.android.auth.welcome.RelayOnboardingScreen
+import net.primal.android.auth.welcome.RelayOnboardingViewModel
 import net.primal.android.auth.welcome.WelcomeScreen
 import net.primal.android.bookmarks.list.BookmarksContract
 import net.primal.android.bookmarks.list.BookmarksScreen
 import net.primal.android.bookmarks.list.BookmarksViewModel
 import net.primal.android.core.compose.ApplyEdgeToEdge
 import net.primal.android.core.compose.LockToOrientationPortrait
+import net.primal.android.core.compose.PrimalNavigationBar
+import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.core.compose.UnlockScreenOrientation
 import net.primal.android.core.pip.PiPManagerProvider
@@ -83,6 +94,7 @@ import net.primal.android.gifpicker.GifPickerContract
 import net.primal.android.gifpicker.GifPickerScreen
 import net.primal.android.gifpicker.GifPickerViewModel
 import net.primal.android.main.MainScreen
+import net.primal.android.main.MainViewModel
 import net.primal.android.main.REQUESTED_TAB_KEY
 import net.primal.android.main.explore.followpack.FollowPackContract
 import net.primal.android.main.explore.followpack.FollowPackScreen
@@ -101,7 +113,6 @@ import net.primal.android.nostrconnect.active.ActiveSessionsViewModel
 import net.primal.android.nostrconnect.connect.NostrConnectBottomSheet
 import net.primal.android.nostrconnect.connect.NostrConnectViewModel
 import net.primal.android.nostrconnect.utils.NOSTR_CONNECT_SCHEME
-import net.primal.android.nostrconnect.utils.PRIMAL_CONNECT_SCHEME
 import net.primal.android.notes.feed.model.asNeventString
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.premium.buying.PremiumBuyingContract
@@ -170,6 +181,7 @@ import net.primal.android.scan.ScanCodeContract.ScanMode
 import net.primal.android.scan.ScanCodeScreen
 import net.primal.android.scan.ScanCodeViewModel
 import net.primal.android.stream.LiveStreamOverlay
+import net.primal.android.wallet.zaps.AndroidLightningWallet
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.PrimalTheme
@@ -196,6 +208,8 @@ private fun NavController.navigateToWelcome() =
     )
 
 private fun NavController.navigateToLogin() = navigate(route = "login")
+
+private fun NavController.navigateToRelayOnboarding() = navigate(route = "relayOnboarding")
 
 private fun NavController.navigateToOnboarding() = navigate(route = "onboarding")
 
@@ -249,7 +263,7 @@ fun NavController.navigateToFollowPack(profileId: String, followPackId: String) 
 fun NavController.navigateToScanCode(scanMode: ScanMode, promoCode: String? = null) =
     navigate(route = "scanCode?$SCAN_MODE=$scanMode&$PROMO_CODE=$promoCode")
 
-private fun NavController.navigateToMessages() = navigate(route = "messages")
+internal fun NavController.navigateToMessages() = navigate(route = "messages")
 
 fun NavController.navigateToChat(profileId: String) = navigate(route = "messages/$profileId")
 
@@ -364,7 +378,10 @@ fun accountSwitcherCallbacksHandler(navController: NavController) =
         onCreateNewAccountClick = { navController.navigateToOnboarding() },
     )
 
-fun noteCallbacksHandler(navController: NavController) =
+fun noteCallbacksHandler(
+    navController: NavController,
+    onPayInvoice: (String) -> Unit = { navController.navigateToWalletCreateTransaction(lnbc = it) },
+) =
     NoteCallbacks(
         onNoteClick = { noteId -> navController.navigateToThread(noteId = noteId) },
         onNoteReplyClick = { referencedNoteEvent ->
@@ -428,9 +445,7 @@ fun noteCallbacksHandler(navController: NavController) =
                 mediaPositionMs = it.positionMs,
             )
         },
-        onPayInvoiceClick = {
-            navController.navigateToWalletCreateTransaction(lnbc = it.lnbc)
-        },
+        onPayInvoiceClick = { onPayInvoice(it.lnbc) },
         onEventReactionsClick = { eventId, initialTab, articleATag ->
             navController.navigateToReactions(eventId = eventId, initialTab = initialTab, articleATag = articleATag)
         },
@@ -442,6 +457,10 @@ fun noteCallbacksHandler(navController: NavController) =
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PrimalAppNavigation(navController: NavHostController, startDestination: String) {
+    val context = LocalContext.current
+    val openExternalWallet: (String) -> Unit = { invoice ->
+        AndroidLightningWallet(context).payBolt11(invoice)
+    }
     val drawerDestinationHandler: (DrawerScreenDestination) -> Unit = {
         when (it) {
             is DrawerScreenDestination.Profile -> navController.navigateToProfile(profileId = it.userId)
@@ -465,13 +484,17 @@ fun PrimalAppNavigation(navController: NavHostController, startDestination: Stri
             PiPManagerProvider {
                 LiveStreamOverlay(
                     navController = navController,
-                    noteCallbacks = noteCallbacksHandler(navController = navController),
+                    noteCallbacks = noteCallbacksHandler(
+                        navController = navController,
+                        onPayInvoice = openExternalWallet,
+                    ),
                 ) {
                     AudioPlayerStateProvider {
                         PrimalAppNavigation(
                             navController = navController,
                             startDestination = startDestination,
                             drawerDestinationHandler = drawerDestinationHandler,
+                            onPayInvoice = openExternalWallet,
                         )
                     }
                 }
@@ -486,12 +509,67 @@ private fun PrimalAppNavigation(
     navController: NavHostController,
     startDestination: String,
     drawerDestinationHandler: (DrawerScreenDestination) -> Unit,
+    onPayInvoice: (String) -> Unit,
 ) {
-    NavHost(
-        modifier = Modifier.background(AppTheme.colorScheme.background),
-        navController = navController,
-        startDestination = startDestination,
-    ) {
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = currentBackStackEntry?.destination
+    val isMessages = currentDestination?.hierarchy?.any { it.route == "messages" } == true
+    val isSettings = currentDestination?.hierarchy?.any { it.route == "settings" } == true
+    val isProfile = currentDestination?.hierarchy?.any {
+        it.route?.startsWith("profile?") == true || it.route?.startsWith("profile/") == true
+    } == true
+    val persistentBarVisible = isMessages || isSettings || isProfile
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val mainState by mainViewModel.state.collectAsState()
+
+    PrimalScaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        bottomBar = if (persistentBarVisible) {
+            {
+                PrimalNavigationBar(
+                    activeDestination = when {
+                        isMessages -> PrimalTopLevelDestination.Messages
+                        isSettings -> PrimalTopLevelDestination.Settings
+                        else -> PrimalTopLevelDestination.Feeds
+                    },
+                    onTopLevelDestinationChanged = { destination ->
+                        when (destination) {
+                            PrimalTopLevelDestination.Feeds -> navController.navigateToMain(PrimalTopLevelDestination.Feeds)
+                            PrimalTopLevelDestination.Alerts -> navController.navigateToMain(PrimalTopLevelDestination.Alerts)
+                            else -> Unit
+                        }
+                    },
+                    onMessagesClick = {
+                        if (!isMessages) navController.navigateToMessages()
+                    },
+                    onSettingsClick = {
+                        if (!isSettings) navController.navigateToSettings()
+                    },
+                    onProfileClick = {
+                        mainState.activeAccountId.takeIf { it.isNotEmpty() }?.let { profileId ->
+                            if (!isProfile) navController.navigateToProfile(profileId = profileId)
+                        }
+                    },
+                    profileAvatarCdnImage = mainState.activeAccountAvatarCdnImage,
+                    profileSelected = isProfile,
+                    settingsSelected = isSettings,
+                    badges = mainState.badges,
+                )
+            }
+        } else {
+            null
+        },
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            NavHost(
+                modifier = Modifier.background(AppTheme.colorScheme.background),
+                navController = navController,
+                startDestination = startDestination,
+            ) {
         pollVotes(
             route = "poll_votes/{$EVENT_ID}",
             arguments = listOf(
@@ -502,6 +580,8 @@ private fun PrimalAppNavigation(
         welcome(route = "welcome", navController = navController)
 
         login(route = "login", navController = navController)
+
+        relayOnboarding(route = "relayOnboarding", navController = navController)
 
         onboarding(
             route = "onboarding",
@@ -567,9 +647,7 @@ private fun PrimalAppNavigation(
                 navDeepLink { uriPattern = "https://nostrich.org/notifications" },
                 navDeepLink { uriPattern = "https://nostrich.org/p/{$PROFILE_NPUB}/live/{$IDENTIFIER}" },
                 navDeepLink { uriPattern = "https://nostrich.org/{$PRIMAL_NAME}/live/{$IDENTIFIER}" },
-                navDeepLink { uriPattern = "primal://live/{$STREAM_NADDR}" },
                 navDeepLink { uriPattern = "$NOSTR_CONNECT_SCHEME://.*" },
-                navDeepLink { uriPattern = "$PRIMAL_CONNECT_SCHEME://.*" },
             ),
             arguments = listOf(
                 navArgument(PROFILE_NPUB) {
@@ -977,6 +1055,8 @@ private fun PrimalAppNavigation(
         settingsNavigation(route = "settings", navController = navController)
 
         walletScreens(navController = navController)
+            }
+        }
     }
 }
 
@@ -1060,9 +1140,26 @@ private fun NavGraphBuilder.login(route: String, navController: NavController) =
             LoginScreen(
                 viewModel = viewModel,
                 callbacks = LoginContract.ScreenCallbacks(
-                    onLoginSuccess = { navController.navigateToHome() },
+                    onLoginSuccess = { navController.navigateToRelayOnboarding() },
                     onClose = { navController.popBackStack() },
                 ),
+            )
+        }
+    }
+
+private fun NavGraphBuilder.relayOnboarding(route: String, navController: NavController) =
+    composable(
+        route = route,
+        enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) },
+    ) {
+        val viewModel: RelayOnboardingViewModel = hiltViewModel(it)
+        LockToOrientationPortrait()
+        PrimalTheme(PrimalTheme.Midnight) {
+            ApplyEdgeToEdge(isDarkTheme = false)
+            RelayOnboardingScreen(
+                viewModel = viewModel,
+                onComplete = { navController.navigateToHome() },
             )
         }
     }

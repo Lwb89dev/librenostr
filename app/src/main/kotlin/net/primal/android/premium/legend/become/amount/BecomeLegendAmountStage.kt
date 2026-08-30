@@ -100,7 +100,7 @@ fun BecomeLegendAmountStage(
                 NostrUserText(
                     modifier = Modifier.padding(start = 8.dp),
                     displayName = state.primalName ?: "",
-                    internetIdentifier = "${state.primalName}@primal.net",
+                    internetIdentifier = "${state.primalName}@nostrich.org",
                     internetIdentifierBadgeSize = 24.dp,
                     fontSize = 20.sp,
                     legendaryCustomization = LegendaryCustomization(

@@ -30,7 +30,6 @@ dagger = "2.59.2"
 detekt = "1.23.8"
 emoji2 = "1.6.0"
 espresso-core = "3.7.0"
-firebase = "34.6.0"
 flippable = "1.5.4"
 google-services = "4.4.4"
 #noinspection NewerVersionAvailable
@@ -108,9 +107,6 @@ androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref
 # Google
 play-billing = { module = "com.android.billingclient:billing", version.ref = "play-billing" }
 play-billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "play-billing" }
-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref="firebase" }
-firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
-kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref="kotlinx-coroutines" }
 mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcode-scanning" }
 
 # UI libs

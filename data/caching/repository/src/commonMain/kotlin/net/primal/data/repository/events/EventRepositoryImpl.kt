@@ -11,68 +11,54 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.CurrencyConversionUtils.toBigDecimal
 import net.primal.core.utils.CurrencyConversionUtils.toBtc
 import net.primal.core.utils.Result
 import net.primal.core.utils.asMapByKey
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.map
-import net.primal.core.utils.mapCatching
 import net.primal.core.utils.recover
 import net.primal.core.utils.runCatching
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.core.utils.toDouble
 import net.primal.data.local.dao.events.EventZap as EventZapPO
-import net.primal.data.local.dao.events.eventRelayHintsUpserter
 import net.primal.data.local.db.CachingDatabase
-import net.primal.data.remote.api.events.EventStatsApi
-import net.primal.data.remote.api.events.model.EventActionsRequestBody
-import net.primal.data.remote.api.events.model.EventZapsRequestBody
-import net.primal.data.remote.api.events.model.ReplaceableEventResponse
-import net.primal.data.remote.api.events.model.ReplaceableEventsRequest
-import net.primal.data.remote.api.events.model.toReplaceableEventRequest
-import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
-import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
 import net.primal.data.repository.events.paging.EventZapsMediator
-import net.primal.data.repository.events.processors.persistToDatabaseAsTransaction
 import net.primal.data.repository.mappers.local.asEventZapDO
 import net.primal.data.repository.mappers.local.asNostrEventStats
 import net.primal.data.repository.mappers.local.asNostrEventUserStats
 import net.primal.data.repository.mappers.local.asProfileDataDO
 import net.primal.data.repository.mappers.remote.extractZapRequestOrNull
-import net.primal.data.repository.mappers.remote.flatMapAsEventHintsPO
-import net.primal.data.repository.mappers.remote.flatMapAsWordCount
 import net.primal.data.repository.mappers.remote.mapAsEventZapDO
-import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
+import net.primal.data.repository.mappers.remote.asProfileDataPOFromRelay
+import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapNotNullAsArticleDataPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsEventStatsPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
-import net.primal.data.repository.mappers.remote.parseAndMapPrimalLegendProfiles
-import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
-import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
-import net.primal.data.repository.mappers.remote.takeContentAsPrimalUserScoresOrNull
-import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.events.EventRepository
 import net.primal.domain.events.EventZap as EventZapDO
 import net.primal.domain.events.NostrEventAction
 import net.primal.domain.events.ZapKind
+import net.primal.domain.links.CdnResource
 import net.primal.domain.nostr.Naddr
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.findFirstATag
+import net.primal.domain.nostr.findFirstBolt11
 import net.primal.domain.nostr.findFirstEventId
+import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.findFirstProfileId
 import net.primal.domain.nostr.findFirstZapAmount
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.nostr.utils.LnInvoiceUtils
 import net.primal.shared.data.local.db.withTransaction
 
 class EventRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
-    private val eventStatsApi: EventStatsApi,
     private val database: CachingDatabase,
-    private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier,
 ) : EventRepository {
 
     override fun observeEventStats(eventIds: List<String>) =
@@ -83,43 +69,48 @@ class EventRepositoryImpl(
 
     override suspend fun fetchEventActions(eventId: String, kind: Int): List<NostrEventAction> =
         withContext(dispatcherProvider.io()) {
-            val response = eventStatsApi.getEventActions(
-                body = EventActionsRequestBody(
-                    eventId = eventId,
-                    kind = kind,
-                    limit = 100,
-                ),
-            )
-            mediaCacher?.cacheAvatarUrls(metadata = response.profiles, cdnResources = response.cdnResources)
+            // Reactions (kind 7) and reposts (kind 6) are regular Nostr events.
+            // Querying relays keeps this interaction view independent from Primal's
+            // ranking endpoint; relay events do not carry a central score.
+            val actions = runCatching {
+                relayEventQuerier.query(
+                    RelayFilter(
+                        kinds = listOf(kind),
+                        eventTags = listOf(eventId),
+                        limit = 100,
+                    ),
+                )
+            }.getOrDefault(emptyList()).distinctBy { it.id }
 
-            val cdnResources = response.cdnResources.flatMapNotNullAsCdnResource()
-            val primalNames = response.primalUserNames.parseAndMapPrimalUserNames()
-            val primalPremiumInfo = response.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-            val primalLegendProfiles = response.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
-            val blossomServers = response.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
-            val profiles = response.profiles.mapAsProfileDataPO(
-                cdnResources = cdnResources,
-                primalUserNames = primalNames,
-                primalPremiumInfo = primalPremiumInfo,
-                primalLegendProfiles = primalLegendProfiles,
-                blossomServers = blossomServers,
-            )
+            if (actions.isEmpty()) return@withContext emptyList()
+
+            val profiles = runCatching {
+                relayEventQuerier.query(
+                    RelayFilter(
+                        kinds = listOf(NostrEventKind.Metadata.value),
+                        authors = actions.map { it.pubKey }.distinct(),
+                        limit = actions.map { it.pubKey }.distinct().size,
+                    ),
+                )
+            }.getOrDefault(emptyList())
+                .latestMetadataByPubkey()
+                .map { it.asProfileDataPOFromRelay() }
+
             database.withTransaction {
                 database.profiles().insertOrUpdateAll(data = profiles)
             }
 
-            val userScoresMap = response.userScores?.takeContentAsPrimalUserScoresOrNull()
             val profilesMap = profiles.asMapByKey { it.ownerId }
-            response.actions.mapNotNull { action ->
+            actions.mapNotNull { action ->
                 profilesMap[action.pubKey]?.let { profileData ->
                     NostrEventAction(
                         profile = profileData.asProfileDataDO(),
-                        score = userScoresMap?.get(action.pubKey) ?: 0f,
+                        score = 0f,
                         actionEventData = action,
                         actionEventKind = action.kind,
                     )
                 }
-            }.sortedByDescending { it.score }.distinctBy { it.profile }
+            }.distinctBy { it.profile }
         }
 
     override suspend fun fetchEventZaps(
@@ -127,15 +118,11 @@ class EventRepositoryImpl(
         eventId: String,
         limit: Int,
     ) = withContext(dispatcherProvider.io()) {
-        val response = eventStatsApi.getEventZaps(
-            EventZapsRequestBody(
-                eventId = eventId,
-                userId = userId,
-                limit = limit,
-            ),
+        RelayEventZapsFetcher(querier = relayEventQuerier, database = database).fetch(
+            eventTags = listOf(eventId),
+            limit = limit,
         )
-        mediaCacher?.cacheAvatarUrls(metadata = response.profiles, cdnResources = response.cdnResources)
-        response.persistToDatabaseAsTransaction(database = database)
+        Unit
     }
 
     override fun pagedEventZaps(
@@ -144,7 +131,7 @@ class EventRepositoryImpl(
         articleATag: String?,
         zapKind: ZapKind,
     ): Flow<PagingData<EventZapDO>> {
-        return createPager(userId = userId, eventId = eventId) {
+        return createPager(eventId = eventId, articleATag = articleATag) {
             database.eventZaps().pagedEventZaps(eventId = articleATag ?: eventId, zapKind = zapKind)
         }.flow.map { it.map { it.asEventZapDO() } }
             .flowOn(dispatcherProvider.io())
@@ -160,62 +147,71 @@ class EventRepositoryImpl(
     override suspend fun fetchReplaceableEvent(naddr: Naddr): Result<Unit> =
         withContext(dispatcherProvider.io()) {
             runCatching {
-                val response = eventStatsApi.getReplaceableEvent(body = naddr.toReplaceableEventRequest())
-
-                persistReplaceableEventResponse(response = response.getOrThrow())
+                val event = queryRelayReplaceableEvents(
+                    querier = relayEventQuerier,
+                    naddrs = listOf(naddr),
+                ).firstOrNull()
+                persistRelayReplaceableEvents(events = listOfNotNull(event))
             }
         }
 
     override suspend fun fetchReplaceableEvents(naddrs: List<Naddr>): Result<Unit> =
         withContext(dispatcherProvider.io()) {
             runCatching {
-                val response = eventStatsApi.getReplaceableEvents(
-                    body = ReplaceableEventsRequest(events = naddrs.map { it.toReplaceableEventRequest() }),
-                )
-
-                persistReplaceableEventResponse(response = response.getOrThrow())
+                val events = queryRelayReplaceableEvents(querier = relayEventQuerier, naddrs = naddrs)
+                persistRelayReplaceableEvents(events = events)
             }
         }
 
-    private suspend fun persistReplaceableEventResponse(response: ReplaceableEventResponse) {
-        mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-        val cdnResources = response.cdnResources.flatMapNotNullAsCdnResource()
-        val eventHints = response.relayHints.flatMapAsEventHintsPO()
-        val wordsCountMap = response.wordCount.flatMapAsWordCount()
+    private suspend fun queryRelayReplaceableEvents(
+        querier: RelayEventQuerier,
+        naddrs: List<Naddr>,
+    ): List<NostrEvent> {
+        if (naddrs.isEmpty()) return emptyList()
 
-        val primalUserNames = response.primalUserNames.parseAndMapPrimalUserNames()
-        val primalPremiumInfo = response.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-        val primalLegendProfiles = response.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
+        return naddrs.distinct()
+            .groupBy { it.kind }
+            .flatMap { (kind, requested) ->
+                requested.chunked(REPLACEABLE_AUTHOR_CHUNK).flatMap { chunk ->
+                    val authors = chunk.map { it.userId }.distinct()
+                    val candidates = querier.query(
+                        RelayFilter(
+                            kinds = listOf(kind),
+                            authors = authors,
+                            limit = (chunk.size * REPLACEABLE_EVENTS_PER_ADDRESS).coerceAtMost(500),
+                        ),
+                    )
+                    chunk.mapNotNull { naddr ->
+                        candidates.asSequence()
+                            .filter { event ->
+                                event.pubKey == naddr.userId &&
+                                    (naddr.identifier.isEmpty() || event.tags.findFirstIdentifier() == naddr.identifier)
+                            }
+                            .maxByOrNull { it.createdAt }
+                    }
+                }
+            }
+            .distinctBy { it.id }
+    }
 
-        val blossomServers = response.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
+    private suspend fun persistRelayReplaceableEvents(events: List<NostrEvent>) {
+        if (events.isEmpty()) return
 
-        val profiles = response.metadata.mapAsProfileDataPO(
-            cdnResources = cdnResources,
-            primalUserNames = primalUserNames,
-            primalPremiumInfo = primalPremiumInfo,
-            primalLegendProfiles = primalLegendProfiles,
-            blossomServers = blossomServers,
-        )
-
-        val streamData = response.liveActivity.mapNotNullAsStreamDataPO()
-
-        val articles = response.articles.mapNotNullAsArticleDataPO(
-            wordsCountMap = wordsCountMap,
-            cdnResources = cdnResources,
-        )
-
-        val eventStats = response.eventStats.mapNotNullAsEventStatsPO()
+        val profiles = events
+            .filter { it.kind == NostrEventKind.Metadata.value }
+            .latestMetadataByPubkey()
+            .map { it.asProfileDataPOFromRelay() }
+        val articles = events
+            .filter { it.kind == NostrEventKind.LongFormContent.value }
+            .mapNotNullAsArticleDataPO(cdnResources = emptyMap<String, CdnResource>())
+        val streams = events
+            .filter { it.kind == NostrEventKind.LiveActivity.value }
+            .mapNotNullAsStreamDataPO()
 
         database.withTransaction {
-            database.eventStats().upsertAll(eventStats)
-            database.streams().upsertStreamData(streamData)
-            database.profiles().insertOrUpdateAll(profiles)
+            database.profiles().insertOrUpdateAll(data = profiles)
             database.articles().upsertAll(articles)
-
-            val hintsMap = eventHints.associateBy { it.eventId }
-            eventRelayHintsUpserter(dao = database.eventHints(), eventIds = eventHints.map { it.eventId }) {
-                copy(relays = hintsMap[this.eventId]?.relays ?: emptyList())
-            }
+            database.streams().upsertStreamData(streams)
         }
     }
 
@@ -237,23 +233,30 @@ class EventRepositoryImpl(
 
             val missingZapReceiptsByInvoice = invoices.toSet() - localZapReceipts.mapNotNull { it.invoice }.toSet()
 
-            if (missingZapReceiptsByInvoice.isNotEmpty()) {
-                eventStatsApi.getZapReceipts(invoices = missingZapReceiptsByInvoice.toList())
-                    .mapCatching { response ->
-                        val receiptsMap = response.mapEvent?.content
-                            ?.decodeFromJsonStringOrNull<Map<String, NostrEvent>>()
-                            ?: throw IllegalArgumentException("failed to parse invoices map.")
+            if (missingZapReceiptsByInvoice.isEmpty()) return@withContext Result.success(localMap)
 
-                        val zapReceipts = receiptsMap.values.toList().mapAsEventZapDO(profilesMap = emptyMap())
-                        database.eventZaps().upsertAll(data = zapReceipts)
-
-                        receiptsMap.entries.mapNotNull { (invoice, receipt) ->
-                            receipt.extractZapRequestOrNull()?.let { invoice to it }
-                        }.toMap()
-                    }
-            } else {
-                Result.success(emptyMap())
-            }.map { it + localMap }.recover { localMap }
+            runCatching {
+                // NIP-57 receipts carry the paid invoice in a `bolt11` tag. Relay
+                // tag filtering avoids the old invoice-to-receipt cache endpoint.
+                val receipts = relayEventQuerier.query(
+                    RelayFilter(
+                        kinds = listOf(NostrEventKind.Zap.value),
+                        bolt11Tags = missingZapReceiptsByInvoice.toList(),
+                        limit = missingZapReceiptsByInvoice.size.coerceAtMost(500),
+                    ),
+                ).distinctBy { it.id }
+                val receiptsByInvoice = receipts.mapNotNull { receipt ->
+                    receipt.tags.findFirstBolt11()
+                        ?.takeIf { it in missingZapReceiptsByInvoice }
+                        ?.let { it to receipt }
+                }.toMap()
+                database.eventZaps().upsertAll(
+                    data = receiptsByInvoice.values.toList().mapAsEventZapDO(profilesMap = emptyMap()),
+                )
+                receiptsByInvoice.mapNotNull { (invoice, receipt) ->
+                    receipt.extractZapRequestOrNull()?.let { invoice to it }
+                }.toMap() + localMap
+            }.recover { localMap }
         }
 
     override suspend fun saveZapRequest(
@@ -299,8 +302,8 @@ class EventRepositoryImpl(
 
     @OptIn(ExperimentalPagingApi::class)
     private fun createPager(
-        userId: String,
         eventId: String,
+        articleATag: String?,
         pagingSourceFactory: () -> PagingSource<Int, EventZapPO>,
     ) = Pager(
         config = PagingConfig(
@@ -311,12 +314,17 @@ class EventRepositoryImpl(
         ),
         remoteMediator = EventZapsMediator(
             eventId = eventId,
-            userId = userId,
             dispatcherProvider = dispatcherProvider,
-            eventStatsApi = eventStatsApi,
             database = database,
-            mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
+            eventTags = listOf(eventId),
+            addressTags = listOfNotNull(articleATag),
         ),
         pagingSourceFactory = pagingSourceFactory,
     )
+
+    private companion object {
+        const val REPLACEABLE_AUTHOR_CHUNK = 50
+        const val REPLACEABLE_EVENTS_PER_ADDRESS = 10
+    }
 }

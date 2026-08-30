@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.Badges
-import net.primal.core.networking.factory.PrimalApiClientFactory
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
 import net.primal.domain.streams.StreamRepository
@@ -81,13 +80,11 @@ class SubscriptionsManager @Inject constructor(
     private val lifecycleEventObserver = LifecycleEventObserver { _, event ->
         when (event) {
             Lifecycle.Event.ON_RESUME -> scope.launch {
-                PrimalApiClientFactory.resumeAll()
                 resumeSubscriptions()
             }
 
             Lifecycle.Event.ON_PAUSE -> scope.launch {
                 pauseSubscriptions()
-                PrimalApiClientFactory.pauseAll()
             }
 
             else -> Unit

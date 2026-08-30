@@ -164,9 +164,6 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
                 navDeepLink {
                     uriPattern = "nostrnwc://.*"
                 },
-                navDeepLink {
-                    uriPattern = "nostrnwc+primal://.*"
-                },
             ),
             navController = navController,
         )
@@ -192,7 +189,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
             navController = navController,
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "primal://signer/{$REMOTE_LOGIN_CLIENT_PUBKEY}"
+                    uriPattern = "nostrconnect://signer/{$REMOTE_LOGIN_CLIENT_PUBKEY}"
                 },
             ),
         )

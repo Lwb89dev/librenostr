@@ -48,6 +48,22 @@ config.properties
 release.properties
 google-services.json
 
+# Signing material — never commit keystores or cert material
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.properties
+
+# Secrets / env
+.env
+.env.*
+*.token
+*token*.txt
+*secret*
+
 # GitHub Copilot
 copilot*.xml
 .copilot/
@@ -61,3 +77,13 @@ copilot-settings.json
 claude-*.json
 claude-config.json
 .claude-workspace
+CLAUDE.local.md
+
+# Other AI coding assistants
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.continue/
+.aider*
+.mcp.json

@@ -29,7 +29,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.domain.Relay
 import net.primal.core.networking.sockets.NostrIncomingMessage
@@ -39,6 +45,7 @@ import net.primal.core.networking.sockets.SocketConnectionClosedCallback
 import net.primal.core.networking.sockets.SocketConnectionOpenedCallback
 import net.primal.core.networking.sockets.filterBySubscriptionId
 import net.primal.core.networking.sockets.publishEventAndAwaitResponse
+import net.primal.core.networking.sockets.subscription
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
 import net.primal.domain.nostr.NostrEvent
@@ -53,8 +60,10 @@ class RelayPool(
         const val PUBLISH_TIMEOUT = 10_000
         const val SUBSCRIBE_TIMEOUT = 8_000
         const val FIRST_EOSE_GRACE_MS = 400L
+        const val MIN_QUERY_TIMEOUT_MS = 500L
         const val MAX_EVENTS_PER_QUERY = 500
         const val MAX_RELAYS = 30
+        const val MAX_ACTIVE_SUBSCRIPTIONS = 64
     }
 
     private val scope = CoroutineScope(dispatchers.io())
@@ -194,17 +203,19 @@ class RelayPool(
         filter: JsonObject,
         timeoutMs: Long = SUBSCRIBE_TIMEOUT.toLong(),
     ): RelayPoolQueryResult {
+        val safeFilter = filter.withSafeLimit()
+        val safeTimeoutMs = timeoutMs.coerceIn(MIN_QUERY_TIMEOUT_MS, SUBSCRIBE_TIMEOUT.toLong())
         val clients = readClients()
         if (clients.isEmpty()) return RelayPoolQueryResult()
 
         val subscriptionId = subscriptionIdFactory()
-        activeSubscriptions.incrementAndGet()
+        if (!tryAcquireSubscription()) return RelayPoolQueryResult()
         try {
             val result = collectUntilEose(
                 clients = clients,
                 subscriptionId = subscriptionId,
-                filter = filter,
-                timeoutMs = timeoutMs,
+                filter = safeFilter,
+                timeoutMs = safeTimeoutMs,
             )
             publishQueryStats(requested = clients.size, result = result)
             return result
@@ -214,7 +225,63 @@ class RelayPool(
         }
     }
 
+    /** Prevent a malformed/custom filter from turning one UI action into an unbounded relay dump. */
+    private fun JsonObject.withSafeLimit(): JsonObject = buildJsonObject {
+        forEach { (key, value) -> if (key != "limit") put(key, value) }
+        val requested = this@withSafeLimit["limit"]?.jsonPrimitive?.intOrNull
+        put("limit", JsonPrimitive((requested ?: MAX_EVENTS_PER_QUERY).coerceIn(1, MAX_EVENTS_PER_QUERY)))
+    }
+
+    /**
+     * Keeps a Nostr REQ open on every read relay and forwards events until the
+     * collector cancels. The socket subscription helper re-sends REQ after a
+     * reconnect, so live feeds survive transient relay disconnects.
+     */
+    fun subscribe(filter: JsonObject): kotlinx.coroutines.flow.Flow<NostrEvent> = channelFlow {
+        val clients = readClients()
+        if (clients.isEmpty()) return@channelFlow
+
+        val rootSubscriptionId = subscriptionIdFactory()
+        if (!tryAcquireSubscription()) return@channelFlow
+        val safeFilter = filter.withSafeLimit()
+        clients.forEachIndexed { index, client ->
+            val subscriptionId = "$rootSubscriptionId-$index"
+            launch {
+                try {
+                    client.subscription(subscriptionId = subscriptionId, data = safeFilter).collect { message ->
+                        when (message) {
+                            is NostrIncomingMessage.EventMessage -> message.nostrEvent?.let { send(it) }
+                            is NostrIncomingMessage.EventsMessage -> message.nostrEvents.forEach { send(it) }
+                            is NostrIncomingMessage.NoticeMessage ->
+                                Napier.w { "NOTICE from ${client.socketUrl}: ${message.message}" }
+                            else -> Unit
+                        }
+                    }
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    Napier.w(throwable = error) { "SUBSCRIBE failed on ${client.socketUrl}" }
+                }
+            }
+        }
+
+        awaitClose {
+            activeSubscriptions.decrementAndGet()
+            clients.forEachIndexed { index, client ->
+                scope.launch { runCatching { client.sendCLOSE("$rootSubscriptionId-$index") } }
+            }
+        }
+    }
+
     private fun readClients(): List<NostrSocketClient> = clientsFor { it.read }
+
+    private fun tryAcquireSubscription(): Boolean {
+        val count = activeSubscriptions.incrementAndGet()
+        if (count <= MAX_ACTIVE_SUBSCRIPTIONS) return true
+        activeSubscriptions.decrementAndGet()
+        Napier.w { "Relay subscription limit reached; request ignored." }
+        return false
+    }
 
     private fun writeClients(): List<NostrSocketClient> = clientsFor { it.write }
 

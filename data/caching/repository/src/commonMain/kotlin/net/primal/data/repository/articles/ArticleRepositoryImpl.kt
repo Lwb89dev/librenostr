@@ -17,16 +17,15 @@ import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.data.local.dao.reads.ArticleFeedItem
 import net.primal.data.local.db.CachingDatabase
-import net.primal.data.remote.api.articles.ArticlesApi
-import net.primal.data.remote.api.articles.model.ArticleDetailsRequestBody
-import net.primal.data.remote.api.articles.model.ArticleHighlightsRequestBody
 import net.primal.data.repository.articles.paging.ArticleFeedMediator
+import net.primal.data.repository.articles.paging.RelayArticleDetailsFetcher
+import net.primal.data.repository.articles.paging.RelayArticleHighlightsFetcher
 import net.primal.data.repository.articles.processors.persistArticleCommentsToDatabase
 import net.primal.data.repository.articles.processors.persistToDatabaseAsTransaction
 import net.primal.data.repository.mappers.local.asArticleDO
 import net.primal.data.repository.mappers.local.mapAsFeedPostDO
 import net.primal.data.repository.utils.cacheAvatarUrls
-import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.posts.FeedPost
 import net.primal.domain.reads.Article as ArticleDO
 import net.primal.domain.reads.ArticleRepository
@@ -34,9 +33,9 @@ import net.primal.shared.data.local.db.withTransaction
 
 class ArticleRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
-    private val articlesApi: ArticlesApi,
     private val database: CachingDatabase,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier,
 ) : ArticleRepository {
 
     override fun feedBySpec(userId: String, feedSpec: String): Flow<PagingData<ArticleDO>> {
@@ -54,14 +53,10 @@ class ArticleRepositoryImpl(
         articleId: String,
         articleAuthorId: String,
     ) = withContext(dispatcherProvider.io()) {
-        val response = articlesApi.getArticleDetails(
-            body = ArticleDetailsRequestBody(
-                userId = userId,
-                authorUserId = articleAuthorId,
-                identifier = articleId,
-                kind = NostrEventKind.LongFormContent.value,
-                limit = 100,
-            ),
+        val response = RelayArticleDetailsFetcher(relayEventQuerier).fetch(
+            articleId = articleId,
+            articleAuthorId = articleAuthorId,
+            commentLimit = 100,
         )
         mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
         response.persistToDatabaseAsTransaction(userId = userId, database = database)
@@ -77,13 +72,9 @@ class ArticleRepositoryImpl(
         articleId: String,
         articleAuthorId: String,
     ) = withContext(dispatcherProvider.io()) {
-        val highlightsResponse = articlesApi.getArticleHighlights(
-            body = ArticleHighlightsRequestBody(
-                userId = userId,
-                identifier = articleId,
-                authorUserId = articleAuthorId,
-                kind = NostrEventKind.LongFormContent.value,
-            ),
+        val highlightsResponse = RelayArticleHighlightsFetcher(relayEventQuerier).fetch(
+            articleId = articleId,
+            articleAuthorId = articleAuthorId,
         )
         mediaCacher?.cacheAvatarUrls(
             metadata = highlightsResponse.profileMetadatas,
@@ -183,10 +174,10 @@ class ArticleRepositoryImpl(
         remoteMediator = ArticleFeedMediator(
             userId = userId,
             feedSpec = feedSpec,
-            articlesApi = articlesApi,
             database = database,
             dispatcherProvider = dispatcherProvider,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         ),
         pagingSourceFactory = pagingSourceFactory,
     )

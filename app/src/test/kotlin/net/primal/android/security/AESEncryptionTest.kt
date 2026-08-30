@@ -2,15 +2,18 @@ package net.primal.android.security
 
 import io.kotest.matchers.shouldBe
 import java.io.ByteArrayInputStream
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class AESEncryptionTest {
 
     @Test
-    fun decrypt_readsLegacyPlaintextJson() {
+    fun decrypt_rejectsUnframedPlaintextJson() {
         val encryption = AESEncryption(keyAlias = "unused")
         val plaintext = """[{"npub":"npub1abc","nsec":null}]"""
-        encryption.decrypt(plaintext.byteInputStream()) shouldBe plaintext
+        assertThrows(IllegalStateException::class.java) {
+            encryption.decrypt(plaintext.byteInputStream())
+        }
     }
 
     @Test

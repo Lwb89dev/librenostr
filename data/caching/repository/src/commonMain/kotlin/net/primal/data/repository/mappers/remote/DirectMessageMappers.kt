@@ -1,6 +1,8 @@
 package net.primal.data.repository.mappers.remote
 
+import io.github.aakira.napier.Napier
 import net.primal.core.utils.detectUrls
+import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.messages.DirectMessageData
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.findFirstProfileId
@@ -11,7 +13,17 @@ import net.primal.shared.data.local.encryption.asEncryptable
 fun List<NostrEvent>.mapAsMessageDataPO(
     userId: String,
     onMessageDecrypt: (userId: String, participantId: String, content: String) -> String,
-) = mapNotNull { it.mapAsMessageDataPO(userId = userId, onMessageDecrypt = onMessageDecrypt) }
+) = mapNotNull { event ->
+    // Relay history can contain malformed or differently encrypted kind-4 events. They must
+    // not prevent valid messages from being persisted and displayed.
+    val result = runCatching {
+        event.mapAsMessageDataPO(userId = userId, onMessageDecrypt = onMessageDecrypt)
+    }
+    result.exceptionOrNull()?.let { error ->
+        Napier.w(error) { "Skipping undecryptable direct message ${event.id}." }
+    }
+    result.getOrNull()
+}
 
 fun NostrEvent.mapAsMessageDataPO(
     userId: String,

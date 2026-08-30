@@ -39,8 +39,6 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
-import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
-import net.primal.data.remote.api.users.UsersApi
 import net.primal.domain.common.UserProfileSearchItem
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.global.CachingImportRepository
@@ -62,7 +60,6 @@ class UserRepository @Inject constructor(
     private val credentialsStore: CredentialsStore,
     private val activeAccountStore: ActiveAccountStore,
     private val primalUploadService: AndroidPrimalBlossomUploadService,
-    private val usersApi: UsersApi,
     private val relaysSocketManager: RelaysSocketManager,
     private val nostrPublisher: NostrPublisher,
     private val profileRepository: ProfileRepository,
@@ -141,7 +138,11 @@ class UserRepository @Inject constructor(
 
     private suspend fun fetchUserFollowListOrNull(userId: String): UserAccount? =
         withContext(dispatchers.io()) {
-            fetchFollowListFromRelays(userId) ?: fetchFollowListFromCache(userId)
+            // The authoritative remote source is the user's kind-3 event on Nostr.
+            // If relays are temporarily unavailable, keep the last locally persisted
+            // list rather than falling back to the centralized Primal cache API.
+            fetchFollowListFromRelays(userId)
+                ?: accountsStore.findByIdOrNull(userId = userId)?.takeIf { it.following.isNotEmpty() }
         }
 
     private suspend fun fetchFollowListFromRelays(userId: String): UserAccount? {
@@ -161,11 +162,6 @@ class UserRepository @Inject constructor(
                 "eose=${result.eoseRelays.size} fail=${result.failedRelays.size}"
         }
         return latest.asUserAccountFromFollowListEvent()
-    }
-
-    private suspend fun fetchFollowListFromCache(userId: String): UserAccount? {
-        val contactsResponse = usersApi.getUserFollowList(userId = userId)
-        return contactsResponse.followListEvent?.asUserAccountFromFollowListEvent()
     }
 
     suspend fun clearAllUserRelatedData(userId: String) =
@@ -239,28 +235,35 @@ class UserRepository @Inject constructor(
     @Throws(NostrPublishException::class, NetworkException::class, SignatureException::class)
     suspend fun setNostrAddress(userId: String, nostrAddress: String) =
         withContext(dispatchers.io()) {
-            val userProfileResponse = usersApi.getUserProfile(userId = userId)
-            val metadata = userProfileResponse.metadata?.content.decodeFromJsonStringOrNull<ContentMetadata>()
-                ?: throw NetworkException("Profile Content Metadata not found.")
-
             setUserProfileAndUpdateLocally(
                 userId = userId,
-                contentMetadata = metadata.copy(nip05 = nostrAddress),
+                contentMetadata = loadLocalOrRelayMetadata(userId).copy(nip05 = nostrAddress),
             )
         }
 
     @Throws(NostrPublishException::class, NetworkException::class, SignatureException::class)
     suspend fun setLightningAddress(userId: String, lightningAddress: String) =
         withContext(dispatchers.io()) {
-            val userProfileResponse = usersApi.getUserProfile(userId = userId)
-            val metadata = userProfileResponse.metadata?.content.decodeFromJsonStringOrNull<ContentMetadata>()
-                ?: throw NetworkException("Profile Content Metadata not found.")
-
             setUserProfileAndUpdateLocally(
                 userId = userId,
-                contentMetadata = metadata.copy(lud16 = lightningAddress),
+                contentMetadata = loadLocalOrRelayMetadata(userId).copy(lud16 = lightningAddress),
             )
         }
+
+    private suspend fun loadLocalOrRelayMetadata(userId: String): ContentMetadata {
+        val profile = profileRepository.fetchProfile(profileId = userId)
+            ?: throw NetworkException("Profile metadata not found on local storage or relays.")
+        return ContentMetadata(
+            name = profile.handle,
+            nip05 = profile.internetIdentifier,
+            about = profile.about,
+            lud16 = profile.lightningAddress,
+            displayName = profile.displayName,
+            picture = profile.avatarCdnImage?.sourceUrl,
+            banner = profile.bannerCdnImage?.sourceUrl,
+            website = profile.website,
+        )
+    }
 
     private suspend fun setUserProfileAndUpdateLocally(userId: String, contentMetadata: ContentMetadata) {
         val profileMetadataNostrEvent = nostrPublisher.publishUserProfile(

@@ -5,6 +5,7 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import io.github.aakira.napier.Napier
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.withContext
@@ -24,6 +25,7 @@ import net.primal.data.repository.mappers.remote.mapNotNullAsProfileStatsPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.shared.data.local.db.withTransaction
 
@@ -35,6 +37,7 @@ class NotificationsRemoteMediator(
     private val notificationsApi: NotificationsApi,
     private val database: CachingDatabase,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : RemoteMediator<Int, Notification>() {
 
     private var lastSeenTimestamp: Long = Instant.DISTANT_PAST.epochSeconds
@@ -61,6 +64,7 @@ class NotificationsRemoteMediator(
     }
 
     override suspend fun load(loadType: LoadType, state: PagingState<Int, Notification>): MediatorResult {
+        relayEventQuerier?.let { return loadFromRelays(loadType = loadType, state = state, querier = it) }
         val timestamp: Long? = when (loadType) {
             LoadType.REFRESH -> null
             LoadType.PREPEND -> {
@@ -171,10 +175,65 @@ class NotificationsRemoteMediator(
         return MediatorResult.Success(endOfPaginationReached = false)
     }
 
+    private suspend fun loadFromRelays(
+        loadType: LoadType,
+        state: PagingState<Int, Notification>,
+        querier: RelayEventQuerier,
+    ): MediatorResult {
+        if (loadType == LoadType.PREPEND) return MediatorResult.Success(endOfPaginationReached = true)
+        val until = when (loadType) {
+            LoadType.REFRESH -> null
+            LoadType.APPEND -> state.lastItemOrNull()?.data?.createdAt
+        }
+        val result = try {
+            withContext(dispatcherProvider.io()) {
+                net.primal.data.repository.notifications.RelayNotificationsFetcher(querier).fetch(
+                    userId = userId,
+                    group = group,
+                    limit = maxOf(state.config.pageSize, RELAY_PAGE_SIZE),
+                    until = until,
+                )
+            }
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Napier.w(error) { "Failed to get notifications from relays." }
+            return MediatorResult.Error(error)
+        }
+        if (result.notifications.isEmpty()) {
+            return MediatorResult.Success(endOfPaginationReached = true)
+        }
+        withContext(dispatcherProvider.io()) {
+            val existing = database.notifications()
+                .findByIds(userId, result.notifications.map { it.notificationId })
+                .associateBy { it.notificationId }
+            val tagged = result.notifications.map { notification ->
+                notification.copy(seenGloballyAt = existing[notification.notificationId]?.seenGloballyAt)
+            }
+            result.feedResponse.persistToDatabaseAsTransaction(userId = userId, database = database)
+            database.withTransaction {
+                database.notifications().upsertAll(tagged)
+                database.notificationGroupCrossRef().insertAll(
+                    tagged.map {
+                        NotificationGroupCrossRef(
+                            notificationId = it.notificationId,
+                            ownerId = userId,
+                            groupKey = group.name,
+                        )
+                    },
+                )
+            }
+        }
+        return MediatorResult.Success(endOfPaginationReached = result.notifications.size < RELAY_PAGE_SIZE)
+    }
+
     private fun List<NotificationData>.mapWithSeenAtTimestamps(): List<NotificationData> {
         return this.map {
             val seenAt = if (it.createdAt <= lastSeenTimestamp) lastSeenTimestamp else null
             it.copy(seenGloballyAt = seenAt)
         }
+    }
+
+    private companion object {
+        const val RELAY_PAGE_SIZE = 200
     }
 }

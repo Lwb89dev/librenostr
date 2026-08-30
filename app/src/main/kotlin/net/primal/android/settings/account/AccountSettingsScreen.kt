@@ -376,7 +376,8 @@ fun PreviewSettingsHomeScreen() {
             state = AccountSettingsContract.UiState(
                 avatarCdnImage = CdnImage("https://i.imgur.com/Z8dpmvc.png"),
                 npub = "npub16c0nh3dnadzqpm76uctf5hqhe2lny344zsmpm6feee9p5rdxaa9q586nvr",
-                nsec = "nsec1w33tr4t0gg3gvrhjh5mxqzvt7xzdrrk64tr0j7mnqdfrrarfj3yqlf8hxp",
+                // Never embed even synthetic private keys in previews or the APK.
+                nsec = null,
             ),
             onClose = { },
         )

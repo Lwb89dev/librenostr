@@ -403,8 +403,8 @@ class CreateNewWalletConnectionUiStateProvider : PreviewParameterProvider<Create
             CreateNewWalletConnectionContract.UiState(),
             CreateNewWalletConnectionContract.UiState(
                 nwcConnectionUri = "nostr+walletconnect://1291af9c1125151f7a59636432c6e06a7a2515" +
-                    "15b27c0f20f61f3734e52relay=wss%3A%2F%2Fnwc.primal.net%2Fb9PwCaYmNOVBl13" +
-                    "&secret=f4d681f07f51783708ef1b331225c5s1js0jns8f10391f2074e8333741m",
+                    "15b27c0f20f61f3734e52relay=wss%3A%2F%2Frelay.damus.io%2Fb9PwCaYmNOVBl13" +
+                    "&secret=preview-secret",
             ),
             CreateNewWalletConnectionContract.UiState(
                 creatingSecret = true,

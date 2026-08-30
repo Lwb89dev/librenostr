@@ -12,7 +12,7 @@ interface HighlightRepository {
 
     private companion object {
         const val DEFAULT_ALT_TAG =
-            "This is a highlight created in https://primal.net Android application"
+            "This is a highlight created in the LibreNostr Android application"
     }
 
     fun observeHighlightById(highlightId: String): Flow<Highlight>

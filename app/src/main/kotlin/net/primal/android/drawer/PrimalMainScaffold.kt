@@ -13,9 +13,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +58,7 @@ fun PrimalMainScaffold(
     onPrimaryDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     badges: Badges = Badges(),
     onActiveDestinationClick: () -> Unit = {},
+    onMessagesClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     profileAvatarCdnImage: CdnImage? = null,
@@ -73,6 +76,7 @@ fun PrimalMainScaffold(
     floatingActionButton: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     overlay: @Composable () -> Unit = {},
+    overlayCoversTopBar: Boolean = false,
     focusModeEnabled: Boolean = true,
     exploreAnchorHandle: AnchorHandle? = null,
 ) {
@@ -115,6 +119,7 @@ fun PrimalMainScaffold(
                     activeDestination = activeDestination,
                     onPrimaryDestinationChanged = onPrimaryDestinationChanged,
                     onActiveDestinationClick = onActiveDestinationClick,
+                    onMessagesClick = onMessagesClick,
                     onSettingsClick = onSettingsClick,
                     onProfileClick = onProfileClick,
                     profileAvatarCdnImage = profileAvatarCdnImage,
@@ -142,7 +147,17 @@ fun PrimalMainScaffold(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = with(localDensity) { streamState.topBarHeight.toDp() })
+                .then(
+                    if (overlayCoversTopBar) {
+                        Modifier.padding(
+                            top = with(localDensity) {
+                                WindowInsets.statusBars.getTop(this).toDp()
+                            },
+                        )
+                    } else {
+                        Modifier.padding(top = with(localDensity) { streamState.topBarHeight.toDp() })
+                    },
+                )
                 .clipToBounds(),
         ) {
             overlay()
@@ -189,6 +204,7 @@ private fun ScaffoldBottomBar(
     activeDestination: PrimalTopLevelDestination,
     onPrimaryDestinationChanged: (PrimalTopLevelDestination) -> Unit,
     onActiveDestinationClick: () -> Unit,
+    onMessagesClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onProfileClick: () -> Unit,
     profileAvatarCdnImage: CdnImage?,
@@ -220,6 +236,7 @@ private fun ScaffoldBottomBar(
             activeDestination = activeDestination,
             onTopLevelDestinationChanged = onPrimaryDestinationChanged,
             onActiveDestinationClick = onActiveDestinationClick,
+            onMessagesClick = onMessagesClick,
             onSettingsClick = onSettingsClick,
             onProfileClick = onProfileClick,
             profileAvatarCdnImage = profileAvatarCdnImage,

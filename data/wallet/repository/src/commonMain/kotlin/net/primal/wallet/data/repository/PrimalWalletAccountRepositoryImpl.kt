@@ -97,5 +97,5 @@ internal class PrimalWalletAccountRepositoryImpl(
         }
 
     override suspend fun fetchWalletStatus(userId: String): Result<PrimalWalletStatus> =
-        Result.failure(NetworkException("Primal wallet is disabled"))
+        Result.failure(NetworkException("Legacy wallet transport is disabled"))
 }

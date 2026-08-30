@@ -4,9 +4,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -18,6 +22,7 @@ import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.nostr.relay.RelayFilter
 
 @Singleton
@@ -26,7 +31,7 @@ class RelaysSocketManager @Inject constructor(
     private val nostrSocketClientFactory: NostrSocketClientFactory,
     private val activeAccountStore: ActiveAccountStore,
     private val usersDatabase: UsersDatabase,
-) : RelayEventQuerier {
+) : RelayEventSubscriber {
 
     private val scope = CoroutineScope(dispatchers.io())
     private val relayPoolsMutex = Mutex()
@@ -124,9 +129,12 @@ class RelaysSocketManager @Inject constructor(
     @Throws(NostrPublishException::class)
     suspend fun publishEvent(nostrEvent: NostrEvent, relays: List<Relay>) {
         val customPool = buildRelayPool()
-        customPool.changeRelays(relays = relays)
-        customPool.publishEvent(nostrEvent = nostrEvent)
-        customPool.closePool()
+        try {
+            customPool.changeRelays(relays = relays)
+            customPool.publishEvent(nostrEvent = nostrEvent)
+        } finally {
+            customPool.closePool()
+        }
     }
 
     @Throws(NostrPublishException::class)
@@ -149,15 +157,38 @@ class RelaysSocketManager @Inject constructor(
     suspend fun tryConnectingToUserRelay(url: String) = userRelaysPool.tryConnectingToRelay(url)
 
     suspend fun queryEvents(filter: JsonObject): RelayPoolQueryResult {
-        val userResult = userRelaysPool
-            .takeIf { it.hasRelays() }
-            ?.query(filter)
-            ?.takeIf { it.events.isNotEmpty() }
-        return userResult ?: fallbackRelaysPool.query(filter)
+        return coroutineScope {
+            // Start fallback immediately. This avoids waiting for an unavailable account relay
+            // before useful public relays get a chance to answer.
+            val fallback = async {
+                withTimeoutOrNull(FALLBACK_QUERY_TIMEOUT_MS) {
+                    fallbackRelaysPool.query(filter)
+                } ?: RelayPoolQueryResult()
+            }
+            val userResult = userRelaysPool
+                .takeIf { it.hasRelays() }
+                ?.let { pool ->
+                    // RelayPool itself waits up to eight seconds for EOSE; bound that wait here.
+                    withTimeoutOrNull(USER_QUERY_TIMEOUT_MS) { pool.query(filter) }
+                }
+                ?.takeIf { it.events.isNotEmpty() }
+
+            if (userResult != null) {
+                fallback.cancel()
+                userResult
+            } else {
+                fallback.await()
+            }
+        }
     }
 
     override suspend fun query(filter: RelayFilter): List<NostrEvent> {
         return queryEvents(filter.toJsonObject()).events
+    }
+
+    override fun subscribe(filter: RelayFilter): Flow<NostrEvent> {
+        val pool = userRelaysPool.takeIf { it.hasRelays() } ?: fallbackRelaysPool
+        return pool.subscribe(filter.toJsonObject())
     }
 
     fun lastQueryStats() = userRelaysPool.lastQueryStats.value ?: fallbackRelaysPool.lastQueryStats.value
@@ -166,4 +197,11 @@ class RelaysSocketManager @Inject constructor(
         userRelaysPool.activeSubscriptionCount() +
             nwcRelaysPool.activeSubscriptionCount() +
             fallbackRelaysPool.activeSubscriptionCount()
+
+    private companion object {
+        // Keep the account pool responsive, then give healthy public relays a separate window.
+        // These bounds are intentionally distinct so a slow account relay cannot cancel fallback.
+        const val USER_QUERY_TIMEOUT_MS = 3_500L
+        const val FALLBACK_QUERY_TIMEOUT_MS = 4_000L
+    }
 }

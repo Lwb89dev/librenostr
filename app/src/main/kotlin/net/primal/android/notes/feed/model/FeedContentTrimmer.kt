@@ -6,7 +6,7 @@ import net.primal.domain.nostr.utils.LnInvoiceUtils
 /**
  * Correctness cushion added on top of [ELLIPSIZE_THRESHOLD] when deciding how much raw
  * content to keep for the feed preview. Not a business threshold: it covers the few minor
- * length reducers the span accounting does not model (blank-line collapsing, primal.net
+ * length reducers the span accounting does not model (blank-line collapsing, nostrich.org
  * link stripping, trim), guaranteeing the trimmed content still refines to more than
  * [ELLIPSIZE_THRESHOLD] characters so the render-time ellipsize behaves identically.
  */

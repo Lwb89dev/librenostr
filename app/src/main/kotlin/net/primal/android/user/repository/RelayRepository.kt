@@ -71,7 +71,7 @@ class RelayRepository @Inject constructor(
         return latest?.tags?.parseNip65Relays()
     }
 
-    suspend fun ensureLocalBootstrapRelays(userId: String) {
+    suspend fun ensureLocalBootstrapRelays(userId: String) = withContext(dispatchers.io()) {
         if (findRelays(userId, RelayKind.UserRelay).isEmpty()) {
             replaceUserRelays(userId, FALLBACK_RELAYS)
         }

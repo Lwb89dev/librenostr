@@ -5,9 +5,9 @@ import net.primal.data.account.signer.remote.api.model.MediumTrustPermissionsRes
 import net.primal.data.account.signer.remote.api.model.PermissionsResponse
 
 interface WellKnownApi {
-    @GET("https://primal.net/.well-known/remote-signer-nip46-defaults.json")
+    @GET("https://nostrich.org/.well-known/librenostr-nip46-defaults.json")
     suspend fun getMediumTrustPermissions(): MediumTrustPermissionsResponse
 
-    @GET("https://primal.net/.well-known/remote-signer-nip46-permissions.json")
+    @GET("https://nostrich.org/.well-known/librenostr-nip46-permissions.json")
     suspend fun getSignerPermissions(): PermissionsResponse
 }

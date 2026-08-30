@@ -308,7 +308,7 @@ internal class RemoteSignerServiceImpl internal constructor(
                 response = response,
             )
 
-            Napier.d(tag = "Signer") { "Response $response" }
+            Napier.d(tag = "Signer") { "Remote-signer method processed (response=${response != null})" }
 
             if (response != null) {
                 if (method is RemoteSignerMethod.Logout) {
@@ -352,7 +352,7 @@ internal class RemoteSignerServiceImpl internal constructor(
         rebroadcast: Boolean = false,
     ): Result<Unit> {
         return sendResponse(response, rebroadcast = rebroadcast).onFailure {
-            Napier.d(tag = "Signer") { "Adding response to retry queue: $response" }
+            Napier.d(tag = "Signer") { "Adding remote-signer response to retry queue." }
             retrySendMethodResponseQueue.emit(PendingResponse(response, rebroadcast))
         }
     }
@@ -361,7 +361,8 @@ internal class RemoteSignerServiceImpl internal constructor(
         response: RemoteSignerMethodResponse,
         rebroadcast: Boolean = false,
     ): Result<Unit> {
-        Napier.d(tag = "Signer") { "Sending response: $response" }
+        // The response contains encrypted NIP-46 content; keep it out of logs.
+        Napier.d(tag = "Signer") { "Sending remote-signer response (rebroadcast=$rebroadcast)" }
         val relays = connectionRepository
             .getConnectionByClientPubKey(clientPubKey = response.clientPubKey)
             .getOrNull()?.relays ?: emptyList()
@@ -372,7 +373,7 @@ internal class RemoteSignerServiceImpl internal constructor(
             response = response,
             rebroadcast = rebroadcast,
         ).onFailure {
-            Napier.d(tag = "Signer") { "Something went wrong while sending response: ${it.message}.\n" }
+            Napier.d(tag = "Signer") { "Remote-signer response delivery failed." }
         }
     }
 

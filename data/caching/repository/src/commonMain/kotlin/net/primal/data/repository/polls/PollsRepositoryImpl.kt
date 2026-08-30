@@ -45,6 +45,7 @@ import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asEventIdTag
 import net.primal.domain.nostr.asResponseTag
+import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.polls.PollAlreadyVotedException
 import net.primal.domain.polls.PollAuthorCannotVoteException
 import net.primal.domain.polls.PollExpiredException
@@ -64,6 +65,7 @@ class PollsRepositoryImpl(
     private val primalPublisher: PrimalPublisher,
     private val database: CachingDatabase,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : PollsRepository {
 
     companion object {
@@ -72,6 +74,16 @@ class PollsRepositoryImpl(
 
     override suspend fun fetchPollVotes(eventId: String) =
         withContext(dispatcherProvider.io()) {
+            relayEventQuerier?.let { querier ->
+                val relayResult = RelayPollVotesFetcher(querier).fetch(postId = eventId)
+                database.withTransaction {
+                    database.profiles().insertOrUpdateAll(data = relayResult.profiles)
+                    relayResult.poll?.let { database.polls().upsertAll(data = listOf(it)) }
+                    database.pollVotes().upsertAll(data = relayResult.votes)
+                }
+                return@withContext
+            }
+
             val response = pollsApi.getPollVotes(
                 body = PollVotesRequestBody(eventId = eventId, limit = 100),
             )
@@ -329,6 +341,7 @@ class PollsRepositoryImpl(
                 database = database,
                 dispatcherProvider = dispatcherProvider,
                 mediaCacher = mediaCacher,
+                relayEventQuerier = relayEventQuerier,
             ),
             pagingSourceFactory = {
                 database.pollVotes().pagingSourceByPostIdAndOptionId(

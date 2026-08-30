@@ -31,7 +31,7 @@ class PrimalImageLoaderFactory @Inject constructor() : SingletonImageLoader.Fact
                         request.newBuilder()
                             .header(
                                 "User-Agent",
-                                "LibreNostr/1.0 (https://github.com/PrimalSystems/primal-android-app)",
+                                "LibreNostr/1.0",
                             )
                             .header("Referer", "https://commons.wikimedia.org/")
                             .build(),

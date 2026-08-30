@@ -28,17 +28,17 @@ fun PremiumPrimalNameTable(modifier: Modifier = Modifier, primalName: String) {
     ) {
         PrimalNameRow(
             key = stringResource(id = R.string.premium_primal_name_nostr_address),
-            value = "$primalName@primal.net",
+            value = "$primalName@nostrich.org",
         )
         PrimalDivider()
         PrimalNameRow(
             key = stringResource(id = R.string.premium_primal_name_lightning_address),
-            value = "$primalName@primal.net",
+            value = "$primalName@nostrich.org",
         )
         PrimalDivider()
         PrimalNameRow(
             key = stringResource(id = R.string.premium_primal_name_vip_profile),
-            value = "primal.net/$primalName",
+            value = "nostrich.org/p/$primalName",
         )
     }
 }

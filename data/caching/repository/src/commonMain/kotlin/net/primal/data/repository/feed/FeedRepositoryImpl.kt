@@ -22,12 +22,14 @@ import net.primal.data.local.queries.FeedQueryBuilder
 import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
+import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
 import net.primal.domain.feeds.isFollowSetFeedSpec
 import net.primal.domain.feeds.isFollowingNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
+import net.primal.domain.feeds.isAdvancedSearchFeedSpec
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.data.repository.feed.processors.persistNoteRepliesAndArticleCommentsToDatabase
 import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
@@ -229,6 +231,18 @@ internal class FeedRepositoryImpl(
         withContext(dispatcherProvider.io()) {
             val querier = relayEventQuerier
             val response = if (
+                querier != null &&
+                feedSpec.isAdvancedSearchFeedSpec()
+            ) {
+                RelayAdvancedSearchFeedFetcher(querier).fetch(
+                    userId = userId,
+                    feedSpec = feedSpec,
+                    fallbackKinds = kinds,
+                    limit = limit,
+                    until = until,
+                    since = since,
+                )
+            } else if (
                 querier != null &&
                 (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
             ) {

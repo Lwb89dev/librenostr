@@ -174,7 +174,8 @@ internal class NostrRelayManager(
         response: RemoteSignerMethodResponse,
         rebroadcast: Boolean = false,
     ) = runCatching {
-        Napier.d(tag = "Signer") { "Broadcast: $rebroadcast; Sending response: $response" }
+        // Never log the response: NIP-46 payloads may contain encrypted secrets or user data.
+        Napier.d(tag = "Signer") { "Broadcast: $rebroadcast; sending remote-signer response" }
         val event = buildSignedEvent(response = response)
             .onFailure {
                 Napier.w(tag = "Signer", throwable = it) {

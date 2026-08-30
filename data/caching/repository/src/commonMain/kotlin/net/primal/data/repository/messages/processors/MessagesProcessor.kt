@@ -1,29 +1,29 @@
 package net.primal.data.repository.messages.processors
 
-import io.github.aakira.napier.Napier
 import net.primal.core.caching.MediaCacher
+import net.primal.core.utils.getOrDefault
+import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.messages.DirectMessageData
 import net.primal.data.local.db.CachingDatabase
-import net.primal.data.remote.api.feed.FeedApi
-import net.primal.data.remote.api.users.UsersApi
 import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
 import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
-import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
 import net.primal.data.repository.mappers.remote.flatMapMessagesAsEventUriPO
 import net.primal.data.repository.mappers.remote.flatMapMessagesAsReferencedNostrUriDO
 import net.primal.data.repository.mappers.remote.mapAsMessageDataPO
 import net.primal.data.repository.mappers.remote.mapAsPostDataPO
 import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsPostDataPO
+import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapReferencedNostrUriAsEventUriNostrPO
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalLegendProfiles
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.PrimalEvent
-import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.MessageCipher
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.nostr.utils.extractNoteId
 import net.primal.domain.nostr.utils.extractProfileId
 import net.primal.domain.nostr.utils.isNostrUri
@@ -31,10 +31,9 @@ import net.primal.shared.data.local.db.withTransaction
 
 internal class MessagesProcessor(
     private val database: CachingDatabase,
-    private val feedApi: FeedApi,
-    private val usersApi: UsersApi,
     private val messageCipher: MessageCipher,
     private val mediaCacher: MediaCacher? = null,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) {
 
     suspend fun processMessageEventsAndSave(
@@ -83,23 +82,17 @@ internal class MessagesProcessor(
         val localNotes = database.posts().findPosts(referencedEventIds.toList())
         val missingEventIds = referencedEventIds - localNotes.map { it.postId }.toSet()
         val remoteNotes = if (missingEventIds.isNotEmpty()) {
-            try {
-                val response = feedApi.getNotes(noteIds = missingEventIds)
-                mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-                response.persistToDatabaseAsTransaction(
-                    userId = userId,
-                    database = database,
-                )
-                val referencedPosts = response.referencedEvents.mapNotNullAsPostDataPO()
-                response.notes.mapAsPostDataPO(
-                    referencedPosts = referencedPosts,
+            val events: List<NostrEvent> = relayEventQuerier?.let { querier ->
+                runCatching {
+                    querier.query(RelayFilter(ids = missingEventIds.toList(), limit = missingEventIds.size))
+                }.getOrDefault(emptyList())
+            }.orEmpty()
+            events.filter { it.kind == NostrEventKind.ShortTextNote.value }
+                .mapAsPostDataPO(
+                    referencedPosts = emptyList(),
                     referencedArticles = emptyList(),
                     referencedHighlights = emptyList(),
                 )
-            } catch (error: NetworkException) {
-                Napier.w(error) { "Failed to get notes for DMs." }
-                emptyList()
-            }
         } else {
             emptyList()
         }
@@ -113,27 +106,28 @@ internal class MessagesProcessor(
         val localProfiles = database.profiles().findProfileData(allProfileIds.toList())
         val missingProfileIds = allProfileIds - localProfiles.map { it.ownerId }.toSet()
         val remoteProfiles = if (missingProfileIds.isNotEmpty()) {
-            try {
-                val response = usersApi.getUserProfilesMetadata(userIds = missingProfileIds)
-                mediaCacher?.cacheAvatarUrls(metadata = response.metadataEvents, cdnResources = response.cdnResources)
-                val primalUserNames = response.primalUserNames.parseAndMapPrimalUserNames()
-                val primalPremiumInfo = response.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-                val primalLegendProfiles = response.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
-                val cdnResources = response.cdnResources.flatMapNotNullAsCdnResource()
-                val blossomServers = response.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
-                val profiles = response.metadataEvents.mapAsProfileDataPO(
-                    cdnResources = cdnResources,
-                    primalUserNames = primalUserNames,
-                    primalPremiumInfo = primalPremiumInfo,
-                    primalLegendProfiles = primalLegendProfiles,
-                    blossomServers = blossomServers,
+            val metadataEvents: List<NostrEvent> = relayEventQuerier?.let { querier ->
+                runCatching {
+                    querier.query(
+                        RelayFilter(
+                            kinds = listOf(NostrEventKind.Metadata.value),
+                            authors = missingProfileIds.toList(),
+                            limit = missingProfileIds.size,
+                        ),
+                    )
+                }.getOrDefault(emptyList())
+            }.orEmpty()
+            val profiles = metadataEvents
+                .latestMetadataByPubkey()
+                .mapAsProfileDataPO(
+                    cdnResources = emptyList(),
+                    primalUserNames = emptyMap(),
+                    primalPremiumInfo = emptyMap(),
+                    primalLegendProfiles = emptyMap(),
+                    blossomServers = emptyMap(),
                 )
-                database.profiles().insertOrUpdateAll(data = profiles)
-                profiles
-            } catch (error: NetworkException) {
-                Napier.w(error) { "Failed to get user profiles for DM messages." }
-                emptyList()
-            }
+            database.profiles().insertOrUpdateAll(data = profiles)
+            profiles
         } else {
             emptyList()
         }

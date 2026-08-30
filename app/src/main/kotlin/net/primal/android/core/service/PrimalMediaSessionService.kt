@@ -51,7 +51,7 @@ class PrimalMediaSessionService : MediaSessionService() {
                             val uri = if (noteId != null) {
                                 "https://nostrich.org/e/$noteId"
                             } else {
-                                "primal://live/${mediaItem.mediaId}"
+                                "https://nostrich.org/live/${mediaItem.mediaId}"
                             }
                             mediaSession.setSessionActivity(
                                 deepLinkPendingIntent(this@PrimalMediaSessionService, uri),

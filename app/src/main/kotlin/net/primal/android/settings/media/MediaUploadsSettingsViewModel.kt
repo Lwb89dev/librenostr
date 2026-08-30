@@ -16,8 +16,6 @@ import net.primal.android.settings.media.MediaUploadsSettingsContract.UiEvent
 import net.primal.android.settings.media.MediaUploadsSettingsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.BlossomRepository
-import net.primal.core.utils.onSuccess
-import net.primal.domain.account.blossom.BlossomRepository as AccountBlossomRepository
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.cryptography.SignatureException
 
@@ -25,7 +23,6 @@ import net.primal.domain.nostr.cryptography.SignatureException
 class MediaUploadsSettingsViewModel @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val blossomRepository: BlossomRepository,
-    private val accountBlossomRepository: AccountBlossomRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -193,13 +190,17 @@ class MediaUploadsSettingsViewModel @Inject constructor(
 
     private fun fetchSuggestedBlossomServers() =
         viewModelScope.launch {
-            accountBlossomRepository.fetchRecommendedBlossomServers()
-                .onSuccess { suggestedBlossoms ->
-                    setState { copy(suggestedBlossomServers = suggestedBlossoms) }
-                }
+            // Suggestions are deliberately local. Fetching a recommended-server list
+            // from the Primal cache would reintroduce a centralized dependency into
+            // the media path. Users can still add any Blossom endpoint manually.
+            setState { copy(suggestedBlossomServers = DEFAULT_BLOSSOM_SERVERS) }
         }
 
     companion object {
         private const val DEFAULT_BLOSSOM_URL = "https://blossom.band"
+        private val DEFAULT_BLOSSOM_SERVERS = listOf(
+            DEFAULT_BLOSSOM_URL,
+            "https://cdn.satellite.earth",
+        )
     }
 }

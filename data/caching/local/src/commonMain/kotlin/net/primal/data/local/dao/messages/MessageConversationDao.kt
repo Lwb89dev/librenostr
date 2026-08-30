@@ -21,12 +21,15 @@ interface MessageConversationDao {
     @Query(
         """
            SELECT * FROM MessageConversationData
-           WHERE relation = :relation AND ownerId = :ownerId ORDER BY lastMessageAt DESC
+           WHERE ownerId = :ownerId
+             AND (:includeAll OR relation = :relation)
+           ORDER BY lastMessageAt DESC
        """,
     )
     fun newestConversationsPagedByOwnerId(
         relation: ConversationRelation,
         ownerId: String,
+        includeAll: Boolean,
     ): PagingSource<Int, MessageConversation>
 
     @Query(

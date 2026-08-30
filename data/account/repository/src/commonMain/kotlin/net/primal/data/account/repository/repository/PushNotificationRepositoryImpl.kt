@@ -1,36 +1,21 @@
 package net.primal.data.account.repository.repository
 
-import kotlinx.coroutines.withContext
-import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.data.account.remote.pushnotifications.PushNotificationApi
-import net.primal.data.account.remote.pushnotifications.model.NotificationScope
 import net.primal.domain.account.pushnotifications.PushNotificationRepository
 import net.primal.domain.nostr.NostrEvent
 
-class PushNotificationRepositoryImpl(
-    private val dispatchers: DispatcherProvider,
-    private val pushNotificationApi: PushNotificationApi,
-) : PushNotificationRepository {
+/**
+ * Push registration intentionally has no remote implementation in LibreNostr.
+ *
+ * FCM/Primal registration would disclose account identifiers, signed events and
+ * device tokens to a centralized service. Notifications are therefore sourced
+ * from relays only; keeping this no-op implementation preserves the domain API
+ * for callers while guaranteeing that no network request is made.
+ */
+class PushNotificationRepositoryImpl : PushNotificationRepository {
 
-    override suspend fun updateNotificationsToken(authorizationEvents: List<NostrEvent>, token: String) {
-        withContext(dispatchers.io()) {
-            pushNotificationApi.updateNotificationsToken(authorizationEvents, token)
-        }
-    }
+    override suspend fun updateNotificationsToken(authorizationEvents: List<NostrEvent>, token: String) = Unit
 
-    override suspend fun updateNotificationTokenForNip46(authorizationEvent: NostrEvent, token: String) {
-        withContext(dispatchers.io()) {
-            pushNotificationApi.updateNotificationTokenForRemoteSigners(listOf(authorizationEvent), token)
-        }
-    }
+    override suspend fun updateNotificationTokenForNip46(authorizationEvent: NostrEvent, token: String) = Unit
 
-    override suspend fun updateNotificationTokenForNip47(authorizationEvents: List<NostrEvent>, token: String) {
-        withContext(dispatchers.io()) {
-            pushNotificationApi.updateNotificationTokenForRemoteSigners(
-                authorizationEvents = authorizationEvents,
-                token = token,
-                scope = NotificationScope.Nip47,
-            )
-        }
-    }
+    override suspend fun updateNotificationTokenForNip47(authorizationEvents: List<NostrEvent>, token: String) = Unit
 }

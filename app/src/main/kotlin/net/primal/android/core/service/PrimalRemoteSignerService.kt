@@ -331,7 +331,7 @@ class PrimalRemoteSignerService : Service(), DefaultLifecycleObserver {
     }
 
     private fun deepLinkPendingIntent(clientPubKey: String): PendingIntent {
-        val uri = "primal://signer/$clientPubKey".toUri()
+        val uri = "nostrconnect://signer/$clientPubKey".toUri()
         val intent = Intent(Intent.ACTION_VIEW, uri, this, MainActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or

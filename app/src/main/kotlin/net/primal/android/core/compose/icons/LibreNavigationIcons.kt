@@ -103,6 +103,23 @@ object LibreNavigationIcons {
         }
     }
 
+    val Menu: ImageVector by lazy {
+        icon("LibreMenu") {
+            path(
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+            ) {
+                moveTo(4f, 6.5f)
+                horizontalLineTo(20f)
+                moveTo(4f, 12f)
+                horizontalLineTo(20f)
+                moveTo(4f, 17.5f)
+                horizontalLineTo(20f)
+            }
+        }
+    }
+
     val Algorithm: ImageVector by lazy {
         icon("LibreAlgorithm") {
             path(

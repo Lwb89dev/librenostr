@@ -1,15 +1,9 @@
 package net.primal.wallet.data.repository
 
-import kotlinx.coroutines.withContext
-import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.billing.BillingRepository
 import net.primal.domain.billing.InAppPurchaseSatsQuote
-import net.primal.wallet.data.remote.api.PrimalWalletApi
 
-internal class BillingRepositoryImpl(
-    private val dispatcherProvider: DispatcherProvider,
-    private val primalWalletApi: PrimalWalletApi,
-) : BillingRepository {
+internal object BillingRepositoryImpl : BillingRepository {
 
     override suspend fun getInAppPurchaseMinSatsQuote(
         userId: String,
@@ -17,18 +11,7 @@ internal class BillingRepositoryImpl(
         productId: String,
         previousQuoteId: String?,
     ): InAppPurchaseSatsQuote {
-        return withContext(dispatcherProvider.io()) {
-            val response = primalWalletApi.getInAppPurchaseQuote(
-                userId = userId,
-                productId = productId,
-                region = region,
-                previousQuoteId = previousQuoteId,
-            )
-            InAppPurchaseSatsQuote(
-                quoteId = response.quoteId,
-                amountBtc = response.amountBtc,
-            )
-        }
+        error("Centralized in-app purchases are disabled; use NWC or an external wallet.")
     }
 
     override suspend fun confirmInAppPurchase(
@@ -36,12 +19,6 @@ internal class BillingRepositoryImpl(
         quoteId: String,
         purchaseToken: String,
     ) {
-        return withContext(dispatcherProvider.io()) {
-            primalWalletApi.confirmInAppPurchase(
-                userId = userId,
-                quoteId = quoteId,
-                purchaseToken = purchaseToken,
-            )
-        }
+        error("Centralized in-app purchases are disabled; use NWC or an external wallet.")
     }
 }

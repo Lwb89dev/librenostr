@@ -16,7 +16,6 @@ import kotlinx.coroutines.test.runTest
 import net.primal.android.migration.AppMigrationRunner
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
-import net.primal.core.config.AppConfigHandler
 import net.primal.core.testing.CoroutinesTestRule
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.feeds.FeedsRepository
@@ -41,7 +40,6 @@ class SplashViewModelTest {
     ): SplashViewModel {
         return SplashViewModel(
             activeAccountStore = activeAccountStore,
-            appConfigHandler = mockk<AppConfigHandler>(relaxed = true),
             appMigrationRunner = appMigrationRunner,
             credentialsStore = credentialsStore,
             feedsRepository = feedsRepository,

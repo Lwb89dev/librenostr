@@ -7,6 +7,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.createAppBuildHelper
+import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.bookmarks.PublicBookmark as PublicBookmarkPO
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.users.UsersApi
@@ -17,6 +18,8 @@ import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.PublicBookmarksNotFoundException
 import net.primal.domain.nostr.asClientTag
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.publisher.PrimalPublisher
 import net.primal.shared.data.local.db.withTransaction
 
@@ -25,11 +28,31 @@ class PublicBookmarksRepositoryImpl(
     private val database: CachingDatabase,
     private val primalPublisher: PrimalPublisher,
     private val usersApi: UsersApi,
+    private val relayEventQuerier: RelayEventQuerier? = null,
 ) : PublicBookmarksRepository {
 
     private val appBuildHelper = createAppBuildHelper()
 
     private suspend fun fetchLatestPublicBookmarks(userId: String): Set<TagBookmark>? {
+        relayEventQuerier?.let { querier ->
+            val relayResult = runCatching {
+                querier.query(
+                    RelayFilter(
+                        kinds = listOf(NostrEventKind.BookmarksList.value),
+                        authors = listOf(userId),
+                        limit = BOOKMARK_EVENT_LIMIT,
+                    ),
+                ).maxByOrNull { it.createdAt }
+            }
+
+            // An empty relay result is authoritative: the user has no public
+            // bookmarks yet. Only a relay query failure should use the legacy
+            // API fallback.
+            if (relayResult.isSuccess) {
+                return relayResult.getOrNull()?.tags?.parseAsPublicBookmarks() ?: emptySet()
+            }
+        }
+
         val bookmarksResponse = withContext(dispatcherProvider.io()) {
             usersApi.getUserBookmarksList(userId = userId)
         }
@@ -185,5 +208,9 @@ class PublicBookmarksRepositoryImpl(
                 null
             }
         }.toSet()
+    }
+
+    private companion object {
+        const val BOOKMARK_EVENT_LIMIT = 5
     }
 }

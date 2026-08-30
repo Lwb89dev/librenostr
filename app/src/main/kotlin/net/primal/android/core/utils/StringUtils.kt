@@ -10,7 +10,7 @@ fun String.ellipsizeMiddle(size: Int): String {
     }
 }
 
-fun String?.isPrimalIdentifier() = this?.contains("primal.net") == true
+fun String?.isPrimalIdentifier() = this?.contains("nostrich.org") == true
 
 fun String.formatNip05Identifier(): String {
     return if (startsWith("_@")) {

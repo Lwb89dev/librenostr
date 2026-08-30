@@ -21,8 +21,10 @@ import net.primal.core.utils.Result
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.map
 import net.primal.core.utils.onSuccess
+import net.primal.core.utils.toLong
 import net.primal.domain.events.EventRepository
 import net.primal.domain.profile.ProfileRepository
+import net.primal.domain.nostr.utils.LnInvoiceUtils
 import net.primal.domain.transactions.Transaction
 import net.primal.domain.wallet.LightningPaymentResult
 import net.primal.domain.wallet.LnInvoiceCreateRequest
@@ -40,6 +42,7 @@ import net.primal.domain.wallet.WalletRepository
 import net.primal.domain.wallet.WalletType
 import net.primal.domain.wallet.capabilities
 import net.primal.domain.wallet.exception.WalletException
+import net.primal.domain.wallet.exception.WalletPaymentException
 import net.primal.domain.wallet.model.WalletBalanceResult
 import net.primal.shared.data.local.db.withTransaction
 import net.primal.shared.data.local.encryption.asEncryptable
@@ -53,7 +56,6 @@ import net.primal.wallet.data.local.dao.WalletInfo
 import net.primal.wallet.data.local.dao.WalletSettings
 import net.primal.wallet.data.local.dao.WalletTransactionData
 import net.primal.wallet.data.local.db.WalletDatabase
-import net.primal.wallet.data.remote.api.PrimalWalletApi
 import net.primal.wallet.data.repository.mappers.local.asDO
 import net.primal.wallet.data.repository.mappers.local.asPO
 import net.primal.wallet.data.repository.mappers.local.toDomain
@@ -65,7 +67,6 @@ import net.primal.wallet.data.service.factory.WalletServiceFactory
 internal class WalletRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val walletServiceFactory: WalletServiceFactory,
-    private val primalWalletApi: PrimalWalletApi,
     private val walletDatabase: WalletDatabase,
     private val profileRepository: ProfileRepository,
     private val lightningPayHelper: LightningPayHelper,
@@ -452,28 +453,29 @@ internal class WalletRepositoryImpl(
 
     override suspend fun parseLnUrl(userId: String, lnurl: String): LnUrlParseResult {
         return withContext(dispatcherProvider.io()) {
-            val response = primalWalletApi.parseLnUrl(userId = userId, lnurl = lnurl)
+            // LNURL-pay is an external protocol: resolve its metadata directly
+            // from the provider, never through a centralized wallet API.
+            val response = lightningPayHelper.fetchPayRequest(lnUrl = lnurl)
             LnUrlParseResult(
-                minSendable = response.minSendable,
-                maxSendable = response.maxSendable,
-                description = response.description,
-                targetPubkey = response.targetPubkey,
-                targetLud16 = response.targetLud16,
+                minSendable = response.minSendable.toString(),
+                maxSendable = response.maxSendable.toString(),
+                description = response.metadata,
+                targetPubkey = response.nostrPubkey,
+                targetLud16 = null,
             )
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     override suspend fun parseLnInvoice(userId: String, lnbc: String): LnInvoiceParseResult {
         return withContext(dispatcherProvider.io()) {
-            val response = primalWalletApi.parseLnInvoice(userId = userId, lnbc = lnbc)
+            val normalizedInvoice = lnbc.removePrefix("lightning:").trim()
+            val amountMilliSats = LnInvoiceUtils.getAmountInSatsOrNull(normalizedInvoice)
+                ?.let { it.multiply(com.ionspin.kotlin.bignum.decimal.BigDecimal.fromInt(1_000)).toLong() }
+                ?: throw WalletPaymentException.InvalidPaymentRequest("Invalid Lightning invoice")
             LnInvoiceParseResult(
-                userId = response.userId,
-                comment = response.comment,
-                amountMilliSats = response.lnInvoiceData.amountMilliSats,
-                description = response.lnInvoiceData.description,
-                date = response.lnInvoiceData.date,
-                expiry = response.lnInvoiceData.expiry,
-                paymentHash = response.lnInvoiceData.paymentHash,
+                amountMilliSats = amountMilliSats.toInt(),
+                description = LnInvoiceUtils.getDescription(normalizedInvoice),
             )
         }
     }

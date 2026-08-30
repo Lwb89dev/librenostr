@@ -70,6 +70,9 @@ interface NotificationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(data: List<NotificationData>)
 
+    @Query("SELECT * FROM NotificationData WHERE ownerId = :ownerId AND notificationId IN (:notificationIds)")
+    suspend fun findByIds(ownerId: String, notificationIds: List<String>): List<NotificationData>
+
     @Query("DELETE FROM NotificationData WHERE ownerId = :ownerId")
     suspend fun deleteAllByOwnerId(ownerId: String)
 }

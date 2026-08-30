@@ -107,6 +107,15 @@ android {
 
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
+    }
+
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
@@ -405,9 +414,6 @@ dependencies {
 
     "googleImplementation"(libs.play.billing)
     "googleImplementation"(libs.play.billing.ktx)
-    "googleImplementation"(platform(libs.firebase.bom))
-    "googleImplementation"(libs.firebase.messaging)
-    "googleImplementation"(libs.kotlinx.coroutines.play.services)
     "googleImplementation"(libs.mlkit.barcode.scanning)
 
     implementation(libs.qrcode.generator)

@@ -4,12 +4,12 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import net.primal.android.core.push.FcmPushNotificationsTokenUpdater
+import net.primal.android.core.push.RelayOnlyPushNotificationsTokenUpdater
 import net.primal.android.core.push.PushNotificationsTokenUpdater
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class PushNotificationsModule {
     @Binds
-    abstract fun provideTokenUpdater(updater: FcmPushNotificationsTokenUpdater): PushNotificationsTokenUpdater
+    abstract fun provideTokenUpdater(updater: RelayOnlyPushNotificationsTokenUpdater): PushNotificationsTokenUpdater
 }

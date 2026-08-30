@@ -30,7 +30,6 @@ class BlossomRepository @Inject constructor(
         val existingList = userAccount?.blossomServers.orEmpty()
             .map { it.trim() }
             .filter { it.isNotBlank() }
-            .filterNot { it.contains("blossom.primal.net", ignoreCase = true) }
             .map { it.ensureHttpOrHttps().trimEnd('/') }
             .distinct()
         // Keep user-published servers first, but always retain public fallbacks. A stale

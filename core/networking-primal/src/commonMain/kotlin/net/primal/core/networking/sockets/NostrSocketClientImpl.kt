@@ -11,11 +11,11 @@ import io.ktor.websocket.readReason
 import io.ktor.websocket.readText
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.uuid.Uuid
 import kotlin.time.ComparableTimeMark
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -111,14 +111,11 @@ internal class NostrSocketClientImpl(
                 lastReceivedMark = null
                 launchWebSocketReceiver()
                 onSocketConnectionOpened?.invoke(url)
-                if (incomingCompressionEnabled) {
-                    val id = Uuid.random().toPrimalSubscriptionId()
-                    sendMessage(
-                        text = """["REQ","$id",{"cache":["set_primal_protocol",{"compression":"zlib"}]}]""",
-                        ensureSessionBeforeSend = false,
-                    )
-                }
             }
+        } catch (error: CancellationException) {
+            // Cancellation is control flow, not a transport failure. Preserve it so callers
+            // can stop relay work promptly instead of receiving a misleading NetworkException.
+            throw error
         } catch (error: Exception) {
             Napier.w("NostrSocketClient::acquireWebSocketSession($socketUrl) failed.", error)
             close()
@@ -217,6 +214,9 @@ internal class NostrSocketClientImpl(
     }
 
     private suspend fun sendMessage(text: String, ensureSessionBeforeSend: Boolean = true) {
+        require(text.length <= MAX_SOCKET_MESSAGE_CHARS) {
+            "Outgoing WebSocket frame exceeds the 1 MiB safety limit."
+        }
         if (ensureSessionBeforeSend) {
             ensureSocketConnectionOrThrow()
         }

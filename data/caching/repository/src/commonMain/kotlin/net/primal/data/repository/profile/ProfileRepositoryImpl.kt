@@ -3,28 +3,15 @@ package net.primal.data.repository.profile
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.Result
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.local.db.CachingDatabase
-import net.primal.data.remote.api.explore.model.UsersResponse
-import net.primal.data.remote.api.users.UserWellKnownApi
-import net.primal.data.remote.api.users.UsersApi
-import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
-import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
 import net.primal.data.repository.mappers.local.asProfileDataDO
 import net.primal.data.repository.mappers.local.asProfileStatsDO
-import net.primal.data.repository.mappers.remote.asProfileDataPO
 import net.primal.data.repository.mappers.remote.asProfileDataPOFromRelay
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
-import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
-import net.primal.data.repository.mappers.remote.parseAndMapPrimalLegendProfiles
-import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
-import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
-import net.primal.data.repository.mappers.remote.takeContentAsPrimalUserFollowersCountsOrNull
-import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.UserProfileSearchItem
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -40,25 +27,47 @@ import net.primal.domain.profile.ProfileData
 import net.primal.domain.profile.ProfileRepository
 import net.primal.domain.profile.ProfileStats
 import net.primal.domain.publisher.PrimalPublisher
+import net.primal.domain.nostr.utils.isValidHex
+import kotlinx.serialization.json.jsonPrimitive
 
 class ProfileRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
-    private val usersApi: UsersApi,
-    private val wellKnownApi: UserWellKnownApi,
     private val primalPublisher: PrimalPublisher,
-    private val mediaCacher: MediaCacher? = null,
     private val nip05VerificationService: Nip05VerificationService? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
 ) : ProfileRepository {
 
     companion object {
         private const val METADATA_AUTHOR_CHUNK = 50
+        private const val FOLLOW_LIST_QUERY_LIMIT = 20
+        private const val FOLLOWERS_QUERY_LIMIT = 200
+        private const val PROFILE_NAME_QUERY_LIMIT = 500
     }
 
     override suspend fun fetchProfileId(primalName: String): String? =
         withContext(dispatcherProvider.io()) {
-            wellKnownApi.fetchProfileId(primalName = primalName).names[primalName]
+            val normalizedName = primalName.removePrefix("@").substringBefore("@").trim()
+            if (normalizedName.isBlank()) return@withContext null
+
+            val querier = relayEventQuerier ?: return@withContext null
+            runCatching {
+                querier.query(
+                    RelayFilter(
+                        kinds = listOf(NostrEventKind.Metadata.value),
+                        limit = PROFILE_NAME_QUERY_LIMIT,
+                    ),
+                )
+                    .latestMetadataByPubkey()
+                    .map { it.asProfileDataPOFromRelay() }
+                    .firstOrNull { profile ->
+                        profile.handle.equals(normalizedName, ignoreCase = true) ||
+                            profile.internetIdentifier
+                                ?.substringBefore("@")
+                                ?.equals(normalizedName, ignoreCase = true) == true
+                    }
+                    ?.ownerId
+            }.getOrNull()
         }
 
     override suspend fun findProfileDataOrNull(profileId: String) =
@@ -118,22 +127,9 @@ class ProfileRepositoryImpl(
         limit: Int,
     ): List<ProfileData> =
         withContext(dispatcherProvider.io()) {
-            val users = usersApi.getUserProfileFollowedBy(profileId, userId, limit)
-            mediaCacher?.cacheAvatarUrls(metadata = users.metadataEvents, cdnResources = users.cdnResources)
-            val primalUserNames = users.primalUserNames.parseAndMapPrimalUserNames()
-            val primalPremiumInfo = users.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-            val primalLegendProfiles = users.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
-            val cdnResources = users.cdnResources.flatMapNotNullAsCdnResource()
-            val blossomServers = users.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
-            val profiles = users.metadataEvents.mapAsProfileDataPO(
-                cdnResources = cdnResources,
-                primalUserNames = primalUserNames,
-                primalPremiumInfo = primalPremiumInfo,
-                primalLegendProfiles = primalLegendProfiles,
-                blossomServers = blossomServers,
-            )
-            database.profiles().insertOrUpdateAll(data = profiles)
-            profiles.map { it.asProfileDataDO() }
+            val profileFollowing = latestFollowList(profileId)?.followingPubkeys().orEmpty()
+            val userFollowing = latestFollowList(userId)?.followingPubkeys().orEmpty()
+            fetchProfiles((profileFollowing intersect userFollowing).take(limit).toList())
         }
 
     override suspend fun fetchProfile(profileId: String) =
@@ -190,40 +186,34 @@ class ProfileRepositoryImpl(
         )
     }
 
-    private suspend fun queryRemoteUsers(apiBlock: suspend () -> UsersResponse): List<UserProfileSearchItem> =
+    override suspend fun fetchFollowers(profileId: String): List<UserProfileSearchItem> =
         withContext(dispatcherProvider.io()) {
-            val response = apiBlock()
-            mediaCacher?.cacheAvatarUrls(metadata = response.contactsMetadata, cdnResources = response.cdnResources)
-            val primalUserNames = response.primalUserNames.parseAndMapPrimalUserNames()
-            val primalPremiumInfo = response.primalPremiumInfo.parseAndMapPrimalPremiumInfo()
-            val primalLegendProfiles = response.primalLegendProfiles.parseAndMapPrimalLegendProfiles()
-            val cdnResources = response.cdnResources.flatMapNotNullAsCdnResource()
-            val blossomServers = response.blossomServers.mapAsMapPubkeyToListOfBlossomServers()
-            val profiles = response.contactsMetadata.mapAsProfileDataPO(
-                cdnResources = cdnResources,
-                primalUserNames = primalUserNames,
-                primalPremiumInfo = primalPremiumInfo,
-                primalLegendProfiles = primalLegendProfiles,
-                blossomServers = blossomServers,
-            )
-            val followersCountsMap = response.followerCounts?.takeContentAsPrimalUserFollowersCountsOrNull()
+            val querier = relayEventQuerier ?: return@withContext emptyList()
+            val followerIds = runCatching {
+                querier.query(
+                    RelayFilter(
+                        kinds = listOf(NostrEventKind.FollowList.value),
+                        pubkeyTags = listOf(profileId),
+                        limit = FOLLOWERS_QUERY_LIMIT,
+                    ),
+                )
+            }.getOrDefault(emptyList())
+                .asSequence()
+                .map { it.pubKey }
+                .filter { it.isValidHex() && it != profileId }
+                .distinct()
+                .toList()
 
-            database.profiles().insertOrUpdateAll(data = profiles)
-
-            profiles.map {
-                val score = followersCountsMap?.get(it.ownerId)
-                UserProfileSearchItem(metadata = it.asProfileDataDO(), followersCount = score)
-            }.sortedByDescending { it.followersCount }
+            fetchProfiles(followerIds).map { UserProfileSearchItem(metadata = it) }
         }
 
-    override suspend fun fetchFollowers(profileId: String) =
-        queryRemoteUsers {
-            usersApi.getUserFollowers(userId = profileId)
-        }
-
-    override suspend fun fetchFollowing(profileId: String) =
-        queryRemoteUsers {
-            usersApi.getUserFollowing(userId = profileId)
+    override suspend fun fetchFollowing(profileId: String): List<UserProfileSearchItem> =
+        withContext(dispatcherProvider.io()) {
+            latestFollowList(profileId)
+                ?.followingPubkeys()
+                ?.let { fetchProfiles(it.toList()) }
+                .orEmpty()
+                .map { UserProfileSearchItem(metadata = it) }
         }
 
     override suspend fun reportAbuse(
@@ -252,7 +242,24 @@ class ProfileRepositoryImpl(
     }
 
     override suspend fun isUserFollowing(userId: String, targetUserId: String) =
-        withContext(dispatcherProvider.io()) {
-            usersApi.isUserFollowing(userId, targetUserId)
-        }
+        latestFollowList(userId)?.followingPubkeys()?.contains(targetUserId) == true
+
+    private suspend fun latestFollowList(profileId: String): NostrEvent? {
+        val querier = relayEventQuerier ?: return null
+        return runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.FollowList.value),
+                    authors = listOf(profileId),
+                    limit = FOLLOW_LIST_QUERY_LIMIT,
+                ),
+            )
+        }.getOrDefault(emptyList()).maxByOrNull { it.createdAt }
+    }
+
+    private fun NostrEvent.followingPubkeys(): Set<String> = tags.mapNotNull { tag ->
+        if (tag.getOrNull(0)?.jsonPrimitive?.content != "p") return@mapNotNull null
+        tag.getOrNull(1)?.jsonPrimitive?.content?.takeIf { it.isValidHex() }
+    }.toSet()
+
 }

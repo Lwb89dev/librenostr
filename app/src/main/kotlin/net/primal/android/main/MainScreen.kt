@@ -4,18 +4,27 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,9 +49,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -65,6 +77,7 @@ import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.bubble.AnchoredBubble
 import net.primal.android.core.compose.bubble.BubblePlacement
 import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.icons.primaliconpack.Close
 import net.primal.android.core.compose.fab.NewPostFloatingActionButton
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
@@ -101,11 +114,13 @@ import net.primal.android.navigation.navigateToExploreFeed
 import net.primal.android.navigation.navigateToFollowPack
 import net.primal.android.navigation.navigateToHome
 import net.primal.android.navigation.navigateToNoteEditor
+import net.primal.android.navigation.navigateToMessages
 import net.primal.android.navigation.navigateToProfile
 import net.primal.android.navigation.navigateToProfileQrCodeViewer
 import net.primal.android.navigation.navigateToSearch
 import net.primal.android.navigation.navigateToSettings
 import net.primal.android.navigation.noteCallbacksHandler
+import net.primal.android.wallet.zaps.AndroidLightningWallet
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.notifications.list.ui.NotificationUi
 import net.primal.android.premium.legend.domain.LegendaryCustomization
@@ -113,6 +128,8 @@ import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.wallet.picker.WalletPickerOverlayContent
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.buildAdvancedSearchNotesFeedSpec
+import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
+import net.primal.android.feeds.list.ui.model.asFeedUi
 import net.primal.domain.links.CdnImage
 import net.primal.domain.notifications.NotificationGroup
 
@@ -145,7 +162,11 @@ fun MainScreen(
     }
 
     // Shared callbacks
-    val noteCallbacks = noteCallbacksHandler(navController)
+    val externalWallet = AndroidLightningWallet(LocalContext.current)
+    val noteCallbacks = noteCallbacksHandler(
+        navController = navController,
+        onPayInvoice = { invoice -> externalWallet.payBolt11(invoice) },
+    )
     val accountSwitcherCallbacks = accountSwitcherCallbacksHandler(navController)
 
     val mainViewModel = hiltViewModel<MainViewModel>(navBackStackEntry)
@@ -221,6 +242,7 @@ fun MainScreen(
         focusModeEnabled = focusModeEnabled,
         profileAvatarCdnImage = mainState.activeAccountAvatarCdnImage,
         onActiveDestinationClick = onActiveDestinationClick,
+        onMessagesClick = { navController.navigateToMessages() },
         onTabChanged = onTabChanged,
         onDrawerDestinationClick = onDrawerDestinationClick,
         navController = navController,
@@ -235,6 +257,7 @@ private fun MainScreenTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior?,
     onAvatarClick: () -> Unit,
     onAvatarSwipeDown: (() -> Unit)? = null,
+    onAlgorithmMenuClick: (() -> Unit)? = null,
     onFeedPickerRequest: () -> Unit,
     onReadPickerRequest: () -> Unit,
     onWalletPickerRequest: () -> Unit,
@@ -272,6 +295,7 @@ private fun MainScreenTopAppBar(
                 avatarBlossoms = avatarBlossoms,
                 onAvatarClick = onAvatarClick,
                 onAvatarSwipeDown = onAvatarSwipeDown,
+                onMenuClick = onAlgorithmMenuClick,
                 onSearchClick = onExploreSearchClick,
                 scrollBehavior = scrollBehavior,
                 titleOverride = titleOverride,
@@ -320,6 +344,8 @@ private fun MainScreenTopAppBar(
             )
         }
 
+        PrimalTopLevelDestination.Messages -> Unit
+
         PrimalTopLevelDestination.Alerts -> {
             NotificationsTopAppBar(
                 avatarCdnImage = avatarCdnImage,
@@ -367,6 +393,7 @@ private fun ScaffoldTopAppBar(
     exploreSectionPickerVisible: Boolean,
     sharedState: MainScreenSharedState,
     toggleOverlay: (ActiveOverlay) -> Unit,
+    onAlgorithmMenuClick: () -> Unit,
     onExploreSearchClick: () -> Unit,
     onExploreSearchSubmit: (String) -> Unit,
     onExploreSearchProfileClick: (String) -> Unit,
@@ -397,6 +424,7 @@ private fun ScaffoldTopAppBar(
         } else {
             null
         },
+        onAlgorithmMenuClick = onAlgorithmMenuClick,
         onFeedPickerRequest = { toggleOverlay(ActiveOverlay.FeedPicker) },
         onReadPickerRequest = { toggleOverlay(ActiveOverlay.ReadPicker) },
         onWalletPickerRequest = { toggleOverlay(ActiveOverlay.WalletPicker) },
@@ -498,6 +526,8 @@ private fun MainScreenContent(
                     }
                 }
 
+                PrimalTopLevelDestination.Messages -> Unit
+
                 PrimalTopLevelDestination.Alerts -> NotificationsContent(
                     pagerState = sharedState.notificationsPagerState,
                     badges = notificationsState.badges,
@@ -548,6 +578,7 @@ private fun MainScreenScaffold(
     focusModeEnabled: Boolean,
     profileAvatarCdnImage: CdnImage?,
     onActiveDestinationClick: () -> Unit,
+    onMessagesClick: () -> Unit,
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
     onDrawerDestinationClick: (DrawerScreenDestination) -> Unit,
     navController: NavController,
@@ -555,6 +586,7 @@ private fun MainScreenScaffold(
     val saveableStateHolder = rememberSaveableStateHolder()
     val exploreAnchor = remember { AnchorHandle() }
     var activeOverlay by rememberSaveable { mutableStateOf<ActiveOverlay?>(null) }
+    var algorithmDrawerVisible by rememberSaveable { mutableStateOf(false) }
     val feedPickerVisible = activeOverlay == ActiveOverlay.FeedPicker
     val readPickerVisible = activeOverlay == ActiveOverlay.ReadPicker
     val walletPickerVisible = activeOverlay == ActiveOverlay.WalletPicker
@@ -562,13 +594,26 @@ private fun MainScreenScaffold(
     val accountDrawerVisible = activeOverlay == ActiveOverlay.AccountDrawer
     val showPullToRefreshHint = mainState.showPullToRefreshHint &&
         activeTab == PrimalTopLevelDestination.Feeds &&
-        activeOverlay == null
+        activeOverlay == null &&
+        !algorithmDrawerVisible
     val exploreActiveSection = ExploreSection.entries
         .getOrElse(sharedState.explorePagerState.currentPage) { ExploreSection.Explore }
 
     val streamState = LocalStreamState.current
-    LaunchedEffect(activeOverlay) {
-        if (activeOverlay != null) streamState.acquireHide() else streamState.releaseHide()
+    // Keep the algorithm drawer available during the short interval in which the
+    // feed pager is still restoring its active item from storage.
+    val drawerActiveFeed = sharedState.homeActiveFeed.value
+        ?: homeState.feeds.firstOrNull()
+        ?: defaultLibreNostrNoteFeeds(mainState.activeAccountId).firstOrNull()?.asFeedUi()
+    val drawerOffset by animateDpAsState(
+        targetValue = if (algorithmDrawerVisible) ALGORITHM_DRAWER_WIDTH else 0.dp,
+        label = "AlgorithmDrawerHomeOffset",
+    )
+    BackHandler(enabled = algorithmDrawerVisible) {
+        algorithmDrawerVisible = false
+    }
+    LaunchedEffect(activeOverlay, algorithmDrawerVisible) {
+        if (activeOverlay != null || algorithmDrawerVisible) streamState.acquireHide() else streamState.releaseHide()
     }
 
     fun toggleOverlay(overlay: ActiveOverlay) {
@@ -583,9 +628,47 @@ private fun MainScreenScaffold(
     }
 
     PrimalMainScaffold(
-        modifier = Modifier.semantics { testTagsAsResourceId = true },
+        modifier = Modifier
+            .offset(x = drawerOffset)
+            .semantics { testTagsAsResourceId = true }
+            .pointerInput(activeTab) {
+                var trackingEdgeSwipe = false
+                var dragDistance = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { start ->
+                        // The drawer is a home affordance. Keep the gesture zone wide
+                        // enough for a real finger (raw px vary with device density),
+                        // while leaving the rest of the timeline available for normal
+                        // horizontal interactions. Android's system-back edge still
+                        // takes precedence when the gesture starts at the very edge.
+                        val centerStart = size.width * 0.25f
+                        val centerEnd = size.width * 0.75f
+                        trackingEdgeSwipe = activeTab == PrimalTopLevelDestination.Feeds &&
+                            (start.x <= 280f || start.x in centerStart..centerEnd)
+                        dragDistance = 0f
+                    },
+                    onHorizontalDrag = { change, amount ->
+                        if (trackingEdgeSwipe && amount > 0f) {
+                            dragDistance += amount
+                            if (dragDistance >= 56f) {
+                                algorithmDrawerVisible = true
+                                trackingEdgeSwipe = false
+                            }
+                        }
+                    },
+                    onDragEnd = {
+                        trackingEdgeSwipe = false
+                        dragDistance = 0f
+                    },
+                    onDragCancel = {
+                        trackingEdgeSwipe = false
+                        dragDistance = 0f
+                    },
+                )
+            },
         activeDestination = activeTab,
         onActiveDestinationClick = onActiveDestinationClick,
+        onMessagesClick = onMessagesClick,
         onPrimaryDestinationChanged = onTabChanged,
         onSettingsClick = { navController.navigateToSettings() },
         onProfileClick = {
@@ -612,6 +695,7 @@ private fun MainScreenScaffold(
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
                 sharedState = sharedState,
                 toggleOverlay = ::toggleOverlay,
+                onAlgorithmMenuClick = { algorithmDrawerVisible = true },
                 onExploreSearchClick = {},
                 onExploreSearchSubmit = { query -> navController.navigateToSearch(searchScope = SearchScope.Notes, initialQuery = query) },
                 onExploreSearchProfileClick = { profileId -> navController.navigateToProfile(profileId = profileId) },
@@ -649,9 +733,13 @@ private fun MainScreenScaffold(
                 readPickerVisible = readPickerVisible,
                 walletPickerVisible = walletPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
+                algorithmDrawerVisible = algorithmDrawerVisible,
                 exploreActiveSection = exploreActiveSection,
                 sharedState = sharedState,
+                homeFeeds = homeState.feeds,
+                drawerActiveFeed = drawerActiveFeed,
                 onDismissOverlay = { activeOverlay = null },
+                onDismissAlgorithmDrawer = { algorithmDrawerVisible = false },
                 onDrawerDestinationClick = onDrawerDestinationClick,
                 accountSwitcherCallbacks = accountSwitcherCallbacks,
                 navController = navController,
@@ -672,6 +760,7 @@ private fun MainScreenScaffold(
                 placement = BubblePlacement.Above,
             )
         },
+        overlayCoversTopBar = algorithmDrawerVisible,
         floatingActionButton = { MainScreenFab(activeTab = activeTab, navController = navController) },
         snackbarHost = {
             SnackbarHost(hostState = sharedState.snackbarHostState)
@@ -680,6 +769,7 @@ private fun MainScreenScaffold(
 }
 
 private const val PULL_TO_REFRESH_HINT_DURATION_MS = 6_000L
+private val ALGORITHM_DRAWER_WIDTH = 320.dp
 
 @Composable
 private fun PullToRefreshHint(
@@ -763,9 +853,13 @@ private fun MainScreenOverlays(
     readPickerVisible: Boolean,
     walletPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
+    algorithmDrawerVisible: Boolean,
     exploreActiveSection: ExploreSection,
     sharedState: MainScreenSharedState,
+    homeFeeds: List<FeedUi>,
+    drawerActiveFeed: FeedUi?,
     onDismissOverlay: () -> Unit,
+    onDismissAlgorithmDrawer: () -> Unit,
     onDrawerDestinationClick: (DrawerScreenDestination) -> Unit,
     accountSwitcherCallbacks: AccountSwitcherCallbacks,
     navController: NavController,
@@ -845,6 +939,90 @@ private fun MainScreenOverlays(
         explorePagerState = sharedState.explorePagerState,
         onDismissOverlay = onDismissOverlay,
     )
+
+    AlgorithmPickerDrawer(
+        visible = algorithmDrawerVisible,
+        activeFeed = drawerActiveFeed ?: homeFeeds.firstOrNull(),
+        onDismiss = onDismissAlgorithmDrawer,
+        onFeedSelected = { feed ->
+            // Update the shared selection immediately so the active feed, title and
+            // pager cannot fall back to the first (Latest) feed while the drawer closes.
+            sharedState.homeActiveFeed.value = feed
+            sharedState.homeScrollToFeed.value = feed
+            onDismissAlgorithmDrawer()
+        },
+        onEditAdvancedSearch = { feedSpec ->
+            onDismissAlgorithmDrawer()
+            navController.navigateToAdvancedSearch(editingFeedSpec = feedSpec)
+        },
+    )
+}
+
+@Composable
+private fun AlgorithmPickerDrawer(
+    visible: Boolean,
+    activeFeed: FeedUi?,
+    onDismiss: () -> Unit,
+    onFeedSelected: (FeedUi) -> Unit,
+    onEditAdvancedSearch: (String) -> Unit,
+) {
+    if (activeFeed == null) return
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier.fillMaxSize(),
+        enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
+        exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(),
+    ) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .width(ALGORITHM_DRAWER_WIDTH)
+                    .fillMaxHeight()
+                    .background(AppTheme.extraColorScheme.surfaceVariantAlt2),
+            ) {
+                androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(24.dp),
+                            imageVector = LibreNavigationIcons.Algorithm,
+                            contentDescription = null,
+                            tint = AppTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Algorithms",
+                            style = AppTheme.typography.titleLarge,
+                            color = AppTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        FeedListOverlayContent(
+                            activeFeed = activeFeed,
+                            feedSpecKind = FeedSpecKind.Notes,
+                            onFeedClick = onFeedSelected,
+                            onDismiss = onDismiss,
+                            onGoToWallet = {},
+                            onEditAdvancedSearchFeedClick = onEditAdvancedSearch,
+                        )
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable(onClick = onDismiss),
+            )
+        }
+    }
 }
 
 @Composable
@@ -927,6 +1105,7 @@ private fun rememberPerTabTopAppBarState(
         PrimalTopLevelDestination.Feeds -> homeTopAppBarState
         PrimalTopLevelDestination.Reads -> readsTopAppBarState
         PrimalTopLevelDestination.Explore -> exploreTopAppBarState
+        PrimalTopLevelDestination.Messages -> homeTopAppBarState
         PrimalTopLevelDestination.Alerts -> notificationsTopAppBarState
         PrimalTopLevelDestination.Wallet -> walletTopAppBarState
         PrimalTopLevelDestination.Settings -> homeTopAppBarState
@@ -943,6 +1122,7 @@ private fun handleActiveDestinationClick(
         PrimalTopLevelDestination.Reads -> sharedState.readsShouldAnimateScrollToTop
         PrimalTopLevelDestination.Wallet -> sharedState.walletShouldAnimateScrollToTop
         PrimalTopLevelDestination.Alerts -> sharedState.notificationsShouldAnimateScrollToTop
+        PrimalTopLevelDestination.Messages -> null
         else -> null
     }
     target?.let {

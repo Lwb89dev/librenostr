@@ -23,6 +23,7 @@ import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
 import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
@@ -44,12 +45,12 @@ object CachingRepositoriesModule {
 
     @Provides
     fun providesArticleRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): ArticleRepository {
         return PrimalRepositoryFactory.createArticleRepository(
-            cachingPrimalApiClient = primalApiClient,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
     }
 
@@ -65,35 +66,27 @@ object CachingRepositoriesModule {
     }
 
     @Provides
-    fun providesCachingImporterRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
-    ): CachingImportRepository {
-        return PrimalRepositoryFactory.createCachingImportRepository(
-            cachingPrimalApiClient = primalApiClient,
-        )
+    fun providesCachingImporterRepository(): CachingImportRepository {
+        return PrimalRepositoryFactory.createCachingImportRepository()
     }
 
     @Provides
-    fun providePremiumBroadcastRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
-        nostrEventSignatureHandler: NostrEventSignatureHandler,
-    ): PremiumBroadcastRepository =
-        PrimalRepositoryFactory.createPremiumBroadcastRepository(
-            cachingPrimalApiClient = primalApiClient,
-            nostrEventSignatureHandler = nostrEventSignatureHandler,
-        )
+    fun providePremiumBroadcastRepository(): PremiumBroadcastRepository =
+        PrimalRepositoryFactory.createPremiumBroadcastRepository()
 
     @Provides
     fun provideChatRepository(
         @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         messageCipher: MessageCipher,
         primalPublisher: PrimalPublisher,
+        relayEventQuerier: RelayEventQuerier,
         mediaCacher: MediaCacher?,
     ): ChatRepository =
         PrimalRepositoryFactory.createChatRepository(
             cachingPrimalApiClient = primalApiClient,
             messageCipher = messageCipher,
             primalPublisher = primalPublisher,
+            relayEventQuerier = relayEventQuerier,
             mediaCacher = mediaCacher,
         )
 
@@ -111,50 +104,42 @@ object CachingRepositoriesModule {
 
     @Provides
     fun provideFeedsRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
-        nostrNotary: NostrNotary,
-        mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): FeedsRepository =
         PrimalRepositoryFactory.createFeedsRepository(
-            cachingPrimalApiClient = primalApiClient,
-            signatureHandler = nostrNotary,
-            mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
     fun provideEventRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
-        mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): EventRepository =
         PrimalRepositoryFactory.createEventRepository(
-            cachingPrimalApiClient = primalApiClient,
-            mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
-    fun provideEventUriRepository(@PrimalCacheApiClient primalApiClient: PrimalApiClient): EventUriRepository =
-        PrimalRepositoryFactory.createEventUriRepository(cachingPrimalApiClient = primalApiClient)
+    fun provideEventUriRepository(): EventUriRepository =
+        PrimalRepositoryFactory.createEventUriRepository()
 
     @Provides
     fun provideEventInteractionRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         nostrZapperFactory: NostrZapperFactory,
     ): EventInteractionRepository =
         PrimalRepositoryFactory.createEventInteractionRepository(
-            cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
             nostrZapperFactory = nostrZapperFactory,
         )
 
     @Provides
     fun provideExploreRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): ExploreRepository =
         PrimalRepositoryFactory.createExploreRepository(
-            cachingPrimalApiClient = primalApiClient,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
@@ -164,52 +149,53 @@ object CachingRepositoriesModule {
 
     @Provides
     fun provideProfileRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
-        mediaCacher: MediaCacher?,
         nip05VerificationService: Nip05VerificationService,
         relayEventQuerier: RelayEventQuerier,
     ): ProfileRepository =
         PrimalRepositoryFactory.createProfileRepository(
-            cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
-            mediaCacher = mediaCacher,
             nip05VerificationService = nip05VerificationService,
             relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
     fun provideMutedItemRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
+        relayEventQuerier: RelayEventQuerier,
     ): MutedItemRepository =
-        PrimalRepositoryFactory.createMutedItemRepository(cachingPrimalApiClient = primalApiClient, primalPublisher)
+        PrimalRepositoryFactory.createMutedItemRepository(
+            primalPublisher = primalPublisher,
+            relayEventQuerier = relayEventQuerier,
+        )
 
     @Provides
     fun provideNotificationRepository(
         @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): NotificationRepository =
         PrimalRepositoryFactory.createNotificationRepository(
             cachingPrimalApiClient = primalApiClient,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
     fun providesPublicBookmarksRepository(
         @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
+        relayEventQuerier: RelayEventQuerier,
     ): PublicBookmarksRepository =
         PrimalRepositoryFactory.createPublicBookmarksRepository(
             cachingPrimalApiClient = primalApiClient,
             primalPublisher,
+            relayEventQuerier = relayEventQuerier,
         )
 
     @Provides
-    fun providesEventRelayHintsRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
-    ): EventRelayHintsRepository =
-        PrimalRepositoryFactory.createEventRelayHintsRepository(cachingPrimalApiClient = primalApiClient)
+    fun providesEventRelayHintsRepository(): EventRelayHintsRepository =
+        PrimalRepositoryFactory.createEventRelayHintsRepository()
 
     @Provides
     fun provideUserDataCleanupRepository(): UserDataCleanupRepository =
@@ -217,18 +203,14 @@ object CachingRepositoriesModule {
 
     @Provides
     fun provideStreamRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         nip05VerificationService: Nip05VerificationService,
-        mediaCacher: MediaCacher?,
-        relayEventQuerier: RelayEventQuerier,
+        relayEventSubscriber: RelayEventSubscriber,
     ): StreamRepository =
         PrimalRepositoryFactory.createStreamRepository(
-            cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
             nip05VerificationService = nip05VerificationService,
-            mediaCacher = mediaCacher,
-            relayEventQuerier = relayEventQuerier,
+            relayEventSubscriber = relayEventSubscriber,
         )
 
     @Provides
@@ -242,10 +224,12 @@ object CachingRepositoriesModule {
         @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         mediaCacher: MediaCacher?,
+        relayEventQuerier: RelayEventQuerier,
     ): PollsRepository =
         PrimalRepositoryFactory.createPollsRepository(
             cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
             mediaCacher = mediaCacher,
+            relayEventQuerier = relayEventQuerier,
         )
 }

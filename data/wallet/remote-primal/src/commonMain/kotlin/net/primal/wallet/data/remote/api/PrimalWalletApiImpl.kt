@@ -65,7 +65,7 @@ class PrimalWalletApiImpl(
 ) : PrimalWalletApi {
 
     override suspend fun getWalletStatus(userId: String): WalletStatusResponse {
-        throw NetworkException("Primal wallet is disabled")
+        throw NetworkException("Legacy wallet transport is disabled")
     }
 
     override suspend fun getWalletUserKycLevel(userId: String): Int {

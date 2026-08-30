@@ -398,7 +398,7 @@ private fun FollowPackScreenPreview() {
                     authorProfileData = UserProfileItemUi(
                         profileId = "",
                         displayName = "ODELL",
-                        internetIdentifier = "odell@primal.net",
+                        internetIdentifier = "odell@nostrich.org",
                     ),
                     profiles = listOf(
                         UserProfileItemUi(
@@ -412,7 +412,7 @@ private fun FollowPackScreenPreview() {
                             displayName = "ODELL",
                             followersCount = 10_000,
                             isFollowed = true,
-                            internetIdentifier = "odell@primal.net",
+                            internetIdentifier = "odell@nostrich.org",
                         ),
                         UserProfileItemUi(
                             profileId = "profile3",
@@ -436,7 +436,7 @@ private fun FollowPackScreenPreview() {
                             displayName = "someSuperLongDisplayNameToSeeEllipsis",
                             followersCount = 100_000,
                             isFollowed = false,
-                            internetIdentifier = "someSuperLongDisplayNameToSeeEllipsis@primal.net",
+                            internetIdentifier = "someSuperLongDisplayNameToSeeEllipsis@nostrich.org",
                         ),
                     ),
                     profilesCount = 148,

@@ -30,8 +30,8 @@ import net.primal.shared.data.local.db.withTransaction
 internal class CachingImportRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
-    private val importApi: PrimalImportApi,
-    private val broadcastApi: BroadcastApi,
+    private val importApi: PrimalImportApi?,
+    private val broadcastApi: BroadcastApi?,
     private val invalidationTracker: FeedSpecInvalidationTracker,
 ) : CachingImportRepository {
 
@@ -175,7 +175,10 @@ internal class CachingImportRepositoryImpl(
 
     override suspend fun importEvents(events: List<NostrEvent>): Boolean =
         withContext(dispatcherProvider.io()) {
-            importApi.importEvents(events)
+            importApi?.importEvents(events) ?: run {
+                cacheNostrEvents(events)
+                true
+            }
         }
 
     override suspend fun broadcastEvents(
@@ -183,15 +186,19 @@ internal class CachingImportRepositoryImpl(
         relays: List<String>,
     ): Result<List<BroadcastEventResponse>> =
         withContext(dispatcherProvider.io()) {
-            runCatching {
-                broadcastApi.broadcastEvents(events = events, relays = relays)
-                    .map { response ->
-                        BroadcastEventResponse(
-                            eventId = response.eventId,
-                            responses = response.responses,
-                        )
+            broadcastApi?.let { api ->
+                runCatching {
+                    api.broadcastEvents(events = events, relays = relays)
+                        .map { response ->
+                            BroadcastEventResponse(
+                                eventId = response.eventId,
+                                responses = response.responses,
+                            )
+                        }
                     }
-            }
+            } ?: Result.failure(
+                UnsupportedOperationException("Centralized event broadcast is disabled; publish to relays directly."),
+            )
         }
 
     companion object {

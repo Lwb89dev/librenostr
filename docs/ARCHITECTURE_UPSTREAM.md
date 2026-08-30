@@ -76,7 +76,10 @@ standard relay EVENT
     + optional CachingImportRepository.importEvents (Primal cache ingest)
 ```
 
-`RelayPool` today **publishes**. It does not subscribe for home-feed / profile / thread reads. Production `sendREQ` for app data goes through `BasePrimalApiClient` against Primal cache URLs, not user relays. The only other live `sendREQ` callers are NWC wallet sockets.
+`RelayPool` publishes and now exposes reconnect-safe subscriptions for live
+stream events. Production feed/profile/thread reads and live subscriptions use
+the configured user relays; remaining compatibility APIs are isolated to
+follow-pack synchronization and optional wallet/membership modules.
 
 ## Subsystem classification
 
@@ -89,7 +92,7 @@ standard relay EVENT
 | Premium / legend / membership | `app/.../premium` | REMOVE | Primal paid product. |
 | Reads (long-form) | `app/.../articles`, `main/reads` | REFACTOR | Protocol exists (kind 30023). Fetch path is cache. |
 | DMs | `app/.../messages` | INVESTIGATE | Protocol NIPs exist; fetch is Primal DM verbs. |
-| Live streams | `app/.../stream` | INVESTIGATE | Kind 30311 exists; listing is cache. |
+| Live streams | `app/.../stream` | REPLACED | Kind 30311/1311 relay queries and subscriptions. |
 | Wallet UI | `app/.../wallet`, `settings/wallet` | INVESTIGATE | Mixed NWC / Primal / Breez. |
 | Onboarding / login | `app/.../auth` | REFACTOR | Keep local nsec + npub-only. Strip signer/premium upsell. |
 | Settings / network / relays | `app/.../settings` | REFACTOR | Relay editor exists. Cache URL settings must go. |
@@ -180,7 +183,7 @@ Phase 1 identity: keep `PrivateKey` (and optionally `PublicKey` read-only). Conf
 |---|---|---|
 | Profile search (`USER_SEARCH`) | REPLACE | NIP-50 where relays support it; else local DB. |
 | Advanced search (`PARSE_ADVANCED_SEARCH_QUERY`) | REMOVE or REDUCE | Cache query language. |
-| Explore people/topics/zaps | REMOVE | No centralized trending replacement. |
+| Explore people/topics/zaps | REPLACED | Relay-derived local ranking/counting. |
 | Follow lists / packs | INVESTIGATE | Some may map to kind 30000; current API is cache. |
 | Featured DVM feeds | INVESTIGATE | NIP-89/DVM is protocol; featured list is Primal. |
 
@@ -203,7 +206,7 @@ Phase 1 identity: keep `PrivateKey` (and optionally `PublicKey` read-only). Conf
 | `data/wallet/remote-primal` | REMOVE or REPLACE | Primal wallet socket. |
 | Breez Spark SDK | INVESTIGATE | Vendor wallet, not cache. Phase 10. |
 | Membership Play products | REMOVE | |
-| `INVOICES_TO_ZAP_RECEIPTS` | INVESTIGATE | Cache helper for zap receipts. |
+| `INVOICES_TO_ZAP_RECEIPTS` | REPLACED | Relay `#bolt11` lookup and local zap-receipt matching. |
 
 ### Membership / premium
 

@@ -1,6 +1,7 @@
 package net.primal.data.repository.nip05
 
 import io.github.aakira.napier.Napier
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
@@ -86,7 +87,7 @@ class Nip05VerificationServiceImpl(
         // Tier 1: in-memory cache (no IO)
         val memCached = statusCache.value[pubkey]
         if (memCached != null && !isExpired(memCached) && memCached.verifiedAddress == internetIdentifier) {
-            Napier.d(tag = TAG) { "Skipping $internetIdentifier — in-memory cache hit (${memCached.status})" }
+            Napier.d(tag = TAG) { "Skipping NIP-05 verification — in-memory cache hit (${memCached.status})" }
             return
         }
 
@@ -102,7 +103,7 @@ class Nip05VerificationServiceImpl(
                 ),
             )
             if (!isExpired(dbCached) && dbCached.verifiedAddress == internetIdentifier) {
-                Napier.d(tag = TAG) { "Skipping $internetIdentifier — DB cache hit (${dbCached.status})" }
+                Napier.d(tag = TAG) { "Skipping NIP-05 verification — DB cache hit (${dbCached.status})" }
                 return
             }
         }
@@ -124,14 +125,14 @@ class Nip05VerificationServiceImpl(
             }
         }
         if (!acquired) {
-            Napier.d(tag = TAG) { "Skipping $internetIdentifier — already in-flight" }
+            Napier.d(tag = TAG) { "Skipping NIP-05 verification — already in-flight" }
             return
         }
 
         try {
             verificationSemaphore.withPermit {
                 val result = performVerification(pubkey, internetIdentifier)
-                Napier.d(tag = TAG) { "Verification result for $internetIdentifier: ${result.status}" }
+                Napier.d(tag = TAG) { "NIP-05 verification result: ${result.status}" }
 
                 // Don't overwrite VERIFIED or FAILED with ERROR.
                 // Stale verified/failed data is better than flipping to error when offline.
@@ -139,19 +140,19 @@ class Nip05VerificationServiceImpl(
                 if (result.status == Nip05VerificationStatus.ERROR &&
                     cached?.status in setOf(
                         Nip05VerificationStatus.VERIFIED,
-                        Nip05VerificationStatus.FAILED,
+                    Nip05VerificationStatus.FAILED,
                     ) &&
                     cached?.verifiedAddress == internetIdentifier
                 ) {
                     Napier.d(
                         tag = TAG,
-                    ) { "Keeping cached ${cached.status} for $internetIdentifier (not overwriting with ERROR)" }
+                    ) { "Keeping cached ${cached.status} (not overwriting with ERROR)" }
                     return@withPermit
                 }
 
                 Napier.d(
                     tag = TAG,
-                ) { "Persisting ${result.status} for $internetIdentifier (pubkey=${pubkey.take(8)}...)" }
+                ) { "Persisting NIP-05 result ${result.status} (pubkey=${pubkey.take(8)}...)" }
                 val now = currentEpochSeconds()
                 verificationDao.upsert(
                     Nip05VerificationData(
@@ -197,7 +198,7 @@ class Nip05VerificationServiceImpl(
             )
         }
 
-        Napier.d(tag = TAG) { "Upserting ${optimisticInserts.size} optimistic verifications from $domain" }
+        Napier.d(tag = TAG) { "Upserting ${optimisticInserts.size} optimistic NIP-05 verifications." }
         verificationDao.upsertAll(optimisticInserts)
         updateCacheBatch(
             optimisticInserts.associate { data ->
@@ -224,7 +225,7 @@ class Nip05VerificationServiceImpl(
             else -> {
                 val parts = internetIdentifier.split("@")
                 if (parts.size != 2) {
-                    Napier.d(tag = TAG) { "Invalid identifier format: $internetIdentifier" }
+                    Napier.d(tag = TAG) { "Invalid NIP-05 identifier format." }
                     return VerificationResult(status = Nip05VerificationStatus.FAILED)
                 }
                 val rawLocal = parts[0]
@@ -233,7 +234,7 @@ class Nip05VerificationServiceImpl(
         }
 
         if (!VALID_DOMAIN.matches(domain)) {
-            Napier.d(tag = TAG) { "Invalid domain: $domain" }
+            Napier.d(tag = TAG) { "Invalid NIP-05 domain." }
             return VerificationResult(status = Nip05VerificationStatus.FAILED)
         }
 
@@ -241,7 +242,7 @@ class Nip05VerificationServiceImpl(
             val body = nip05HttpClient.fetchWellKnown(domain = domain, name = localPart)
                 ?: return VerificationResult(status = Nip05VerificationStatus.ERROR)
 
-            Napier.d(tag = TAG) { "Response names keys: ${body.names.keys} for localPart=$localPart" }
+            Napier.d(tag = TAG) { "NIP-05 response received (${body.names.size} names)." }
             val returnedPubkey = body.names.entries
                 .firstOrNull { it.key.equals(localPart, ignoreCase = true) }
                 ?.value
@@ -255,8 +256,11 @@ class Nip05VerificationServiceImpl(
                 Nip05VerificationStatus.FAILED
             }
             VerificationResult(status = status, allNames = body.names, domain = domain)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Napier.e(tag = TAG, throwable = e) { "Exception verifying $internetIdentifier" }
+            // Keep identifiers out of logs; NIP-05 names are user-controlled personal data.
+            Napier.e(tag = TAG, throwable = e) { "Exception verifying NIP-05 identifier." }
             VerificationResult(status = Nip05VerificationStatus.ERROR)
         }
     }

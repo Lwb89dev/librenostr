@@ -21,12 +21,16 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,7 +67,6 @@ import net.primal.android.core.compose.PrimalGradientAlpha
 import net.primal.android.core.compose.PrimalGradientBackgroundColor
 import net.primal.android.core.compose.UiDensityMode
 import net.primal.android.core.compose.UniversalAvatarThumbnail
-import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.core.compose.detectUiDensityModeFromMaxHeight
 import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
 import net.primal.android.core.compose.icons.PrimalIcons
@@ -75,7 +78,6 @@ import net.primal.android.core.compose.profile.model.ProfileDetailsUi
 import net.primal.android.core.utils.pasteText
 import net.primal.android.signer.client.launchGetPublicKey
 import net.primal.android.signer.client.rememberAmberPubkeyLauncher
-import net.primal.android.signer.client.utils.isCompatibleAmberVersionInstalled
 import net.primal.android.stream.player.hideStreamMiniPlayer
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
@@ -194,6 +196,7 @@ fun LoginContent(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val keyboardVisible by keyboardVisibilityAsState()
+    var nsecLoginVisible by rememberSaveable { mutableStateOf(false) }
 
     fun pasteFromClipboard() {
         val clipboardText = context.pasteText().trim()
@@ -211,67 +214,79 @@ fun LoginContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-
-            LoginInputFieldContent(
-                state = state,
-                uiMode = uiMode,
-                keyboardVisible = keyboardVisible,
-                onLoginInputChanged = onLoginInputChanged,
-                onLoginClick = onLoginClick,
-            )
-
-            Spacer(modifier = Modifier.weight(weight = if (keyboardVisible) 2f else 3f))
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
-                .wrapContentHeight(align = Alignment.Bottom),
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
-        ) {
-            OnboardingButton(
-                text = when {
-                    state.isValidKey -> stringResource(id = R.string.login_button_sign_in)
-                    state.loginInput.isEmpty() -> stringResource(id = R.string.login_button_paste_your_key)
-                    else -> stringResource(id = R.string.login_button_paste_new_key)
-                },
-                modifier = Modifier
-                    .run {
-                        if (state.isValidKey) {
-                            this.testTag(OnboardingTestTags.LOGIN_SIGN_IN_BUTTON)
-                        } else {
-                            this
-                        }
-                    }
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .align(alignment = Alignment.CenterHorizontally),
-                loading = state.loading,
-                enabled = !state.loading,
-                onClick = {
-                    keyboardController?.hide()
-                    if (state.isValidKey) {
-                        onLoginClick()
-                    } else {
-                        pasteFromClipboard()
-                    }
-                },
-            )
-
-            if (isCompatibleAmberVersionInstalled(context = context)) {
-                PrimalLoadingButton(
+            if (nsecLoginVisible) {
+                LoginInputFieldContent(
+                    state = state,
+                    uiMode = uiMode,
+                    keyboardVisible = keyboardVisible,
+                    onLoginInputChanged = onLoginInputChanged,
+                    onLoginClick = onLoginClick,
+                )
+            } else {
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.login_amber_primary_hint),
+                    style = AppTheme.typography.bodyLarge,
+                    color = PrimalDarkTextColor.copy(alpha = 0.86f),
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                OnboardingButton(
+                    text = stringResource(id = R.string.login_with_amber_button),
                     modifier = Modifier
-                        .height(56.dp)
-                        .fillMaxWidth(),
-                    containerColor = Color.Transparent,
-                    contentColor = PrimalDarkTextColor,
-                    disabledContainerColor = Color.Transparent,
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    loading = state.loading,
                     enabled = !state.loading,
                     onClick = onLoginWithAmberClick,
-                    text = "Login with Amber",
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.login_security_notice),
+                    style = AppTheme.typography.bodySmall,
+                    color = PrimalDarkTextColor.copy(alpha = 0.78f),
+                    textAlign = TextAlign.Center,
+                )
+                TextButton(
+                    enabled = !state.loading,
+                    onClick = { nsecLoginVisible = true },
+                ) {
+                    Text(text = stringResource(id = R.string.login_nsec_unsafe))
+                }
+            }
+        }
+
+        if (nsecLoginVisible) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+                    .wrapContentHeight(align = Alignment.Bottom),
+                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
+            ) {
+                OnboardingButton(
+                    text = when {
+                        state.isValidKey -> stringResource(id = R.string.login_button_sign_in)
+                        state.loginInput.isEmpty() -> stringResource(id = R.string.login_button_paste_your_key)
+                        else -> stringResource(id = R.string.login_button_paste_new_key)
+                    },
+                    modifier = Modifier
+                        .run {
+                            if (state.isValidKey) testTag(OnboardingTestTags.LOGIN_SIGN_IN_BUTTON) else this
+                        }
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .align(alignment = Alignment.CenterHorizontally),
+                    loading = state.loading,
+                    enabled = !state.loading,
+                    onClick = {
+                        keyboardController?.hide()
+                        if (state.isValidKey) onLoginClick() else pasteFromClipboard()
+                    },
                 )
             }
         }

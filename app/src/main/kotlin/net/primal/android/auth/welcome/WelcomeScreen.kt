@@ -56,14 +56,14 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
                 modifier = Modifier
                     .widthIn(max = 220.dp)
                     .fillMaxWidth(0.55f),
-                painter = painterResource(id = R.drawable.primal_icon),
+                painter = painterResource(id = R.mipmap.ic_launcher),
                 contentDescription = stringResource(id = R.string.app_name),
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = stringResource(id = R.string.app_name),
+                text = stringResource(id = R.string.onboarding_welcome_title),
                 style = AppTheme.typography.headlineMedium.copy(
                     fontFamily = LibreSansFontFamily,
                     fontWeight = FontWeight.Light,
@@ -74,8 +74,15 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
                 color = PrimalDarkTextColor,
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            Text(
+                modifier = Modifier.widthIn(max = 420.dp),
+                text = stringResource(id = R.string.onboarding_welcome_description),
+                style = AppTheme.typography.bodyLarge,
+                color = PrimalDarkTextColor.copy(alpha = 0.86f),
+            )
+            Spacer(modifier = Modifier.height(36.dp))
             OnboardingButton(
                 modifier = Modifier.testTag(OnboardingTestTags.WELCOME_SIGN_IN_BUTTON),
                 text = stringResource(id = R.string.welcome_sign_in_button_title),
