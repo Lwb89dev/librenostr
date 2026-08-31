@@ -14,6 +14,8 @@ import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.RelayKind
 import net.primal.android.user.repository.RelayRepository
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.getOrElse
+import net.primal.core.utils.runCatching
 
 @HiltViewModel
 class RelayOnboardingViewModel @Inject constructor(
@@ -32,7 +34,7 @@ class RelayOnboardingViewModel @Inject constructor(
                     relayRepository.syncUserRelaysOrBootstrap(userId)
                     val configured = relayRepository.findRelays(userId, RelayKind.UserRelay)
                         .map { it.url }
-                    (configured + FALLBACK_RELAY_URLS).distinct().take(6)
+                    (configured + FALLBACK_RELAY_URLS).distinct().take(7)
                 }.getOrElse { error ->
                     Napier.w(error) { "Unable to load relay onboarding suggestions; using defaults." }
                     FALLBACK_RELAY_URLS.take(3)

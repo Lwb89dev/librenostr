@@ -35,14 +35,20 @@ internal class FeedProcessor(
         clearFeed: Boolean,
     ) {
         val pagingEvent = response.paging
+        val incomingFeedEvents = response.notes + response.polls + response.reposts
+        // A relay snapshot with no feed events is indistinguishable from "every relay timed out".
+        // Clearing the feed for it would drop the cached page and leave the user with a blank
+        // screen that no longer has any local content to fall back on, so never replace a feed
+        // with nothing: keep what is already cached and let the next successful sync replace it.
+        val shouldClearFeed = clearFeed && incomingFeedEvents.isNotEmpty()
         database.withTransaction {
-            if (clearFeed) {
+            if (shouldClearFeed) {
                 database.feedPostsRemoteKeys().deleteByDirective(ownerId = userId, directive = feedSpec)
                 database.feedsConnections().deleteConnectionsByDirective(ownerId = userId, feedSpec = feedSpec)
             }
 
             response.persistToDatabase(userId = userId, database = database)
-            val feedEvents = response.notes + response.polls + response.reposts
+            val feedEvents = incomingFeedEvents
             feedEvents.processRemoteKeys(userId = userId, pagingEvent = pagingEvent)
             feedEvents.orderByPagingIfNotNull(pagingEvent = pagingEvent)
                 .processFeedConnections(userId = userId)

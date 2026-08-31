@@ -11,7 +11,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.db.UsersDatabase
@@ -21,6 +24,7 @@ import net.primal.android.user.domain.mapToRelayDO
 import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.nostr.relay.RelayFilter
@@ -157,28 +161,42 @@ class RelaysSocketManager @Inject constructor(
     suspend fun tryConnectingToUserRelay(url: String) = userRelaysPool.tryConnectingToRelay(url)
 
     suspend fun queryEvents(filter: JsonObject): RelayPoolQueryResult {
+        // A REQ for a private kind discloses the user's pubkey and what they are reading to every
+        // relay that receives it. Those queries stay on the account's own relays whenever the user
+        // configured any, instead of also being broadcast to the hardcoded public fallback set.
+        val skipFallback = filter.isPrivateScopeFilter() && userRelaysPool.hasRelays()
         return coroutineScope {
-            // Start fallback immediately. This avoids waiting for an unavailable account relay
-            // before useful public relays get a chance to answer.
+            // Query both pools. Account relays are authoritative for private/follow data, while
+            // public notes are often replicated only on fallback relays. Returning the first
+            // non-empty pool made a single matching event suppress the rest of the network and
+            // left the home feed empty after the Primal cache was removed.
             val fallback = async {
-                withTimeoutOrNull(FALLBACK_QUERY_TIMEOUT_MS) {
-                    fallbackRelaysPool.query(filter)
-                } ?: RelayPoolQueryResult()
-            }
-            val userResult = userRelaysPool
-                .takeIf { it.hasRelays() }
-                ?.let { pool ->
-                    // RelayPool itself waits up to eight seconds for EOSE; bound that wait here.
-                    withTimeoutOrNull(USER_QUERY_TIMEOUT_MS) { pool.query(filter) }
+                if (skipFallback) {
+                    RelayPoolQueryResult()
+                } else {
+                    withTimeoutOrNull(FALLBACK_QUERY_TIMEOUT_MS) {
+                        fallbackRelaysPool.query(filter)
+                    } ?: RelayPoolQueryResult()
                 }
-                ?.takeIf { it.events.isNotEmpty() }
-
-            if (userResult != null) {
-                fallback.cancel()
-                userResult
-            } else {
-                fallback.await()
             }
+            val userResult = async {
+                userRelaysPool
+                    .takeIf { it.hasRelays() }
+                    ?.let { pool ->
+                        // RelayPool itself waits up to eight seconds for EOSE; bound that wait.
+                        withTimeoutOrNull(USER_QUERY_TIMEOUT_MS) { pool.query(filter) }
+                    }
+                    ?: RelayPoolQueryResult()
+            }
+
+            val account = userResult.await()
+            val public = fallback.await()
+            RelayPoolQueryResult(
+                events = (account.events + public.events).distinctBy { it.id },
+                eoseRelays = account.eoseRelays + public.eoseRelays,
+                failedRelays = account.failedRelays + public.failedRelays,
+                duplicateCount = account.duplicateCount + public.duplicateCount,
+            )
         }
     }
 
@@ -198,10 +216,25 @@ class RelaysSocketManager @Inject constructor(
             nwcRelaysPool.activeSubscriptionCount() +
             fallbackRelaysPool.activeSubscriptionCount()
 
+    private fun JsonObject.isPrivateScopeFilter(): Boolean {
+        val kinds = (this["kinds"] as? JsonArray) ?: return false
+        return kinds
+            .mapNotNull { (it as? JsonPrimitive)?.intOrNull }
+            .any { kind -> kind in PRIVATE_SCOPE_KINDS }
+    }
+
     private companion object {
         // Keep the account pool responsive, then give healthy public relays a separate window.
         // These bounds are intentionally distinct so a slow account relay cannot cancel fallback.
         const val USER_QUERY_TIMEOUT_MS = 3_500L
         const val FALLBACK_QUERY_TIMEOUT_MS = 4_000L
+
+        // Kinds where the request itself is sensitive, not just the payload: direct messages and
+        // mute lists reveal who the user talks to and who they block.
+        val PRIVATE_SCOPE_KINDS = setOf(
+            NostrEventKind.EncryptedDirectMessages.value,
+            NostrEventKind.MuteList.value,
+            NostrEventKind.StreamMuteList.value,
+        )
     }
 }

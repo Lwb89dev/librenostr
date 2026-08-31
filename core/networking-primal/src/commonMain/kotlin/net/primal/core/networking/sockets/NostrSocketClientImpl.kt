@@ -161,8 +161,7 @@ internal class NostrSocketClientImpl(
                     is Frame.Close -> {
                         val closeReason = frame.readReason()
                         Napier.w { "WS $socketUrl closed. [${closeReason?.code}, ${closeReason?.message}]" }
-                        close()
-                        onSocketConnectionClosed?.invoke(socketUrl, null)
+                        handleSocketTornDown(error = null)
                     }
 
                     else -> Unit
@@ -173,9 +172,27 @@ internal class NostrSocketClientImpl(
             throw error
         } catch (error: Exception) {
             Napier.w("NostrSocketClient::receiveSocketMessages() on $socketUrl failed.", error)
-            close()
-            onSocketConnectionClosed?.invoke(socketUrl, error)
+            handleSocketTornDown(error = error)
         }
+    }
+
+    /**
+     * Tears the session down from inside the receiver coroutine.
+     *
+     * [close] must not be used here: it cancels [wsReceiverJob], which is the coroutine running
+     * this very function, and its suspending session close then throws CancellationException.
+     * The project's `runCatching` rethrows cancellation, so both the session reset and
+     * [onSocketConnectionClosed] were skipped and the pool kept reporting a dead relay as
+     * connected. Cancelling the session is non-suspending, so nothing here can be interrupted.
+     */
+    private fun WebSocketSession.handleSocketTornDown(error: Throwable?) {
+        // Only drop the reference when it still points at this session: a concurrent reconnect
+        // may already have installed a fresh one that must not be nulled out here.
+        if (wsSession === this) {
+            wsSession = null
+        }
+        cancel()
+        onSocketConnectionClosed?.invoke(socketUrl, error)
     }
 
     /**
