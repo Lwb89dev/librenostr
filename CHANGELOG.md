@@ -7,6 +7,70 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.1.2] - 2026-08-31
+
+De-Googled build, Primal Premium removed, and image metadata stripped before
+upload.
+
+> **This release is signed with a new key.** The previous certificate carried a
+> personal name in its subject; it has been retired in favour of a pseudonymous
+> one (`CN=Lwb89dev, O=LibreNostr`). Android refuses to upgrade an installed app
+> across a signing-key change, so **0.1.0 and 0.1.1 must be uninstalled before
+> installing 0.1.2**. Uninstalling clears local app data, including any key
+> stored on the device — back up your nsec first. The 0.1.0 and 0.1.1 APK assets
+> have been withdrawn.
+
+### Added
+
+- Image metadata is stripped before an upload leaves the device. A photo from a
+  camera carries EXIF with GPS coordinates, capture time, device make/model and
+  often the owner's name; all of it was previously published to the Blossom
+  server alongside the picture. JPEG loses APP1 (Exif/XMP), APP13
+  (Photoshop/IPTC) and COM; PNG loses eXIf and the textual and tIME chunks;
+  WebP loses EXIF and XMP. Colour and rendering segments are kept, pixel data is
+  copied verbatim so there is no re-encoding, and video streams through
+  untouched.
+- A long-form reads destination with its own navigation glyph.
+
+### Removed
+
+- **Google.** The `google` product flavor and everything that fed it: Play
+  Billing, ML Kit barcode scanning, the Cronet player, the FCM token updater,
+  the google-services and play-publishing Gradle plugins, the `playStore`
+  signing config and `playRelease` build type. There is now a single build.
+- **Google Play Services**, which survived the flavor removal because it entered
+  transitively through the Breez Spark SDK's dependency on
+  `androidx.credentials:credentials-play-services-auth`. The Spark wallet
+  backend was already returning a disabled service and discarding its
+  collaborators, so it cost 17.8 MB of native code per ABI and the whole
+  play-services auth/fido stack for no runtime behaviour. NWC remains the only
+  wallet transport; `Wallet.Spark` stays so the Room migrations keep resolving.
+- **Primal Premium**: Legend/OG tiers, primal names, leaderboards, content
+  rebroadcast, media management and the in-app purchase flow — 138 files and
+  14,742 lines. The Legend avatar glow, coloured verification badge and profile
+  premium badge go with it; the plain verified badge and live-stream ring stay.
+  None of it could function without Primal's servers.
+
+### Changed
+
+- The release workflow was still upstream's: it filtered `ios-*` tags, ran PR
+  checks on macOS runners inherited from a repository that also built an iOS
+  XCFramework, published an AAB to Google Play, built a second APK for a crash
+  reporter whose upload is a no-op, collapsed the three ABI splits onto one
+  `primal-<tag>.apk` and opened a draft release called "Primal". Both workflows
+  also decoded absent google-services secrets over committed files, which is why
+  every tagged run failed with "Malformed root json". They now build the ABI
+  splits, refuse to publish debug-signed APKs and take their body from this file.
+- Highlights are fetched relay-only; the repository no longer takes a cache client.
+
+### Fixed
+
+- Two test fixtures left behind by the relay-only migration: the app-config
+  handler test still asserted that well-known discovery reached the store, and
+  the tags test still expected the Primal relay default.
+
+Release APK: 78.6 MB at 0.1.1, 55.2 MB now.
+
 ## [0.1.1] - 2026-08-31
 
 Localization, unread badges and feed ordering, plus the fixes from the
@@ -134,5 +198,6 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.1.2]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.0
