@@ -2,6 +2,12 @@
     <string name="settings_title">Impostazioni</string>
     <string name="settings_language_description">Scegli la lingua di LibreNostr. La modifica viene applicata subito.</string>
     <string name="settings_language_system_default">Lingua di sistema</string>
+    <string name="settings_notifications_group_likes">Mi piace</string>
+    <string name="settings_notifications_group_comments">Commenti</string>
+    <string name="settings_notifications_event_filters_title">Notificami per</string>
+    <string name="long_reads_title">Letture lunghe</string>
+    <string name="long_reads_no_content">Nessun articolo long-form ancora.</string>
+    <string name="accessibility_long_reads">Letture lunghe</string>
     <string name="primary_destination_feed_label">Home</string>
     <string name="primary_destination_reads_label">Letture</string>
     <string name="primary_destination_notifications_label">Notifiche</string>

@@ -77,7 +77,6 @@ abstract class CommonRepositoryFactory {
     }
 
     fun createArticleHighlightsRepository(
-        cachingPrimalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
     ): HighlightRepository {
         return HighlightRepositoryImpl(

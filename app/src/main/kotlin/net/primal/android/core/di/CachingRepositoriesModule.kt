@@ -56,11 +56,9 @@ object CachingRepositoriesModule {
 
     @Provides
     fun providesArticleHighlightsRepository(
-        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
     ): HighlightRepository {
         return PrimalRepositoryFactory.createArticleHighlightsRepository(
-            cachingPrimalApiClient = primalApiClient,
             primalPublisher = primalPublisher,
         )
     }

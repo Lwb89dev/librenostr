@@ -156,6 +156,43 @@ object LibreNavigationIcons {
         }
     }
 
+    /** Open-book glyph for the dedicated NIP-23 long-form reading feed. */
+    val LongReads: ImageVector by lazy {
+        icon("LibreLongReads") {
+            path(
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(12f, 19.8f)
+                curveTo(10.1f, 18.5f, 7.5f, 18.1f, 4.2f, 18.7f)
+                verticalLineTo(5.1f)
+                curveTo(7.5f, 4.5f, 10.1f, 4.9f, 12f, 6.2f)
+                curveTo(13.9f, 4.9f, 16.5f, 4.5f, 19.8f, 5.1f)
+                verticalLineTo(18.7f)
+                curveTo(16.5f, 18.1f, 13.9f, 18.5f, 12f, 19.8f)
+                close()
+                moveTo(12f, 6.2f)
+                verticalLineTo(19.8f)
+            }
+            path(
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.4f,
+                strokeLineCap = StrokeCap.Round,
+            ) {
+                moveTo(6.7f, 8.3f)
+                horizontalLineTo(9.5f)
+                moveTo(14.5f, 8.3f)
+                horizontalLineTo(17.3f)
+                moveTo(6.7f, 11.2f)
+                horizontalLineTo(9.5f)
+                moveTo(14.5f, 11.2f)
+                horizontalLineTo(17.3f)
+            }
+        }
+    }
+
     val Profile: ImageVector by lazy {
         icon("LibreProfile") {
             path(stroke = SolidColor(Color.White), strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round) {

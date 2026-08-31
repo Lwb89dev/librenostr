@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,11 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,7 +71,6 @@ import net.primal.android.settings.notifications.NotificationsSettingsContract.U
 import net.primal.android.settings.notifications.ui.NotificationSwitchUi
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
-import net.primal.domain.notifications.NotificationSettingsSection
 import net.primal.domain.notifications.NotificationSettingsType
 
 @Composable
@@ -98,34 +99,37 @@ fun NotificationsSettingsScreen(
     embedded: Boolean = false,
     eventPublisher: (NotificationsSettingsContract.UiEvent) -> Unit,
 ) {
-    PrimalScaffold(
-        containerColor = AppTheme.colorScheme.surfaceVariant,
-        topBar = if (embedded) {
-            null
-        } else {
-            {
-            PrimalTopAppBar(
-                title = stringResource(id = R.string.settings_notifications_title),
-                navigationIcon = PrimalIcons.ArrowBack,
-                navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
-                onNavigationIconClick = onClose,
+    val content: @Composable (PaddingValues) -> Unit = { paddingValues ->
+        SignatureErrorColumn(
+            modifier = if (embedded) Modifier.fillMaxWidth() else Modifier.fillMaxSize(),
+            contentPadding = if (embedded) PaddingValues() else paddingValues,
+            signatureUiError = state.signatureError,
+        ) {
+            NotificationsColumn(
+                modifier = if (embedded) Modifier.fillMaxWidth() else Modifier.padding(paddingValues),
+                state = state,
+                eventPublisher = eventPublisher,
+                embedded = embedded,
             )
-            }
-        },
-        content = { paddingValues ->
-            SignatureErrorColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = paddingValues,
-                signatureUiError = state.signatureError,
-            ) {
-                NotificationsColumn(
-                    modifier = Modifier.padding(paddingValues),
-                    state = state,
-                    eventPublisher = eventPublisher,
+        }
+    }
+
+    if (embedded) {
+        content(PaddingValues())
+    } else {
+        PrimalScaffold(
+            containerColor = AppTheme.colorScheme.surfaceVariant,
+            topBar = {
+                PrimalTopAppBar(
+                    title = stringResource(id = R.string.settings_notifications_title),
+                    navigationIcon = PrimalIcons.ArrowBack,
+                    navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
+                    onNavigationIconClick = onClose,
                 )
-            }
-        },
-    )
+            },
+            content = content,
+        )
+    }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -134,59 +138,77 @@ private fun NotificationsColumn(
     modifier: Modifier = Modifier,
     state: NotificationsSettingsContract.UiState,
     eventPublisher: (NotificationsSettingsContract.UiEvent) -> Unit,
+    embedded: Boolean = false,
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = AppTheme.colorScheme.surfaceVariant),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        item {
-            PushNotificationSection(
-                modifier = Modifier.padding(vertical = 12.dp),
-                pushNotificationsEnabled = state.pushNotificationsEnabled,
-                onChange = { eventPublisher(NotificationsSettingsContract.UiEvent.PushNotificationsToggled(it)) },
-            )
-        }
-
-        if (state.pushNotificationsEnabled) {
+    if (embedded) {
+        NotificationsContent(
+            modifier = modifier,
+            state = state,
+            eventPublisher = eventPublisher,
+        )
+    } else {
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .background(color = AppTheme.colorScheme.surfaceVariant),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             item {
-                NotificationsSettingsBlock(
-                    section = NotificationSettingsSection.PUSH_NOTIFICATIONS,
-                    notifications = state.pushNotificationsSettings,
+                NotificationsContent(
+                    state = state,
                     eventPublisher = eventPublisher,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
             }
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun <T : NotificationSettingsType> NotificationsSettingsBlock(
-    section: NotificationSettingsSection,
-    notifications: List<NotificationSwitchUi<T>>,
+@OptIn(ExperimentalPermissionsApi::class)
+private fun NotificationsContent(
+    modifier: Modifier = Modifier,
+    state: NotificationsSettingsContract.UiState,
     eventPublisher: (NotificationsSettingsContract.UiEvent) -> Unit,
 ) {
-    val orderedNotifications = remember(notifications) {
-        notifications.sortedBy { it.settingsType.order }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(color = AppTheme.colorScheme.surfaceVariant),
+    ) {
+        PushNotificationSection(
+            modifier = Modifier.padding(vertical = 12.dp),
+            pushNotificationsEnabled = state.pushNotificationsEnabled,
+            onChange = { eventPublisher(NotificationsSettingsContract.UiEvent.PushNotificationsToggled(it)) },
+        )
+
+        NotificationEventFiltersBlock(
+            notifications = state.pushNotificationsSettings,
+            eventPublisher = eventPublisher,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
     }
+}
+
+@Composable
+private fun NotificationEventFiltersBlock(
+    notifications: List<NotificationSwitchUi<NotificationSettingsType.PushNotifications>>,
+    eventPublisher: (NotificationsSettingsContract.UiEvent) -> Unit,
+) {
+    if (notifications.isEmpty()) return
+
+    val settingsByType = notifications.associateBy { it.settingsType }
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.Start,
     ) {
         Text(
             modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-            text = section.toTitle().uppercase(),
+            text = stringResource(R.string.settings_notifications_event_filters_title),
             fontWeight = FontWeight.Medium,
             style = AppTheme.typography.bodySmall,
         )
@@ -198,30 +220,87 @@ fun <T : NotificationSettingsType> NotificationsSettingsBlock(
                 )
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(size = 12.dp)),
-            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.Start,
         ) {
-            orderedNotifications.forEachIndexed { index, notificationSwitchUi ->
-                NotificationSettingsRow(
-                    title = notificationSwitchUi.settingsType.toTitle(),
-                    longTitleText = notificationSwitchUi.settingsType is NotificationSettingsType.Preferences,
-                    enabled = notificationSwitchUi.enabled,
-                    icon = notificationSwitchUi.settingsType.icon(),
-                    onCheckedChange = {
-                        eventPublisher(
-                            NotificationSettingsChanged(
-                                type = notificationSwitchUi.settingsType,
-                                value = it,
-                            ),
-                        )
+            NOTIFICATION_EVENT_TYPES.forEachIndexed { index, type ->
+                val setting = settingsByType[type] ?: return@forEachIndexed
+                NotificationEventFilterRow(
+                    title = type.toEventTitle(),
+                    enabled = setting.enabled,
+                    icon = type.icon(),
+                    onCheckedChange = { enabled ->
+                        eventPublisher(NotificationSettingsChanged(type = type, value = enabled))
                     },
                 )
 
-                if (index < orderedNotifications.size - 1) {
+                if (index < NOTIFICATION_EVENT_TYPES.lastIndex) {
                     PrimalDivider()
                 }
             }
         }
+    }
+}
+
+private val NOTIFICATION_EVENT_TYPES = listOf(
+    NotificationSettingsType.PushNotifications.NewFollows,
+    NotificationSettingsType.PushNotifications.DirectMessages,
+    NotificationSettingsType.PushNotifications.Reactions,
+    NotificationSettingsType.PushNotifications.Replies,
+)
+
+@Composable
+private fun NotificationSettingsType.PushNotifications.toEventTitle(): String =
+    when (this) {
+        NotificationSettingsType.PushNotifications.NewFollows ->
+            stringResource(R.string.settings_notifications_group_new_followers)
+        NotificationSettingsType.PushNotifications.DirectMessages ->
+            stringResource(R.string.settings_notifications_group_direct_messages)
+        NotificationSettingsType.PushNotifications.Reactions ->
+            stringResource(R.string.settings_notifications_group_likes)
+        NotificationSettingsType.PushNotifications.Replies ->
+            stringResource(R.string.settings_notifications_group_comments)
+        else -> toTitle()
+    }
+
+@Composable
+private fun NotificationEventFilterRow(
+    title: String,
+    enabled: Boolean,
+    icon: ImageVector,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!enabled) }
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(
+            modifier = Modifier.size(26.dp),
+            imageVector = icon,
+            contentDescription = null,
+            tint = AppTheme.colorScheme.primary,
+        )
+        Text(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 12.dp),
+            text = title,
+            fontWeight = FontWeight.W400,
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
+        )
+        Checkbox(
+            checked = enabled,
+            onCheckedChange = onCheckedChange,
+            colors = CheckboxDefaults.colors(
+                checkedColor = AppTheme.colorScheme.primary,
+                uncheckedColor = AppTheme.colorScheme.outline,
+                checkmarkColor = AppTheme.colorScheme.onPrimary,
+            ),
+        )
     }
 }
 
@@ -362,14 +441,6 @@ fun LaunchedErrorHandler(viewModel: NotificationsSettingsViewModel) {
             }
     }
 }
-
-@Composable
-private fun NotificationSettingsSection.toTitle(): String =
-    when (this) {
-        NotificationSettingsSection.PUSH_NOTIFICATIONS -> stringResource(R.string.settings_notifications_section_push)
-        NotificationSettingsSection.NOTIFICATIONS_IN_TAB -> stringResource(R.string.settings_notifications_section_tab)
-        NotificationSettingsSection.PREFERENCES -> stringResource(R.string.settings_notifications_section_preferences)
-    }
 
 @Suppress("CyclomaticComplexMethod")
 @Composable

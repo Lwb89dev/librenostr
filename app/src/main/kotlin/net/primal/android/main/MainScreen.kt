@@ -68,6 +68,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import net.primal.android.R
+import net.primal.android.articles.feed.ArticleFeedList
 import net.primal.android.core.compose.AppBarPage
 import net.primal.android.core.compose.PrimalOverlay
 import net.primal.android.core.compose.PrimalTopLevelAppBar
@@ -110,6 +111,7 @@ import net.primal.android.main.wallet.WalletDashboardContent
 import net.primal.android.main.wallet.WalletDashboardTopAppBar
 import net.primal.android.navigation.accountSwitcherCallbacksHandler
 import net.primal.android.navigation.navigateToAdvancedSearch
+import net.primal.android.navigation.navigateToArticleDetails
 import net.primal.android.navigation.navigateToExploreFeed
 import net.primal.android.navigation.navigateToFollowPack
 import net.primal.android.navigation.navigateToHome
@@ -128,6 +130,7 @@ import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.wallet.picker.WalletPickerOverlayContent
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.buildAdvancedSearchNotesFeedSpec
+import net.primal.domain.feeds.buildAdvancedSearchReadsFeedSpec
 import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
 import net.primal.android.feeds.list.ui.model.asFeedUi
 import net.primal.domain.links.CdnImage
@@ -589,6 +592,7 @@ private fun MainScreenScaffold(
     val exploreAnchor = remember { AnchorHandle() }
     var activeOverlay by rememberSaveable { mutableStateOf<ActiveOverlay?>(null) }
     var algorithmDrawerVisible by rememberSaveable { mutableStateOf(false) }
+    var longReadVisible by rememberSaveable { mutableStateOf(false) }
     var homeHasNewNotes by rememberSaveable { mutableStateOf(false) }
     val feedPickerVisible = activeOverlay == ActiveOverlay.FeedPicker
     val readPickerVisible = activeOverlay == ActiveOverlay.ReadPicker
@@ -598,7 +602,8 @@ private fun MainScreenScaffold(
     val showPullToRefreshHint = mainState.showPullToRefreshHint &&
         activeTab == PrimalTopLevelDestination.Feeds &&
         activeOverlay == null &&
-        !algorithmDrawerVisible
+        !algorithmDrawerVisible &&
+        !longReadVisible
     val exploreActiveSection = ExploreSection.entries
         .getOrElse(sharedState.explorePagerState.currentPage) { ExploreSection.Explore }
 
@@ -612,11 +617,14 @@ private fun MainScreenScaffold(
         targetValue = if (algorithmDrawerVisible) ALGORITHM_DRAWER_WIDTH else 0.dp,
         label = "AlgorithmDrawerHomeOffset",
     )
-    BackHandler(enabled = algorithmDrawerVisible) {
+    BackHandler(enabled = longReadVisible) {
+        longReadVisible = false
+    }
+    BackHandler(enabled = algorithmDrawerVisible && !longReadVisible) {
         algorithmDrawerVisible = false
     }
-    LaunchedEffect(activeOverlay, algorithmDrawerVisible) {
-        if (activeOverlay != null || algorithmDrawerVisible) streamState.acquireHide() else streamState.releaseHide()
+    LaunchedEffect(activeOverlay, algorithmDrawerVisible, longReadVisible) {
+        if (activeOverlay != null || algorithmDrawerVisible || longReadVisible) streamState.acquireHide() else streamState.releaseHide()
     }
 
     fun toggleOverlay(overlay: ActiveOverlay) {
@@ -651,11 +659,19 @@ private fun MainScreenScaffold(
                         dragDistance = 0f
                     },
                     onHorizontalDrag = { change, amount ->
-                        if (trackingEdgeSwipe && amount > 0f) {
-                            dragDistance += amount
-                            if (dragDistance >= 56f) {
-                                algorithmDrawerVisible = true
-                                trackingEdgeSwipe = false
+                        if (trackingEdgeSwipe) {
+                            val opensAlgorithm = amount > 0f
+                            val opensLongReads = amount < 0f && !algorithmDrawerVisible
+                            if (opensAlgorithm || opensLongReads) {
+                                dragDistance += kotlin.math.abs(amount)
+                                if (dragDistance >= 56f) {
+                                    if (opensAlgorithm) {
+                                        algorithmDrawerVisible = true
+                                    } else {
+                                        longReadVisible = true
+                                    }
+                                    trackingEdgeSwipe = false
+                                }
                             }
                         }
                     },
@@ -740,12 +756,14 @@ private fun MainScreenScaffold(
                 walletPickerVisible = walletPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
                 algorithmDrawerVisible = algorithmDrawerVisible,
+                longReadVisible = longReadVisible,
                 exploreActiveSection = exploreActiveSection,
                 sharedState = sharedState,
                 homeFeeds = homeState.feeds,
                 drawerActiveFeed = drawerActiveFeed,
                 onDismissOverlay = { activeOverlay = null },
                 onDismissAlgorithmDrawer = { algorithmDrawerVisible = false },
+                onDismissLongRead = { longReadVisible = false },
                 onDrawerDestinationClick = onDrawerDestinationClick,
                 accountSwitcherCallbacks = accountSwitcherCallbacks,
                 navController = navController,
@@ -766,7 +784,7 @@ private fun MainScreenScaffold(
                 placement = BubblePlacement.Above,
             )
         },
-        overlayCoversTopBar = algorithmDrawerVisible,
+        overlayCoversTopBar = algorithmDrawerVisible || longReadVisible,
         floatingActionButton = { MainScreenFab(activeTab = activeTab, navController = navController) },
         snackbarHost = {
             SnackbarHost(hostState = sharedState.snackbarHostState)
@@ -776,6 +794,66 @@ private fun MainScreenScaffold(
 
 private const val PULL_TO_REFRESH_HINT_DURATION_MS = 6_000L
 private val ALGORITHM_DRAWER_WIDTH = 320.dp
+private val LONG_READS_FEED_SPEC = buildAdvancedSearchReadsFeedSpec(query = "")
+
+@Composable
+private fun LongReadOverlay(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onArticleClick: (String) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier.fillMaxSize(),
+        enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
+        exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppTheme.colorScheme.background),
+        ) {
+            ArticleFeedList(
+                feedSpec = LONG_READS_FEED_SPEC,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 72.dp),
+                noContentText = stringResource(id = R.string.long_reads_no_content),
+                onArticleClick = onArticleClick,
+                onGetPremiumClick = {},
+                pullToRefreshEnabled = true,
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .background(AppTheme.colorScheme.surface)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = PrimalIcons.Close,
+                        contentDescription = stringResource(id = R.string.accessibility_close),
+                        tint = AppTheme.colorScheme.onSurface,
+                    )
+                }
+                Icon(
+                    modifier = Modifier.size(25.dp),
+                    imageVector = LibreNavigationIcons.LongReads,
+                    contentDescription = stringResource(id = R.string.accessibility_long_reads),
+                    tint = AppTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = stringResource(id = R.string.long_reads_title),
+                    style = AppTheme.typography.titleLarge,
+                    color = AppTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun PullToRefreshHint(
@@ -860,12 +938,14 @@ private fun MainScreenOverlays(
     walletPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
     algorithmDrawerVisible: Boolean,
+    longReadVisible: Boolean,
     exploreActiveSection: ExploreSection,
     sharedState: MainScreenSharedState,
     homeFeeds: List<FeedUi>,
     drawerActiveFeed: FeedUi?,
     onDismissOverlay: () -> Unit,
     onDismissAlgorithmDrawer: () -> Unit,
+    onDismissLongRead: () -> Unit,
     onDrawerDestinationClick: (DrawerScreenDestination) -> Unit,
     accountSwitcherCallbacks: AccountSwitcherCallbacks,
     navController: NavController,
@@ -961,6 +1041,12 @@ private fun MainScreenOverlays(
             onDismissAlgorithmDrawer()
             navController.navigateToAdvancedSearch(editingFeedSpec = feedSpec)
         },
+    )
+
+    LongReadOverlay(
+        visible = longReadVisible,
+        onDismiss = onDismissLongRead,
+        onArticleClick = { naddr -> navController.navigateToArticleDetails(naddr) },
     )
 }
 
