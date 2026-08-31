@@ -134,18 +134,20 @@ class AppConfigHandlerTest {
         }
 
     @Test
-    fun restoreDefaultCacheUrl_updatesCacheUrl_withWellKnownCacheUrlInDataStore() =
+    fun restoreDefaultCacheUrl_ignoresWellKnownDiscovery_andRestoresTheCompatDefault() =
         runTest {
-            val expectedWellKnownCacheUrl = "well-known-cache-url"
+            // Relay-only mode: AppConfigHandler no longer performs centralized endpoint
+            // discovery, so a well-known response must not reach the store. This used to
+            // assert the opposite and was left behind by the relay-only migration.
             val wellKnownApi = mockk<WellKnownApi>(relaxed = true) {
                 coEvery { fetchApiConfig() } returns ApiConfigResponse(
-                    cacheServers = listOf(expectedWellKnownCacheUrl),
+                    cacheServers = listOf("well-known-cache-url"),
                     walletServers = emptyList(),
                     uploadServers = emptyList(),
                 )
             }
 
-            val appConfigPersistence = FakeDataStore(initialValue = DEFAULT_APP_CONFIG)
+            val appConfigPersistence = FakeDataStore(initialValue = DEFAULT_APP_CONFIG.copy(cacheUrl = "overridden"))
             val appConfigHandler = AppConfigHandler(
                 dispatcherProvider = coroutinesTestRule.dispatcherProvider,
                 appConfigStore = AppConfigDataStore(
@@ -158,7 +160,8 @@ class AppConfigHandlerTest {
             appConfigHandler.restoreDefaultCacheUrl()
             advanceUntilIdle()
 
-            appConfigPersistence.latestData.cacheUrl shouldBe expectedWellKnownCacheUrl
+            appConfigPersistence.latestData.cacheUrl shouldBe DEFAULT_APP_CONFIG.cacheUrl
+            coVerify(exactly = 0) { wellKnownApi.fetchApiConfig() }
         }
 
     @Test

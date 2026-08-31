@@ -334,7 +334,7 @@ class TagsTest {
         actual.size shouldBe 5
         actual[0].jsonPrimitive.content shouldBe "p"
         actual[1].jsonPrimitive.content shouldBe pubkey
-        actual[2].jsonPrimitive.content shouldBe "wss://relay.primal.net"
+        actual[2].jsonPrimitive.content shouldBe "wss://relay.damus.io"
         actual[3].jsonPrimitive.content shouldBe ""
         actual[4].jsonPrimitive.content shouldBe """["content","trending"]"""
     }

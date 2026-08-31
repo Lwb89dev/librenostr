@@ -32,7 +32,6 @@ class PrimalApp : Application() {
         WalletRepositoryFactory.init(
             context = this@PrimalApp,
             enableDbEncryption = !BuildConfig.DEBUG,
-            breezApiKey = BuildConfig.BREEZ_SDK_API_KEY,
         )
         AccountRepositoryFactory.init(
             context = this@PrimalApp,

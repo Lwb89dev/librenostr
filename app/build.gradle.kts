@@ -97,12 +97,6 @@ android {
             },
         )
 
-        buildConfigField(
-            type = "String",
-            name = "BREEZ_SDK_API_KEY",
-            value = "\"${configProperties?.getProperty("api.breez.sdk", "")}\"",
-        )
-
     }
 
     splits {

@@ -5,9 +5,6 @@ import net.primal.core.config.store.AppConfigInitializer
 import net.primal.shared.data.local.db.LocalDatabaseFactory
 import net.primal.shared.data.local.encryption.AndroidPlatformKeyStore
 import net.primal.wallet.data.local.db.WalletDatabase
-import net.primal.wallet.data.spark.AndroidBreezSdkStorageProvider
-import net.primal.wallet.data.spark.BreezApiKeyProvider
-import net.primal.wallet.data.spark.BreezSdkStorageProvider
 
 typealias WalletRepositoryFactory = AndroidRepositoryFactory
 
@@ -25,20 +22,12 @@ object AndroidRepositoryFactory : RepositoryFactory() {
         )
     }
 
-    fun init(
-        context: Context,
-        enableDbEncryption: Boolean,
-        breezApiKey: String,
-    ) {
+    fun init(context: Context, enableDbEncryption: Boolean) {
         WalletDatabase.setEncryption(enableEncryption = enableDbEncryption)
-        BreezApiKeyProvider.init(breezApiKey)
         this.appContext = context.applicationContext
         AndroidPlatformKeyStore.init(context)
         AppConfigInitializer.init(context)
-        AndroidBreezSdkStorageProvider.init(context)
     }
 
     override fun resolveWalletDatabase(): WalletDatabase = walletDatabase
-
-    override fun resolveBreezSdkStorageProvider(): BreezSdkStorageProvider = AndroidBreezSdkStorageProvider
 }

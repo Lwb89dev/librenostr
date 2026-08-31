@@ -38,7 +38,7 @@ import net.primal.wallet.data.repository.NwcRepositoryImpl
 import net.primal.wallet.data.repository.PrimalWalletAccountRepositoryImpl
 import net.primal.wallet.data.repository.DisabledPrimalWalletNwcRepository
 import net.primal.wallet.data.repository.SparkWalletAccountRepositoryImpl
-import net.primal.wallet.data.repository.SparkWalletManagerImpl
+import net.primal.wallet.data.repository.DisabledSparkWalletManager
 import net.primal.wallet.data.repository.TransactionFeeRepositoryImpl
 import net.primal.wallet.data.repository.WalletAccountRepositoryImpl
 import net.primal.wallet.data.repository.WalletRepositoryImpl
@@ -46,9 +46,6 @@ import net.primal.wallet.data.repository.WalletSessionProvider
 import net.primal.wallet.data.repository.handler.MigratePrimalToSparkWalletHandler
 import net.primal.wallet.data.repository.handler.MigratePrimalTransactionsHandler
 import net.primal.wallet.data.service.factory.WalletServiceFactoryImpl
-import net.primal.wallet.data.spark.BreezApiKeyProvider
-import net.primal.wallet.data.spark.BreezSdkInstanceManager
-import net.primal.wallet.data.spark.BreezSdkStorageProvider
 
 @Suppress("TooManyFunctions")
 abstract class RepositoryFactory {
@@ -57,22 +54,9 @@ abstract class RepositoryFactory {
 
     private val lightningPayHelper = LightningPayHelper(dispatcherProvider)
 
-    private val breezSdkInstanceManager by lazy {
-        BreezSdkInstanceManager(
-            storageProvider = resolveBreezSdkStorageProvider(),
-            apiKey = BreezApiKeyProvider.requireApiKey(),
-        )
-    }
-
-    private val sparkWalletManager by lazy {
-        SparkWalletManagerImpl(
-            breezSdkInstanceManager = breezSdkInstanceManager,
-        )
-    }
+    private val sparkWalletManager: SparkWalletManager = DisabledSparkWalletManager
 
     internal abstract fun resolveWalletDatabase(): WalletDatabase
-
-    internal abstract fun resolveBreezSdkStorageProvider(): BreezSdkStorageProvider
 
     fun createWalletRepository(
         primalWalletApiClient: PrimalApiClient,
@@ -106,12 +90,7 @@ abstract class RepositoryFactory {
                 eventRepository = eventRepository,
                 lightningPayHelper = lightningPayHelper,
             ),
-            sparkWalletService = WalletServiceFactoryImpl.createSparkWalletService(
-                breezSdkInstanceManager = breezSdkInstanceManager,
-                eventRepository = eventRepository,
-                sparkWalletManager = sparkWalletManager,
-                sparkSdkEventProvider = sparkWalletManager,
-            ),
+            sparkWalletService = WalletServiceFactoryImpl.createSparkWalletService(),
         )
     }
 

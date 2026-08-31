@@ -14,7 +14,6 @@ appcompat = "1.7.1"
 bignum = "0.3.10"
 bitcoinj-core = "0.17.1"
 biometric = "1.4.0-alpha07"
-breez-spark-kmp-sdk = "0.17.1"
 camera = "1.5.2"
 compose-bom = "2026.06.00"
 compose-lottie = "6.7.1"
@@ -255,7 +254,6 @@ secp256k1-kmp-jvm = { module = "fr.acinq.secp256k1:secp256k1-kmp-jvm", version.r
 secp256k1-kmp-jni-android = { module = "fr.acinq.secp256k1:secp256k1-kmp-jni-android", version.ref = "acinq-secp256k1-kmp" }
 secp256k1-kmp-jni-jvm = { module = "fr.acinq.secp256k1:secp256k1-kmp-jni-jvm", version.ref = "acinq-secp256k1-kmp" }
 bitcoinj-core = { module = "org.bitcoinj:bitcoinj-core", version.ref = "bitcoinj-core" }
-breez-sdk-spark-kmp = { module = "technology.breez.spark:breez-sdk-spark-kmp", version.ref = "breez-spark-kmp-sdk" }
 
 #Security
 androidx-collection = { module = "androidx.collection:collection", version.ref = "collection" }

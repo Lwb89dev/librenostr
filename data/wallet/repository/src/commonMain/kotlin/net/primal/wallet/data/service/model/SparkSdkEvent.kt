@@ -1,8 +1,8 @@
 package net.primal.wallet.data.service.model
 
-import breez_sdk_spark.SdkEvent
-
-internal data class SparkSdkEvent(
-    val walletId: String,
-    val event: SdkEvent,
-)
+/**
+ * Retained so [net.primal.wallet.data.service.SparkSdkEventProvider] keeps a type to
+ * publish. Nothing emits these any more: the Breez Spark SDK that produced them is no
+ * longer bundled. See [net.primal.wallet.data.repository.DisabledSparkWalletManager].
+ */
+internal object SparkSdkEvent

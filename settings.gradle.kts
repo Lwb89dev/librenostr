@@ -20,7 +20,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = URI.create("https://jitpack.io") }
-        maven { url = URI.create("https://mvn.breez.technology/releases") }
     }
 }
 
