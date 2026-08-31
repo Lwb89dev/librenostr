@@ -7,6 +7,57 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.1.1] - 2026-08-31
+
+Localization, unread badges and feed ordering, plus the fixes from the
+2026-08-31 audit ([`docs/SECURITY_AUDIT_2026-08-31.md`](docs/SECURITY_AUDIT_2026-08-31.md)).
+
+### Added
+
+- In-app language selection with 26 translations (Bulgarian, Croatian, Czech,
+  Danish, Dutch, Estonian, Finnish, French, German, Greek, Hungarian, Irish,
+  Italian, Japanese, Latvian, Lithuanian, Maltese, Polish, Portuguese,
+  Romanian, Russian, Slovak, Slovenian, Spanish, Swedish, Chinese) and an
+  Android `localeConfig`.
+- Unread badges for messages and notifications, computed from the local
+  database instead of a remote counter.
+- A "mark all as read" action in the notifications list, and local
+  mark-all-as-read for direct message conversations.
+- A new-notes indicator on the home tab, and an optional automatic feed
+  refresh when the app returns to the foreground.
+- `wss://nostr.wine` in the fallback relay set.
+
+### Changed
+
+- Feeds are ordered by event timestamp rather than insertion position, so a
+  relay reconnect can no longer shuffle the timeline. Notification ordering
+  gained a stable tie-break on notification id.
+- Interaction counters are resolved from relays for reposts and for the notes
+  in an opened thread, and the feed is invalidated once they arrive so visible
+  cards redraw without navigating away.
+- Notification previews now fetch the events their `e` tag references, so
+  likes, zaps and reposts render an actual note body.
+- Paging loads 50 notes initially and 20 per subsequent page.
+- A relay query whose first EOSE carries no events now waits for the remaining
+  relays instead of returning empty.
+- Added `avif`, `svg` and `ico` to the recognized media types.
+
+### Security
+
+- Direct-message and mute-list queries are no longer broadcast to the hardcoded
+  public fallback relays when the account has its own relays configured.
+  Previously, opening the messages tab disclosed the user's pubkey and reading
+  activity to seven third-party relay operators regardless of configuration.
+- An empty relay snapshot no longer clears the cached feed. Offline or slow
+  relays used to wipe the local timeline on every foreground, leaving nothing
+  to fall back on.
+- Relay connection status is now cleared when a relay closes the socket. The
+  teardown path cancelled its own coroutine, so the closed callback never ran
+  and dead relays kept reporting as connected.
+- Replaced two uses of `kotlin.runCatching` with the project's
+  cancellation-safe `runCatching`, which no longer converts coroutine
+  cancellation into a logged failure.
+
 ## [0.1.0] - 2026-08-30
 
 Initial LibreNostr release. Every active Android data path now talks to
@@ -83,4 +134,5 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.1.1]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.0
