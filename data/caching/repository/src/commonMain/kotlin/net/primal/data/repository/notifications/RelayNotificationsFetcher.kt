@@ -1,10 +1,14 @@
 package net.primal.data.repository.notifications
 
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.notifications.NotificationData
 import net.primal.data.repository.feed.toFeedResponse
+import net.primal.data.repository.mappers.remote.extractZapRequestOrNull
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -15,9 +19,6 @@ import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.notifications.NotificationType
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 
 /**
  * Builds the notification stream from standard Nostr events.
@@ -25,6 +26,12 @@ import kotlinx.coroutines.coroutineScope
  * There is no NIP defining a notification event: clients derive notifications from reactions,
  * replies, reposts, zaps and follow lists. Keeping this derivation here means the app no longer
  * depends on Primal's synthetic kind 10_000_110 notification payload.
+ *
+ * Everything the screen needs is reachable with a single REQ, because a Nostr filter takes a
+ * list of kinds. The previous version issued one REQ per kind, which was both slow and wrong:
+ * each kind got its own `limit`, so the merged page was whichever kind happened to be busiest
+ * and the rest were truncated away. Asking for one chronological page of mixed kinds is what
+ * other clients do, and it is why they returned more notifications in less time.
  */
 internal class RelayNotificationsFetcher(
     private val querier: RelayEventQuerier,
@@ -36,46 +43,21 @@ internal class RelayNotificationsFetcher(
         limit: Int,
         until: Long? = null,
     ): RelayNotificationsResult {
-        // Notifications can be queried directly by the user's `p` tag. The previous
-        // implementation downloaded hundreds of the user's posts and then queried every post
-        // in chunks, making a single screen open issue dozens of sequential relay requests.
-        val events = coroutineScope {
-            val follows = async {
-                query(
-                    RelayFilter(
-                        kinds = listOf(NostrEventKind.FollowList.value),
-                        pubkeyTags = listOf(userId),
-                        limit = limit,
-                        until = until,
-                    ),
-                )
-            }
-            val interactions = listOf(
-                NostrEventKind.Reaction.value,
-                NostrEventKind.ShortTextNoteRepost.value,
-                NostrEventKind.ShortTextNote.value,
-                NostrEventKind.Zap.value,
-            ).map { kind ->
-                async {
-                    query(
-                        RelayFilter(
-                            kinds = listOf(kind),
-                            pubkeyTags = listOf(userId),
-                            limit = limit,
-                            until = until,
-                        ),
-                    )
-                }
-            }
-
-            buildList {
-                addAll(follows.await())
-                interactions.awaitAll().forEach(::addAll)
-            }.distinctBy { it.id }
-        }
+        // Only the kinds that can produce a notification in this group are requested. Opening the
+        // Zaps tab used to download reactions, replies, reposts and follow lists as well, only to
+        // discard them after the group filter.
+        val events = query(
+            RelayFilter(
+                kinds = group.notificationKinds(),
+                pubkeyTags = listOf(userId),
+                limit = limit,
+                until = until,
+            ),
+        )
 
         val notifications = events.mapNotNull { it.asNotification(userId) }
             .filter { it.type.belongsTo(group) }
+            .distinctBy { it.notificationId }
             .sortedWith(compareByDescending<NotificationData> { it.createdAt }.thenByDescending { it.notificationId })
             .take(limit)
 
@@ -87,45 +69,70 @@ internal class RelayNotificationsFetcher(
         // Interaction events point at the original note through their `e` tag. Fetch those
         // referenced events as well, otherwise a relay-only notification row has no note body
         // to render as a useful preview (likes/zaps/reposts especially).
+        //
+        // The referenced notes are the user's own, so their authors add nothing to the actor
+        // set: both queries can run at once instead of chaining metadata behind the notes.
         val referencedEventIds = notifications.mapNotNull { it.actionPostId }.distinct()
-        val referencedEvents = if (referencedEventIds.isEmpty()) {
-            emptyList()
-        } else {
-            query(
-                RelayFilter(
-                    ids = referencedEventIds,
-                    kinds = listOf(
-                        NostrEventKind.ShortTextNote.value,
-                        NostrEventKind.ShortTextNoteRepost.value,
-                        NostrEventKind.PictureNote.value,
-                        NostrEventKind.LongFormContent.value,
-                    ),
-                    limit = referencedEventIds.size,
-                ),
-            )
+        val actors = notifications.mapNotNull { it.actionUserId }.distinct()
+
+        val (referencedEvents, metadata) = coroutineScope {
+            val referenced = async {
+                if (referencedEventIds.isEmpty()) {
+                    emptyList()
+                } else {
+                    query(
+                        RelayFilter(
+                            ids = referencedEventIds,
+                            kinds = CONTENT_KINDS,
+                            limit = referencedEventIds.size,
+                        ),
+                    )
+                }
+            }
+            val profiles = async {
+                if (actors.isEmpty()) {
+                    emptyList()
+                } else {
+                    query(
+                        RelayFilter(
+                            kinds = listOf(NostrEventKind.Metadata.value),
+                            authors = actors,
+                            limit = actors.size,
+                        ),
+                    ).latestMetadataByPubkey()
+                }
+            }
+            listOf(referenced, profiles).awaitAll()
+            referenced.await() to profiles.await()
         }
 
-        val actors = (notifications.mapNotNull { it.actionUserId } + referencedEvents.map { it.pubKey })
-            .distinct()
-        val metadata = if (actors.isEmpty()) {
-            emptyList()
-        } else {
-            query(
-                RelayFilter(
-                    kinds = listOf(NostrEventKind.Metadata.value),
-                    authors = actors,
-                    limit = actors.size,
-                ),
-            ).latestMetadataByPubkey()
-        }
-        val contentEvents = (events + referencedEvents).filter { it.kind == NostrEventKind.ShortTextNote.value ||
-            it.kind == NostrEventKind.ShortTextNoteRepost.value || it.kind == NostrEventKind.PictureNote.value ||
-            it.kind == NostrEventKind.LongFormContent.value || it.kind == NostrEventKind.Zap.value }
+        val contentEvents = (events + referencedEvents)
+            .filter { it.kind in CONTENT_KINDS || it.kind == NostrEventKind.Zap.value }
+
         return RelayNotificationsResult(
             notifications = notifications,
             feedResponse = (contentEvents + metadata).distinctBy { it.id }.toFeedResponse(metadata),
+            // Pagination must key off what the relays returned, not off the group-filtered rows.
+            // Judging by the filtered count declared the end of the list as soon as a tab was
+            // sparse — the Zaps tab stopped after its first page even with older zaps available.
+            relayEventCount = events.size,
         )
     }
+
+    private fun NotificationGroup.notificationKinds(): List<Int> =
+        when (this) {
+            NotificationGroup.ALL -> listOf(
+                NostrEventKind.ShortTextNote.value,
+                NostrEventKind.FollowList.value,
+                NostrEventKind.ShortTextNoteRepost.value,
+                NostrEventKind.Reaction.value,
+                NostrEventKind.Zap.value,
+            )
+            NotificationGroup.ZAPS -> listOf(NostrEventKind.Zap.value)
+            NotificationGroup.REPLIES, NotificationGroup.MENTIONS ->
+                listOf(NostrEventKind.ShortTextNote.value)
+            NotificationGroup.REPOSTS -> listOf(NostrEventKind.ShortTextNoteRepost.value)
+        }
 
     private suspend fun query(filter: RelayFilter): List<NostrEvent> =
         // Timeout and user/fallback selection are handled by RelaysSocketManager. Keeping a
@@ -133,12 +140,12 @@ internal class RelayNotificationsFetcher(
         runCatching { querier.query(filter) }.getOrDefault(emptyList<NostrEvent>())
 
     private fun NostrEvent.asNotification(userId: String): NotificationData? {
-        if (pubKey == userId) return null
         val target = tags.eventIdTagValues().firstOrNull()
         val type = when (kind) {
             NostrEventKind.FollowList.value -> NotificationType.NEW_USER_FOLLOWED_YOU
             NostrEventKind.Reaction.value -> if (target != null) NotificationType.YOUR_POST_WAS_LIKED else null
-            NostrEventKind.ShortTextNoteRepost.value -> if (target != null) NotificationType.YOUR_POST_WAS_REPOSTED else null
+            NostrEventKind.ShortTextNoteRepost.value ->
+                if (target != null) NotificationType.YOUR_POST_WAS_REPOSTED else null
             NostrEventKind.Zap.value -> if (target != null) NotificationType.YOUR_POST_WAS_ZAPPED else null
             NostrEventKind.ShortTextNote.value -> when {
                 target != null -> NotificationType.YOUR_POST_WAS_REPLIED_TO
@@ -147,8 +154,19 @@ internal class RelayNotificationsFetcher(
             }
             else -> null
         } ?: return null
+
+        // A NIP-57 receipt is signed by the recipient's LNURL server, not by the person who
+        // zapped. The sender is the author of the kind 9734 request embedded in `description`;
+        // reading `pubKey` here credited every zap to the payment provider.
+        val actionUserId = if (type == NotificationType.YOUR_POST_WAS_ZAPPED) {
+            extractZapRequestOrNull()?.pubKey ?: return null
+        } else {
+            pubKey
+        }
+        if (actionUserId == userId) return null
+
         val amount = if (type == NotificationType.YOUR_POST_WAS_ZAPPED) {
-            tags.findFirstZapAmount()?.toLongOrNull()?.let { if (it >= 1000) it / 1000 else it }
+            tags.findFirstZapAmount()?.toLongOrNull()?.let { if (it >= MILLISATS_PER_SAT) it / MILLISATS_PER_SAT else it }
         } else {
             null
         }
@@ -157,10 +175,11 @@ internal class RelayNotificationsFetcher(
             ownerId = userId,
             createdAt = createdAt,
             type = type,
-            actionUserId = pubKey,
+            actionUserId = actionUserId,
             actionPostId = when (type) {
                 NotificationType.YOUR_POST_WAS_REPLIED_TO,
-                NotificationType.YOU_WERE_MENTIONED_IN_POST -> id
+                NotificationType.YOU_WERE_MENTIONED_IN_POST,
+                -> id
                 else -> target
             },
             satsZapped = amount,
@@ -168,17 +187,29 @@ internal class RelayNotificationsFetcher(
         )
     }
 
-    private fun NotificationType.belongsTo(group: NotificationGroup): Boolean = when (group) {
-        NotificationGroup.ALL -> true
-        NotificationGroup.ZAPS -> this == NotificationType.YOUR_POST_WAS_ZAPPED
-        NotificationGroup.REPLIES -> this == NotificationType.YOUR_POST_WAS_REPLIED_TO
-        NotificationGroup.MENTIONS -> this == NotificationType.YOU_WERE_MENTIONED_IN_POST
-        NotificationGroup.REPOSTS -> this == NotificationType.YOUR_POST_WAS_REPOSTED
-    }
+    private fun NotificationType.belongsTo(group: NotificationGroup): Boolean =
+        when (group) {
+            NotificationGroup.ALL -> true
+            NotificationGroup.ZAPS -> this == NotificationType.YOUR_POST_WAS_ZAPPED
+            NotificationGroup.REPLIES -> this == NotificationType.YOUR_POST_WAS_REPLIED_TO
+            NotificationGroup.MENTIONS -> this == NotificationType.YOU_WERE_MENTIONED_IN_POST
+            NotificationGroup.REPOSTS -> this == NotificationType.YOUR_POST_WAS_REPOSTED
+        }
 
+    private companion object {
+        const val MILLISATS_PER_SAT = 1000L
+
+        val CONTENT_KINDS = listOf(
+            NostrEventKind.ShortTextNote.value,
+            NostrEventKind.ShortTextNoteRepost.value,
+            NostrEventKind.PictureNote.value,
+            NostrEventKind.LongFormContent.value,
+        )
+    }
 }
 
 internal data class RelayNotificationsResult(
     val notifications: List<NotificationData>,
     val feedResponse: net.primal.data.remote.api.feed.model.FeedResponse,
+    val relayEventCount: Int = 0,
 )

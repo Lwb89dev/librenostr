@@ -223,7 +223,10 @@ class NotificationsRemoteMediator(
                 )
             }
         }
-        return MediatorResult.Success(endOfPaginationReached = result.notifications.size < RELAY_PAGE_SIZE)
+        // End of list is decided by what the relays returned, not by how many rows survived the
+        // group filter. Judging by the filtered count stopped a sparse tab — Zaps especially —
+        // after its first page even when older events were still available.
+        return MediatorResult.Success(endOfPaginationReached = result.relayEventCount < RELAY_PAGE_SIZE)
     }
 
     private fun List<NotificationData>.mapWithSeenAtTimestamps(): List<NotificationData> {
