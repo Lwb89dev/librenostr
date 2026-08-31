@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.core.net.toUri
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.core.utils.serialization.encodeToJsonString
+import net.primal.android.signer.SIGNABLE_EVENT_KINDS
 import net.primal.data.account.signer.local.model.Permission
 import net.primal.data.account.signer.local.model.SignerMethod
 import net.primal.domain.nostr.NostrEvent
@@ -93,9 +94,8 @@ fun rememberAmberSignerLauncher(onFailure: ((ActivityResult) -> Unit)? = null, o
 /**
  * Initiates the `get_public_key` flow on the Amber app.
  *
- * When called, this function constructs an [Intent] to request a public key from Amber, along with
- * permissions for `nip04_encrypt` and `nip04_decrypt`. To handle the resulting public key (or any
- * errors in the flow), use it together with [rememberAmberPubkeyLauncher].
+ * The request carries the full permission set the app needs, so the user grants it once at
+ * connect time instead of being prompted for each kind — or silently losing the action.
  *
  * @see rememberAmberPubkeyLauncher
  * @throws ActivityNotFoundException if Amber is not installed on the device.
@@ -106,17 +106,14 @@ fun AmberLauncher.launchGetPublicKey() {
     // NIP-55 requires get_public_key to be an unqualified request so the signer
     // can return its package name along with the user key.
     val permissions = listOf(
-        Permission(
-            type = SignerMethod.NIP04_ENCRYPT,
-        ),
-        Permission(
-            type = SignerMethod.NIP04_DECRYPT,
-        ),
-        Permission(
-            type = SignerMethod.SIGN_EVENT,
-            kind = NostrEventKind.ShortTextNote.value,
-        ),
-    )
+        Permission(type = SignerMethod.NIP04_ENCRYPT),
+        Permission(type = SignerMethod.NIP04_DECRYPT),
+        Permission(type = SignerMethod.NIP44_ENCRYPT),
+        Permission(type = SignerMethod.NIP44_DECRYPT),
+        Permission(type = SignerMethod.DECRYPT_ZAP_EVENT),
+    ) + SIGNABLE_EVENT_KINDS.map { kind ->
+        Permission(type = SignerMethod.SIGN_EVENT, kind = kind.value)
+    }
 
     intent.putExtra("permissions", permissions.encodeToJsonString())
     intent.putExtra("type", SignerMethod.GET_PUBLIC_KEY.method)

@@ -28,6 +28,7 @@ import net.primal.core.utils.runCatching
 import net.primal.domain.global.ContentAppSettings
 import net.primal.domain.nostr.ContentMetadata
 import net.primal.domain.nostr.NostrEvent
+import net.primal.android.signer.SIGNABLE_EVENT_KIND_VALUES
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asClientTag
@@ -67,7 +68,7 @@ class NostrNotary @Inject constructor(
         }
 
         if (isExternalSigner(unsignedNostrEvent.pubKey) &&
-            unsignedNostrEvent.kind !in AMBER_ALLOWED_KINDS
+            unsignedNostrEvent.kind !in SIGNABLE_EVENT_KIND_VALUES
         ) {
             Napier.d { "Skipping Amber prompt for leftover kind ${unsignedNostrEvent.kind}" }
             return SignResult.Rejected(SigningRejectedException())
@@ -234,30 +235,6 @@ class NostrNotary @Inject constructor(
         val BLOCKED_PRIMAL_AUTH_KINDS = setOf(
             NostrEventKind.ApplicationSpecificData.value,
             NostrEventKind.PrimalWalletOperation.value,
-        )
-
-        val AMBER_ALLOWED_KINDS = setOf(
-            NostrEventKind.Metadata.value,
-            NostrEventKind.ShortTextNote.value,
-            NostrEventKind.FollowList.value,
-            NostrEventKind.EncryptedDirectMessages.value,
-            NostrEventKind.EventDeletion.value,
-            NostrEventKind.ShortTextNoteRepost.value,
-            NostrEventKind.Reaction.value,
-            NostrEventKind.GenericRepost.value,
-            NostrEventKind.PictureNote.value,
-            NostrEventKind.ZapRequest.value,
-            NostrEventKind.MuteList.value,
-            NostrEventKind.RelayListMetadata.value,
-            NostrEventKind.BookmarksList.value,
-            NostrEventKind.BlossomServerList.value,
-            // Blossom BUD-01 uploads use a signed kind 24242 authorization
-            // event. External signers (Amber) must be allowed to approve it
-            // just like the other user-initiated Nostr events.
-            NostrEventKind.BlossomUploadBlob.value,
-            NostrEventKind.ClientAuthentication.value,
-            NostrEventKind.CategorizedPeopleList.value,
-            NostrEventKind.LongFormContent.value,
         )
     }
 }
