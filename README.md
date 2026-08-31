@@ -75,7 +75,7 @@ Remaining paths and phased removal are tracked in [`docs/LIBRENOSTR_ROADMAP.md`]
 
 Requires JDK 21 and an Android SDK with compile SDK 37. The project uses AGP 9.2.1, Kotlin 2.4.0 and min SDK 26.
 
-Flavors are `aosp` (F-Droid/Zapstore-oriented) and `google` (Play services). Use `aospDebug` for local development unless Play secrets are configured.
+There is a single build: LibreNostr ships without Google Play services, Play Billing, ML Kit or Firebase, so there is no flavor dimension.
 
 ```bash
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64   # or another JDK 21 path
@@ -84,9 +84,9 @@ export ANDROID_HOME="$HOME/Android/Sdk"
 # sdk.dir is written to gitignored local.properties
 echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-./gradlew :app:compileAospDebugKotlin
-./gradlew :app:assembleAospDebug
-./gradlew :app:installAospDebug
+./gradlew :app:compileDebugKotlin
+./gradlew :app:assembleDebug
+./gradlew :app:installDebug
 ```
 
 The AOSP debug APK has been compiled, installed and exercised through ADB during the current development cycle. Debug builds do not encrypt stored keys (`NoEncryption`); do not use a debug APK with a valuable real `nsec`.
@@ -99,21 +99,21 @@ Create a gitignored `config.properties` in the repository root:
 localStorage.keyAlias={KeystoreAliasForEncryption}
 ```
 
-Signing properties are optional and use the `playStore` or `alternative` signing block. Then run the appropriate release task, for example:
+Signing properties are optional and use the `alternative` signing block. Then run the release task:
 
 ```bash
-./gradlew :app:installAospAltRelease
+./gradlew :app:installAltRelease
 ```
 
 ## Releases
 
-Signed release APKs (`aospAltRelease`, split per ABI: `armeabi-v7a`,
+Signed release APKs (`altRelease`, split per ABI: `armeabi-v7a`,
 `arm64-v8a`, `x86_64`) are published on the
 [GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page,
 starting with `v0.1.0`. Verify the APK signature before installing:
 
 ```bash
-apksigner verify --print-certs app-aosp-altRelease-<abi>.apk
+apksigner verify --print-certs librenostr-<version>-<abi>.apk
 ```
 
 ## Documentation

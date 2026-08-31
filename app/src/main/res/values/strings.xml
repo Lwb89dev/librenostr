@@ -216,8 +216,7 @@
     </string>
     <string name="premium_find_primal_name_button">Find LibreNostr Name</string>
     <string name="premium_cancel_button">Cancel</string>
-    <string name="premium_google_play_not_available">Unable to connect to the Google Play Store. Check your Google account and try again.</string>
-    <string name="premium_google_play_not_available_aosp">Google Play services are not available. You can use the LibreNostr web app to buy LibreNostr Premium.</string>
+    <string name="premium_subscriptions_not_available">In-app subscriptions are not available in this build. LibreNostr ships without Google Play services or Play Billing.</string>
 
     <string name="premium_primal_name_title">Find LibreNostr Name</string>
     <string name="premium_primal_name_search_button">Search</string>
@@ -387,7 +386,6 @@
     <string name="premium_order_history_premium_hint_does_not_renews">Does not renew</string>
     <string name="premium_order_history_premium_expired">Expired</string>
     <string name="premium_order_history_cancel_subscription_button">Cancel Subscription</string>
-    <string name="premium_order_history_enable_renewal_button">Enable Renewal</string>
     <string name="premium_order_history_extend_subscription_button">Extend Subscription</string>
     <string name="premium_order_history_renews_subscription_button">Renew Subscription</string>
     <string name="premium_order_history_date_header">Date</string>
@@ -1042,7 +1040,6 @@
     <string name="settings_notifications_group_preferences_reactions_from_follows">Only show reactions from users I follow</string>
     <string name="settings_notifications_enable_push_notifications">Enable Push Notifications</string>
     <string name="settings_notifications_enable_push_notifications_description">Get system notifications from LibreNostr. You can also configure this in your system settings.</string>
-    <string name="settings_notifications_channel_name_all_app_events">LibreNostr app notifications</string>
 
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_theme_section_title">Theme</string>

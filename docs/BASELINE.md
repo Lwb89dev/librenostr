@@ -47,7 +47,13 @@ The AOSP flavor already contains `app/src/aosp/google-services.json` in the tree
 - `google` — Play services, FCM, Play Billing
 - `aosp` — F-Droid / Zapstore oriented build
 
-LibreNostr baseline uses **aospDebug**.
+LibreNostr baseline used **aospDebug**.
+
+> **Removed in 0.1.2.** The flavor dimension, the `google` source set and every
+> Play services / Play Billing / ML Kit / Firebase dependency were deleted, so
+> there is a single build and the Gradle task names lost their `Aosp` infix
+> (`assembleAospDebug` → `assembleDebug`). Commands below are the current ones;
+> the measured timings are from the original aospDebug baseline run.
 
 ## Build command
 
@@ -55,13 +61,13 @@ LibreNostr baseline uses **aospDebug**.
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 export ANDROID_HOME="$HOME/Android/Sdk"
 export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
-./gradlew :app:assembleAospDebug
+./gradlew :app:assembleDebug
 ```
 
 CI compile check:
 
 ```bash
-./gradlew compileAospDebugKotlin
+./gradlew compileDebugKotlin
 ```
 
 ## Test commands (upstream CI)
@@ -72,7 +78,7 @@ From `.github/workflows/PR-workflow.yml`:
 ./gradlew ktlintCheck
 ./gradlew detekt
 ./gradlew lint
-./gradlew testAospDebugUnitTest
+./gradlew testDebugUnitTest
 ./gradlew allTests
 ```
 
@@ -80,20 +86,19 @@ Recorded on this machine, 2026-08-27:
 
 | Command | Result |
 |---|---|
-| `./gradlew :app:assembleAospDebug` | BUILD SUCCESSFUL, 41s |
-| `./gradlew :app:testAospDebugUnitTest` | BUILD SUCCESSFUL, 1m 11s — **344 tests, 0 failures, 0 errors, 0 skipped** |
+| `./gradlew :app:assembleDebug` | BUILD SUCCESSFUL, 41s |
+| `./gradlew :app:testDebugUnitTest` | BUILD SUCCESSFUL, 1m 11s — **344 tests, 0 failures, 0 errors, 0 skipped** |
 | `./gradlew allTests` | BUILD SUCCESSFUL, 1m 41s — **985 JUnit XML tests across modules, 0 failures** (includes the 344 app tests) |
 | `ktlintCheck` / `detekt` / `lint` | not run in this baseline |
-| `compileGoogleDebugKotlin` | not run (needs Google flavor `google-services.json` from CI secrets) |
 
 ## Successful build variant
 
 | Item | Status |
 |---|---|
-| Variant | `aospDebug` |
-| Task | `:app:assembleAospDebug` |
+| Variant | `debug` |
+| Task | `:app:assembleDebug` |
 | Result | **BUILD SUCCESSFUL** (confirmation rebuild, 41s, 452 tasks, 132 executed / 320 up-to-date) |
-| Artifact | `app/build/outputs/apk/aosp/debug/app-aosp-debug.apk` |
+| Artifact | `app/build/outputs/apk/debug/app-debug.apk` |
 | Size | ~192 MB (debug, not minified) |
 | First local APK | 2026-08-27 20:58 |
 
@@ -129,5 +134,4 @@ App unit tests and KMP `allTests` passed on this machine (see table above). Rema
 
 - Runtime behaviour without Primal cache servers.
 - Unit / KMP / UI test health.
-- Google flavor compile (`compileGoogleDebugKotlin` needs `app/src/google/google-services.json` from CI secrets).
 - desktop targets.

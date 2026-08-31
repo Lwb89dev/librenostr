@@ -58,7 +58,6 @@ import net.primal.android.core.compose.isEmpty
 import net.primal.android.core.compose.pulltorefresh.PrimalPullToRefreshBox
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
 import net.primal.android.core.utils.formatToDefaultDateFormat
-import net.primal.android.core.utils.isGoogleBuild
 import net.primal.android.main.wallet.WalletDashboardContract.UiEvent
 import net.primal.android.main.wallet.WalletDashboardContract.WalletDashboardState
 import net.primal.android.navigation.navigateToProfile
@@ -113,10 +112,8 @@ internal fun WalletDashboardContent(
         }
     }
 
-    @Suppress("SimplifyBooleanWithConstants", "KotlinConstantConditions")
-    val canBuySats = remember(walletState.wallet) {
-        isGoogleBuild() && walletState.wallet is Wallet.Primal && false
-    }
+    // In-app sat purchases required Play Billing, which this build does not ship.
+    val canBuySats = false
 
     val pagingItems = walletState.transactions.collectAsLazyPagingItems()
     val listState = pagingItems.rememberLazyListStatePagingWorkaround()

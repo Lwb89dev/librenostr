@@ -51,7 +51,6 @@ import net.primal.android.core.compose.UniversalAvatarThumbnail
 import net.primal.android.core.compose.button.PrimalFilledButton
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
-import net.primal.android.core.utils.isGoogleBuild
 import net.primal.android.premium.buying.PremiumBuyingContract
 import net.primal.android.premium.buying.home.PRO_ORANGE
 import net.primal.android.premium.legend.domain.LegendaryCustomization
@@ -332,10 +331,7 @@ fun BuyPremiumButtons(
                                 modifier = Modifier
                                     .wrapContentSize()
                                     .padding(horizontal = 16.dp),
-                                text = when {
-                                    isGoogleBuild() -> stringResource(id = R.string.premium_google_play_not_available)
-                                    else -> stringResource(id = R.string.premium_google_play_not_available_aosp)
-                                },
+                                text = stringResource(id = R.string.premium_subscriptions_not_available),
                                 textAlign = TextAlign.Center,
                                 style = AppTheme.typography.bodySmall,
                                 color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,

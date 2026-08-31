@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import net.primal.android.core.compose.profile.model.asProfileDetailsUi
-import net.primal.android.core.utils.isGoogleBuild
 import net.primal.android.navigation.FROM_ORIGIN_PREMIUM_BADGE
 import net.primal.android.navigation.buyingPremiumFromOrigin
 import net.primal.android.navigation.extendExistingPremiumName
@@ -116,13 +115,8 @@ class PremiumBuyingViewModel @Inject constructor(
     private fun initBillingClient() {
         viewModelScope.launch {
             try {
-                if (isGoogleBuild()) {
-                    val subscriptionProducts = primalBillingClient.querySubscriptionProducts()
-                    setState { copy(loading = false, subscriptions = subscriptionProducts) }
-                } else {
-                    premiumRepository.fetchMembershipProducts()
-                    setState { copy(loading = false) }
-                }
+                premiumRepository.fetchMembershipProducts()
+                setState { copy(loading = false) }
 
                 fetchActiveSubscription()
             } catch (error: NetworkException) {

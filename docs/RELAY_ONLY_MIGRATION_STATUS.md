@@ -175,7 +175,7 @@ number of files changed.
   `lightning:` wallet intent. NWC remains the only enabled in-app wallet
   transport; legacy Primal and Spark/Breez operations return an explicit
   unsupported result.
-- `:app:compileAospDebugKotlin` passes.
+- `:app:compileDebugKotlin` passes.
 
 ## Important distinction
 

@@ -14,5 +14,5 @@ object AospBillingModule {
 
     @Provides
     @Singleton
-    fun providePlayBillingClient(): PrimalBillingClient = AospBillingClient()
+    fun provideBillingClient(): PrimalBillingClient = AospBillingClient()
 }

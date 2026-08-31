@@ -40,7 +40,6 @@ import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.utils.formatToDefaultDateFormat
-import net.primal.android.core.utils.isGoogleBuild
 import net.primal.android.premium.buying.home.PrimalPremiumLogoHeader
 import net.primal.android.premium.ui.ManagePremiumTableRow
 import net.primal.android.premium.utils.isOriginAndroid
@@ -308,10 +307,6 @@ private fun SubscriptionHeader(
                     text = when {
                         isExpired -> stringResource(
                             R.string.premium_order_history_renews_subscription_button,
-                        )
-
-                        isGoogleBuild() -> stringResource(
-                            R.string.premium_order_history_enable_renewal_button,
                         )
 
                         else -> stringResource(R.string.premium_order_history_extend_subscription_button)

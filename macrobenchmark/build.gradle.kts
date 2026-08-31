@@ -48,11 +48,6 @@ android {
         buildConfig = true
     }
 
-    flavorDimensions += listOf("distribution")
-    productFlavors {
-        create("google") { dimension = "distribution" }
-        create("aosp") { dimension = "distribution" }
-    }
 
     targetProjectPath = ":app"
     experimentalProperties["android.experimental.self-instrumenting"] = true

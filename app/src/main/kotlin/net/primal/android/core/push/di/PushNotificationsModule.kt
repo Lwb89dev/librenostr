@@ -11,5 +11,7 @@ import net.primal.android.core.push.PushNotificationsTokenUpdater
 @InstallIn(SingletonComponent::class)
 abstract class PushNotificationsModule {
     @Binds
-    abstract fun provideTokenUpdater(updater: RelayOnlyPushNotificationsTokenUpdater): PushNotificationsTokenUpdater
+    abstract fun provideTokenUpdater(
+        updater: RelayOnlyPushNotificationsTokenUpdater,
+    ): PushNotificationsTokenUpdater
 }

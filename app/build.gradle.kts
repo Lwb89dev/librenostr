@@ -6,8 +6,6 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.play.publishing)
-    alias(libs.plugins.google.services)
 }
 
 val configProperties by lazy {
@@ -121,15 +119,6 @@ android {
     }
 
     signingConfigs {
-        extractSigningConfigProperties("playStore")?.let {
-            signingConfigs.create(it.storeName) {
-                storeFile = it.storeFile
-                storePassword = it.storePassword
-                keyAlias = it.keyAlias
-                keyPassword = it.keyAliasPassword
-            }
-        }
-
         extractSigningConfigProperties("alternative")?.let {
             signingConfigs.create(it.storeName) {
                 storeFile = it.storeFile
@@ -150,15 +139,6 @@ android {
             )
         }
 
-        create("playRelease") {
-            initWith(getByName("release"))
-            signingConfig = try {
-                signingConfigs.getByName("playStore")
-            } catch (_: UnknownDomainObjectException) {
-                signingConfigs.getByName("debug")
-            }
-        }
-
         create("altRelease") {
             initWith(getByName("release"))
             signingConfig = try {
@@ -175,27 +155,7 @@ android {
         }
     }
 
-    flavorDimensions.addAll(
-        listOf("distribution"),
-    )
-
-    productFlavors {
-        create("google") {
-            dimension = "distribution"
-        }
-
-        create("aosp") {
-            dimension = "distribution"
-            isDefault = true
-        }
-    }
-
     sourceSets {
-        named("playRelease") {
-            kotlin.directories.add("src/release/kotlin")
-            res.directories.add("src/release/res")
-        }
-
         named("altRelease") {
             kotlin.directories.add("src/release/kotlin")
             res.directories.add("src/release/res")
@@ -392,8 +352,6 @@ dependencies {
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.exoplayer.ui)
     implementation(libs.media3.exoplayer.ui.compose)
-    "googleImplementation"(libs.media3.datasource.cronet)
-    "googleImplementation"(libs.google.play.services.cronet)
     implementation(libs.zoomimage.compose.coil3)
 
     implementation(libs.lottie.compose)
@@ -412,17 +370,13 @@ dependencies {
 
     implementation(libs.url.detector)
 
-    "googleImplementation"(libs.play.billing)
-    "googleImplementation"(libs.play.billing.ktx)
-    "googleImplementation"(libs.mlkit.barcode.scanning)
-
     implementation(libs.qrcode.generator)
 
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
-    "aospImplementation"(libs.zxing.core)
+    implementation(libs.zxing.core)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

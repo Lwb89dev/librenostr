@@ -1,160 +1,123 @@
-name: Create release from tag
+name: Release from tag
 
+# Only LibreNostr release tags. The imported history carries 396 upstream tags
+# (31 of them `ios-*`); matching `v*` keeps this workflow from firing on any of
+# them if they are ever pushed, and replaces the old `'*'` + `'!ios-*'` pair.
 on:
   push:
     tags:
-      - '*'
-      - '!ios-*'
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  build-apk:
-    name: Build & sign APK
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Cache gradle
-      uses: actions/cache@v4
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Unpack secrets
-      run: |
-        openssl base64 -d -out config.properties <<< "${{ secrets.CONFIG_PROPERTIES }}"
-        openssl base64 -d -out app/primal_alternative_android.jks <<< "${{ secrets.CERT_ALTERNATIVE }}"
-        openssl base64 -d -out app/primal_googlePlay_android.jks <<< "${{ secrets.CERT_PLAYSTORE }}"
-        openssl base64 -d -out app/src/aosp/google-services.json <<< "${{ secrets.GOOGLE_SERVICES_FLAVOR_AOSP }}"
-        openssl base64 -d -out app/src/google/google-services.json <<< "${{ secrets.GOOGLE_SERVICES_FLAVOR_GOOGLE }}"
-
-    - name: Build & Sign APK
-      run: |
-        ./gradlew assembleAospAltRelease --no-daemon
-        mv app/build/outputs/apk/aosp/altRelease/*apk primal-${{ github.ref_name }}.apk
-        zip -j primal-${{ github.ref_name }}-mapping.zip app/build/outputs/mapping/aospAltRelease/mapping.txt
-
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk-release
-        path: |
-          primal-${{ github.ref_name }}.apk
-          primal-${{ github.ref_name }}-mapping.zip
-
-  build-apk-crash-reporter:
-    name: Build & sign crash reporter APK
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Cache gradle
-      uses: actions/cache@v4
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Unpack secrets
-      run: |
-        openssl base64 -d -out config.properties <<< "${{ secrets.CONFIG_PROPERTIES }}"
-        openssl base64 -d -out app/primal_alternative_android.jks <<< "${{ secrets.CERT_ALTERNATIVE }}"
-        openssl base64 -d -out app/primal_googlePlay_android.jks <<< "${{ secrets.CERT_PLAYSTORE }}"
-        openssl base64 -d -out app/src/aosp/google-services.json <<< "${{ secrets.GOOGLE_SERVICES_FLAVOR_AOSP }}"
-        openssl base64 -d -out app/src/google/google-services.json <<< "${{ secrets.GOOGLE_SERVICES_FLAVOR_GOOGLE }}"
-
-    - name: Build & Sign crash reporter APK
-      run: |
-        ./gradlew assembleAospAltRelease -P enablePrimalCrashReporter=true --no-daemon
-        mv app/build/outputs/apk/aosp/altRelease/*apk primal-${{ github.ref_name }}-crash-reporter.apk
-        zip -j primal-${{ github.ref_name }}-crash-reporter-mapping.zip app/build/outputs/mapping/aospAltRelease/mapping.txt
-
-    - name: Upload crash reporter APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk-crash-reporter
-        path: |
-          primal-${{ github.ref_name }}-crash-reporter.apk
-          primal-${{ github.ref_name }}-crash-reporter-mapping.zip
-
-  publish-google-play:
-    name: Publish AAB to Google Play
-    runs-on: ubuntu-latest
-    env:
-      ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Cache gradle
-      uses: actions/cache@v4
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Unpack secrets
-      run: |
-        openssl base64 -d -out config.properties <<< "${{ secrets.CONFIG_PROPERTIES }}"
-        openssl base64 -d -out app/primal_alternative_android.jks <<< "${{ secrets.CERT_ALTERNATIVE }}"
-        openssl base64 -d -out app/primal_googlePlay_android.jks <<< "${{ secrets.CERT_PLAYSTORE }}"
-        openssl base64 -d -out app/src/aosp/google-services.json <<< "${{ secrets.GOOGLE_SERVICES_FLAVOR_AOSP }}"
-        openssl base64 -d -out app/src/google/google-services.json <<< "${{ secrets.GOOGLE_SERVICES_FLAVOR_GOOGLE }}"
-
-    - name: Publish AAB to Google Play
-      run: ./gradlew publishGooglePlayReleaseBundle --track "internal" --release-name "${{ github.ref_name }}"
-
   release:
-    name: Create GitHub release
-    needs: [build-apk, build-apk-crash-reporter]
+    name: Build, sign and publish APKs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Download APK artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: apk-release
+      # Without the release keystore, `altRelease` silently falls back to the
+      # debug signing config and would publish APKs that cannot upgrade a real
+      # install. Releases are currently cut by hand, so report and stop rather
+      # than either shipping debug-signed APKs or failing the tag permanently.
+      - name: Check for signing material
+        id: signing
+        env:
+          CONFIG_PROPERTIES: ${{ secrets.CONFIG_PROPERTIES }}
+          CERT_ALTERNATIVE: ${{ secrets.CERT_ALTERNATIVE }}
+        run: |
+          if [ -n "$CONFIG_PROPERTIES" ] && [ -n "$CERT_ALTERNATIVE" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No signing secrets configured; skipping the build."
+            echo "::notice::Set CONFIG_PROPERTIES and CERT_ALTERNATIVE to publish from CI."
+          fi
 
-    - name: Download crash reporter APK artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: apk-crash-reporter
+      - name: Set up JDK 21
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
 
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Primal ${{ github.ref_name }}
-        draft: true
-        prerelease: false
-        body_path: app/src/main/github/release-notes/github.md
-        files: primal-${{ github.ref_name }}*
+      - name: Cache gradle
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # There is no google-services unpacking step: the Google Play flavor and its
+      # stub json files are gone. The old workflow decoded absent secrets over the
+      # committed stubs, which failed every job with "Malformed root json".
+      - name: Unpack signing material
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          openssl base64 -d -out config.properties <<< "${{ secrets.CONFIG_PROPERTIES }}"
+          openssl base64 -d -out app/librenostr-release.jks <<< "${{ secrets.CERT_ALTERNATIVE }}"
+
+      - name: Build signed APKs
+        if: steps.signing.outputs.available == 'true'
+        run: ./gradlew assembleAltRelease --no-daemon
+
+      - name: Collect release assets
+        if: steps.signing.outputs.available == 'true'
+        id: assets
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p release
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            cp "app/build/outputs/apk/altRelease/app-${abi}-altRelease.apk" \
+               "release/librenostr-${version}-${abi}.apk"
+          done
+          (cd release && sha256sum librenostr-*.apk > SHA256SUMS.txt)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      # A debug-signed APK is the one failure mode that would look successful all
+      # the way to the release page, so assert the real key before publishing.
+      - name: Verify signatures
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)"
+          for apk in release/librenostr-*.apk; do
+            "$apksigner" verify --print-certs "$apk"
+            if "$apksigner" verify --print-certs "$apk" | grep -q "CN=Android Debug"; then
+              echo "::error::$apk is debug-signed; the release keystore was not applied."
+              exit 1
+            fi
+          done
+
+      - name: Extract release notes from CHANGELOG
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          awk -v v="${{ steps.assets.outputs.version }}" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::No [${{ steps.assets.outputs.version }}] section in CHANGELOG.md."
+            exit 1
+          fi
+
+      - name: Publish release
+        if: steps.signing.outputs.available == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: LibreNostr ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body_path: release-notes.md
+          files: |
+            release/librenostr-*.apk
+            release/SHA256SUMS.txt

@@ -104,9 +104,9 @@ follow-pack synchronization and optional wallet/membership modules.
 | Area | Status | Notes |
 |---|---|---|
 | Hilt modules in `app/.../core/di` | REFACTOR | Bindings currently inject `PrimalApiClient`. |
-| Flavor split `google` / `aosp` | KEEP | AOSP is the LibreNostr default. |
-| Firebase / FCM (`google`) | INVESTIGATE | Push currently talks to Primal verbs. |
-| Play Billing | REMOVE | Membership purchases. |
+| Flavor split `google` / `aosp` | REMOVED (0.1.2) | Single de-Googled build; the dimension is gone. |
+| Firebase / FCM (`google`) | REMOVED | Deleted with the `google` source set. |
+| Play Billing | REMOVED (0.1.2) | Dependency and `PlayBillingClient` deleted. |
 
 ### Networking
 

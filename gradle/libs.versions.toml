@@ -11,7 +11,6 @@ android-compileSdk = "37"
 android-targetSdk = "36"
 android-minSdk = "26"
 appcompat = "1.7.1"
-barcode-scanning = "17.3.0"
 bignum = "0.3.10"
 bitcoinj-core = "0.17.1"
 biometric = "1.4.0-alpha07"
@@ -31,7 +30,6 @@ detekt = "1.23.8"
 emoji2 = "1.6.0"
 espresso-core = "3.7.0"
 flippable = "1.5.4"
-google-services = "4.4.4"
 #noinspection NewerVersionAvailable
 guava = "33.0.0-android" # do not upgrade (added with zap settings, should be removed)
 hilt = "1.3.0"
@@ -64,14 +62,11 @@ ktorfit = "2.7.5"
 markwon = "4.6.2"
 material-icons = "1.7.8"
 media3-exoplayer = "1.10.1"
-play-services-cronet = "18.1.1"
 napier = "2.7.1"
 mockk = "1.14.11"
 okhttp = "4.12.0"
 okio = "3.17.0"
 placeholder = "2.0.0"
-play-publishing = "4.0.0"
-play-billing = "9.1.0"
 qrcode-generator = "1.6.2"
 zxing-core = "3.5.4"
 quartz = "1.04.2"
@@ -105,9 +100,6 @@ androidx-material-icons-extended = { module = "androidx.compose.material:materia
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity-ktx" }
 
 # Google
-play-billing = { module = "com.android.billingclient:billing", version.ref = "play-billing" }
-play-billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "play-billing" }
-mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcode-scanning" }
 
 # UI libs
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -238,8 +230,6 @@ media3-exoplayer-ui = { module = "androidx.media3:media3-ui", version.ref = "med
 media3-exoplayer-ui-compose = { module = "androidx.media3:media3-ui-compose", version.ref = "media3-exoplayer" }
 media3-exoplayer-core = { module = "androidx.media3:media3-exoplayer", version.ref = "media3-exoplayer" }
 media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "media3-exoplayer" }
-media3-datasource-cronet = { module = "androidx.media3:media3-datasource-cronet", version.ref = "media3-exoplayer" }
-google-play-services-cronet = { module = "com.google.android.gms:play-services-cronet", version.ref = "play-services-cronet" }
 zoomimage-compose-coil3 = { module = "io.github.panpf.zoomimage:zoomimage-compose-coil3", version.ref = "zoomimage-compose-coil3" }
 
 # Loggers
@@ -311,7 +301,6 @@ org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kot
 org-jetbrains-kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-play-publishing = { id = "com.github.triplet.play", version.ref = "play-publishing" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint-wrapper-plugin = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-wrapper-plugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
@@ -320,5 +309,4 @@ android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.
 jetpack-room = { id = "androidx.room", version.ref = "jetpack-room" }
 jetpack-room3 = { id = "androidx.room3", version.ref = "jetpack-room3" }
 ktorfit = { id = "de.jensklingenberg.ktorfit", version.ref = "ktorfit" }
-google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 android-test = { id = "com.android.test", version.ref = "agp" }

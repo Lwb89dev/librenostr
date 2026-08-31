@@ -46,7 +46,6 @@
 local.properties
 config.properties
 release.properties
-google-services.json
 
 # Signing material — never commit keystores or cert material
 *.jks
