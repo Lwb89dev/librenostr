@@ -49,12 +49,9 @@ class ZxingQrCodeScanner @Inject constructor() : QrCodeResultDecoder {
         )
         val bitmap = BinaryBitmap(HybridBinarizer(source))
 
-        val result = runCatching { reader.decode(bitmap, hints) }.getOrNull() ?: return null
+        val text = runCatching { reader.decode(bitmap, hints) }.getOrNull()?.text ?: return null
 
-        val text = result.text ?: return null
-        val dataType = QrCodeDataType.from(text) ?: return null
-
-        return QrCodeResult(value = text, type = dataType)
+        return QrCodeDataType.from(text)?.let { QrCodeResult(value = text, type = it) }
     }
 
     @Suppress("MagicNumber")
