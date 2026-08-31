@@ -7,6 +7,48 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.1.3] - 2026-08-31
+
+Notifications, Reads scoping, highlights and external-signer permissions.
+
+### Fixed
+
+- **Notifications were slow and returned a truncated page.** A Nostr filter takes
+  a list of kinds, so one REQ is enough; the fetcher issued five — replies,
+  reposts, reactions, zaps, follow lists — and each fanned out to both relay
+  pools, so opening the tab cost ten pool queries with their own EOSE grace and
+  timeouts. The split also truncated the result: every kind got the full `limit`
+  independently and the union was cut back to `limit`, so a page was whichever
+  kind happened to be busiest and the rest fell off the end. Each tab now
+  requests only the kinds it can display, and referenced notes and actor
+  metadata are fetched in parallel instead of chained.
+- **Notification paging stopped after one page** on sparse tabs, because the end
+  of the list was decided by the group-filtered row count rather than by what the
+  relays returned.
+- **Zaps were credited to the wrong person.** A NIP-57 receipt is signed by the
+  recipient's LNURL server, not by the zapper; the sender is the author of the
+  kind 9734 request embedded in the `description` tag.
+- **Long-form Reads pulled from the global firehose.** The author list was passed
+  as "no constraint" when empty, which happened for topic feeds, search feeds and
+  any unrecognised spec — and the public long-form firehose is mostly spam. Every
+  query is now scoped to an explicit author set: the user's follows, widened once
+  to the follows of those follows when follows alone cannot fill a page, capped
+  at 1000 authors because relays reject very large filter arrays. When no scope
+  can be resolved the feed returns empty instead of falling back to global.
+- **Topic Reads queried the wrong tag**, putting the hashtag in `#e` (event ids)
+  instead of `#t`.
+- **NIP-84 highlights never loaded.** The article fetch and the highlights fetch
+  ran sequentially inside one `try` that caught only `NetworkException`, so any
+  failure of the first skipped the second. They now run in parallel and each
+  handles its own failure.
+- **Highlights could not be signed by an external signer.** The notary gated
+  signer requests on a kind allowlist that omitted 9802, so a highlight was
+  rejected locally and Amber was never asked; polls, reports and stream mute
+  lists were blocked the same way. Separately, the NIP-55 connect request asked
+  for `sign_event` on kind 1 only, so every other kind prompted on each use. Both
+  now derive from a single list, and the connect request also asks for nip44
+  encrypt/decrypt and decrypt_zap_event.
+
 ## [0.1.2] - 2026-08-31
 
 De-Googled build, Primal Premium removed, and image metadata stripped before
@@ -198,6 +240,7 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.1.3]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.0
