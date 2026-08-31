@@ -167,7 +167,13 @@ internal class NoteFeedRemoteMediator(
         pagingState: PagingState<Int, FeedPost>,
         remoteKey: FeedPostRemoteKey?,
     ) {
-        val pageSize = pagingState.config.pageSize
+        // Load a deliberately larger first snapshot, then keep subsequent pages small to
+        // avoid retaining/downloading an unnecessarily large feed at startup.
+        val pageSize = if (loadType == LoadType.REFRESH) {
+            pagingState.config.initialLoadSize
+        } else {
+            pagingState.config.pageSize
+        }
         val (request, response) = when (loadType) {
             LoadType.REFRESH -> syncRefresh(pageSize = pageSize)
             LoadType.PREPEND -> syncPrepend(remoteKey = remoteKey, pageSize = pageSize)
@@ -186,7 +192,7 @@ internal class NoteFeedRemoteMediator(
 
     private suspend fun refreshRelayEventStats(response: FeedResponse) {
         val statsFetcher = relayEventStatsFetcher ?: return
-        val eventIds = (response.notes + response.articles).map { it.id }.distinct()
+        val eventIds = (response.notes + response.articles + response.reposts).map { it.id }.distinct()
         if (eventIds.isEmpty()) return
         val stats = statsFetcher.fetch(eventIds = eventIds, userId = userId)
         database.withTransaction {
@@ -195,6 +201,10 @@ internal class NoteFeedRemoteMediator(
                 database.eventUserStats().upsertAll(stats.userStats)
             }
         }
+        // EventStats is a relation and is intentionally excluded from Room's paging
+        // observed-entity set. Explicitly invalidate this feed after the relay snapshot
+        // so visible cards redraw their counters without requiring navigation away/back.
+        invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
     }
 
     private suspend fun syncRefresh(pageSize: Int): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {

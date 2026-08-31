@@ -5,6 +5,7 @@ import net.primal.android.user.domain.toRelay
 val FALLBACK_RELAY_URLS = listOf(
     "wss://relay.damus.io",
     "wss://nos.lol",
+    "wss://nostr.wine",
     "wss://relay.nostr.band",
     "wss://purplepag.es",
     "wss://relay.snort.social",

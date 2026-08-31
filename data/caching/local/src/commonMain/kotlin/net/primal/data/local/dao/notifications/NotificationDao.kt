@@ -23,7 +23,7 @@ interface NotificationDao {
             WHERE n.ownerId = :ownerId
               AND g.groupKey = :groupKey
               AND n.seenGloballyAt IS NOT NULL
-            ORDER BY n.createdAt DESC
+            ORDER BY n.createdAt DESC, n.notificationId DESC
         """,
     )
     fun seenByGroupPaged(ownerId: String, groupKey: String): PagingSource<Int, Notification>
@@ -37,7 +37,7 @@ interface NotificationDao {
             WHERE n.ownerId = :ownerId
               AND g.groupKey = :groupKey
               AND n.seenGloballyAt IS NULL
-            ORDER BY n.createdAt DESC
+            ORDER BY n.createdAt DESC, n.notificationId DESC
         """,
     )
     fun unseenByGroup(ownerId: String, groupKey: String): Flow<List<Notification>>
@@ -48,7 +48,7 @@ interface NotificationDao {
             INNER JOIN NotificationGroupCrossRef g
                 ON n.notificationId = g.notificationId AND n.ownerId = g.ownerId
             WHERE n.ownerId = :ownerId AND g.groupKey = :groupKey
-            ORDER BY n.createdAt DESC LIMIT 1
+            ORDER BY n.createdAt DESC, n.notificationId DESC LIMIT 1
         """,
     )
     suspend fun firstByGroup(ownerId: String, groupKey: String): NotificationData?
@@ -59,7 +59,7 @@ interface NotificationDao {
             INNER JOIN NotificationGroupCrossRef g
                 ON n.notificationId = g.notificationId AND n.ownerId = g.ownerId
             WHERE n.ownerId = :ownerId AND g.groupKey = :groupKey
-            ORDER BY n.createdAt ASC LIMIT 1
+            ORDER BY n.createdAt ASC, n.notificationId ASC LIMIT 1
         """,
     )
     suspend fun lastByGroup(ownerId: String, groupKey: String): NotificationData?

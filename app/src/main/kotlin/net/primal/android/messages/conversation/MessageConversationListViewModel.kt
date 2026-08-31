@@ -31,6 +31,8 @@ import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.onFailure
+import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.messages.ConversationRelation
@@ -139,7 +141,13 @@ class MessageConversationListViewModel @Inject constructor(
     }
 
     private fun markAllConversationAsRead() {
-        Napier.d { "Skipping cache mark-all-as-read AUTH" }
+        viewModelScope.launch(dispatcherProvider.io()) {
+            runCatching {
+                chatRepository.markAllMessagesAsReadLocally(userId = activeAccountStore.activeUserId())
+            }.onFailure { error ->
+                Napier.w(throwable = error) { "Failed to mark all conversations as read locally." }
+            }
+        }
     }
 
     private fun Flow<PagingData<DMConversation>>.mapAsPagingDataOfMessageConversationUi() =

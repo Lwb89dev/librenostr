@@ -11,6 +11,8 @@ import net.primal.domain.nostr.publisher.NostrPublishException
 
 interface ChatRepository {
 
+    fun observeUnreadMessagesCount(userId: String): Flow<Int>
+
     fun newestConversations(userId: String, relation: ConversationRelation): Flow<PagingData<DMConversation>>
 
     fun newestMessages(userId: String, participantId: String): Flow<PagingData<DirectMessage>>
@@ -29,6 +31,9 @@ interface ChatRepository {
 
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun markAllMessagesAsRead(authorization: NostrEvent)
+
+    /** Marks every locally stored conversation as read without a remote service. */
+    suspend fun markAllMessagesAsReadLocally(userId: String)
 
     @Throws(
         MessageEncryptException::class,

@@ -9,6 +9,8 @@ data class ContentDisplaySettings(
     val autoPlayVideoSoundOn: Boolean = true,
     val showAnimatedAvatars: Boolean = false,
     val showLiveStreams: Boolean = false,
+    /** Refresh the active feed when the app/feed becomes visible again. */
+    val autoUpdateFeed: Boolean = true,
     @SerialName("noteAppearance") val contentAppearance: ContentAppearance = ContentAppearance.Default,
 ) {
     companion object {

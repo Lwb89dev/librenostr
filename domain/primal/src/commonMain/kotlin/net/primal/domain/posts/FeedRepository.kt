@@ -71,6 +71,7 @@ interface FeedRepository {
 
     companion object {
         const val DEFAULT_PAGE_SIZE = 20
+        const val INITIAL_PAGE_SIZE = 50
 
         val DEFAULT_THREAD_KINDS = listOf(
             NostrEventKind.ShortTextNote.value,

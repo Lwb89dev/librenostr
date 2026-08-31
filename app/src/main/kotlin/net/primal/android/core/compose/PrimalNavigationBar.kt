@@ -72,6 +72,8 @@ fun PrimalNavigationBar(
     exploreAnchorHandle: AnchorHandle? = null,
 ) {
     val badgesMap = mapOf(
+        Pair(PrimalTopLevelDestination.Feeds, badges.unreadFeedCount),
+        Pair(PrimalTopLevelDestination.Messages, badges.unreadMessagesCount),
         Pair(PrimalTopLevelDestination.Alerts, badges.unreadNotificationsCount),
     )
 

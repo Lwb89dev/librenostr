@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.primal.android.R
 import net.primal.android.core.compose.CommonTestTags
+import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.compose.foundation.rememberLazyListStatePagingWorkaround
 import net.primal.android.core.compose.isNotEmpty
 import net.primal.android.core.compose.pulltorefresh.PrimalPullToRefreshBox
@@ -80,6 +81,7 @@ fun NoteFeedList(
     noContentVerticalArrangement: Arrangement.Vertical = Arrangement.Center,
     noContentPaddingValues: PaddingValues = PaddingValues(all = 0.dp),
     shouldAnimateScrollToTop: Boolean = false,
+    onNewNotesStateChanged: ((Boolean) -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
     header: @Composable (LazyItemScope.() -> Unit)? = null,
     stickyHeader: @Composable (LazyItemScope.() -> Unit)? = null,
@@ -96,11 +98,21 @@ fun NoteFeedList(
         factory.create(feedSpec = feedSpec, allowMutedThreads = allowMutedThreads, showStreams = showStreamsInNewPill)
     }
     val uiState = viewModel.state.collectAsState()
+    val contentDisplaySettings = LocalContentDisplaySettings.current
+
+    LaunchedEffect(uiState.value.notesSyncStats.latestNoteIds) {
+        onNewNotesStateChanged?.invoke(uiState.value.notesSyncStats.latestNoteIds.isNotEmpty())
+    }
 
     var started by remember(viewModel) { mutableStateOf(false) }
     DisposableLifecycleObserverEffect(viewModel) {
         when (it) {
-            Lifecycle.Event.ON_START -> started = true
+            Lifecycle.Event.ON_START -> {
+                started = true
+                if (contentDisplaySettings.autoUpdateFeed) {
+                    viewModel.setEvent(UiEvent.AutoUpdateFeed)
+                }
+            }
             Lifecycle.Event.ON_STOP -> started = false
             else -> Unit
         }

@@ -15,6 +15,8 @@ import net.primal.domain.nostr.extractDimension
 import net.primal.domain.nostr.extractDuration
 import net.primal.domain.nostr.extractMimeType
 import net.primal.domain.nostr.findIMetaTagForUrl
+import net.primal.domain.nostr.getTagValueOrNull
+import net.primal.domain.nostr.isImageTag
 import net.primal.domain.nostr.utils.isNostrUri
 import net.primal.shared.data.local.encryption.map
 
@@ -60,7 +62,11 @@ private fun PostData.asEventUri(
         cdnResource = cdnResource,
         linkPreview = linkPreview,
         imetaMimeType = imetaMimeType,
-    )
+    ) ?: this.tags
+        .filter { it.isImageTag() }
+        .mapNotNull { it.getTagValueOrNull() }
+        .firstOrNull { it == url }
+        ?.let { "image/*" }
 
     val type = detectEventUriType(url = url, mimeType = mimeType)
 

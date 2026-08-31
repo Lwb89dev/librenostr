@@ -49,6 +49,7 @@ internal fun NoteFeedsContent(
     snackbarHostState: SnackbarHostState,
     paddingValues: PaddingValues,
     onGoToWallet: () -> Unit,
+    onNewNotesStateChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val uiScope = rememberCoroutineScope()
@@ -103,6 +104,7 @@ internal fun NoteFeedsContent(
             onGoToWallet = onGoToWallet,
             contentPadding = paddingValues,
             shouldAnimateScrollToTop = shouldAnimateScrollToTop.value,
+            onNewNotesStateChanged = onNewNotesStateChanged,
             onUiError = { uiError ->
                 uiScope.launch {
                     snackbarHostState.showSnackbar(

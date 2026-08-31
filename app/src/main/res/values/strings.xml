@@ -898,6 +898,7 @@
     <string name="messages_follows_tab_title">Follows</string>
     <string name="messages_other_tab_title">Other</string>
     <string name="messages_mark_all_read_button">Mark All Read</string>
+    <string name="notifications_mark_all_read_button">Mark all as read</string>
     <string name="messages_no_conversations">Your conversations will appear here.</string>
     <string name="messages_no_chat">Your messages will appear here.</string>
     <string name="messages_conversations_initial_loading_error">Unable to load conversations. Please try again.</string>
@@ -927,6 +928,9 @@
     <string name="media_item_error_on_save_try_again">Retry</string>
 
     <string name="settings_title">Settings</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_description">Choose the language used throughout LibreNostr. The change is applied immediately.</string>
+    <string name="settings_language_system_default">System language</string>
 
     <string name="settings_account_title">Account</string>
     <string name="settings_account_copy_public_key">Copy public key</string>
@@ -1054,6 +1058,8 @@
     <string name="settings_content_display_animated_avatars_hint">Switch off to disable animated avatars in feeds. Profile will continue to show the full version.</string>
     <string name="settings_content_display_live_streams">Live streams</string>
     <string name="settings_content_display_live_streams_hint">Show live streams from people you follow at the top of the home feed. Off by default to keep the feed light.</string>
+    <string name="settings_content_display_auto_update_feed">Update feed automatically</string>
+    <string name="settings_content_display_auto_update_feed_hint">Refresh notes when the app opens and when you return from a note.</string>
 
     <string name="settings_network_title">Manage relays</string>
     <string name="settings_network_relays_section">Relays</string>

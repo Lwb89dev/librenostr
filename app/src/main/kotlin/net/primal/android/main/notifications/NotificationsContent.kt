@@ -1,14 +1,20 @@
 package net.primal.android.main.notifications
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -59,6 +65,7 @@ import net.primal.android.notes.feed.zaps.ZapBottomSheet
 import net.primal.android.notifications.list.ui.NotificationListItem
 import net.primal.android.notifications.list.ui.NotificationUi
 import net.primal.android.premium.legend.domain.LegendaryCustomization
+import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.Badges
 import net.primal.domain.links.CdnImage
 import net.primal.domain.notifications.NotificationGroup
@@ -104,6 +111,7 @@ internal fun NotificationsContent(
         noteCallbacks = noteCallbacks,
         onGoToWallet = onGoToWallet,
         shouldAnimateScrollToTop = shouldAnimateScrollToTop,
+        onMarkAllRead = { onNotificationsSeen(currentGroup) },
     )
 }
 
@@ -121,6 +129,7 @@ private fun NotificationPage(
     noteCallbacks: NoteCallbacks,
     onGoToWallet: () -> Unit,
     shouldAnimateScrollToTop: MutableState<Boolean>,
+    onMarkAllRead: () -> Unit,
 ) {
     val seenPagingItems = remember(group) {
         seenNotificationsProvider(group)
@@ -179,6 +188,7 @@ private fun NotificationPage(
         paddingValues = paddingValues,
         noteCallbacks = noteCallbacks,
         onGoToWallet = onGoToWallet,
+        onMarkAllRead = onMarkAllRead,
         onPostLikeClick = {
             noteEventPublisher(
                 NoteContract.UiEvent.PostLikeAction(postId = it.postId, postAuthorId = it.authorId),
@@ -237,6 +247,7 @@ private fun NotificationsList(
     onZapClick: (FeedPostUi, ULong?, String?) -> Unit,
     onPostQuoteClick: (FeedPostUi) -> Unit,
     onBookmarkClick: (FeedPostUi) -> Unit,
+    onMarkAllRead: () -> Unit,
 ) {
     val zappingState = LocalZappingState.current
     var repostQuotePostConfirmation by remember { mutableStateOf<FeedPostUi?>(null) }
@@ -301,6 +312,22 @@ private fun NotificationsList(
         state = listState,
         userScrollEnabled = true,
     ) {
+        item(key = "mark_all_notifications_read", contentType = "MarkAllRead") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    modifier = Modifier.clickable(onClick = onMarkAllRead),
+                    text = stringResource(R.string.notifications_mark_all_read_button),
+                    color = AppTheme.colorScheme.primary,
+                    style = AppTheme.typography.labelLarge,
+                )
+            }
+        }
+
         items(
             items = unseenNotifications,
             key = { it.map { it.notificationId } },

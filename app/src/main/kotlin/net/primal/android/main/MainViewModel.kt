@@ -3,12 +3,17 @@ package net.primal.android.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import net.primal.android.core.updater.DataUpdater
@@ -19,14 +24,20 @@ import net.primal.android.user.accounts.UserAccountsStore
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.UserRepository
 import net.primal.android.user.subscriptions.SubscriptionsManager
+import net.primal.domain.messages.ChatRepository
+import net.primal.domain.notifications.NotificationGroup
+import net.primal.domain.notifications.NotificationRepository
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel @Inject constructor(
     private val dataUpdater: DataUpdater,
     private val activeAccountStore: ActiveAccountStore,
     private val accountsStore: UserAccountsStore,
     private val userRepository: UserRepository,
     private val subscriptionsManager: SubscriptionsManager,
+    private val chatRepository: ChatRepository,
+    private val notificationRepository: NotificationRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -46,6 +57,7 @@ class MainViewModel @Inject constructor(
         observeActiveAccount()
         observeUserAccounts()
         observeBadgesUpdates()
+        observeLocalUnreadBadges()
     }
 
     private fun observeEvents() =
@@ -118,5 +130,35 @@ class MainViewModel @Inject constructor(
                     copy(badges = if (notificationsMarkedSeen) it.copy(unreadNotificationsCount = 0) else it)
                 }
             }
+        }
+
+    private fun observeLocalUnreadBadges() =
+        viewModelScope.launch {
+            activeAccountStore.activeUserId
+                .flatMapLatest { userId ->
+                    if (userId.isBlank()) {
+                        flowOf(0 to 0)
+                    } else {
+                        combine(
+                            chatRepository.observeUnreadMessagesCount(userId),
+                            notificationRepository.observeUnseenNotifications(
+                                ownerId = userId,
+                                group = NotificationGroup.ALL,
+                            ).map { it.size },
+                        ) { unreadMessages, unreadNotifications ->
+                            unreadMessages to unreadNotifications
+                        }
+                    }
+                }
+                .collect { (unreadMessages, unreadNotifications) ->
+                    setState {
+                        copy(
+                            badges = badges.copy(
+                                unreadMessagesCount = unreadMessages,
+                                unreadNotificationsCount = if (notificationsMarkedSeen) 0 else unreadNotifications,
+                            ),
+                        )
+                    }
+                }
         }
 }

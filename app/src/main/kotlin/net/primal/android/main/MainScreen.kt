@@ -475,6 +475,7 @@ private fun MainScreenContent(
     homeTopAppBarState: TopAppBarState,
     navController: NavController,
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
+    onHomeNewNotesChanged: (Boolean) -> Unit,
 ) {
     val onGoToWallet = {}
     Box {
@@ -493,6 +494,7 @@ private fun MainScreenContent(
                     snackbarHostState = sharedState.snackbarHostState,
                     paddingValues = paddingValues,
                     onGoToWallet = onGoToWallet,
+                    onNewNotesStateChanged = onHomeNewNotesChanged,
                 )
 
                 PrimalTopLevelDestination.Reads -> ReadsContent(
@@ -587,6 +589,7 @@ private fun MainScreenScaffold(
     val exploreAnchor = remember { AnchorHandle() }
     var activeOverlay by rememberSaveable { mutableStateOf<ActiveOverlay?>(null) }
     var algorithmDrawerVisible by rememberSaveable { mutableStateOf(false) }
+    var homeHasNewNotes by rememberSaveable { mutableStateOf(false) }
     val feedPickerVisible = activeOverlay == ActiveOverlay.FeedPicker
     val readPickerVisible = activeOverlay == ActiveOverlay.ReadPicker
     val walletPickerVisible = activeOverlay == ActiveOverlay.WalletPicker
@@ -677,7 +680,9 @@ private fun MainScreenScaffold(
             }
         },
         settingsSelected = false,
-        badges = mainState.badges,
+        badges = mainState.badges.copy(
+            unreadFeedCount = if (homeHasNewNotes) 1 else 0,
+        ),
         focusModeEnabled = focusModeEnabled,
         profileAvatarCdnImage = profileAvatarCdnImage,
         exploreAnchorHandle = exploreAnchor,
@@ -724,6 +729,7 @@ private fun MainScreenScaffold(
                 homeTopAppBarState = homeTopAppBarState,
                 navController = navController,
                 onTabChanged = onTabChanged,
+                onHomeNewNotesChanged = { homeHasNewNotes = it },
             )
         },
         overlay = {

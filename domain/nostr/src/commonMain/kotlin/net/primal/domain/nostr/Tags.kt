@@ -475,9 +475,15 @@ fun JsonArray.buildNeventFromReplyOrRootNoteTag() =
 
 fun List<JsonArray>.findIMetaTagForUrl(url: String): JsonArray? {
     return this.find {
-        it.isIMetaTag() && it.any { element ->
-            element.jsonPrimitive.content == "url $url"
-        }
+        if (!it.isIMetaTag()) return@find false
+
+        // NIP-92 is commonly encoded as `"url <value>"`, but a number of
+        // clients publish the equivalent pair `"url", "<value>"`. Accept
+        // both forms so relay-fetched attachments retain their media type.
+        it.any { element -> element.jsonPrimitive.content == "url $url" } ||
+            it.windowed(size = 2, partialWindows = false).any { pair ->
+                pair[0].jsonPrimitive.content == "url" && pair[1].jsonPrimitive.content == url
+            }
     }
 }
 
@@ -501,6 +507,9 @@ fun JsonArray.extractDimension(): Pair<Int, Int>? {
 fun JsonArray.extractMimeType(): String? {
     val mimeElement = this.find { it.jsonPrimitive.content.startsWith("m ") }
     return mimeElement?.jsonPrimitive?.content?.substring(2)
+        ?: this.windowed(size = 2, partialWindows = false)
+            .firstOrNull { pair -> pair[0].jsonPrimitive.content == "m" }
+            ?.get(1)?.jsonPrimitive?.content
 }
 
 fun JsonArray.extractDuration(): Double? {

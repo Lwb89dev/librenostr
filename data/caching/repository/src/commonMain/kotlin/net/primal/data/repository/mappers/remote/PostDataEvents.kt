@@ -15,6 +15,7 @@ import net.primal.domain.nostr.getPubkeyFromReplyOrRootTag
 import net.primal.domain.nostr.hasReplyMarker
 import net.primal.domain.nostr.hasRootMarker
 import net.primal.domain.nostr.isIMetaTag
+import net.primal.domain.nostr.isImageTag
 import net.primal.domain.nostr.serialization.toNostrJsonObject
 import net.primal.domain.nostr.utils.parseHashtags
 import net.primal.domain.nostr.utils.parseNostrUris
@@ -118,8 +119,22 @@ private fun NostrEvent.nostrEventAsPost(
 }
 
 private fun NostrEvent.pictureNoteAsPost(): PostData {
-    val iMetaTags = this.tags.filter { it.isIMetaTag() }
-    val imageUrls = iMetaTags.mapNotNull { it.getOrNull(1)?.jsonPrimitive?.content?.split(" ")?.lastOrNull() }
+    val imageUrls = this.tags.flatMap { tag ->
+        when {
+            tag.isImageTag() -> listOfNotNull(tag.getOrNull(1)?.jsonPrimitive?.content)
+            tag.isIMetaTag() -> {
+                val values = tag.map { it.jsonPrimitive.content }
+                val combinedUrls = values.mapNotNull { value ->
+                    value.removePrefix("url ").takeIf { value.startsWith("url ") && it.isNotBlank() }
+                }
+                val separateUrl = values.windowed(size = 2, partialWindows = false)
+                    .firstOrNull { pair -> pair[0] == "url" }
+                    ?.get(1)
+                combinedUrls + listOfNotNull(separateUrl)
+            }
+            else -> emptyList()
+        }
+    }.distinct()
     val content = imageUrls.joinToString("\n")
     return PostData(
         postId = this.id,

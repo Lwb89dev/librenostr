@@ -30,6 +30,7 @@ class ChronologicalFeedWithRepostsQueryBuilder(
                 CASE WHEN MutedUser.item IS NOT NULL THEN 1 ELSE 0 END AS isAuthorMuted,
                 CASE WHEN MutedThread.item IS NOT NULL THEN 1 ELSE 0 END AS isThreadMuted,
                 FeedPostDataCrossRef.position AS position,
+                PostData.createdAt AS sortCreatedAt,
                 PostData.replyToPostId,
                 PostData.replyToAuthorId
             FROM PostData
@@ -62,6 +63,7 @@ class ChronologicalFeedWithRepostsQueryBuilder(
                 CASE WHEN MutedUser.item IS NOT NULL THEN 1 ELSE 0 END AS isAuthorMuted,
                 CASE WHEN MutedThread.item IS NOT NULL THEN 1 ELSE 0 END AS isThreadMuted,
                 FeedPostDataCrossRef.position AS position,
+                RepostData.createdAt AS sortCreatedAt,
                 PostData.replyToPostId,
                 PostData.replyToAuthorId
             FROM RepostData
@@ -75,13 +77,13 @@ class ChronologicalFeedWithRepostsQueryBuilder(
         """
     }
 
-    private val orderByClause = when {
-        else -> "ORDER BY position"
-    }
+    // Position reflects insertion order and can be inconsistent after a relay reconnect.
+    // Use the event timestamp as the source of truth so newest notes are always at the top.
+    private val orderByClause = "ORDER BY sortCreatedAt"
 
     override fun feedQuery(): RoomRawQuery {
         return RoomRawQuery(
-            sql = "$LATEST_BASIC_QUERY $orderByClause ASC",
+            sql = "$LATEST_BASIC_QUERY $orderByClause DESC, position DESC",
             onBindStatement = { query ->
                 query.bindText(index = 1, value = userPubkey)
                 query.bindText(index = 2, value = userPubkey)
@@ -101,7 +103,7 @@ class ChronologicalFeedWithRepostsQueryBuilder(
 
     override fun newestFeedPostsQuery(limit: Int): RoomRawQuery {
         return RoomRawQuery(
-            sql = "$LATEST_BASIC_QUERY $orderByClause ASC LIMIT ?",
+            sql = "$LATEST_BASIC_QUERY $orderByClause DESC, position DESC LIMIT ?",
             onBindStatement = { query ->
                 query.bindText(index = 1, value = userPubkey)
                 query.bindText(index = 2, value = userPubkey)
@@ -122,7 +124,7 @@ class ChronologicalFeedWithRepostsQueryBuilder(
 
     override fun oldestFeedPostsQuery(limit: Int): RoomRawQuery {
         return RoomRawQuery(
-            sql = "$LATEST_BASIC_QUERY $orderByClause DESC LIMIT ?",
+            sql = "$LATEST_BASIC_QUERY $orderByClause ASC, position ASC LIMIT ?",
             onBindStatement = { query ->
                 query.bindText(index = 1, value = userPubkey)
                 query.bindText(index = 2, value = userPubkey)

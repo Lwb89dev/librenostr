@@ -168,6 +168,28 @@ internal class FeedRepositoryImpl(
             mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
             response.persistToDatabaseAsTransaction(userId = userId, database = database)
             response.persistNoteRepliesAndArticleCommentsToDatabase(noteId = noteId, database = database)
+
+            // Relay responses do not contain Primal's synthetic stats payload. Resolve
+            // interaction events directly from the configured relays so the note and its
+            // replies display current like/reply/repost/zap counters immediately when a
+            // thread is opened.
+            relayEventQuerier?.let { querier ->
+                val eventIds = (response.notes + response.articles + response.reposts)
+                    .map { it.id }
+                    .distinct()
+                if (eventIds.isNotEmpty()) {
+                    val stats = RelayEventStatsFetcher(querier).fetch(
+                        eventIds = eventIds,
+                        userId = userId,
+                    )
+                    database.withTransaction {
+                        database.eventStats().upsertAll(stats.eventStats)
+                        if (stats.userStats.isNotEmpty()) {
+                            database.eventUserStats().upsertAll(stats.userStats)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -216,6 +238,23 @@ internal class FeedRepositoryImpl(
             snapshot = snapshot,
             clearFeed = true,
         )
+
+        relayEventQuerier?.let { querier ->
+            val eventIds = (snapshot.notes + snapshot.articles + snapshot.reposts)
+                .map { it.id }
+                .distinct()
+            if (eventIds.isNotEmpty()) {
+                val stats = RelayEventStatsFetcher(querier).fetch(eventIds = eventIds, userId = userId)
+                database.withTransaction {
+                    database.eventStats().upsertAll(stats.eventStats)
+                    if (stats.userStats.isNotEmpty()) {
+                        database.eventUserStats().upsertAll(stats.userStats)
+                    }
+                }
+                invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
+            }
+        }
+        Unit
     }
 
     override suspend fun fetchFeedPageSnapshot(
@@ -298,8 +337,10 @@ internal class FeedRepositoryImpl(
     ) = Pager(
         config = PagingConfig(
             pageSize = DEFAULT_PAGE_SIZE,
-            prefetchDistance = DEFAULT_PAGE_SIZE,
-            initialLoadSize = DEFAULT_PAGE_SIZE * 3,
+            // Fetch 50 notes initially, then request 20 more when the user is close to the
+            // end of the currently loaded window.
+            prefetchDistance = DEFAULT_PAGE_SIZE / 2,
+            initialLoadSize = FeedRepository.INITIAL_PAGE_SIZE,
             enablePlaceholders = true,
         ),
         remoteMediator = NoteFeedRemoteMediator(
@@ -338,6 +379,7 @@ internal class FeedRepositoryImpl(
                 feedSpec = feedSpec,
                 userPubkey = userId,
                 allowMutedThreads = allowMutedThreads,
-            )
-        }
+        )
+    }
+
 }

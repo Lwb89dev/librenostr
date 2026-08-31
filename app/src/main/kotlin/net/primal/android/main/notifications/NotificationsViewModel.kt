@@ -157,7 +157,10 @@ class NotificationsViewModel @Inject constructor(
         }
 
         return unseenNotifications
-            .sortedByDescending { group -> group.maxOfOrNull { it.createdAt } ?: 0L }
+            .sortedWith(
+                compareByDescending<List<Notification>> { group -> group.maxOfOrNull { it.createdAt } ?: 0L }
+                    .thenByDescending { group -> group.maxOfOrNull { it.notificationId } ?: "" },
+            )
             .map { byType -> byType.map { it.asNotificationUi() } }
     }
 

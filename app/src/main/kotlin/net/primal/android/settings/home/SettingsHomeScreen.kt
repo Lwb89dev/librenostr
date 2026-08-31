@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -302,6 +303,7 @@ private fun PrimalSettingsSection.icon(): ImageVector {
         PrimalSettingsSection.MediaUploads -> PrimalIcons.ImportPhotoFromGallery
         PrimalSettingsSection.Notifications -> PrimalIcons.Notifications
         PrimalSettingsSection.Zaps -> PrimalIcons.Zap
+        PrimalSettingsSection.Language -> Icons.Outlined.Language
     }
 }
 
@@ -318,6 +320,7 @@ private fun PrimalSettingsSection.title(): String {
         PrimalSettingsSection.MutedAccounts -> stringResource(id = R.string.settings_muted_content_title)
         PrimalSettingsSection.MediaUploads -> stringResource(id = R.string.settings_media_uploads_title)
         PrimalSettingsSection.ConnectedApps -> stringResource(id = R.string.settings_connected_apps_title)
+        PrimalSettingsSection.Language -> stringResource(id = R.string.settings_language_title)
     }
 }
 

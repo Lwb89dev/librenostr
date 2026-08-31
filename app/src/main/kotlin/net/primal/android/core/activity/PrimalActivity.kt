@@ -32,6 +32,7 @@ import net.primal.android.user.domain.ContentDisplaySettings
 import net.primal.android.user.zaps.ZappingStateStore
 import net.primal.android.wallet.repository.ExchangeRateHandler
 import net.primal.domain.zaps.ZappingState
+import net.primal.android.settings.language.AppLanguageManager
 
 @AndroidEntryPoint
 abstract class PrimalActivity : FragmentActivity() {
@@ -50,6 +51,10 @@ abstract class PrimalActivity : FragmentActivity() {
     protected val splashViewModel: SplashViewModel by viewModels()
 
     protected open val prefetchFeedsOnSplash: Boolean = false
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppLanguageManager.wrap(newBase))
+    }
 
     private lateinit var primalTheme: PrimalTheme
 

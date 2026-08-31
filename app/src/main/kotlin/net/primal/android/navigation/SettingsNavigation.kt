@@ -50,6 +50,7 @@ import net.primal.android.settings.media.MediaUploadsSettingsScreen
 import net.primal.android.settings.media.MediaUploadsSettingsViewModel
 import net.primal.android.settings.muted.MutedSettingsScreen
 import net.primal.android.settings.muted.MutedSettingsViewModel
+import net.primal.android.settings.language.LanguageSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsViewModel
 import net.primal.android.settings.notifications.NotificationsSettingsScreen
@@ -139,6 +140,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
                     PrimalSettingsSection.MutedAccounts -> navController.navigateToMutedAccounts()
                     PrimalSettingsSection.MediaUploads -> navController.navigateToMediaUploads()
                     PrimalSettingsSection.ConnectedApps -> navController.navigateToConnectedApps()
+                    PrimalSettingsSection.Language -> Unit
                 }
             },
             onDeveloperToolsClick = { navController.navigateToDeveloperTools() },
@@ -324,6 +326,7 @@ private fun EmbeddedSettingsSection(
             onClose = {},
             embedded = true,
         )
+        PrimalSettingsSection.Language -> LanguageSettingsScreen()
         else -> Unit
     }
 }

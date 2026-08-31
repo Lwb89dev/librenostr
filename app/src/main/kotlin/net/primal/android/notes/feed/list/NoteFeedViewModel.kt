@@ -15,6 +15,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,6 +52,7 @@ import net.primal.domain.nostr.findFirstEventId
 import net.primal.domain.posts.FeedPageSnapshot
 import net.primal.domain.posts.FeedPost
 import net.primal.domain.posts.FeedRepository
+import net.primal.domain.posts.FeedRepository.Companion.INITIAL_PAGE_SIZE
 import net.primal.domain.streams.StreamRepository
 
 @HiltViewModel(assistedFactory = NoteFeedViewModel.Factory::class)
@@ -159,6 +161,7 @@ class NoteFeedViewModel @AssistedInject constructor(
                     UiEvent.FeedScrolledToTop -> handleScrolledToTop()
                     UiEvent.StartPolling -> startPollingIfSupported()
                     UiEvent.StopPolling -> stopPolling()
+                    UiEvent.AutoUpdateFeed -> refreshFeedForVisibility()
                     UiEvent.NewPostsPillClick -> showLatestNotesAndScrollToTop()
                     is UiEvent.UpdateCurrentTopVisibleNote -> {
                         topVisibleNote = it.noteId to it.repostId
@@ -185,6 +188,31 @@ class NoteFeedViewModel @AssistedInject constructor(
 
     private fun stopPolling() {
         pollingJob?.cancel()
+    }
+
+    private fun refreshFeedForVisibility() {
+        viewModelScope.launch(dispatcherProvider.io()) {
+            try {
+                val snapshot = feedRepository.fetchFeedPageSnapshot(
+                    userId = activeAccountStore.activeUserId(),
+                    feedSpec = feedSpec,
+                    limit = INITIAL_PAGE_SIZE,
+                )
+                // Persist the relay snapshot so both newly fetched notes and their interaction
+                // stats become visible immediately after returning from a thread.
+                feedRepository.replaceFeed(
+                    userId = activeAccountStore.activeUserId(),
+                    feedSpec = feedSpec,
+                    snapshot = snapshot,
+                )
+            } catch (error: NetworkException) {
+                Napier.w(throwable = error) { "Automatic feed update failed for feedSpec=$feedSpec" }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                Napier.w(throwable = error) { "Automatic feed update failed for feedSpec=$feedSpec" }
+            }
+        }
     }
 
     private fun handleScrolledToTop() =

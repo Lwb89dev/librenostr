@@ -303,9 +303,11 @@ class RelayPool(
         val eventsById = LinkedHashMap<String, NostrEvent>()
         val eoseRelays = mutableSetOf<String>()
         val failedRelays = mutableMapOf<String, String>()
+        val completedRelays = mutableSetOf<String>()
         var duplicates = 0
         val mutex = Mutex()
         val firstEoseOrAllFailed = CompletableDeferred<Boolean>()
+        val allRelaysCompleted = CompletableDeferred<Unit>()
 
         supervisorScope {
             clients.forEach { client ->
@@ -319,14 +321,26 @@ class RelayPool(
                         eventsById = eventsById,
                         eoseRelays = eoseRelays,
                         failedRelays = failedRelays,
+                        completedRelays = completedRelays,
                         clientCount = clients.size,
                         firstEoseOrAllFailed = firstEoseOrAllFailed,
+                        allRelaysCompleted = allRelaysCompleted,
                         onDuplicate = { duplicates += 1 },
                     )
                 }
             }
             val hadEose = withTimeoutOrNull(timeoutMs) { firstEoseOrAllFailed.await() } ?: false
-            if (hadEose) delay(FIRST_EOSE_GRACE_MS)
+            if (hadEose) {
+                // EOSE with zero events is valid. Keep slower relays alive in that case;
+                // otherwise the first empty relay could hide events available elsewhere.
+                delay(FIRST_EOSE_GRACE_MS)
+                val hasEvents = mutex.withLock { eventsById.isNotEmpty() }
+                if (!hasEvents) {
+                    // The outer timeout still bounds this wait. Callers can apply a tighter
+                    // timeout when a UI operation must return sooner.
+                    withTimeoutOrNull(timeoutMs) { allRelaysCompleted.await() }
+                }
+            }
             coroutineContext.cancelChildren()
         }
 
@@ -348,8 +362,10 @@ class RelayPool(
         eventsById: MutableMap<String, NostrEvent>,
         eoseRelays: MutableSet<String>,
         failedRelays: MutableMap<String, String>,
+        completedRelays: MutableSet<String>,
         clientCount: Int,
         firstEoseOrAllFailed: CompletableDeferred<Boolean>,
+        allRelaysCompleted: CompletableDeferred<Unit>,
         onDuplicate: () -> Unit,
     ) {
         queryOneRelay(
@@ -367,12 +383,18 @@ class RelayPool(
                 }
             },
             onEose = {
-                mutex.withLock { eoseRelays += client.socketUrl }
+                mutex.withLock {
+                    eoseRelays += client.socketUrl
+                    completedRelays += client.socketUrl
+                    if (completedRelays.size >= clientCount) allRelaysCompleted.complete(Unit)
+                }
                 firstEoseOrAllFailed.complete(true)
             },
             onFailure = { reason ->
                 val allFailed = mutex.withLock {
                     failedRelays[client.socketUrl] = reason
+                    completedRelays += client.socketUrl
+                    if (completedRelays.size >= clientCount) allRelaysCompleted.complete(Unit)
                     eoseRelays.isEmpty() && failedRelays.size >= clientCount
                 }
                 if (allFailed) firstEoseOrAllFailed.complete(false)

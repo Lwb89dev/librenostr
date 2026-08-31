@@ -57,6 +57,9 @@ internal class ChatRepositoryImpl(
             )
         }.flow.map { it.map { it.asDMConversation() } }
 
+    override fun observeUnreadMessagesCount(userId: String) =
+        database.messageConversations().observeUnreadMessagesCount(ownerId = userId)
+
     override fun newestMessages(userId: String, participantId: String) =
         createMessagesPager(userId = userId, participantId = participantId) {
             database.messages().newestMessagesPagedByOwnerId(ownerId = userId, participantId = participantId)
@@ -192,6 +195,12 @@ internal class ChatRepositoryImpl(
         withContext(dispatcherProvider.io()) {
             messagesApi.markAllMessagesAsRead(authorization = authorization)
             database.messageConversations().markAllConversationAsRead(ownerId = authorization.pubKey)
+        }
+    }
+
+    override suspend fun markAllMessagesAsReadLocally(userId: String) {
+        withContext(dispatcherProvider.io()) {
+            database.messageConversations().markAllConversationAsRead(ownerId = userId)
         }
     }
 

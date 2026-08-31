@@ -25,6 +25,7 @@ interface NoteFeedContract {
         data object FeedScrolledToTop : UiEvent()
         data object StartPolling : UiEvent()
         data object StopPolling : UiEvent()
+        data object AutoUpdateFeed : UiEvent()
         data object NewPostsPillClick : UiEvent()
         data class UpdateCurrentTopVisibleNote(val noteId: String, val repostId: String? = null) : UiEvent()
     }

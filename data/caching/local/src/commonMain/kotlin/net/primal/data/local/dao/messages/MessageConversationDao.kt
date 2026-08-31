@@ -14,6 +14,9 @@ import net.primal.domain.messages.ConversationRelation
 @DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)
 interface MessageConversationDao {
 
+    @Query("SELECT COALESCE(SUM(unreadMessagesCount), 0) FROM MessageConversationData WHERE ownerId = :ownerId")
+    fun observeUnreadMessagesCount(ownerId: String): kotlinx.coroutines.flow.Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(data: List<MessageConversationData>)
 

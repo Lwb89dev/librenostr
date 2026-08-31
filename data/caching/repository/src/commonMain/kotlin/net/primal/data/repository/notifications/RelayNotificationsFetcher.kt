@@ -76,7 +76,7 @@ internal class RelayNotificationsFetcher(
 
         val notifications = events.mapNotNull { it.asNotification(userId) }
             .filter { it.type.belongsTo(group) }
-            .sortedByDescending { it.createdAt }
+            .sortedWith(compareByDescending<NotificationData> { it.createdAt }.thenByDescending { it.notificationId })
             .take(limit)
 
         Napier.i {
@@ -84,7 +84,29 @@ internal class RelayNotificationsFetcher(
                 "notifications=${notifications.size}, group=${group.name}"
         }
 
-        val actors = notifications.mapNotNull { it.actionUserId }.distinct()
+        // Interaction events point at the original note through their `e` tag. Fetch those
+        // referenced events as well, otherwise a relay-only notification row has no note body
+        // to render as a useful preview (likes/zaps/reposts especially).
+        val referencedEventIds = notifications.mapNotNull { it.actionPostId }.distinct()
+        val referencedEvents = if (referencedEventIds.isEmpty()) {
+            emptyList()
+        } else {
+            query(
+                RelayFilter(
+                    ids = referencedEventIds,
+                    kinds = listOf(
+                        NostrEventKind.ShortTextNote.value,
+                        NostrEventKind.ShortTextNoteRepost.value,
+                        NostrEventKind.PictureNote.value,
+                        NostrEventKind.LongFormContent.value,
+                    ),
+                    limit = referencedEventIds.size,
+                ),
+            )
+        }
+
+        val actors = (notifications.mapNotNull { it.actionUserId } + referencedEvents.map { it.pubKey })
+            .distinct()
         val metadata = if (actors.isEmpty()) {
             emptyList()
         } else {
@@ -96,8 +118,9 @@ internal class RelayNotificationsFetcher(
                 ),
             ).latestMetadataByPubkey()
         }
-        val contentEvents = events.filter { it.kind == NostrEventKind.ShortTextNote.value ||
-            it.kind == NostrEventKind.ShortTextNoteRepost.value || it.kind == NostrEventKind.Zap.value }
+        val contentEvents = (events + referencedEvents).filter { it.kind == NostrEventKind.ShortTextNote.value ||
+            it.kind == NostrEventKind.ShortTextNoteRepost.value || it.kind == NostrEventKind.PictureNote.value ||
+            it.kind == NostrEventKind.LongFormContent.value || it.kind == NostrEventKind.Zap.value }
         return RelayNotificationsResult(
             notifications = notifications,
             feedResponse = (contentEvents + metadata).distinctBy { it.id }.toFeedResponse(metadata),

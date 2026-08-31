@@ -24,6 +24,7 @@ import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.AvatarNostrich
 import net.primal.android.core.compose.icons.primaliconpack.Play
+import net.primal.android.core.compose.icons.primaliconpack.FeedPicker
 import net.primal.android.core.compose.icons.primaliconpack.VideoPlay
 import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.settings.content.ContentDisplaySettingsContract.UiEvent
@@ -80,6 +81,23 @@ private fun ContentDisplaySettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
+
+                SettingsItem(
+                    headlineText = stringResource(id = R.string.settings_content_display_auto_update_feed),
+                    supportText = stringResource(id = R.string.settings_content_display_auto_update_feed_hint),
+                    leadingIcon = PrimalIcons.FeedPicker,
+                    trailingContent = {
+                        PrimalSwitch(
+                            checked = state.autoUpdateFeed,
+                            onCheckedChange = { eventPublisher(UiEvent.UpdateAutoUpdateFeed(enabled = it)) },
+                        )
+                    },
+                    onClick = {
+                        eventPublisher(UiEvent.UpdateAutoUpdateFeed(enabled = !state.autoUpdateFeed))
+                    },
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsItem(
                     headlineText = stringResource(id = R.string.settings_content_display_auto_play_videos),

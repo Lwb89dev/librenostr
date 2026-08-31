@@ -39,6 +39,7 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                     is UiEvent.UpdateAutoPlayVideos -> handleAutoPlayVideosUpdate(it)
                     is UiEvent.UpdateShowAnimatedAvatars -> handleShowAnimatedAvatarsUpdate(it)
                     is UiEvent.UpdateShowLiveStreams -> handleShowLiveStreamsUpdate(it)
+                    is UiEvent.UpdateAutoUpdateFeed -> handleAutoUpdateFeedUpdate(it)
                 }
             }
         }
@@ -52,6 +53,7 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                         autoPlayVideos = it.contentDisplaySettings.autoPlayVideos,
                         showAnimatedAvatars = it.contentDisplaySettings.showAnimatedAvatars,
                         showLiveStreams = it.contentDisplaySettings.showLiveStreams,
+                        autoUpdateFeed = it.contentDisplaySettings.autoUpdateFeed,
                     )
                 }
             }
@@ -80,6 +82,15 @@ class ContentDisplaySettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
                 copy(showLiveStreams = event.enabled)
+            }
+        }
+    }
+
+    private fun handleAutoUpdateFeedUpdate(event: UiEvent.UpdateAutoUpdateFeed) {
+        setState { copy(autoUpdateFeed = event.enabled) }
+        viewModelScope.launch {
+            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
+                copy(autoUpdateFeed = event.enabled)
             }
         }
     }
