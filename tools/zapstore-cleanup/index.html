@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>LibreNostr — Zapstore cleanup</title>
+<style>
+ body{font:14px/1.55 system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;background:#111;color:#e8e8e8}
+ h1{font-size:1.25rem} h2{font-size:1rem;margin-top:1.8rem}
+ button{background:#6430D5;color:#fff;border:0;border-radius:6px;padding:.6rem 1rem;font-size:.95rem;cursor:pointer}
+ button:disabled{opacity:.45;cursor:default}
+ pre{background:#1c1c1c;padding:.7rem;border-radius:6px;overflow-x:auto;font-size:12px;white-space:pre-wrap}
+ .ok{color:#5fd08a} .err{color:#ff6b6b} .warn{color:#e8c66b}
+ li{margin:.35rem 0}
+</style>
+<h1>Zapstore cleanup — LibreNostr</h1>
+<p>Removes the release note that carries the old signing certificate's subject name.
+Your key never leaves your NIP-07 extension: this page only asks it to sign.</p>
+
+<h2>What gets signed</h2>
+<ol>
+ <li><b>Replacement kind 30063</b> — same <code>d</code> tag (<code>com.librenostr.android@0.1.1</code>),
+     newer <code>created_at</code>, sanitized notes. Addressable events replace on conforming relays.</li>
+ <li><b>Kind 5 delete request</b> — for the old 30063 and the 3063 file metadata (advisory; relays may honour it).</li>
+ <li><b>Kind 24242 Blossom auth</b> — authorises DELETE of the mirrored 0.1.1 APK on cdn.zapstore.dev.</li>
+</ol>
+
+<p><button id="go">Sign and publish</button></p>
+<pre id="log">Waiting…</pre>
+
+<script>
+const RELAY = "wss://relay.zapstore.dev";
+const CDN   = "https://cdn.zapstore.dev";
+const OLD_RELEASE_ID = "67fef9cf16dd75192706d169f7584ce2e19bdf1fb98c84776137f44581c9baff";
+const OLD_FILE_ID    = "9f098613e9f6ccfc6050a1c8333c7f093d5aa750d23c2f7892d70b99eb8a6c14";
+const APK_SHA256     = "8bbdc42d991e558918cc8a3e7737218065dcea133d3821f42c6fe2087e59dd81";
+const D_TAG          = "com.librenostr.android@0.1.1";
+
+const CLEAN_NOTES = `Localization, unread badges and feed ordering, plus relay privacy and
+cache fixes. See the CHANGELOG in the repository for the full list.
+
+This release has been superseded. Its APK was signed with a retired key and is
+no longer distributed; install a later version instead.`;
+
+const log = m => { document.getElementById("log").textContent += "\n" + m; };
+
+async function publish(relay, ev){
+  return new Promise((res, rej) => {
+    const ws = new WebSocket(relay);
+    const t = setTimeout(() => { ws.close(); rej(new Error("timeout")); }, 15000);
+    ws.onopen = () => ws.send(JSON.stringify(["EVENT", ev]));
+    ws.onmessage = e => {
+      const m = JSON.parse(e.data);
+      if (m[0] === "OK" && m[1] === ev.id) { clearTimeout(t); ws.close(); m[2] ? res(m[3]||"accepted") : rej(new Error(m[3]||"rejected")); }
+    };
+    ws.onerror = () => { clearTimeout(t); rej(new Error("socket error")); };
+  });
+}
+
+document.getElementById("go").onclick = async () => {
+  const btn = document.getElementById("go"); btn.disabled = true;
+  document.getElementById("log").textContent = "Starting…";
+  try {
+    if (!window.nostr) throw new Error("No NIP-07 signer found. Install/unlock your Nostr browser extension.");
+    const pk = await window.nostr.getPublicKey();
+    log("signer pubkey: " + pk);
+    const now = Math.floor(Date.now()/1000);
+
+    // 1 — replacement release event
+    const replacement = await window.nostr.signEvent({
+      kind: 30063, created_at: now, content: CLEAN_NOTES,
+      tags: [["i","com.librenostr.android"],["version","0.1.1"],["d",D_TAG],
+             ["c","main"],["f","android-arm64-v8a"]],
+    });
+    log("1/3 replacement 30063 → " + await publish(RELAY, replacement).then(r=>"OK "+r, e=>{throw e}));
+
+    // 2 — delete request for the old events
+    const del = await window.nostr.signEvent({
+      kind: 5, created_at: now + 1,
+      content: "Superseded: contained the subject name of a retired signing certificate.",
+      tags: [["e",OLD_RELEASE_ID],["e",OLD_FILE_ID],
+             ["a","30063:"+pk+":"+D_TAG],["k","30063"],["k","3063"]],
+    });
+    log("2/3 delete request → " + await publish(RELAY, del).then(r=>"OK "+r, e=>"FAILED "+e.message));
+
+    // 3 — Blossom authenticated delete of the mirrored APK
+    const auth = await window.nostr.signEvent({
+      kind: 24242, created_at: now,
+      content: "Delete superseded LibreNostr 0.1.1 APK",
+      tags: [["t","delete"],["x",APK_SHA256],["expiration", String(now + 600)]],
+    });
+    const r = await fetch(CDN + "/" + APK_SHA256, {
+      method: "DELETE",
+      headers: { Authorization: "Nostr " + btoa(unescape(encodeURIComponent(JSON.stringify(auth)))) },
+    });
+    log("3/3 blossom DELETE → HTTP " + r.status + (r.ok ? " (removed)" : " — ask the Zapstore operators to drop the blob"));
+
+    log("\nDone. Re-check with:  curl -sI " + CDN + "/" + APK_SHA256);
+  } catch (e) {
+    log("ERROR: " + e.message);
+  } finally { btn.disabled = false; }
+};
+</script>
