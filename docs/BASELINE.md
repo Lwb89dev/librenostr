@@ -36,9 +36,9 @@ No production data-flow replacement has been done at this baseline.
 sdk.dir=<Android SDK path>
 ```
 
-On this machine: `sdk.dir=/home/antona89/Android/Sdk`.
+Example: `sdk.dir=$HOME/Android/Sdk`.
 
-The AOSP flavor already contains `app/src/aosp/google-services.json` in the tree. CI normally unpacks that file from secrets; a local AOSP debug compile does not need the Google flavor secrets.
+As of 0.1.2 there is no product flavor and no google-services file: the Google Play flavor and every Play services dependency were removed, so a debug build needs no secrets at all.
 
 ## Flavors
 
