@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.primal.android.articles.highlights.JoinedHighlightsUi
 import net.primal.android.articles.highlights.joinOnContent
@@ -39,6 +40,7 @@ import net.primal.android.user.repository.UserRepository
 import net.primal.android.wallet.zaps.ZapHandler
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.map
+import net.primal.core.utils.onFailure
 import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.events.EventInteractionRepository
@@ -155,20 +157,33 @@ class ArticleDetailsViewModel @Inject constructor(
 
     private fun fetchData(naddr: Naddr) =
         viewModelScope.launch {
+            setState { copy(fetching = true) }
+            val userId = activeAccountStore.activeUserId()
             try {
-                setState { copy(fetching = true) }
-                articleRepository.fetchArticleAndComments(
-                    userId = activeAccountStore.activeUserId(),
-                    articleAuthorId = naddr.userId,
-                    articleId = naddr.identifier,
-                )
-                articleRepository.fetchArticleHighlights(
-                    userId = activeAccountStore.activeUserId(),
-                    articleAuthorId = naddr.userId,
-                    articleId = naddr.identifier,
-                )
-            } catch (error: NetworkException) {
-                Napier.w(throwable = error) { "Failed to fetch article data." }
+                // Independent, and in parallel. These used to run one after the other inside a
+                // single try that only caught NetworkException: any failure of the article and
+                // comments fetch — common against relays, and not always a NetworkException —
+                // skipped the highlights entirely, which is why NIP-84 highlights never appeared.
+                coroutineScope {
+                    launch {
+                        runCatching {
+                            articleRepository.fetchArticleAndComments(
+                                userId = userId,
+                                articleAuthorId = naddr.userId,
+                                articleId = naddr.identifier,
+                            )
+                        }.onFailure { Napier.w(throwable = it) { "Failed to fetch article and comments." } }
+                    }
+                    launch {
+                        runCatching {
+                            articleRepository.fetchArticleHighlights(
+                                userId = userId,
+                                articleAuthorId = naddr.userId,
+                                articleId = naddr.identifier,
+                            )
+                        }.onFailure { Napier.w(throwable = it) { "Failed to fetch article highlights." } }
+                    }
+                }
             } finally {
                 setState { copy(fetching = false) }
             }
