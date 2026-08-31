@@ -19,37 +19,71 @@ import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 
-/** Loads long-form content directly from relays for the Reads feed. */
+/**
+ * Loads long-form content directly from relays for the Reads feed.
+ *
+ * Every query here is scoped to an author set. An unscoped kind-30023 request is a global
+ * firehose, and on public relays the long-form firehose is mostly spam and porn — which is
+ * what a missing author list produced, because an empty list was passed as "no constraint".
+ * When no author set can be resolved the feed returns empty rather than falling back to it.
+ *
+ * The scope is the user's follows, optionally widened to the follows of those follows when
+ * follows alone cannot fill a page. That is the widest this ever goes.
+ */
 internal class RelayArticleFeedFetcher(private val querier: RelayEventQuerier) {
+
+    private var cachedNetwork: Pair<String, List<String>>? = null
 
     suspend fun fetch(userId: String, feedSpec: String, limit: Int, until: Long?): ArticleResponse {
         val query = feedSpec.extractAdvancedSearchQuery()
         val topic = feedSpec.extractTopicFromFeedSpec()?.removePrefix("#")
+
         val authors = when {
             feedSpec.isFollowSetFeedSpec() -> loadFollowSet(
                 feedSpec.extractFollowSetPubkey() ?: userId,
                 feedSpec.extractFollowSetDTag() ?: return emptyResponse(),
             )
-            query != null || topic != null -> emptyList()
-            feedSpec.isReadsFeedSpec() -> loadFollows(userId) + userId
-            else -> emptyList()
+            // Topic and search feeds used to drop the author constraint entirely. They stay
+            // inside the follow scope: a hashtag or a search term is a filter on the feed, not
+            // a licence to read the whole network.
+            else -> loadFollows(userId) + userId
         }.distinct()
 
+        if (authors.isEmpty()) {
+            Napier.d("Relay Reads: no author scope for spec=$feedSpec; refusing a global query.")
+            return emptyResponse()
+        }
+
+        val searchTerm = query?.removePrefix("kind:30023")?.trim()?.takeIf { it.isNotBlank() }
         val baseFilter = RelayFilter(
             kinds = listOf(NostrEventKind.LongFormContent.value),
-            authors = authors.takeIf { it.isNotEmpty() },
-            eventTags = topic?.let { listOf(it) },
-            search = query?.removePrefix("kind:30023")?.trim()?.takeIf { it.isNotBlank() },
+            authors = authors,
+            hashtagTags = topic?.let { listOf(it) },
+            search = searchTerm,
             limit = limit,
             until = until,
         )
-        val firstPage = runCatching { querier.query(baseFilter) }.getOrDefault(emptyList())
+        var firstPage = runCatching { querier.query(baseFilter) }.getOrDefault(emptyList())
+
+        // Follows alone are often too few to fill a page of long-form. Widen once to the
+        // follows-of-follows, still an explicit author list, never the open network.
+        if (firstPage.size < limit && !feedSpec.isFollowSetFeedSpec()) {
+            val network = loadFollowNetwork(userId = userId, follows = authors)
+            if (network.size > authors.size) {
+                val widened = runCatching { querier.query(baseFilter.copy(authors = network)) }
+                    .getOrDefault(emptyList())
+                firstPage = (firstPage + widened).distinctBy { it.id }
+            }
+        }
         // NIP-50 is optional. A broad relay query plus local matching keeps Reads
         // usable on relays which reject or ignore the search field.
-        val events = if (firstPage.isEmpty() && baseFilter.search != null) {
+        // NIP-50 is optional. When a relay ignores or rejects the search field, match locally
+        // over the same author scope instead — the fallback keeps the authors, so it can never
+        // turn a search into an unscoped fetch.
+        val events = if (firstPage.isEmpty() && searchTerm != null) {
             val broad = runCatching { querier.query(baseFilter.copy(search = null, limit = FALLBACK_LIMIT)) }
                 .getOrDefault(emptyList())
-            val terms = baseFilter.search.orEmpty().split(Regex("\\s+")).filter { it.isNotBlank() }
+            val terms = searchTerm.split(Regex("\\s+")).filter { it.isNotBlank() }
             broad.filter { event -> terms.all { term -> event.content.contains(term, ignoreCase = true) } }
         } else {
             firstPage
@@ -121,7 +155,44 @@ internal class RelayArticleFeedFetcher(private val querier: RelayEventQuerier) {
         primalPremiumInfo = null, blossomServers = emptyList(),
     )
 
+    /**
+     * The user's follows plus the people they follow, capped so the author array stays within
+     * what relays accept. Cached per user for the lifetime of the fetcher so paging does not
+     * re-derive it on every page.
+     */
+    private suspend fun loadFollowNetwork(userId: String, follows: List<String>): List<String> {
+        cachedNetwork?.let { (cachedUserId, cached) -> if (cachedUserId == userId) return cached }
+
+        val seeds = follows.filterNot { it == userId }.take(MAX_NETWORK_SEEDS)
+        if (seeds.isEmpty()) return follows
+
+        val secondDegree = runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.FollowList.value),
+                    authors = seeds,
+                    limit = seeds.size,
+                ),
+            )
+        }.getOrDefault(emptyList())
+            .groupBy { it.pubKey }
+            .values
+            .mapNotNull { perAuthor -> perAuthor.maxByOrNull { it.createdAt } }
+            .flatMap { it.tags.pubkeyTagValues() }
+
+        val network = (follows + secondDegree).distinct().take(MAX_NETWORK_AUTHORS)
+        cachedNetwork = userId to network
+        Napier.d("Relay Reads: follow network built, follows=${follows.size} network=${network.size}")
+        return network
+    }
+
     companion object {
         private const val FALLBACK_LIMIT = 500
+
+        /** Contact lists to pull when widening; each is a few KB, so this bounds the round trip. */
+        private const val MAX_NETWORK_SEEDS = 150
+
+        /** Relays commonly reject very large filter arrays; keep the author list under that. */
+        private const val MAX_NETWORK_AUTHORS = 1000
     }
 }

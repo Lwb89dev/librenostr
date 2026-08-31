@@ -10,6 +10,8 @@ data class RelayFilter(
     val eventTags: List<String>? = null,
     val addressTags: List<String>? = null,
     val pubkeyTags: List<String>? = null,
+    /** Values for the NIP-12 `t` hashtag tag. Topic feeds need this, not `#e`. */
+    val hashtagTags: List<String>? = null,
     /** Values for a custom `bolt11` tag, used to resolve zap receipts by invoice. */
     val bolt11Tags: List<String>? = null,
     /** Optional NIP-50 full-text search expression. */

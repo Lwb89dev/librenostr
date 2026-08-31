@@ -18,6 +18,7 @@ fun RelayFilter.toJsonObject(): JsonObject =
         eventTags = eventTags,
         addressTags = addressTags,
         pubkeyTags = pubkeyTags,
+        hashtagTags = hashtagTags,
         bolt11Tags = bolt11Tags,
         search = search,
     )
@@ -32,6 +33,7 @@ fun buildRelayFilter(
     eventTags: List<String>? = null,
     addressTags: List<String>? = null,
     pubkeyTags: List<String>? = null,
+    hashtagTags: List<String>? = null,
     bolt11Tags: List<String>? = null,
     search: String? = null,
 ): JsonObject =
@@ -56,6 +58,9 @@ fun buildRelayFilter(
         }
         if (!pubkeyTags.isNullOrEmpty()) {
             put("#p", buildJsonArray { pubkeyTags.forEach { add(it) } })
+        }
+        if (!hashtagTags.isNullOrEmpty()) {
+            put("#t", buildJsonArray { hashtagTags.forEach { add(it) } })
         }
         if (!bolt11Tags.isNullOrEmpty()) {
             put("#bolt11", buildJsonArray { bolt11Tags.forEach { add(it) } })
