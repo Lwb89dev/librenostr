@@ -99,7 +99,7 @@ class ReceivePaymentViewModel @Inject constructor(
         viewModelScope.launch {
             activeAccountStore.activeUserAccount
                 .collect {
-                    setState { copy(hasPremium = it.premiumMembership != null) }
+                    setState { copy(hasPremium = false) }
                 }
         }
 

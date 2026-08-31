@@ -82,10 +82,8 @@ private fun ExploreZaps(
                         createdAt = item.createdAt,
                         message = item.zapMessage,
                         senderAvatarCdnImage = item.sender?.avatarCdnImage,
-                        senderLegendaryCustomization = item.sender?.premiumDetails?.legendaryCustomization,
                         receiverDisplayName = item.receiver?.authorDisplayName,
                         receiverAvatarCdnImage = item.receiver?.avatarCdnImage,
-                        receiverLegendaryCustomization = item.receiver?.premiumDetails?.legendaryCustomization,
                         noteCallbacks = noteCallbacks,
                     )
                 }

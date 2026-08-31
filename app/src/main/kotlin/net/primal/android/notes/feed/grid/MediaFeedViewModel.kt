@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import net.primal.android.notes.feed.grid.MediaFeedContract.UiState
 import net.primal.android.notes.feed.model.asFeedPostUi
-import net.primal.android.premium.utils.hasPremiumMembership
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.feeds.isPremiumFeedSpec
@@ -51,9 +50,7 @@ class MediaFeedViewModel @AssistedInject constructor(
     private fun observeActiveAccount() =
         viewModelScope.launch {
             activeAccountStore.activeUserAccount.collect {
-                val isPremiumFeedSpec = feedSpec.isPremiumFeedSpec()
-                val userHasPremium = it.hasPremiumMembership()
-                setState { copy(paywall = isPremiumFeedSpec && !userHasPremium) }
+                setState { copy(paywall = feedSpec.isPremiumFeedSpec()) }
             }
         }
 }

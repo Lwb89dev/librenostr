@@ -710,7 +710,6 @@ private fun NoteEditorInputArea(
             avatarSize = avatarSizeDp,
             avatarCdnImage = state.selectedAccount?.avatarCdnImage,
             avatarBlossoms = state.selectedAccount?.avatarBlossoms ?: emptyList(),
-            legendaryCustomization = state.selectedAccount?.legendaryCustomization,
             onClick = if (state.attachments.isEmpty()) {
                 { onShowAccountSwitcher() }
             } else {
@@ -980,7 +979,6 @@ private fun ReplyToNote(replyToNote: FeedPostUi, connectionLineColor: Color) {
             postTimestamp = replyToNote.timestamp,
             authorAvatarCdnImage = replyToNote.authorAvatarCdnImage,
             authorInternetIdentifier = replyToNote.authorInternetIdentifier,
-            authorLegendaryCustomization = replyToNote.authorLegendaryCustomization,
             authorId = replyToNote.authorId,
             onAuthorAvatarClick = {},
         )

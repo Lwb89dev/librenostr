@@ -102,7 +102,6 @@ private fun AccountSwitcher(
                     avatarSize = 28.dp,
                     avatarCdnImage = account.avatarCdnImage,
                     avatarBlossoms = account.avatarBlossoms,
-                    legendaryCustomization = account.legendaryCustomization,
                     onClick = { eventPublisher(AccountSwitcherContract.UiEvent.SwitchAccount(account.pubkey)) },
                     defaultAvatar = {
                         CompositionLocalProvider(

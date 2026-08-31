@@ -6,7 +6,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.primal.android.core.ext.asMapByKey
 import net.primal.android.feeds.dvm.ui.DvmFeedUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.core.networking.utils.retryNetworkCall
 import net.primal.domain.events.EventRepository
 import net.primal.domain.events.NostrEventStats
@@ -113,9 +112,6 @@ class DvmFeedListHandler @Inject constructor(
                 totalLikes = statsByEventId[dvmFeed.eventId]?.likes,
                 totalSatsZapped = statsByEventId[dvmFeed.eventId]?.satsZapped,
                 featuredUserAvatars = featuredUsers.mapNotNull { it.avatarCdnImage },
-                featuredUserLegendaryCustomizations = featuredUsers.map {
-                    it.primalPremiumInfo?.legendProfile?.asLegendaryCustomization()
-                },
                 featuredUserIds = featuredUsers.map { it.profileId },
             )
         }

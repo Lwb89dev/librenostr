@@ -125,7 +125,6 @@ import net.primal.android.navigation.noteCallbacksHandler
 import net.primal.android.wallet.zaps.AndroidLightningWallet
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.notifications.list.ui.NotificationUi
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.wallet.picker.WalletPickerOverlayContent
 import net.primal.domain.feeds.FeedSpecKind
@@ -268,7 +267,6 @@ private fun MainScreenTopAppBar(
     subtitleOverride: String? = null,
     chevronExpanded: Boolean = false,
     avatarCdnImage: CdnImage?,
-    avatarLegendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     homeActiveFeed: FeedUi?,
     readsActiveFeed: FeedUi?,
@@ -294,7 +292,6 @@ private fun MainScreenTopAppBar(
                 feeds = homeFeeds,
                 activeFeed = homeActiveFeed,
                 avatarCdnImage = avatarCdnImage,
-                avatarLegendaryCustomization = avatarLegendaryCustomization,
                 avatarBlossoms = avatarBlossoms,
                 onAvatarClick = onAvatarClick,
                 onAvatarSwipeDown = onAvatarSwipeDown,
@@ -317,7 +314,6 @@ private fun MainScreenTopAppBar(
                 feeds = readsFeeds,
                 activeFeed = readsActiveFeed,
                 avatarCdnImage = avatarCdnImage,
-                avatarLegendaryCustomization = avatarLegendaryCustomization,
                 avatarBlossoms = avatarBlossoms,
                 onAvatarClick = onAvatarClick,
                 onAvatarSwipeDown = onAvatarSwipeDown,
@@ -335,7 +331,6 @@ private fun MainScreenTopAppBar(
                 title = stringResource(id = R.string.algorithm_title),
                 subtitle = stringResource(id = R.string.algorithm_subtitle),
                 avatarCdnImage = avatarCdnImage,
-                avatarLegendaryCustomization = avatarLegendaryCustomization,
                 avatarBlossoms = avatarBlossoms,
                 onAvatarClick = onAvatarClick,
                 onAvatarSwipeDown = onAvatarSwipeDown,
@@ -352,7 +347,6 @@ private fun MainScreenTopAppBar(
         PrimalTopLevelDestination.Alerts -> {
             NotificationsTopAppBar(
                 avatarCdnImage = avatarCdnImage,
-                avatarLegendaryCustomization = avatarLegendaryCustomization,
                 avatarBlossoms = avatarBlossoms,
                 scrollBehavior = scrollBehavior,
                 onAvatarClick = onAvatarClick,
@@ -438,7 +432,6 @@ private fun ScaffoldTopAppBar(
             walletPickerVisible ||
             exploreSectionPickerVisible,
         avatarCdnImage = mainState.activeAccountAvatarCdnImage,
-        avatarLegendaryCustomization = mainState.activeAccountLegendaryCustomization,
         avatarBlossoms = mainState.activeAccountBlossoms,
         homeActiveFeed = sharedState.homeActiveFeed.value,
         readsActiveFeed = sharedState.readsActiveFeed.value,

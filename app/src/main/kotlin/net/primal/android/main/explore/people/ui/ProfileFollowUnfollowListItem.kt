@@ -25,7 +25,6 @@ import net.primal.android.core.compose.UniversalAvatarThumbnail
 import net.primal.android.core.compose.button.FollowUnfollowButton
 import net.primal.android.core.compose.profile.model.UserProfileItemUi
 import net.primal.android.core.utils.shortened
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -47,7 +46,6 @@ fun ProfileFollowUnfollowListItem(
         UniversalAvatarThumbnail(
             avatarSize = avatarSize,
             avatarCdnImage = data.avatarCdnImage,
-            legendaryCustomization = data.legendaryCustomization,
         )
 
         Row(
@@ -61,7 +59,6 @@ fun ProfileFollowUnfollowListItem(
                     .weight(1f),
                 displayName = data.displayName,
                 internetIdentifier = data.internetIdentifier,
-                legendaryCustomization = data.legendaryCustomization,
                 profileId = data.profileId,
             )
         }
@@ -81,7 +78,6 @@ fun ProfileFollowUnfollowListItem(
 private fun UserDisplayNameInternetIdentifier(
     displayName: String,
     internetIdentifier: String?,
-    legendaryCustomization: LegendaryCustomization?,
     modifier: Modifier = Modifier,
     profileId: String? = null,
 ) {
@@ -95,7 +91,6 @@ private fun UserDisplayNameInternetIdentifier(
             displayNameFontWeight = FontWeight.SemiBold,
             style = AppTheme.typography.bodyLarge,
             internetIdentifier = internetIdentifier,
-            legendaryCustomization = legendaryCustomization,
             profileId = profileId,
         )
 

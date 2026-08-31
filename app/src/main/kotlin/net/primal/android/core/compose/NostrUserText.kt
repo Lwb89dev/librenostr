@@ -51,8 +51,6 @@ import net.primal.android.core.compose.icons.primaliconpack.PrimalBadgeTeal
 import net.primal.android.core.compose.icons.primaliconpack.Verified
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.utils.isPrimalIdentifier
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.domain.profile.Nip05VerificationStatus
@@ -75,7 +73,6 @@ fun NostrUserText(
     maxLines: Int = 1,
     internetIdentifierBadgeSize: Dp = 14.dp,
     internetIdentifierBadgeAlign: PlaceholderVerticalAlign = PlaceholderVerticalAlign.Center,
-    legendaryCustomization: LegendaryCustomization? = null,
     profileId: String? = null,
     annotatedStringPrefixBuilder: (AnnotatedString.Builder.() -> Unit)? = null,
     annotatedStringSuffixBuilder: (AnnotatedString.Builder.() -> Unit)? = null,
@@ -97,12 +94,6 @@ fun NostrUserText(
 
     val verifiedBadge = !internetIdentifier.isNullOrEmpty() && nip05Status != Nip05VerificationStatus.FAILED
     var resizedTextStyle by remember { mutableStateOf(style) }
-
-    val customBadgeStyle = if (legendaryCustomization?.customBadge == true) {
-        legendaryCustomization.legendaryStyle
-    } else {
-        null
-    }
 
     val titleText = buildAnnotatedString {
         annotatedStringPrefixBuilder?.invoke(this)
@@ -131,46 +122,25 @@ fun NostrUserText(
         "verifiedBadge" to InlineTextContent(
             placeholder = Placeholder(placeholderSize, placeholderSize, internetIdentifierBadgeAlign),
         ) {
-            if (customBadgeStyle != null && customBadgeStyle != LegendaryStyle.NO_CUSTOMIZATION) {
-                @Suppress("KotlinConstantConditions")
-                val badgeVector = when (customBadgeStyle) {
-                    LegendaryStyle.GOLD -> PrimalIcons.PrimalBadgeGold
-                    LegendaryStyle.AQUA -> PrimalIcons.PrimalBadgeAqua
-                    LegendaryStyle.SILVER -> PrimalIcons.PrimalBadgeSilver
-                    LegendaryStyle.PURPLE -> PrimalIcons.PrimalBadgePurple
-                    LegendaryStyle.PURPLE_HAZE -> PrimalIcons.PrimalBadgePurpleHaze
-                    LegendaryStyle.TEAL -> PrimalIcons.PrimalBadgeTeal
-                    LegendaryStyle.BROWN -> PrimalIcons.PrimalBadgeBrown
-                    LegendaryStyle.BLUE -> PrimalIcons.PrimalBadgeBlue
-                    LegendaryStyle.SUN_FIRE -> PrimalIcons.PrimalBadgeSunFire
-                    LegendaryStyle.NO_CUSTOMIZATION -> error("Should not be rendered with custom icon.")
-                }
-                Icon(
-                    imageVector = badgeVector,
-                    contentDescription = null,
-                    tint = Color.Unspecified,
-                )
+            val (badgeColor, bgColor) = if (internetIdentifier.isPrimalIdentifier()) {
+                AppTheme.colorScheme.tertiary to Color.White
             } else {
-                val (badgeColor, bgColor) = if (internetIdentifier.isPrimalIdentifier()) {
-                    AppTheme.colorScheme.tertiary to Color.White
-                } else {
-                    AppTheme.extraColorScheme.onSurfaceVariantAlt2 to AppTheme.colorScheme.surface
-                }
-                Image(
-                    modifier = Modifier
-                        .padding(bottom = 1.dp)
-                        .size(internetIdentifierBadgeSize)
-                        .drawBehind {
-                            drawCircle(
-                                color = bgColor,
-                                radius = size.minDimension / 4.0f,
-                            )
-                        },
-                    imageVector = PrimalIcons.Verified,
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(color = badgeColor),
-                )
+                AppTheme.extraColorScheme.onSurfaceVariantAlt2 to AppTheme.colorScheme.surface
             }
+            Image(
+                modifier = Modifier
+                    .padding(bottom = 1.dp)
+                    .size(internetIdentifierBadgeSize)
+                    .drawBehind {
+                        drawCircle(
+                            color = bgColor,
+                            radius = size.minDimension / 4.0f,
+                        )
+                    },
+                imageVector = PrimalIcons.Verified,
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(color = badgeColor),
+            )
         },
     )
 
@@ -220,7 +190,6 @@ fun PreviewNostrUserTextWithPrimalBadge() {
                 annotatedStringSuffixBuilder = {
                     append("• 42 y. ago")
                 },
-                legendaryCustomization = null,
             )
         }
     }
@@ -237,7 +206,6 @@ fun PreviewNostrUserTextWithRandomBadge() {
                 annotatedStringSuffixBuilder = {
                     append("• 42 y. ago")
                 },
-                legendaryCustomization = null,
             )
         }
     }
@@ -254,7 +222,6 @@ fun PreviewNostrUserTextWithoutBadge() {
                 annotatedStringSuffixBuilder = {
                     append(" • 42 y. ago")
                 },
-                legendaryCustomization = null,
             )
         }
     }
@@ -271,11 +238,6 @@ fun PreviewNostrUserTextWithCustomBadge() {
                 annotatedStringSuffixBuilder = {
                     append(" • 42 y. ago")
                 },
-                legendaryCustomization = LegendaryCustomization(
-                    customBadge = true,
-                    avatarGlow = true,
-                    legendaryStyle = LegendaryStyle.GOLD,
-                ),
             )
         }
     }

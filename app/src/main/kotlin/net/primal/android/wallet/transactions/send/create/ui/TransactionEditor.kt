@@ -418,7 +418,6 @@ private fun TransactionHeaderColumn(
                 modifier = Modifier.padding(vertical = verticalPadding.value),
                 avatarCdnImage = state.profileAvatarCdnImage,
                 avatarSize = avatarSize.value,
-                legendaryCustomization = state.profileLegendaryCustomization,
             )
         } else {
             LightningTransactionIcon(

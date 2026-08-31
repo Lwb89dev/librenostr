@@ -59,11 +59,8 @@ import net.primal.android.core.compose.profile.model.ProfileStatsUi
 import net.primal.android.core.ext.openUriSafely
 import net.primal.android.core.utils.formatNip05Identifier
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.profile.details.ProfileDetailsContract
 import net.primal.android.profile.details.ui.model.PremiumProfileDataUi
-import net.primal.android.profile.details.ui.model.shouldShowPremiumBadge
 import net.primal.android.theme.AppTheme
 import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.domain.utils.isLightningAddress
@@ -261,7 +258,6 @@ private fun UserFollowedByIndicator(
         AvatarThumbnailsRow(
             avatarBorderColor = AppTheme.colorScheme.background,
             avatarCdnImages = profiles.map { it.avatarCdnImage },
-            avatarLegendaryCustomizations = profiles.map { it.premiumDetails?.legendaryCustomization },
             onClick = {
                 onProfileClick(profiles[it].pubkey)
             },
@@ -358,65 +354,6 @@ private fun UserDisplayName(
     }
 }
 
-@Composable
-fun ProfilePremiumBadge(
-    modifier: Modifier = Modifier,
-    firstCohort: String,
-    secondCohort: String,
-    legendaryStyle: LegendaryStyle?,
-    firstCohortFontSize: TextUnit = 12.sp,
-    secondCohortFontSize: TextUnit = 12.sp,
-) {
-    val density = LocalDensity.current
-    val shadowOffset = with(density) { 0.5.dp.toPx() }
-    Row(
-        modifier = modifier
-            .padding(bottom = 1.dp)
-            .shadow(elevation = 1.dp, shape = AppTheme.shapes.extraLarge)
-            .clip(AppTheme.shapes.extraLarge)
-            .background(
-                brush = if (legendaryStyle != null && legendaryStyle != LegendaryStyle.NO_CUSTOMIZATION) {
-                    legendaryStyle.primaryBrush
-                } else {
-                    Brush.linearGradient(listOf(AppTheme.colorScheme.tertiary, AppTheme.colorScheme.tertiary))
-                },
-            )
-            .padding(start = 10.dp, end = 2.dp)
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            modifier = Modifier.padding(top = 1.5.dp),
-            text = firstCohort,
-            fontWeight = FontWeight.Bold,
-            style = AppTheme.typography.bodyMedium.copy(
-                shadow = Shadow(
-                    color = Color.Black.copy(alpha = 0.5f),
-                    offset = Offset(x = shadowOffset, y = shadowOffset),
-                ),
-            ),
-            fontSize = firstCohortFontSize,
-            color = Color.White,
-        )
-        Box(
-            modifier = Modifier
-                .clip(AppTheme.shapes.extraLarge)
-                .background(Color.Black.copy(alpha = 0.4f)),
-        ) {
-            Text(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                    .padding(top = 0.75.dp),
-                text = secondCohort,
-                style = AppTheme.typography.bodySmall,
-                fontSize = secondCohortFontSize,
-                fontWeight = FontWeight.Normal,
-                color = Color.White,
-            )
-        }
-    }
-}
 
 @Composable
 private fun UserWebsiteText(
@@ -465,11 +402,6 @@ private fun PreviewProfileHeaderDetails() {
                             cohort1 = "Legend",
                             cohort2 = "2024",
                             tier = "primal-legend",
-                            legendaryCustomization = LegendaryCustomization(
-                                avatarGlow = true,
-                                legendaryStyle = LegendaryStyle.BLUE,
-                                customBadge = true,
-                            ),
                         ),
                     ),
                     profileStats = ProfileStatsUi(

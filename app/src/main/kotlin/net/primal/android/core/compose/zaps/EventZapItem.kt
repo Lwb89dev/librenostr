@@ -49,7 +49,6 @@ fun EventZapItem(
             avatarCdnImage = noteZap.zapperAvatarCdnImage,
             avatarSize = 24.dp,
             onClick = onClick,
-            legendaryCustomization = noteZap.zapperLegendaryCustomization,
         )
 
         IconText(

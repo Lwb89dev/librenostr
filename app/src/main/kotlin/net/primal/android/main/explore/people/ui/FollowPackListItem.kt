@@ -94,7 +94,6 @@ private fun FollowPackAuthorRow(
             onClick = { onProfileClick(author.profileId) },
             avatarSize = 24.dp,
             avatarCdnImage = author.avatarCdnImage,
-            legendaryCustomization = author.legendaryCustomization,
         )
 
         NostrUserText(
@@ -103,7 +102,6 @@ private fun FollowPackAuthorRow(
             displayNameFontWeight = FontWeight.SemiBold,
             style = AppTheme.typography.bodyMedium,
             internetIdentifier = author.internetIdentifier,
-            legendaryCustomization = author.legendaryCustomization,
             profileId = author.profileId,
         )
     }
@@ -125,7 +123,6 @@ fun ItemFooter(
         AvatarThumbnailsRow(
             avatarCdnImages = profiles.map { it.avatarCdnImage },
             avatarBorderColor = Color.Transparent,
-            avatarLegendaryCustomizations = profiles.map { it.legendaryCustomization },
             onClick = { onProfileClick(profiles[it].profileId) },
         )
 

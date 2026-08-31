@@ -1,6 +1,5 @@
 package net.primal.android.settings.wallet.settings
 
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.settings.wallet.settings.ui.model.WalletNwcConnectionUi
 import net.primal.domain.links.CdnImage
 import net.primal.domain.transactions.Transaction
@@ -18,7 +17,6 @@ interface WalletSettingsContract {
         val showBackupWidget: Boolean = false,
         val showBackupListItem: Boolean = false,
         val activeAccountAvatarCdnImage: CdnImage? = null,
-        val activeAccountLegendaryCustomization: LegendaryCustomization? = null,
         val activeAccountBlossoms: List<String> = emptyList(),
         val activeAccountDisplayName: String = "",
         val isExportingTransactions: Boolean = false,

@@ -6,7 +6,6 @@ import net.primal.android.events.polls.votes.asPollUi
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.domain.links.ReferencedNote
 import net.primal.domain.nostr.utils.parseHashtags
 
@@ -22,7 +21,6 @@ fun ReferencedNote.asFeedPostUi() =
         authorHandle = this.authorName,
         authorInternetIdentifier = this.authorInternetIdentifier,
         authorAvatarCdnImage = this.authorAvatarCdnImage,
-        authorLegendaryCustomization = this.authorLegendProfile?.asLegendaryCustomization(),
         uris = this.attachments.map { it.asEventUriUiModel() },
         nostrUris = this.nostrUris.map { it.asNoteNostrUriUi() },
         timestamp = Instant.ofEpochSecond(this.createdAt),

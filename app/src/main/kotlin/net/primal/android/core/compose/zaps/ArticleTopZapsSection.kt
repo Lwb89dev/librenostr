@@ -31,8 +31,6 @@ import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.NavWalletBoltFilled
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.events.ui.EventZapUiModel
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -95,7 +93,6 @@ private fun ArticleTopNoteZapRow(noteZap: EventZapUiModel, onClick: () -> Unit) 
             avatarCdnImage = noteZap.zapperAvatarCdnImage,
             avatarSize = 28.dp,
             onClick = onClick,
-            legendaryCustomization = noteZap.zapperLegendaryCustomization,
         )
 
         IconText(
@@ -144,7 +141,6 @@ private fun ArticleNoteZapListItem(noteZap: EventZapUiModel, onClick: () -> Unit
             avatarCdnImage = noteZap.zapperAvatarCdnImage,
             avatarSize = 24.dp,
             onClick = onClick,
-            legendaryCustomization = noteZap.zapperLegendaryCustomization,
         )
 
         Text(
@@ -208,11 +204,6 @@ private fun PreviewArticleTopZapsSection() {
                         zappedAt = 0,
                         message = "Top zap message!!!",
                         amountInSats = 21_21_21.toULong(),
-                        zapperLegendaryCustomization = LegendaryCustomization(
-                            avatarGlow = true,
-                            customBadge = true,
-                            legendaryStyle = LegendaryStyle.SUN_FIRE,
-                        ),
                     ),
                     EventZapUiModel(
                         id = "id",

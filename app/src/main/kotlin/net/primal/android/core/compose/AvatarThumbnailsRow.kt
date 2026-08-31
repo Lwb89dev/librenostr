@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.core.utils.runCatching
 import net.primal.domain.links.CdnImage
@@ -27,7 +26,6 @@ import net.primal.domain.links.CdnImage
 fun AvatarThumbnailsRow(
     modifier: Modifier = Modifier,
     avatarCdnImages: List<CdnImage?>,
-    avatarLegendaryCustomizations: List<LegendaryCustomization?> = emptyList(),
     avatarOverlap: AvatarOverlap = AvatarOverlap.End,
     hasAvatarBorder: Boolean = true,
     avatarBorderSize: Dp = 2.dp,
@@ -78,7 +76,6 @@ fun AvatarThumbnailsRow(
                         modifier = Modifier.size(avatarSize),
                         avatarCdnImage = imageCdnImage,
                         hasBorder = hasAvatarBorder,
-                        legendaryCustomization = runCatching { avatarLegendaryCustomizations[layoutIndex] }.getOrNull(),
                         fallbackBorderColor = avatarBorderColor,
                         borderSizeOverride = avatarBorderSize,
                         onClick = if (onClick != null) {

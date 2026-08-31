@@ -599,7 +599,6 @@ private fun WalletDashboardTopAppBar(
         onTitleClick = if (canShowWalletPicker) onWalletPickerRequest else null,
         avatarCdnImage = state.activeAccountAvatarCdnImage,
         avatarBlossoms = state.activeAccountBlossoms,
-        avatarLegendaryCustomization = state.activeAccountLegendaryCustomization,
         onAvatarClick = onAvatarClick,
         onAvatarSwipeDown = onAvatarSwipeDown,
         showDivider = false,

@@ -227,7 +227,6 @@ private fun AccountListItem(
                     avatarSize = 40.dp,
                     avatarCdnImage = account.avatarCdnImage,
                     avatarBlossoms = account.avatarBlossoms,
-                    legendaryCustomization = account.legendaryCustomization,
                 )
             }
         },
@@ -235,7 +234,6 @@ private fun AccountListItem(
             NostrUserText(
                 displayName = account.displayName,
                 internetIdentifier = account.internetIdentifier,
-                legendaryCustomization = account.legendaryCustomization,
                 profileId = account.pubkey,
             )
         },

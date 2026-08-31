@@ -5,8 +5,6 @@ import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.events.ui.EventZapUiModel
 import net.primal.android.events.ui.asEventZapUiModel
 import net.primal.android.notes.feed.model.EventStatsUi
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.domain.links.CdnImage
 import net.primal.domain.nostr.Naddr
 import net.primal.domain.nostr.Nip19TLV.toNaddrString
@@ -31,7 +29,6 @@ data class FeedArticleUi(
     val imageCdnImage: CdnImage? = null,
     val readingTimeInMinutes: Int? = null,
     val eventZaps: List<EventZapUiModel> = emptyList(),
-    val authorLegendaryCustomization: LegendaryCustomization? = null,
 )
 
 fun Article.mapAsFeedArticleUi(): FeedArticleUi {
@@ -51,7 +48,6 @@ fun Article.mapAsFeedArticleUi(): FeedArticleUi {
         stats = EventStatsUi.from(eventStats = this.eventStats, userStats = null),
         readingTimeInMinutes = this.wordsCount.wordsCountToReadingTime(),
         eventZaps = this.eventZaps.map { it.asEventZapUiModel() },
-        authorLegendaryCustomization = this.author?.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
         authorInternetIdentifier = this.author?.internetIdentifier,
     )
 }

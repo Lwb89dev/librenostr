@@ -2,7 +2,6 @@ package net.primal.android.core.compose.profile.model
 
 import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.core.utils.usernameUiFriendly
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.profile.details.ui.model.PremiumProfileDataUi
 import net.primal.domain.links.CdnImage
 import net.primal.domain.membership.PrimalPremiumInfo
@@ -55,7 +54,6 @@ fun PrimalPremiumInfo.asPremiumProfileDataUi() =
         legendSince = this.legendSince,
         premiumSince = this.premiumSince,
         expiresAt = this.expiresAt,
-        legendaryCustomization = this.legendProfile?.asLegendaryCustomization(),
     )
 
 fun String.asFallbackProfileDetailsUi() =

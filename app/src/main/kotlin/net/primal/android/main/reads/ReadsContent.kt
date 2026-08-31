@@ -35,8 +35,6 @@ import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.feeds.list.ui.model.FeedUi
 import net.primal.android.feeds.list.ui.model.toAppBarPages
 import net.primal.android.navigation.navigateToArticleDetails
-import net.primal.android.navigation.navigateToPremiumBuying
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.domain.links.CdnImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +60,7 @@ fun ReadsContent(
         snackbarHostState = snackbarHostState,
         paddingValues = paddingValues,
         onArticleClick = { naddr -> navController.navigateToArticleDetails(naddr) },
-        onGetPremiumClick = { navController.navigateToPremiumBuying() },
+        onGetPremiumClick = {},
     )
 }
 
@@ -157,7 +155,6 @@ internal fun ArticleFeedTopAppBar(
     onAvatarSwipeDown: (() -> Unit)? = null,
     onFeedPickerRequest: () -> Unit,
     activeFeed: FeedUi?,
-    avatarLegendaryCustomization: LegendaryCustomization? = null,
     avatarBlossoms: List<String> = emptyList(),
     scrollBehavior: TopAppBarScrollBehavior? = null,
     titleOverride: String? = null,
@@ -181,7 +178,6 @@ internal fun ArticleFeedTopAppBar(
         pages = feeds.toAppBarPages(),
         avatarCdnImage = avatarCdnImage,
         avatarBlossoms = avatarBlossoms,
-        avatarLegendaryCustomization = avatarLegendaryCustomization,
         onAvatarClick = onAvatarClick,
         onAvatarSwipeDown = onAvatarSwipeDown,
         scrollBehavior = scrollBehavior,

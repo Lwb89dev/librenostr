@@ -20,7 +20,6 @@ import net.primal.android.articles.feed.ui.mapAsFeedArticleUi
 import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.navigation.transactionIdOrThrow
 import net.primal.android.notes.feed.model.asFeedPostUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.wallet.repository.ExchangeRateHandler
 import net.primal.android.wallet.transactions.details.TransactionDetailsContract.UiState
@@ -207,10 +206,6 @@ class TransactionDetailsViewModel @Inject constructor(
             otherUserInternetIdentifier = this.getIfTypeOrNull(Transaction.Zap::otherUserProfile)
                 ?.internetIdentifier
                 ?: this.getIfTypeOrNull(Transaction.Lightning::otherUserProfile)?.internetIdentifier,
-            otherUserLegendaryCustomization = this.getIfTypeOrNull(Transaction.Zap::otherUserProfile)
-                ?.primalPremiumInfo?.legendProfile?.asLegendaryCustomization()
-                ?: this.getIfTypeOrNull(Transaction.Lightning::otherUserProfile)
-                    ?.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
             otherUserLightningAddress = this.getIfTypeOrNull(Transaction.Zap::otherLightningAddress)
                 ?: this.getIfTypeOrNull(Transaction.Lightning::otherLightningAddress),
             isZap = this is Transaction.Zap,

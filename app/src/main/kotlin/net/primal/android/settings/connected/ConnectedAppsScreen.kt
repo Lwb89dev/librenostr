@@ -235,7 +235,6 @@ private fun ConnectedAppListItem(
             ) {
                 UniversalAvatarThumbnail(
                     avatarCdnImage = connection.userAvatarCdnImage,
-                    legendaryCustomization = connection.userLegendaryCustomization,
                     avatarSize = 22.dp,
                 )
                 Icon(
@@ -291,7 +290,6 @@ fun PreviewConnectedAppsScreen() {
                             appName = "LibreNostr web app",
                             appIconUrl = "https://nostrich.org/assets/favicon.ico",
                             userAvatarCdnImage = CdnImage("https://i.imgur.com/Z8dpmvc.png"),
-                            userLegendaryCustomization = null,
                         ),
                         AppConnectionUi(
                             connectionId = "2",
@@ -299,7 +297,6 @@ fun PreviewConnectedAppsScreen() {
                             appName = "Nostr 1",
                             appIconUrl = null,
                             userAvatarCdnImage = CdnImage("https://i.imgur.com/Z8dpmvc.png"),
-                            userLegendaryCustomization = null,
                         ),
                     ),
                     localConnections = listOf(
@@ -309,7 +306,6 @@ fun PreviewConnectedAppsScreen() {
                             appName = "LibreNostr",
                             appIconUrl = null,
                             userAvatarCdnImage = CdnImage("https://i.imgur.com/Z8dpmvc.png"),
-                            userLegendaryCustomization = null,
                             isLocal = true,
                         ),
                     ),

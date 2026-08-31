@@ -104,7 +104,6 @@ fun ProfileQrCodeViewer(
             avatarBlossoms = profileDetails?.profileBlossoms ?: emptyList(),
             hasBorder = true,
             fallbackBorderColor = Color.White,
-            legendaryCustomization = profileDetails?.premiumDetails?.legendaryCustomization,
             defaultAvatar = {
                 DefaultAvatarThumbnailPlaceholderListItemImage(
                     backgroundColor = Color.White,

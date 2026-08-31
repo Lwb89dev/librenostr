@@ -9,7 +9,6 @@ import net.primal.data.repository.UserDataCleanupRepositoryImpl
 import net.primal.data.repository.articles.ArticleRepositoryImpl
 import net.primal.data.repository.articles.HighlightRepositoryImpl
 import net.primal.data.repository.bookmarks.PublicBookmarksRepositoryImpl
-import net.primal.data.repository.broadcast.PremiumBroadcastRepositoryImpl
 import net.primal.data.repository.events.EventInteractionRepositoryImpl
 import net.primal.data.repository.events.EventRelayHintsRepositoryImpl
 import net.primal.data.repository.events.EventRepositoryImpl
@@ -46,7 +45,6 @@ import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
 import net.primal.domain.posts.FeedRepository
-import net.primal.domain.premium.PremiumBroadcastRepository
 import net.primal.domain.profile.Nip05VerificationService
 import net.primal.domain.profile.ProfileRepository
 import net.primal.domain.publisher.PrimalPublisher
@@ -93,12 +91,6 @@ abstract class CommonRepositoryFactory {
             importApi = null,
             broadcastApi = null,
             invalidationTracker = feedSpecInvalidationTracker,
-        )
-    }
-
-    fun createPremiumBroadcastRepository(
-    ): PremiumBroadcastRepository {
-        return PremiumBroadcastRepositoryImpl(
         )
     }
 

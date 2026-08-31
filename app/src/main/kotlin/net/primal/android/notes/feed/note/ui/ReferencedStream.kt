@@ -32,7 +32,6 @@ import net.primal.android.core.compose.asFromNowFormat
 import net.primal.android.core.compose.foundation.isAppInDarkPrimalTheme
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.Follow
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.stream.ui.StreamLiveIndicator
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.ReferencedStream
@@ -66,7 +65,6 @@ fun ReferencedStream(
         UniversalAvatarThumbnail(
             isLive = stream.mainHostIsLive,
             avatarCdnImage = stream.mainHostAvatarCdnImage,
-            legendaryCustomization = stream.mainHostLegendProfile?.asLegendaryCustomization(),
             onClick = { onProfileClick(stream.mainHostId) },
         )
 
@@ -103,7 +101,6 @@ private fun StreamInfo(stream: ReferencedStream, showHostInfo: Boolean = true) {
             NostrUserText(
                 displayName = stream.mainHostName,
                 internetIdentifier = stream.mainHostInternetIdentifier,
-                legendaryCustomization = stream.mainHostLegendProfile?.asLegendaryCustomization(),
                 profileId = stream.mainHostId,
             )
         }

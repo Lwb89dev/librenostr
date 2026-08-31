@@ -27,7 +27,6 @@ import net.primal.android.messages.conversation.MessageConversationListContract.
 import net.primal.android.messages.conversation.MessageConversationListContract.UiState
 import net.primal.android.messages.conversation.model.MessageConversationUi
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -165,8 +164,6 @@ class MessageConversationListViewModel @Inject constructor(
             isLastMessageFromUser = this.lastMessage?.senderId == activeAccountStore.activeUserId(),
             participantInternetIdentifier = this.participant.internetIdentifier,
             participantAvatarCdnImage = this.participant.avatarCdnImage,
-            participantLegendaryCustomization = this.participant.primalPremiumInfo
-                ?.legendProfile?.asLegendaryCustomization(),
             unreadMessagesCount = this.unreadMessagesCount,
         )
 }

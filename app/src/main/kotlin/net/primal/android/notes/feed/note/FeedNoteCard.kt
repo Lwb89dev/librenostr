@@ -519,7 +519,6 @@ private fun FeedNote(
                     modifier = Modifier.padding(avatarPaddingValues),
                     avatarSize = avatarSizeDp,
                     avatarCdnImage = data.authorAvatarCdnImage,
-                    legendaryCustomization = data.authorLegendaryCustomization,
                     avatarBlossoms = data.authorBlossoms,
                     onClick = if (noteCallbacks.onProfileClick != null) {
                         { noteCallbacks.onProfileClick.invoke(data.authorId) }
@@ -548,7 +547,6 @@ private fun FeedNote(
                     authorDisplayName = data.authorName,
                     authorAvatarCdnImage = data.authorAvatarCdnImage,
                     authorInternetIdentifier = data.authorInternetIdentifier,
-                    authorLegendaryCustomization = data.authorLegendaryCustomization,
                     authorBlossoms = data.authorBlossoms,
                     authorId = data.authorId,
                     replyToAuthor = if (showReplyTo) data.replyToAuthorHandle else null,
@@ -636,7 +634,6 @@ private fun FeedNote(
                 modifier = Modifier.padding(avatarPaddingValues),
                 avatarSize = avatarSizeDp,
                 avatarCdnImage = data.authorAvatarCdnImage,
-                legendaryCustomization = data.authorLegendaryCustomization,
                 avatarBlossoms = data.authorBlossoms,
                 onClick = if (noteCallbacks.onProfileClick != null) {
                     { noteCallbacks.onProfileClick.invoke(data.authorId) }

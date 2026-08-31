@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import net.primal.android.articles.feed.ArticleFeedContract.UiState
 import net.primal.android.articles.feed.ui.mapAsFeedArticleUi
-import net.primal.android.premium.utils.hasPremiumMembership
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.feeds.isPremiumFeedSpec
@@ -52,7 +51,7 @@ class ArticleFeedViewModel @AssistedInject constructor(
         viewModelScope.launch {
             activeAccountStore.activeUserAccount.collect {
                 setState {
-                    copy(paywall = spec.isPremiumFeedSpec() && !it.hasPremiumMembership())
+                    copy(paywall = spec.isPremiumFeedSpec())
                 }
             }
         }

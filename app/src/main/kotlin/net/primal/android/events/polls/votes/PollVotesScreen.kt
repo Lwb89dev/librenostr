@@ -388,7 +388,6 @@ private fun ZapVoterListItem(
                     avatarSize = 48.dp,
                     avatarBlossoms = voter.profile.avatarBlossoms,
                     onClick = onClick,
-                    legendaryCustomization = voter.profile.legendaryCustomization,
                 )
             }
         },

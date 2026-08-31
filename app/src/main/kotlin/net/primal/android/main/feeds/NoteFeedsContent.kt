@@ -31,7 +31,6 @@ import net.primal.android.feeds.list.ui.model.FeedUi
 import net.primal.android.main.feeds.NoteFeedsContract.UiEvent
 import net.primal.android.notes.feed.list.NoteFeedList
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.domain.links.CdnImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -142,7 +141,6 @@ internal fun NoteFeedTopAppBar(
     onAvatarSwipeDown: (() -> Unit)? = null,
     onSearchClick: () -> Unit,
     activeFeed: FeedUi?,
-    avatarLegendaryCustomization: LegendaryCustomization? = null,
     avatarBlossoms: List<String> = emptyList(),
     scrollBehavior: TopAppBarScrollBehavior? = null,
     titleOverride: String? = null,
@@ -163,7 +161,6 @@ internal fun NoteFeedTopAppBar(
         pages = emptyList(),
         avatarCdnImage = avatarCdnImage,
         avatarBlossoms = avatarBlossoms,
-        avatarLegendaryCustomization = avatarLegendaryCustomization,
         onAvatarClick = onAvatarClick,
         onMenuClick = onMenuClick,
         onAvatarSwipeDown = onAvatarSwipeDown,

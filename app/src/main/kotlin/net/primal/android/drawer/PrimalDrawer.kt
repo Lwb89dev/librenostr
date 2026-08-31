@@ -44,7 +44,6 @@ import net.primal.android.core.compose.PrimalOverlayCloseButton
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.DrawerBookmarks
 import net.primal.android.core.compose.icons.primaliconpack.DrawerMessages
-import net.primal.android.core.compose.icons.primaliconpack.DrawerPremium
 import net.primal.android.core.compose.icons.primaliconpack.DrawerProfile
 import net.primal.android.core.compose.icons.primaliconpack.DrawerSettings
 import net.primal.android.core.compose.icons.primaliconpack.DrawerSignOut
@@ -54,7 +53,6 @@ import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.utils.formatNip05Identifier
 import net.primal.android.drawer.multiaccount.AccountSwitcher
 import net.primal.android.drawer.multiaccount.events.AccountSwitcherCallbacks
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.android.user.domain.UserAccount
@@ -111,7 +109,6 @@ private fun PrimalDrawer(
         DrawerHeader(
             userAccount = state.activeUserAccount,
             onQrCodeClick = onQrCodeClick,
-            legendaryCustomization = state.legendaryCustomization,
             accountSwitcherCallbacks = accountSwitcherCallbacks,
             onSignOutClick = { onDrawerDestinationClick(DrawerScreenDestination.SignOut(it)) },
         )
@@ -121,7 +118,6 @@ private fun PrimalDrawer(
                 .weight(1.0f)
                 .padding(top = 32.dp),
             state = state,
-            showPremiumBadge = state.showPremiumBadge,
             onDrawerDestinationClick = onDrawerDestinationClick,
         )
 
@@ -135,7 +131,6 @@ private fun PrimalDrawer(
 @Composable
 private fun DrawerHeader(
     userAccount: UserAccount?,
-    legendaryCustomization: LegendaryCustomization?,
     onQrCodeClick: () -> Unit,
     accountSwitcherCallbacks: AccountSwitcherCallbacks,
     onSignOutClick: (String) -> Unit,
@@ -156,7 +151,6 @@ private fun DrawerHeader(
                     displayName = userAccount?.authorDisplayName ?: "",
                     internetIdentifier = userAccount?.internetIdentifier,
                     internetIdentifierBadgeSize = 24.dp,
-                    legendaryCustomization = legendaryCustomization,
                 )
 
                 IconButton(onClick = onQrCodeClick) {
@@ -192,7 +186,6 @@ private const val DRAWER_GRID_COLUMNS = 3
 private fun DrawerMenu(
     modifier: Modifier,
     state: PrimalDrawerContract.UiState,
-    showPremiumBadge: Boolean,
     onDrawerDestinationClick: (DrawerScreenDestination) -> Unit,
 ) {
     LazyVerticalGrid(
@@ -207,7 +200,6 @@ private fun DrawerMenu(
             key = { it.toString() },
         ) { item ->
             val showBadge = when (item) {
-                is DrawerScreenDestination.Premium -> showPremiumBadge
                 is DrawerScreenDestination.Messages -> state.badges.unreadMessagesCount > 0
                 else -> false
             }
@@ -275,7 +267,6 @@ private fun DrawerGridTile(
 
 sealed class DrawerScreenDestination {
     data class Profile(val userId: String) : DrawerScreenDestination()
-    data class Premium(val hasPremium: Boolean) : DrawerScreenDestination()
     data object Messages : DrawerScreenDestination()
     data class Bookmarks(val userId: String) : DrawerScreenDestination()
     data object ScanCode : DrawerScreenDestination()
@@ -288,7 +279,6 @@ sealed class DrawerScreenDestination {
 private fun DrawerScreenDestination.label(): String {
     return when (this) {
         is DrawerScreenDestination.Profile -> stringResource(R.string.drawer_destination_profile)
-        is DrawerScreenDestination.Premium -> stringResource(id = R.string.drawer_destination_premium)
         DrawerScreenDestination.Messages -> stringResource(R.string.drawer_destination_messages)
         is DrawerScreenDestination.Bookmarks -> stringResource(R.string.drawer_destination_bookmarks)
         DrawerScreenDestination.RemoteLogin -> stringResource(id = R.string.drawer_destination_remote_login)
@@ -302,7 +292,6 @@ private fun DrawerScreenDestination.label(): String {
 private fun DrawerScreenDestination.icon(): ImageVector {
     return when (this) {
         is DrawerScreenDestination.Profile -> PrimalIcons.DrawerProfile
-        is DrawerScreenDestination.Premium -> PrimalIcons.DrawerPremium
         DrawerScreenDestination.Messages -> PrimalIcons.DrawerMessages
         is DrawerScreenDestination.Bookmarks -> PrimalIcons.DrawerBookmarks
         DrawerScreenDestination.RemoteLogin -> PrimalIcons.RemoteLogin

@@ -208,7 +208,6 @@ private fun ArticleAuthorMeta(
             avatarSize = 24.dp,
             avatarCdnImage = data.authorAvatarCdnImage,
             avatarBlossoms = data.authorBlossoms,
-            legendaryCustomization = data.authorLegendaryCustomization,
         )
 
         Box(modifier = Modifier.fillMaxWidth()) {

@@ -3,7 +3,6 @@ package net.primal.android.main.wallet
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.wallet.transactions.list.TransactionListItemDataUi
 import net.primal.domain.links.CdnImage
 import net.primal.domain.wallet.Wallet
@@ -15,7 +14,6 @@ interface WalletDashboardContract {
         val syncingTransactions: Boolean = false,
         val dashboardState: WalletDashboardState = WalletDashboardState.Loading,
         val activeAccountAvatarCdnImage: CdnImage? = null,
-        val activeAccountLegendaryCustomization: LegendaryCustomization? = null,
         val activeAccountBlossoms: List<String> = emptyList(),
         val wallet: Wallet? = null,
         val walletPickerEnabled: Boolean = false,

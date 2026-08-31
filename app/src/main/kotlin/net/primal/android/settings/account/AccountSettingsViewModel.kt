@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.settings.account.AccountSettingsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
@@ -45,7 +44,6 @@ class AccountSettingsViewModel @Inject constructor(
             avatarCdnImage = account.avatarCdnImage,
             nsec = credential?.nsec,
             npub = credential?.npub ?: npub.orEmpty(),
-            legendaryCustomization = account.primalLegendProfile?.asLegendaryCustomization(),
         )
     }
 

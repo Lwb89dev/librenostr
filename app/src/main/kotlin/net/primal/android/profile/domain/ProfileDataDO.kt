@@ -1,4 +1,4 @@
-package net.primal.android.premium.repository
+package net.primal.android.profile.domain
 
 import net.primal.core.utils.asMapByKey
 import net.primal.core.utils.detectUrls

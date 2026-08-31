@@ -45,7 +45,6 @@ fun FollowPackMemberRow(
         UniversalAvatarThumbnail(
             avatarSize = 40.dp,
             avatarCdnImage = member.avatarUrl?.let { CdnImage(sourceUrl = it) },
-            legendaryCustomization = null,
             defaultAvatar = { DefaultOnboardingAvatar() },
         )
 

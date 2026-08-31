@@ -26,7 +26,6 @@ import net.primal.android.navigation.primalName
 import net.primal.android.navigation.profileId
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.notes.feed.model.asStreamPillUi
-import net.primal.android.premium.utils.isPrimalLegendTier
 import net.primal.android.profile.details.ProfileDetailsContract.UiEvent
 import net.primal.android.profile.details.ProfileDetailsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -231,7 +230,7 @@ class ProfileDetailsViewModel @Inject constructor(
                             it.asProfileDetailsUi()
                         }.filterNot {
                             it == state.value.profileDetails
-                        }.sortedByDescending { it.premiumDetails?.tier?.isPrimalLegendTier() == true },
+                        },
                     )
                 }
             } catch (error: NetworkException) {
@@ -246,7 +245,6 @@ class ProfileDetailsViewModel @Inject constructor(
             activeAccountStore.activeUserAccount.collect {
                 setState {
                     copy(
-                        activeUserPremiumTier = it.premiumMembership?.tier,
                     )
                 }
             }

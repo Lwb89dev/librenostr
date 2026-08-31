@@ -28,7 +28,6 @@ import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
 import net.primal.domain.posts.FeedRepository
-import net.primal.domain.premium.PremiumBroadcastRepository
 import net.primal.domain.profile.Nip05VerificationService
 import net.primal.domain.profile.ProfileRepository
 import net.primal.domain.publisher.PrimalPublisher
@@ -68,9 +67,6 @@ object CachingRepositoriesModule {
         return PrimalRepositoryFactory.createCachingImportRepository()
     }
 
-    @Provides
-    fun providePremiumBroadcastRepository(): PremiumBroadcastRepository =
-        PrimalRepositoryFactory.createPremiumBroadcastRepository()
 
     @Provides
     fun provideChatRepository(

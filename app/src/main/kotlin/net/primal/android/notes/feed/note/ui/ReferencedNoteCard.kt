@@ -73,7 +73,6 @@ fun ReferencedNoteCard(
             verticalAlignment = Alignment.CenterVertically,
             authorAvatarSize = 30.dp,
             authorAvatarCdnImage = data.authorAvatarCdnImage,
-            authorLegendaryCustomization = data.authorLegendaryCustomization,
             authorInternetIdentifier = data.authorInternetIdentifier,
             authorBlossoms = data.authorBlossoms,
             authorId = data.authorId,

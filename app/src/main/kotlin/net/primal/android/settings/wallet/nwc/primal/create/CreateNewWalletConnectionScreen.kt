@@ -98,7 +98,6 @@ fun CreateNewWalletConnectionScreen(viewModel: CreateNewWalletConnectionViewMode
     if (showNotificationsBottomSheet) {
         EnableNwcNotificationsBottomSheet(
             avatarCdnImage = state.activeAccount?.avatarCdnImage,
-            legendaryCustomization = state.activeAccount?.legendaryCustomization,
             avatarBlossoms = state.activeAccount?.avatarBlossoms ?: emptyList(),
             displayName = state.activeAccount?.displayName ?: "",
             onDismissRequest = { showNotificationsBottomSheet = false },

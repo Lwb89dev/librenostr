@@ -226,7 +226,6 @@ private fun ProfileTopCoverBar(
                 .padding(horizontal = 12.dp),
         ) {
             if (avatarValues.avatarSize >= 20.dp) {
-                val legendaryCustomization = state.profileDetails?.premiumDetails?.legendaryCustomization
                 UniversalAvatarThumbnail(
                     modifier = Modifier
                         .padding(
@@ -240,8 +239,7 @@ private fun ProfileTopCoverBar(
                     avatarCdnImage = state.profileDetails?.avatarCdnImage,
                     avatarBlossoms = state.profileDetails?.profileBlossoms ?: emptyList(),
                     fallbackBorderColor = if (LocalPrimalTheme.current.isDarkTheme) Color.Black else Color.White,
-                    borderSizeOverride = if (legendaryCustomization == null) 5.dp else null,
-                    legendaryCustomization = legendaryCustomization,
+                    borderSizeOverride = 5.dp,
                     forceAnimationIfAvailable = true,
                     canDownscaleToZero = true,
                     onClick = {
@@ -308,7 +306,6 @@ private fun ProfileTopAppBar(
                         profileId = state.profileId,
                         internetIdentifierBadgeSize = 20.dp,
                         internetIdentifierBadgeAlign = PlaceholderVerticalAlign.Center,
-                        legendaryCustomization = state.profileDetails?.premiumDetails?.legendaryCustomization,
                     )
                 }
             },

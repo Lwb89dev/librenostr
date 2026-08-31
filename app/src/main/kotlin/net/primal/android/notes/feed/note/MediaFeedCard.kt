@@ -379,7 +379,6 @@ private fun MediaFeedHeader(
             authorAvatarSize = avatarSizeDp,
             authorAvatarCdnImage = data.authorAvatarCdnImage,
             authorInternetIdentifier = data.authorInternetIdentifier,
-            authorLegendaryCustomization = data.authorLegendaryCustomization,
             authorBlossoms = data.authorBlossoms,
             authorId = data.authorId,
             isLive = data.isAuthorLiveStreamingNow,

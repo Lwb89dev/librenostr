@@ -18,7 +18,7 @@ import net.primal.android.networking.relays.RelaysSocketManager
 import net.primal.android.networking.relays.buildRelayFilter
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.nostr.publish.NostrPublisher
-import net.primal.android.premium.repository.asProfileDataDO
+import net.primal.android.profile.domain.asProfileDataDO
 import net.primal.android.profile.domain.ProfileMetadata
 import net.primal.android.settings.wallet.domain.WalletPreference
 import net.primal.android.user.accounts.UserAccountsStore

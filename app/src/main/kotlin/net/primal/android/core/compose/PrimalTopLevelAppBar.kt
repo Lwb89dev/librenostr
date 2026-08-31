@@ -92,7 +92,6 @@ import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
 import net.primal.android.explore.search.SearchContract
 import net.primal.android.explore.search.SearchViewModel
 import net.primal.android.explore.search.ui.UserProfileListItem
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
 
@@ -106,7 +105,6 @@ private val AvatarSwipeThreshold = 24.dp
 fun PrimalTopLevelAppBar(
     title: String,
     avatarCdnImage: CdnImage?,
-    avatarLegendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     onAvatarClick: () -> Unit,
     onMenuClick: (() -> Unit)? = null,
@@ -189,7 +187,6 @@ fun PrimalTopLevelAppBar(
                     SwipeableAvatar(
                         avatarCdnImage = avatarCdnImage,
                         avatarBlossoms = avatarBlossoms,
-                        avatarLegendaryCustomization = avatarLegendaryCustomization,
                         onAvatarClick = onAvatarClick,
                         onAvatarSwipeDown = onAvatarSwipeDown,
                     )
@@ -690,7 +687,6 @@ private fun Modifier.wipeClip(
 private fun SwipeableAvatar(
     avatarCdnImage: CdnImage?,
     avatarBlossoms: List<String>,
-    avatarLegendaryCustomization: LegendaryCustomization?,
     onAvatarClick: () -> Unit,
     onAvatarSwipeDown: (() -> Unit)?,
 ) {
@@ -762,7 +758,6 @@ private fun SwipeableAvatar(
             avatarCdnImage = avatarCdnImage,
             avatarSize = 40.dp,
             avatarBlossoms = avatarBlossoms,
-            legendaryCustomization = avatarLegendaryCustomization,
             onClick = onAvatarClick,
         )
     }

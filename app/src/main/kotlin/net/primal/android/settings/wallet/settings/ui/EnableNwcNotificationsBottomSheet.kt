@@ -48,7 +48,6 @@ import net.primal.android.core.compose.button.PrimalFilledButton
 import net.primal.android.core.service.PRIMAL_SERVICE_NOTIFICATION_CHANNEL_ID
 import net.primal.android.core.utils.getNotificationSettingsIntent
 import net.primal.android.core.utils.hasNotificationPermission
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
 
@@ -56,7 +55,6 @@ import net.primal.domain.links.CdnImage
 @Composable
 fun EnableNwcNotificationsBottomSheet(
     avatarCdnImage: CdnImage?,
-    legendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     displayName: String,
     onDismissRequest: () -> Unit,
@@ -120,7 +118,6 @@ fun EnableNwcNotificationsBottomSheet(
     ) {
         EnableNwcNotificationsContent(
             avatarCdnImage = avatarCdnImage,
-            legendaryCustomization = legendaryCustomization,
             avatarBlossoms = avatarBlossoms,
             displayName = displayName,
             isEnabled = isEnabled,
@@ -154,7 +151,6 @@ fun EnableNwcNotificationsBottomSheet(
 @Composable
 private fun EnableNwcNotificationsContent(
     avatarCdnImage: CdnImage?,
-    legendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     displayName: String,
     isEnabled: Boolean,
@@ -166,7 +162,6 @@ private fun EnableNwcNotificationsContent(
     ) {
         NwcUserHeader(
             avatarCdnImage = avatarCdnImage,
-            legendaryCustomization = legendaryCustomization,
             avatarBlossoms = avatarBlossoms,
             displayName = displayName,
         )
@@ -184,7 +179,6 @@ private fun EnableNwcNotificationsContent(
 @Composable
 private fun NwcUserHeader(
     avatarCdnImage: CdnImage?,
-    legendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     displayName: String,
 ) {
@@ -200,7 +194,6 @@ private fun NwcUserHeader(
         UniversalAvatarThumbnail(
             avatarCdnImage = avatarCdnImage,
             avatarSize = 56.dp,
-            legendaryCustomization = legendaryCustomization,
             avatarBlossoms = avatarBlossoms,
         )
 

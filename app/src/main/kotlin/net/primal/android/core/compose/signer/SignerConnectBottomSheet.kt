@@ -445,14 +445,12 @@ private fun AccountListItem(
                 avatarSize = 40.dp,
                 avatarCdnImage = account.avatarCdnImage,
                 avatarBlossoms = account.avatarBlossoms,
-                legendaryCustomization = account.legendaryCustomization,
             )
         },
         headlineContent = {
             NostrUserText(
                 displayName = account.displayName,
                 internetIdentifier = account.internetIdentifier,
-                legendaryCustomization = account.legendaryCustomization,
                 displayNameColor = AppTheme.colorScheme.onSurface,
                 profileId = account.pubkey,
             )

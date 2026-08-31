@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
 
@@ -58,7 +57,6 @@ fun PrimalTopAppBar(
     autoCloseKeyboardOnNavigationIconClick: Boolean = true,
     avatarCdnImage: CdnImage? = null,
     avatarBlossoms: List<String> = emptyList(),
-    legendaryCustomization: LegendaryCustomization? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
     showDivider: Boolean = true,
     scrollBehavior: TopAppBarScrollBehavior? = null,
@@ -87,7 +85,6 @@ fun PrimalTopAppBar(
                             avatarSize = 32.dp,
                             avatarBlossoms = avatarBlossoms,
                             onClick = onNavigationIconClick,
-                            legendaryCustomization = legendaryCustomization,
                         )
                     }
                 } else if (navigationIcon != null) {

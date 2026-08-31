@@ -103,14 +103,12 @@ private fun NoteZapListItem(data: EventZapUiModel, onProfileClick: (profileId: S
                     avatarCdnImage = data.zapperAvatarCdnImage,
                     avatarSize = 42.dp,
                     onClick = { onProfileClick(data.zapperId) },
-                    legendaryCustomization = data.zapperLegendaryCustomization,
                 )
             },
             headlineContent = {
                 NostrUserText(
                     displayName = data.zapperName,
                     internetIdentifier = data.zapperInternetIdentifier,
-                    legendaryCustomization = data.zapperLegendaryCustomization,
                     profileId = data.zapperId,
                 )
             },

@@ -1,7 +1,6 @@
 package net.primal.android.wallet.transactions.send.create
 
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.wallet.transactions.send.create.ui.model.MiningFeeUi
 import net.primal.domain.links.CdnImage
 import net.primal.domain.wallet.CurrencyMode
@@ -22,7 +21,6 @@ interface CreateTransactionContract {
         val profileAvatarCdnImage: CdnImage? = null,
         val profileDisplayName: String? = null,
         val profileLightningAddress: String? = null,
-        val profileLegendaryCustomization: LegendaryCustomization? = null,
         val currencyMode: CurrencyMode = CurrencyMode.SATS,
         val amountInUsd: String = "0",
         val currentExchangeRate: Double? = null,

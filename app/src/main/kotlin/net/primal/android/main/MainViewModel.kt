@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 import net.primal.android.core.updater.DataUpdater
 import net.primal.android.main.MainContract.UiEvent
 import net.primal.android.main.MainContract.UiState
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.UserAccountsStore
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.UserRepository
@@ -90,7 +89,6 @@ class MainViewModel @Inject constructor(
                     copy(
                         activeAccountId = it.pubkey,
                         activeAccountAvatarCdnImage = it.avatarCdnImage,
-                        activeAccountLegendaryCustomization = it.primalLegendProfile?.asLegendaryCustomization(),
                         activeAccountBlossoms = it.blossomServers,
                         showExploreHint = it.shouldShowExploreHint,
                     )

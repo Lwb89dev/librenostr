@@ -165,14 +165,12 @@ fun CommentRow(modifier: Modifier = Modifier, comment: HighlightCommentUi) {
                 UniversalAvatarThumbnail(
                     avatarCdnImage = comment.authorCdnImage,
                     avatarBlossoms = comment.authorBlossoms,
-                    legendaryCustomization = comment.authorLegendaryCustomization,
                     avatarSize = 28.dp,
                 )
                 NostrUserText(
                     modifier = Modifier.padding(start = 8.dp),
                     displayName = comment.authorDisplayName ?: "",
                     internetIdentifier = comment.authorInternetIdentifier,
-                    legendaryCustomization = comment.authorLegendaryCustomization,
                     profileId = comment.authorId,
                 )
                 Text(
@@ -309,7 +307,6 @@ fun HighlightAuthorsRow(authors: Set<ProfileDetailsUi>) {
             )
             AvatarThumbnailsRow(
                 avatarCdnImages = authors.map { it.avatarCdnImage },
-                avatarLegendaryCustomizations = authors.map { it.premiumDetails?.legendaryCustomization },
                 avatarOverlap = AvatarOverlap.None,
                 hasAvatarBorder = false,
                 displayAvatarOverflowIndicator = true,

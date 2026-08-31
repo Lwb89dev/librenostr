@@ -31,8 +31,6 @@ import coil3.request.ImageRequest
 import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.images.AvatarCoilImageLoader
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 import net.primal.core.networking.blossom.resolveBlossomUrls
 import net.primal.domain.links.CdnImage
@@ -44,27 +42,18 @@ fun UniversalAvatarThumbnail(
     avatarCdnImage: CdnImage? = null,
     avatarSize: Dp = 48.dp,
     hasBorder: Boolean = true,
-    legendaryCustomization: LegendaryCustomization? = null,
     fallbackBorderColor: Color = Color.Transparent,
     borderSizeOverride: Dp? = null,
     backgroundColor: Color = AppTheme.extraColorScheme.surfaceVariantAlt1,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
-    hasInnerBorderOverride: Boolean = true,
     forceAnimationIfAvailable: Boolean = false,
     isLive: Boolean = false,
     canDownscaleToZero: Boolean = false,
     avatarBlossoms: List<String> = emptyList(),
     defaultAvatar: @Composable () -> Unit = { DefaultAvatarThumbnailPlaceholderListItemImage() },
 ) {
-    val hasLegendBorder = legendaryCustomization?.avatarGlow == true &&
-        legendaryCustomization.legendaryStyle != LegendaryStyle.NO_CUSTOMIZATION
-
-    val borderBrush = when {
-        hasLegendBorder -> legendaryCustomization.legendaryStyle?.primaryBrush
-        isLive -> defaultBorderBrush()
-        else -> null
-    }
+    val borderBrush = if (isLive) defaultBorderBrush() else null
 
     val totalBorderSize = avatarSize.resolveOuterBorderSizeFromAvatarSize() +
         avatarSize.resolveInnerBorderSizeFromAvatarSize()
@@ -93,7 +82,7 @@ fun UniversalAvatarThumbnail(
             sourceUrl = avatarCdnImage?.sourceUrl,
             blossoms = avatarBlossoms,
             hasOuterBorder = (hasBorder || isLive) && avatarSize > 0.dp,
-            hasInnerBorder = hasLegendBorder && avatarSize > 0.dp && hasInnerBorderOverride,
+            hasInnerBorder = false,
             borderBrush = borderBrush ?: Brush.linearGradient(
                 colors = listOf(
                     fallbackBorderColor,

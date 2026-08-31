@@ -5,8 +5,6 @@ import net.primal.android.articles.highlights.HighlightUi
 import net.primal.android.articles.highlights.asHighlightUi
 import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.notes.feed.model.EventStatsUi
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.domain.links.CdnImage
 import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.domain.reads.Article
@@ -31,7 +29,6 @@ data class ArticleDetailsUi(
     val hashtags: List<String> = emptyList(),
     val isBookmarked: Boolean = false,
     val eventStatsUi: EventStatsUi = EventStatsUi(),
-    val authorLegendaryCustomization: LegendaryCustomization? = null,
     val highlights: List<HighlightUi> = emptyList(),
     val client: String? = null,
 )
@@ -57,7 +54,6 @@ fun Article.mapAsArticleDetailsUi(): ArticleDetailsUi {
         hashtags = this.hashtags,
         isBookmarked = this.bookmark != null,
         eventStatsUi = EventStatsUi.from(eventStats = this.eventStats, userStats = this.userEventStats),
-        authorLegendaryCustomization = this.author?.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
         highlights = this.highlights.map { it.asHighlightUi() },
         client = this.client,
     )

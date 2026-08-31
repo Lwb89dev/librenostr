@@ -182,7 +182,6 @@ private fun StreamTopNoteZapRow(noteZap: EventZapUiModel, onClick: () -> Unit) {
             avatarCdnImage = noteZap.zapperAvatarCdnImage,
             avatarSize = 28.dp,
             onClick = onClick,
-            legendaryCustomization = noteZap.zapperLegendaryCustomization,
         )
 
         IconText(
@@ -231,7 +230,6 @@ private fun StreamNoteZapListItem(noteZap: EventZapUiModel, onClick: () -> Unit)
             avatarCdnImage = noteZap.zapperAvatarCdnImage,
             avatarSize = 24.dp,
             onClick = onClick,
-            legendaryCustomization = noteZap.zapperLegendaryCustomization,
         )
 
         Text(

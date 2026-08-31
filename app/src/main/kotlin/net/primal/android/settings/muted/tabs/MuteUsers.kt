@@ -87,7 +87,6 @@ fun MutedUserListItem(
                 avatarCdnImage = item.avatarCdnImage,
                 avatarBlossoms = item.profileBlossoms,
                 onClick = { onProfileClick(item.pubkey) },
-                legendaryCustomization = item.premiumDetails?.legendaryCustomization,
             )
         },
         headlineContent = {
@@ -95,7 +94,6 @@ fun MutedUserListItem(
                 displayName = item.authorDisplayName,
                 fontSize = 14.sp,
                 internetIdentifier = item.internetIdentifier,
-                legendaryCustomization = item.premiumDetails?.legendaryCustomization,
                 profileId = item.pubkey,
             )
         },

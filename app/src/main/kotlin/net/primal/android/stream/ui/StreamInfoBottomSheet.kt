@@ -152,7 +152,6 @@ private fun HostProfileSummary(
             isLive = isLive,
             avatarCdnImage = profileDetails.avatarCdnImage,
             avatarSize = 46.dp,
-            legendaryCustomization = profileDetails.premiumDetails?.legendaryCustomization,
             onClick = { onProfileClick(profileDetails.pubkey) },
         )
         Row(
@@ -167,7 +166,6 @@ private fun HostProfileSummary(
                     profileId = profileDetails.pubkey,
                     internetIdentifierBadgeSize = 13.dp,
                     internetIdentifierBadgeAlign = PlaceholderVerticalAlign.Center,
-                    legendaryCustomization = profileDetails.premiumDetails?.legendaryCustomization,
                     style = AppTheme.typography.bodyLarge.copy(
                         fontSize = 16.sp,
                         lineHeight = 16.sp,

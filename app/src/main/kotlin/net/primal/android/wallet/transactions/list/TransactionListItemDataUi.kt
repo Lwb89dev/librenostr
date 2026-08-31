@@ -1,7 +1,6 @@
 package net.primal.android.wallet.transactions.list
 
 import java.time.Instant
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.domain.links.CdnImage
 import net.primal.domain.wallet.TxState
 import net.primal.domain.wallet.TxType
@@ -21,5 +20,4 @@ data class TransactionListItemDataUi(
     val otherUserId: String? = null,
     val otherUserAvatarCdnImage: CdnImage? = null,
     val otherUserDisplayName: String? = null,
-    val otherUserLegendaryCustomization: LegendaryCustomization? = null,
 )

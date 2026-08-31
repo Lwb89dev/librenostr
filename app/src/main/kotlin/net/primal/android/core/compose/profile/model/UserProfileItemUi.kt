@@ -1,8 +1,6 @@
 package net.primal.android.core.compose.profile.model
 
 import net.primal.android.core.utils.authorNameUiFriendly
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.domain.common.UserProfileSearchItem
 import net.primal.domain.explore.FollowPackProfileData
 import net.primal.domain.links.CdnImage
@@ -17,7 +15,6 @@ data class UserProfileItemUi(
     val followersCount: Int? = null,
     val score: Float? = null,
     val isFollowed: Boolean? = null,
-    val legendaryCustomization: LegendaryCustomization? = null,
     val isLive: Boolean = false,
 )
 
@@ -30,7 +27,6 @@ fun UserProfileSearchItem.mapAsUserProfileUi() =
         avatarBlossoms = this.metadata.blossoms,
         followersCount = this.followersCount,
         score = this.score,
-        legendaryCustomization = this.metadata.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
         isLive = this.isLive,
     )
 
@@ -41,7 +37,6 @@ fun FollowPackProfileData.mapAsUserProfileUi() =
         internetIdentifier = internetIdentifier,
         avatarCdnImage = avatarCdnImage,
         followersCount = followersCount,
-        legendaryCustomization = primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
     )
 
 fun ProfileDataDO.asUserProfileItemUi() =
@@ -54,5 +49,4 @@ fun ProfileDataDO.asUserProfileItemUi() =
         followersCount = null,
         score = null,
         isFollowed = null,
-        legendaryCustomization = this.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
     )

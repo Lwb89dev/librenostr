@@ -15,7 +15,6 @@ import kotlinx.coroutines.withContext
 import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.navigation.draftTransaction
 import net.primal.android.navigation.lnbc
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.wallet.repository.ExchangeRateHandler
 import net.primal.android.wallet.transactions.send.create.CreateTransactionContract.UiEvent
@@ -279,8 +278,6 @@ class CreateTransactionViewModel @Inject constructor(
         setState {
             copy(
                 profileAvatarCdnImage = this@updateStateWithProfileData.avatarCdnImage,
-                profileLegendaryCustomization = this@updateStateWithProfileData.primalPremiumInfo
-                    ?.legendProfile?.asLegendaryCustomization(),
                 profileDisplayName = this@updateStateWithProfileData.authorNameUiFriendly(),
                 profileLightningAddress = transaction.targetLud16 ?: this@updateStateWithProfileData.lightningAddress,
                 transaction = if (transaction.targetLud16 == null &&

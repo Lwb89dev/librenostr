@@ -55,7 +55,6 @@ import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.WalletPay
 import net.primal.android.core.compose.icons.primaliconpack.WalletReceive
 import net.primal.android.core.compose.preview.PrimalPreview
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.android.wallet.walletDepositColor
 import net.primal.android.wallet.walletWithdrawColor
@@ -106,7 +105,6 @@ fun TransactionListItem(
                 isPending = data.txState.isPending(),
                 otherUserId = data.otherUserId,
                 otherUserAvatarCdnImage = data.otherUserAvatarCdnImage,
-                otherUserLegendaryCustomization = data.otherUserLegendaryCustomization,
                 onAvatarClick = onAvatarClick,
             )
         },
@@ -146,7 +144,6 @@ private fun TransactionLeadingContent(
     isPending: Boolean,
     otherUserId: String?,
     otherUserAvatarCdnImage: CdnImage?,
-    otherUserLegendaryCustomization: LegendaryCustomization?,
     onAvatarClick: (String) -> Unit,
 ) {
     when {
@@ -154,7 +151,6 @@ private fun TransactionLeadingContent(
             UniversalAvatarThumbnail(
                 avatarCdnImage = otherUserAvatarCdnImage,
                 onClick = { onAvatarClick(otherUserId) },
-                legendaryCustomization = otherUserLegendaryCustomization,
             )
         }
 

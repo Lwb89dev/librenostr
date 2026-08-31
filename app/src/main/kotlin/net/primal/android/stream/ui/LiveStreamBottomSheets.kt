@@ -263,7 +263,6 @@ private fun EventZapUiModel.toProfileDetailsUi(): ProfileDetailsUi {
         avatarCdnImage = this.zapperAvatarCdnImage,
         internetIdentifier = this.zapperInternetIdentifier,
         premiumDetails = PremiumProfileDataUi(
-            legendaryCustomization = this.zapperLegendaryCustomization,
         ),
     )
 }

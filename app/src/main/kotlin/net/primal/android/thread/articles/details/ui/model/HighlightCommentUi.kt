@@ -2,8 +2,6 @@ package net.primal.android.thread.articles.details.ui.model
 
 import java.time.Instant
 import kotlin.time.toJavaInstant
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.domain.links.CdnImage
 import net.primal.domain.posts.FeedPost
 
@@ -12,7 +10,6 @@ data class HighlightCommentUi(
     val authorId: String?,
     val authorDisplayName: String?,
     val authorInternetIdentifier: String?,
-    val authorLegendaryCustomization: LegendaryCustomization?,
     val authorCdnImage: CdnImage?,
     val authorBlossoms: List<String> = emptyList(),
     val content: String,
@@ -25,7 +22,6 @@ fun FeedPost.toHighlightCommentUi() =
         authorId = this.author.authorId,
         authorDisplayName = this.author.displayName,
         authorInternetIdentifier = this.author.internetIdentifier,
-        authorLegendaryCustomization = this.author.legendProfile?.asLegendaryCustomization(),
         authorCdnImage = this.author.avatarCdnImage,
         authorBlossoms = this.author.blossomServers,
         content = this.content,

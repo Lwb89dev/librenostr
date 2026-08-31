@@ -31,7 +31,6 @@ import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
 import net.primal.android.notifications.list.ui.NotificationUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -181,8 +180,6 @@ class NotificationsViewModel @Inject constructor(
                 ?: this.actionUserId?.asEllipsizedNpub(),
             actionUserInternetIdentifier = this.actionByUser?.internetIdentifier,
             actionUserAvatarCdnImage = this.actionByUser?.avatarCdnImage,
-            actionUserLegendaryCustomization = this.actionByUser?.primalPremiumInfo
-                ?.legendProfile?.asLegendaryCustomization(),
             actionUserSatsZapped = this.satsZapped,
             actionPost = this.extractFeedPostUi(),
             referencedStream = this.extractReferencedStream(),

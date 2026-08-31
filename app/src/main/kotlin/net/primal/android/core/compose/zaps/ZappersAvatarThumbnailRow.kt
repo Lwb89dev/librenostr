@@ -17,8 +17,6 @@ import kotlin.time.Clock
 import net.primal.android.core.compose.UniversalAvatarThumbnail
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.events.ui.EventZapUiModel
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 
@@ -39,7 +37,6 @@ fun ZappersAvatarThumbnailRow(zaps: List<EventZapUiModel>, onClick: (() -> Unit)
                     hasBorder = true,
                     borderSizeOverride = 1.dp,
                     fallbackBorderColor = AppTheme.colorScheme.surface,
-                    legendaryCustomization = zap.zapperLegendaryCustomization,
                     onClick = onClick,
                 )
             }
@@ -65,10 +62,6 @@ private fun PreviewZappersAvatarThumbnailRow() {
                             zapperHandle = "zapper",
                             zapperId = "zapperId",
                             zapperName = "Zapper",
-                            zapperLegendaryCustomization = LegendaryCustomization(
-                                avatarGlow = true,
-                                legendaryStyle = LegendaryStyle.SUN_FIRE,
-                            ),
                         ),
                         EventZapUiModel(
                             id = UUID.randomUUID().toString(),

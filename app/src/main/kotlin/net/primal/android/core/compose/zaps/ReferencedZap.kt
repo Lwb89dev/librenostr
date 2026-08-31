@@ -28,11 +28,9 @@ import net.primal.android.core.compose.icons.primaliconpack.LightningBoltFilled
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.notes.feed.note.ui.NoteEmbedBorderWidth
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.domain.links.CdnImage
-import net.primal.domain.membership.PrimalLegendProfile
 
 @Composable
 fun ReferencedZap(
@@ -43,10 +41,8 @@ fun ReferencedZap(
     amountInSats: Double,
     message: String?,
     senderAvatarCdnImage: CdnImage? = null,
-    senderPrimalLegendProfile: PrimalLegendProfile? = null,
     receiverDisplayName: String?,
     receiverAvatarCdnImage: CdnImage? = null,
-    receiverPrimalLegendProfile: PrimalLegendProfile? = null,
 ) {
     Row(
         modifier = modifier
@@ -72,7 +68,6 @@ fun ReferencedZap(
             UniversalAvatarThumbnail(
                 avatarSize = 36.dp,
                 avatarCdnImage = senderAvatarCdnImage,
-                legendaryCustomization = senderPrimalLegendProfile?.asLegendaryCustomization(),
                 onClick = { noteCallbacks.onProfileClick?.invoke(senderId) },
             )
 
@@ -84,7 +79,6 @@ fun ReferencedZap(
             UniversalAvatarThumbnail(
                 avatarSize = 36.dp,
                 avatarCdnImage = receiverAvatarCdnImage,
-                legendaryCustomization = receiverPrimalLegendProfile?.asLegendaryCustomization(),
                 onClick = { noteCallbacks.onProfileClick?.invoke(receiverId) },
             )
         }
@@ -150,11 +144,9 @@ fun PreviewMessageAndDisplayName() {
             noteCallbacks = NoteCallbacks(),
             senderId = "",
             senderAvatarCdnImage = null,
-            senderPrimalLegendProfile = null,
             receiverId = "",
             receiverDisplayName = "qauser",
             receiverAvatarCdnImage = null,
-            receiverPrimalLegendProfile = null,
             amountInSats = 1000.0,
             message = "Onwards!",
         )
@@ -170,11 +162,9 @@ fun PreviewNoMessageAndDisplayName() {
             noteCallbacks = NoteCallbacks(),
             senderId = "",
             senderAvatarCdnImage = null,
-            senderPrimalLegendProfile = null,
             receiverId = "",
             receiverDisplayName = "qauser",
             receiverAvatarCdnImage = null,
-            receiverPrimalLegendProfile = null,
             amountInSats = 1000.0,
             message = null,
         )
@@ -190,11 +180,9 @@ fun PreviewNoMessageAndNoDisplayName() {
             noteCallbacks = NoteCallbacks(),
             senderId = "",
             senderAvatarCdnImage = null,
-            senderPrimalLegendProfile = null,
             receiverId = "",
             receiverDisplayName = null,
             receiverAvatarCdnImage = null,
-            receiverPrimalLegendProfile = null,
             amountInSats = 1000.0,
             message = null,
         )
@@ -210,11 +198,9 @@ fun PreviewMessageAndNoDisplayName() {
             noteCallbacks = NoteCallbacks(),
             senderId = "",
             senderAvatarCdnImage = null,
-            senderPrimalLegendProfile = null,
             receiverId = "",
             receiverDisplayName = null,
             receiverAvatarCdnImage = null,
-            receiverPrimalLegendProfile = null,
             amountInSats = 1000.0,
             message = "Onwards!",
         )

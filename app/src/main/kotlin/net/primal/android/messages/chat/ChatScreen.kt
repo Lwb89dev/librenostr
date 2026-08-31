@@ -144,7 +144,6 @@ fun ChatScreen(
                             avatarSize = 32.dp,
                             avatarBlossoms = state.participantProfile?.profileBlossoms ?: emptyList(),
                             onClick = { noteCallbacks.onProfileClick?.invoke(state.participantId) },
-                            legendaryCustomization = state.participantProfile?.premiumDetails?.legendaryCustomization,
                         )
                     }
                 },

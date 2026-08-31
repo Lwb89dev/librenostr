@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.domain.profile.ProfileRepository
@@ -44,7 +43,6 @@ class PrimalDrawerViewModel @Inject constructor(
                     copy(
                         activeUserAccount = it,
                         menuItems = buildDrawerMenuItems(userId = it.pubkey),
-                        showPremiumBadge = false,
                     )
                 }
             }
@@ -55,9 +53,6 @@ class PrimalDrawerViewModel @Inject constructor(
             profileRepository.observeProfileData(profileId = activeAccountStore.activeUserId()).collect {
                 setState {
                     copy(
-                        legendaryCustomization = it.primalPremiumInfo
-                            ?.legendProfile
-                            ?.asLegendaryCustomization(),
                     )
                 }
             }

@@ -26,7 +26,6 @@ import net.primal.android.core.utils.authorNameUiFriendly
 import net.primal.android.main.wallet.WalletDashboardContract.UiEvent
 import net.primal.android.main.wallet.WalletDashboardContract.UiState
 import net.primal.android.main.wallet.WalletDashboardContract.WalletDashboardState
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.repository.UserRepository
 import net.primal.android.wallet.di.PendingDepositsSyncerFactory
@@ -183,7 +182,6 @@ class WalletDashboardViewModel @Inject constructor(
                 setState {
                     copy(
                         activeAccountAvatarCdnImage = it.avatarCdnImage,
-                        activeAccountLegendaryCustomization = it.primalLegendProfile?.asLegendaryCustomization(),
                         activeAccountBlossoms = it.blossomServers,
                     )
                 }
@@ -291,9 +289,5 @@ class WalletDashboardViewModel @Inject constructor(
                 ?: this.getIfTypeOrNull(Transaction.Lightning::otherUserProfile)?.avatarCdnImage,
             otherUserDisplayName = getIfTypeOrNull(Transaction.Zap::otherUserProfile)?.authorNameUiFriendly()
                 ?: getIfTypeOrNull(Transaction.Lightning::otherUserProfile)?.authorNameUiFriendly(),
-            otherUserLegendaryCustomization = this.getIfTypeOrNull(Transaction.Zap::otherUserProfile)
-                ?.primalPremiumInfo?.legendProfile?.asLegendaryCustomization()
-                ?: this.getIfTypeOrNull(Transaction.Lightning::otherUserProfile)
-                    ?.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
         )
 }

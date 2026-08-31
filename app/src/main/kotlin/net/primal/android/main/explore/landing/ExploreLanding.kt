@@ -162,7 +162,6 @@ private fun UserCell(
             avatarCdnImage = user.avatarCdnImage,
             avatarSize = 44.dp,
             avatarBlossoms = user.avatarBlossoms,
-            legendaryCustomization = user.legendaryCustomization,
             isLive = user.isLive,
             onClick = onClick,
         )

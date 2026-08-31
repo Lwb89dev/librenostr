@@ -62,7 +62,6 @@ import net.primal.android.core.service.PRIMAL_SERVICE_NOTIFICATION_CHANNEL_ID
 import net.primal.android.core.service.PrimalNwcService
 import net.primal.android.core.utils.hasNotificationPermission
 import net.primal.android.core.utils.pasteText
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.settings.wallet.settings.WalletSettingsContract.UiEvent
 import net.primal.android.settings.wallet.settings.ui.ConnectedAppsSettings
 import net.primal.android.settings.wallet.settings.ui.EnableNwcNotificationsBottomSheet
@@ -291,7 +290,6 @@ fun WalletSettingsScreen(
                             currentUserId = state.activeUserId,
                             isRunningForCurrentUser = state.isServiceRunningForCurrentUser,
                             avatarCdnImage = state.activeAccountAvatarCdnImage,
-                            legendaryCustomization = state.activeAccountLegendaryCustomization,
                             avatarBlossoms = state.activeAccountBlossoms,
                             displayName = state.activeAccountDisplayName,
                         )
@@ -309,7 +307,6 @@ private fun ToggleNwcServiceButton(
     currentUserId: String,
     isRunningForCurrentUser: Boolean,
     avatarCdnImage: CdnImage?,
-    legendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     displayName: String,
 ) {
@@ -319,7 +316,6 @@ private fun ToggleNwcServiceButton(
     if (showNotificationsBottomSheet) {
         EnableNwcNotificationsBottomSheet(
             avatarCdnImage = avatarCdnImage,
-            legendaryCustomization = legendaryCustomization,
             avatarBlossoms = avatarBlossoms,
             displayName = displayName,
             onDismissRequest = { showNotificationsBottomSheet = false },

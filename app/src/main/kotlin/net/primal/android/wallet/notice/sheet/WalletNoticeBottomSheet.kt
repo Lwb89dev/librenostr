@@ -167,7 +167,6 @@ private fun UpgradeWalletSheetContent(
                 CompositionLocalProvider(LocalContentColor provides AppTheme.colorScheme.onPrimary) {
                     UniversalAvatarThumbnail(
                         avatarCdnImage = state.activeUserCdnImage,
-                        legendaryCustomization = state.activeUserLegendaryCustomization,
                     )
                 }
 
@@ -289,7 +288,6 @@ private fun WalletDiscontinuedSheetContent(
                 CompositionLocalProvider(LocalContentColor provides AppTheme.colorScheme.onPrimary) {
                     UniversalAvatarThumbnail(
                         avatarCdnImage = state.activeUserCdnImage,
-                        legendaryCustomization = state.activeUserLegendaryCustomization,
                     )
                 }
 
@@ -347,7 +345,6 @@ private fun WalletDetectedSheetContent(
                 CompositionLocalProvider(LocalContentColor provides AppTheme.colorScheme.onPrimary) {
                     UniversalAvatarThumbnail(
                         avatarCdnImage = state.activeUserCdnImage,
-                        legendaryCustomization = state.activeUserLegendaryCustomization,
                     )
                 }
 

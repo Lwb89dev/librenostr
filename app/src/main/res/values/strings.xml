@@ -149,7 +149,6 @@
     <string name="follow_set_picker_members">%1$d people</string>
 
     <string name="drawer_destination_profile">Profile</string>
-    <string name="drawer_destination_premium">Premium</string>
     <string name="drawer_destination_messages">Messages</string>
     <string name="drawer_destination_bookmarks">Bookmarks</string>
     <string name="drawer_destination_scan_code">Scan Code</string>
@@ -169,23 +168,7 @@
     <string name="subscription_primal_title_primary">LibreNostr</string>
     <string name="subscription_primal_title_secondary">Premium and Pro</string>
     <string name="subscription_primal_subtitle">Upgrade your LibreNostr experience today.</string>
-    <string name="subscription_primal_premium_title">Premium</string>
-    <string name="subscription_primal_buy_premium">Buy Premium</string>
-    <string name="subscription_primal_premium_perk_verified_nostr_address">Verified Nostr Address</string>
-    <string name="subscription_primal_premium_perk_custom_lightning_address">Custom Lightning Address</string>
-    <string name="subscription_primal_premium_perk_vip_profile">VIP profile on nostrich.org</string>
-    <string name="subscription_primal_premium_perk_advanced_nostr_search">Advanced Nostr search</string>
-    <string name="subscription_primal_premium_perk_paid_relay">Premium paid relay</string>
-    <string name="subscription_primal_premium_perk_10gb_media_storage">10GB media storage</string>
-    <string name="subscription_primal_premium_perk_1gb_max_file_size">1GB max file size</string>
-    <string name="subscription_primal_pro_title">Pro</string>
     <string name="subscription_primal_buy_pro">Buy Pro</string>
-    <string name="subscription_primal_pro_perk_everything_in_premium">Everything in Premium, and</string>
-    <string name="subscription_primal_pro_perk_studio">LibreNostr Studio</string>
-    <string name="subscription_primal_pro_perk_legend_status">Legend Status on LibreNostr</string>
-    <string name="subscription_primal_pro_perk_100gb_storage">100GB media storage</string>
-    <string name="subscription_primal_pro_perk_10gb_max_file">10GB max file size</string>
-    <string name="subscription_learn_about_premium">Learn about LibreNostr Premium</string>
     <string name="subscription_learn_about_pro">Learn about LibreNostr Pro</string>
     <string name="subscription_price_per_month"> /month</string>
     <string name="subscription_billed_annually">%1$s billed annually</string>
@@ -195,278 +178,29 @@
     <string name="subscription_and">and</string>
     <string name="subscription_pp">Privacy Policy</string>
 
-    <string name="premium_primal_og_title">LibreNostr OG</string>
-    <string name="premium_primal_og_description">The LibreNostr OG tier was created to recognize those users who signed up to LibreNostr Premium in the first year.</string>
-    <string name="premium_subscribe_to_get">Subscribe to LibreNostr Premium to get:</string>
-    <string name="premium_primal_name">LibreNostr Name</string>
-    <string name="premium_primal_name_benefit_one">Verified nostr address</string>
-    <string name="premium_primal_name_benefit_two">Bitcoin lightning address</string>
-    <string name="premium_primal_name_benefit_three">VIP profile on nostrich.org</string>
-    <string name="premium_nostr_tools">Nostr Tools</string>
-    <string name="premium_nostr_tools_benefit_one">Media hosting</string>
-    <string name="premium_nostr_tools_benefit_two">Advanced search</string>
-    <string name="premium_nostr_tools_benefit_three">Premium paid relay</string>
-    <string name="premium_nostr_tools_benefit_four">Nostr account backup</string>
-    <string name="premium_learn_more">Learn More About Premium</string>
-    <string name="premium_period_monthly">monthly</string>
-    <string name="premium_period_annually">annually</string>
-    <string name="premium_price_or">or</string>
-    <string name="premium_start_by_reserving_primal_name">
-        Start by reserving your LibreNostr Name:
-    </string>
-    <string name="premium_find_primal_name_button">Find LibreNostr Name</string>
-    <string name="premium_cancel_button">Cancel</string>
-    <string name="premium_subscriptions_not_available">In-app subscriptions are not available in this build. LibreNostr ships without Google Play services or Play Billing.</string>
-
-    <string name="premium_primal_name_title">Find LibreNostr Name</string>
-    <string name="premium_primal_name_search_button">Search</string>
-    <string name="premium_primal_name_unavailable_message">Sorry, that name is currently unavailable</string>
-    <string name="premium_primal_name_nostr_address">Nostr address</string>
-    <string name="premium_primal_name_lightning_address">Lightning address</string>
-    <string name="premium_primal_name_vip_profile">VIP profile</string>
-    <string name="premium_primal_name_not_set_value">[not set]</string>
-
-    <string name="premium_buying_home_primal_pro">LibreNostr Pro</string>
-    <string name="premium_buying_home_primal_pro_description">Upgrade to the highest level of visibility,\n features and recognition across the network,\n and get access to professional tools.</string>
-
-    <string name="premium_purchase_title">Congrats!</string>
-    <string name="premium_purchase_primal_name_available">Your LibreNostr Name is available!</string>
-    <string name="premium_purchase_your_legend_status">Your Legend Status is one click away</string>
-    <string name="premium_purchase_learn_more">Learn about Premium</string>
-    <string name="premium_purchase_promo_code">Have a promo code?</string>
-    <string name="premium_purchase_get_annual_plan">Get Annual Plan</string>
-    <string name="premium_purchase_get_monthly_plan">Get Monthly Plan</string>
-    <string name="premium_purchase_restore_subscription">Restore Your Subscription</string>
-    <string name="premium_purchase_restore_subscription_explanation">Your Google Play account already has an active LibreNostr subscription, connected to a different Nostr account. You can restore it below:</string>
-    <string name="premium_purchase_tos_notice">By proceeding you acknowledge that\nyou agree to our </string>
-    <string name="premium_purchase_tos">Terms of Service</string>
-
-    <string name="premium_extend_subscription_title">Extend Subscription</string>
-    <string name="premium_extend_subscription_notice">Your subscription will be extended by the number of months you buy.</string>
-
-    <string name="premium_success_purchase_title">Success</string>
-    <string name="premium_success_purchase_headline">Success, payment received!</string>
-    <string name="premium_success_purchase_supporting_text">Your subscription is now active!</string>
-    <string name="premium_success_purchase_done_button">Done</string>
-
-    <string name="premium_promo_code_title">Apply a Promo Code</string>
-    <string name="premium_promo_code_enter_code_below">If you have a promo code enter it below:</string>
-    <string name="premium_promo_code_invalid_code_message">Invalid code. Please try again.</string>
-    <string name="premium_promo_code_apply_button">Apply Promo Code</string>
-    <string name="premium_promo_code_cancel_button">Cancel</string>
-
-    <string name="premium_home_member_premium_title">Premium</string>
-    <string name="premium_home_member_pro_title">Pro</string>
-    <string name="premium_home_member_early_primal_user">Hey there! You are an early LibreNostr user who interacted with our team, so we gave you 6 months of LibreNostr Premium for free. ♥\uFE0F\uD83E\uDEC2</string>
-    <string name="premium_home_premium_button">Manage Premium</string>
-    <string name="premium_home_pro_button">Manage Pro</string>
-    <string name="premium_home_renew_subscription">Renew Subscription</string>
-    <string name="premium_home_extend_subscription">Extend Subscription</string>
-    <string name="premium_home_enjoying_primal">Are you enjoying LibreNostr?</string>
-    <string name="premium_home_enjoying_primal_if_so">If so, see how you can</string>
-    <string name="premium_home_support_us">support us</string>
-    <string name="premium_home_table_expires">Expires</string>
-    <string name="premium_home_table_never">Never</string>
-    <string name="premium_home_table_renews_on">Renews on</string>
-    <string name="premium_home_table_expires_on">Expires on</string>
-    <string name="premium_home_table_expired_on">Expired on</string>
-    <string name="premium_home_table_apply">apply</string>
-    <string name="premium_home_expired_subscription_notice">Your LibreNostr Premium subscription has expired.\nYou can renew it below:</string>
-    <string name="premium_home_legend_contribution_title">Your contribution to LibreNostr:</string>
-    <string name="premium_home_legend_support_appreciation">Thank you for your support! 💜🫂</string>
-    <string name="premium_home_legend_contribute_more">Want to contribute more?</string>
-    <string name="premium_home_primal_pro_want_to">Want to get more out of LibreNostr?</string>
-    <string name="premium_home_primal_pro_check_out">Check out</string>
-    <string name="premium_home_primal_pro">LibreNostr Pro</string>
-
-    <string name="premium_support_primal_title">Support LibreNostr</string>
-
-    <string name="premium_become_legend_primal_title">LibreNostr Legend</string>
-    <string name="premium_become_legend_intro_description">The Legend tier was created to recognize users who have made a significant\ncontribution to LibreNostr.</string>
-    <string name="premium_become_legend_intro_subtitle">Donate $1000 or more to gain:</string>
-    <string name="premium_become_legend_intro_perk_unlimited_premium_title">Forever Premium</string>
-    <string name="premium_become_legend_intro_perk_unlimited_premium_description">LibreNostr Premium subscription never expires for legends.</string>
-    <string name="premium_become_legend_intro_perk_more_storage_title">Way More Storage</string>
-    <string name="premium_become_legend_intro_perk_more_storage_description">Get 100GB of LibreNostr Premium media storage.</string>
-    <string name="premium_become_legend_intro_perk_custom_profile_title">Legendary Custom Profile</string>
-    <string name="premium_become_legend_intro_perk_custom_profile_description">Pick the color of your verified badge and set a custom ring around your avatar.</string>
-    <string name="premium_become_legend_intro_gratitude_title">♥️ Our Eternal Gratitude ♥️</string>
-    <string name="premium_become_legend_intro_gratitude_description">We’ll never forget our biggest supporters. People like you will help Nostr succeed.</string>
-    <string name="premium_become_legend_button_start">Become a Legend</string>
-    <string name="premium_become_legend_button_pay_now">Pay Now</string>
-    <string name="premium_become_legend_payment_title">On-chain Payment</string>
-    <string name="premium_become_legend_payment_instruction_on_chain">Pay this on-chain invoice to complete your purchase. Your legendary status will be active immediately.</string>
-    <string name="premium_become_legend_payment_instruction_lightning">Pay this lightning invoice to complete your donation. Your legendary contribution will be active immediately.</string>
-    <string name="premium_become_legend_button_copy_invoice">Copy Invoice</string>
-    <string name="premium_become_legend_success_title">Success</string>
-    <string name="premium_become_legend_success_headline">Success, payment received!</string>
-    <string name="premium_become_legend_success_supporting_text">You are now a LibreNostr Legend</string>
-    <string name="premium_become_legend_success_done_button">Done</string>
-    <string name="premium_become_legend_failed_fetching_payment_instructions">Unable to get payment instructions. Please try again.</string>
-    <string name="premium_become_legend_retry_button">Retry</string>
-
-    <string name="legend_contribution_intro_stage_title">Contribute to LibreNostr</string>
-    <string name="legend_contribution_cancel">Cancel</string>
-    <string name="legend_contribution_pay_with_on_chain_bitcoin_button">Pay with on-chain bitcoin</string>
-    <string name="legend_contribution_pay_with_bitcoin_lightning">Pay with bitcoin lightning</string>
-    <string name="legend_contribution_amount_stage_title">Enter Amount</string>
-    <string name="legend_contribution_payment_instructions_on_chain_stage_title">On-chain Payment</string>
-    <string name="legend_contribution_payment_instructions_lightning_stage_title">Lightning Payment</string>
-    <string name="legend_contribution_payment_instructions_pay_with_primal_wallet">Pay Now via LibreNostr Wallet</string>
-    <string name="legend_contribution_payment_instructions_copy_invoice">Copy Invoice</string>
-    <string name="legend_contribution_payment_instructions_error_on_fetching_mining_fees">Unable to load mining fees. Please try again.</string>
-    <string name="legend_contribution_success_stage_title">Success</string>
-    <string name="legend_contribution_success_stage_appreciation_title">Success, payment received!</string>
-    <string name="legend_contribution_success_stage_appreciation_subtitle">Thank you, Legend!</string>
-    <string name="legend_contribution_success_stage_appreciation_done_button">Done</string>
-
-    <string name="premium_manage_title">Manage Premium</string>
-    <string name="premium_manage_nostr_tools">Nostr Tools</string>
-    <string name="premium_manage_primal_account">LibreNostr Account</string>
-    <string name="premium_manage_have_a_question">Have a question?</string>
-    <string name="premium_manage_check_faq">Check out our FAQ</string>
-    <string name="premium_manage_media_management">Media Management</string>
-    <string name="premium_manage_premium_relay">Premium Relay</string>
-    <string name="premium_manage_contact_list_backup">Contact List Backup</string>
-    <string name="premium_manage_content_backup">Content Backup</string>
-    <string name="premium_manage_manage_subscription">Manage Subscription</string>
-    <string name="premium_manage_change_primal_name">Change your LibreNostr name</string>
-    <string name="premium_manage_extend_subscription">Extend Your Subscription</string>
-    <string name="premium_manage_legendary_customization">Legendary Profile Customization</string>
-    <string name="premium_manage_become_a_legend">Become a Legend</string>
-
-    <string name="premium_media_management_title">Media Management</string>
-    <string name="premium_media_management_images">Images</string>
-    <string name="premium_media_management_videos">Videos</string>
-    <string name="premium_media_management_other">Other</string>
-    <string name="premium_media_management_calculating">Calculating…</string>
-    <string name="premium_media_management_table_file">File</string>
-    <string name="premium_media_management_table_details">Details</string>
-    <string name="premium_media_management_table_copy">Copy</string>
-    <string name="premium_media_management_table_delete">Delete</string>
-    <string name="premium_media_management_table_type_image">Image</string>
-    <string name="premium_media_management_table_type_video">Video</string>
-    <string name="premium_media_management_table_type_other">Other</string>
-    <string name="premium_media_management_used_storage">%1$s GB of %2$s GB used</string>
-    <string name="premium_media_management_free_storage">%1$s GB free</string>
-    <string name="premium_media_management_media_size">%1$s MB</string>
-    <string name="premium_media_management_delete_upload_dialog_title">Delete?</string>
-    <string name="premium_media_management_delete_upload_dialog_text">Are you sure you want to delete this media file? Any notes referencing this media file will look broken.</string>
-    <string name="premium_media_management_delete_upload_dialog_confirm_button">Delete</string>
-    <string name="premium_media_management_delete_upload_dialog_dismiss_button">Dismiss</string>
-    <string name="premium_media_management_deleted_successfully">Media file deleted successfully.</string>
-
-    <string name="premium_relay_title">Premium Relay</string>
-    <string name="premium_relay_top_app_bar_title">Premium Relay</string>
-    <string name="premium_relay_running">Running</string>
-    <string name="premium_relay_description">The LibreNostr Premium relay is a high-performance Nostr relay that only accepts content from LibreNostr Premium users. Posting to this relay improves your visibility on the Nostr network because it guarantees high signal and lack of spam to any Nostr user that reads from it. </string>
-    <string name="premium_relay_connect_button">Connect to Premium Relay</string>
-    <string name="premium_relay_connected_button">Connected to Premium Relay</string>
-
-    <string name="premium_recover_contact_list_title">Recover Contact List</string>
-    <string name="premium_recover_contact_list_table_date">Date</string>
-    <string name="premium_recover_contact_list_table_follows">Follows</string>
-    <string name="premium_recover_contact_list_table_recover_list">Recover List</string>
-    <string name="premium_recover_contact_list_table_recover_button">Recover</string>
-    <string name="premium_recover_contact_list_dialog_title">Recover?</string>
-    <string name="premium_recover_contact_list_dialog_text">Update your contact list based on the state from %1$s (%2$s of follows)?</string>
-    <string name="premium_recover_contact_list_dialog_confirm_button">Recover</string>
-    <string name="premium_recover_contact_list_dialog_dismiss_button">Dismiss</string>
-    <string name="premium_recover_contact_list_success">Contact list updated</string>
-    <string name="premium_recover_contact_list_failed">Failed to recover contact list. Please try again.</string>
 
 
-    <string name="premium_order_history_title">Manage Subscription</string>
-    <string name="premium_order_history_header">Order history</string>
-    <string name="premium_order_history_premium_valid_until">LibreNostr Pro valid until:</string>
-    <string name="premium_order_history_premium_valid_forever">Forever</string>
-    <string name="premium_order_history_premium_hint_legend">You Legend</string>
-    <string name="premium_order_history_premium_hint_renews_app_store">Renews via App Store</string>
-    <string name="premium_order_history_premium_hint_renews_play_store">Renews via Play Store</string>
-    <string name="premium_order_history_premium_hint_does_not_renews">Does not renew</string>
-    <string name="premium_order_history_premium_expired">Expired</string>
-    <string name="premium_order_history_cancel_subscription_button">Cancel Subscription</string>
-    <string name="premium_order_history_extend_subscription_button">Extend Subscription</string>
-    <string name="premium_order_history_renews_subscription_button">Renew Subscription</string>
-    <string name="premium_order_history_date_header">Date</string>
-    <string name="premium_order_history_purchase_header">Purchase</string>
-    <string name="premium_order_history_amount_header">Amount</string>
-    <string name="premium_order_history_table_date">Date</string>
-    <string name="premium_order_history_table_purchase">Purchase</string>
-    <string name="premium_order_history_table_amount">Amount</string>
-    <string name="premium_order_history_cancel_dialog_title">Cancel Premium?</string>
-    <string name="premium_order_history_cancel_dialog_text">Your subscription will remain active until the end of your current billing period, so you can continue enjoying premium features until then. No further charges will be made after that date.</string>
-    <string name="premium_order_history_cancel_dialog_confirm_button">Cancel Subscription</string>
-    <string name="premium_order_history_cancel_dialog_dismiss_button">Keep Premium</string>
-    <plurals name="premium_purchase_months">
-        <item quantity="one">Premium %1$s month</item>
-        <item quantity="other">Premium %1$s months</item>
-    </plurals>
 
-    <string name="premium_change_primal_name_title">Change your LibreNostr name</string>
-    <string name="premium_name_changed_title">LibreNostr name changed</string>
-    <string name="premium_name_changed_button">Change LibreNostr Name Now</string>
-    <string name="premium_name_change_name_taken_error">Oops! Looks like someone just snatched that name. Please try another one!</string>
 
-    <string name="premium_content_backup_title">Content Backup</string>
-    <string name="premium_content_backup_table_count">Count</string>
-    <string name="premium_content_backup_table_type">Type</string>
-    <string name="premium_content_backup_table_type_notes">Notes</string>
-    <string name="premium_content_backup_table_type_reactions">Reactions</string>
-    <string name="premium_content_backup_table_type_dms">DMs</string>
-    <string name="premium_content_backup_table_type_articles">Articles</string>
-    <string name="premium_content_backup_table_rebroadcast">Rebroadcast</string>
-    <string name="premium_content_backup_all_events">All Events</string>
-    <string name="premium_content_backup_stop_rebroadcast">Stop Rebroadcast</string>
 
-    <string name="premium_error_play_subscription_purchase_not_found">Unable to cancel the subscription. Please check if you are logged in with your Google Account and try again.</string>
-    <string name="premium_error_failed_to_cancel_subscription">Unable to cancel the subscription. Please check your connection and try again.</string>
-    <string name="premium_error_failed_to_process_subscription_purchase">We were unable to process your subscription purchase. Please reach out to LibreNostr Support.</string>
 
-    <string name="premium_support_primal_description">Be a part of the Nostr revolution and help us continue building for this ecosystem.</string>
-    <string name="premium_support_primal_review_call_title">Leave a 5 Star Review</string>
-    <string name="premium_support_primal_review_call_description">Play Store reviews really help improve the visibility of Nostr apps at this early stage.</string>
-    <string name="premium_support_primal_review_call_button_text">Go to App Listing</string>
-    <string name="premium_support_primal_buy_subscription_title">Buy a Subscription</string>
-    <string name="premium_support_primal_buy_subscription_description">Extend your existing subscription to gain peace of mind and help fund LibreNostr.</string>
-    <string name="premium_support_primal_buy_subscription_button_text">Buy LibreNostr Premium</string>
-    <string name="premium_support_primal_become_a_legend_title">Become a Legend</string>
-    <string name="premium_support_primal_become_a_legend_description">Donate $1.000 or more to gain permanent membership and exclusive perks!</string>
-    <string name="premium_support_primal_become_a_legend_button_text">Become a Legend Now</string>
 
-    <string name="premium_legend_profile_customization">Legendary Profile</string>
-    <string name="premium_legend_profile_customization_card_shoutout">Legend Card Shoutout</string>
-    <string name="premium_legend_profile_customization_notice">Legend cards contain a personalized shoutout from\nLibreNostr to all our legends.</string>
-    <string name="premium_legend_profile_customization_notice_in_review">Your edits have been sent to librenostr for review. The\nupdated content should be live soon.</string>
-    <string name="premium_legend_profile_customization_suggest_edits">suggest edits</string>
-    <string name="premium_legend_profile_customization_edits_under_review">Edits under review</string>
-    <string name="premium_legend_profile_customization_cancel">Cancel</string>
-    <string name="premium_legend_profile_customization_send">Send</string>
-    <string name="premium_legend_profile_custom_badge">Custom badge</string>
-    <string name="premium_legend_profile_avatar_ring">Avatar ring</string>
-    <string name="premium_legend_profile_appear_in_leaderboard">Appear in leaderboard</string>
-    <string name="premium_legend_profile_apply_button">Apply</string>
 
-    <string name="premium_card_legend_since">Legend since</string>
-    <string name="premium_card_og_since">LibreNostr OG since</string>
-    <string name="premium_card_button_see_other_legends">See other Legends</string>
-    <string name="premium_card_button_see_other_ogs">See other LibreNostr OGs</string>
-    <string name="premium_card_button_become_a_legend">Become a Legend</string>
-    <string name="premium_card_dropdown_close">Close</string>
-    <string name="premium_card_dropdown_legend_settings">Legend settings</string>
 
-    <string name="premium_ogs_leaderboard_title">Premium Users</string>
-    <string name="premium_ogs_leaderboard_latest_tab">Latest</string>
-    <string name="premium_ogs_leaderboard_get_primal_premium">Get LibreNostr Premium</string>
-    <string name="premium_ogs_leaderboard_since">Since</string>
-    <string name="premium_legend_leaderboard_title">LibreNostr Legends</string>
-    <string name="premium_legend_leaderboard_latest_tab">Latest</string>
-    <string name="premium_legend_leaderboard_contribution_tab">Contribution</string>
-    <string name="premium_legend_leaderboard_about_legends">About Legends</string>
-    <string name="premium_legend_leaderboard_since">Since</string>
-    <string name="premium_legend_leaderboard_sats">sats</string>
-    <string name="premium_leaderboard_no_content">There is no content on this leaderboard.</string>
-    <string name="premium_leaderboard_error_loading">Unable to load leaderboard.\nPlease try again.</string>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     <string name="feed_reposted_suffix">reposted</string>
     <string name="feed_see_more">See more…</string>

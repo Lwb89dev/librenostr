@@ -32,8 +32,6 @@ import net.primal.android.core.compose.NostrUserText
 import net.primal.android.core.compose.UniversalAvatarThumbnail
 import net.primal.android.core.compose.button.PrimalFilledButton
 import net.primal.android.core.compose.preview.PrimalPreview
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
 
@@ -44,7 +42,6 @@ fun ArticleAuthorRow(
     authorDisplayName: String,
     authorCdnImage: CdnImage? = null,
     authorInternetIdentifier: String? = null,
-    authorLegendaryCustomization: LegendaryCustomization? = null,
     authorBlossoms: List<String> = emptyList(),
     authorId: String? = null,
     onAuthorAvatarClick: (() -> Unit)? = null,
@@ -59,7 +56,6 @@ fun ArticleAuthorRow(
             avatarCdnImage = authorCdnImage,
             avatarBlossoms = authorBlossoms,
             onClick = onAuthorAvatarClick,
-            legendaryCustomization = authorLegendaryCustomization,
         )
 
         Column(
@@ -75,7 +71,6 @@ fun ArticleAuthorRow(
                     fontSize = 16.sp,
                     lineHeight = 16.sp,
                 ),
-                legendaryCustomization = authorLegendaryCustomization,
                 profileId = authorId,
             )
 
@@ -215,11 +210,6 @@ fun PreviewArticleLegendaryAuthorRow() {
                 authorFollowed = true,
                 authorDisplayName = "miljan",
                 authorInternetIdentifier = "miljan@nostrich.org",
-                authorLegendaryCustomization = LegendaryCustomization(
-                    avatarGlow = true,
-                    customBadge = true,
-                    legendaryStyle = LegendaryStyle.SUN_FIRE,
-                ),
             )
         }
     }

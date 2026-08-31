@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import net.primal.android.core.push.PushNotificationsTokenUpdater
 import net.primal.android.core.service.PrimalNwcService
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.settings.wallet.settings.WalletSettingsContract.SideEffect
 import net.primal.android.settings.wallet.settings.WalletSettingsContract.UiEvent
 import net.primal.android.settings.wallet.settings.WalletSettingsContract.UiState
@@ -241,7 +240,6 @@ class WalletSettingsViewModel @AssistedInject constructor(
                     copy(
                         activeUserId = it.pubkey,
                         activeAccountAvatarCdnImage = it.avatarCdnImage,
-                        activeAccountLegendaryCustomization = it.primalLegendProfile?.asLegendaryCustomization(),
                         activeAccountBlossoms = it.blossomServers,
                         activeAccountDisplayName = it.authorDisplayName,
                     )

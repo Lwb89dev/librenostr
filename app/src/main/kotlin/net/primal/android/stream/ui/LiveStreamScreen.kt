@@ -1141,7 +1141,6 @@ fun ChatMessageListItem(
         UniversalAvatarThumbnail(
             avatarCdnImage = message.authorProfile.avatarCdnImage,
             avatarSize = 24.dp,
-            legendaryCustomization = message.authorProfile.premiumDetails?.legendaryCustomization,
         )
 
         PrimalClickableText(
@@ -1253,7 +1252,6 @@ fun ZapMessageListItem(
         UniversalAvatarThumbnail(
             avatarCdnImage = zap.zapperAvatarCdnImage,
             avatarSize = 24.dp,
-            legendaryCustomization = zap.zapperLegendaryCustomization,
         )
         ZapMessageContent(zap = zap, onClick = onClick, isScrollable = isScrollable)
     }

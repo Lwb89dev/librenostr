@@ -269,7 +269,6 @@ private fun SelectedUsersIndicator(
                         avatarCdnImage = user.avatarCdnImage,
                         avatarBlossoms = user.avatarBlossoms,
                         onClick = { onUserClick(user) },
-                        legendaryCustomization = user.legendaryCustomization,
                     )
                     Icon(
                         modifier = Modifier

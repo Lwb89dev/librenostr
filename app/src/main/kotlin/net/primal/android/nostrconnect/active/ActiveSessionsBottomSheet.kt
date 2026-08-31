@@ -303,7 +303,6 @@ private fun SessionListItem(
         CompositionLocalProvider(LocalContentColor provides AppTheme.colorScheme.onPrimary) {
             UniversalAvatarThumbnail(
                 avatarCdnImage = session.userAccount?.avatarCdnImage,
-                legendaryCustomization = session.userAccount?.legendaryCustomization,
                 avatarSize = 28.dp,
             )
         }

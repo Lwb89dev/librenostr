@@ -47,6 +47,5 @@ interface ProfileEditorContract {
 
     data class ScreenCallbacks(
         val onClose: () -> Unit,
-        val onNavigateToPremiumBuying: () -> Unit,
     )
 }

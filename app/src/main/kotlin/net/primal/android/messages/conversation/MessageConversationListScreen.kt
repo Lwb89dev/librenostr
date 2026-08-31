@@ -294,7 +294,6 @@ private fun ConversationListItem(
             UniversalAvatarThumbnail(
                 avatarCdnImage = conversation.participantAvatarCdnImage,
                 onClick = { onProfileClick(conversation.participantId) },
-                legendaryCustomization = conversation.participantLegendaryCustomization,
             )
         },
         headlineContent = {
@@ -324,7 +323,6 @@ private fun ConversationListItem(
                         internetIdentifier = conversation.participantInternetIdentifier,
                         profileId = conversation.participantId,
                         annotatedStringSuffixBuilder = { append(suffixText) },
-                        legendaryCustomization = conversation.participantLegendaryCustomization,
                         style = AppTheme.typography.bodyMedium,
                     )
                 }

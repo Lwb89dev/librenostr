@@ -2,7 +2,6 @@ package net.primal.android.user.domain
 
 import java.time.Instant
 import kotlinx.serialization.Serializable
-import net.primal.android.premium.domain.PremiumMembership
 import net.primal.android.settings.wallet.domain.WalletPreference
 import net.primal.domain.global.ContentAppSettings
 import net.primal.domain.links.CdnImage
@@ -44,7 +43,6 @@ data class UserAccount(
     val interests: List<String> = emptyList(),
     val followListEventContent: String? = null,
     val cachingProxyEnabled: Boolean = false,
-    val premiumMembership: PremiumMembership? = null,
     val lastBuyPremiumTimestampInMillis: Long? = null,
     val primalLegendProfile: PrimalLegendProfile? = null,
     val lastAccessedAt: Long = Instant.now().epochSecond,

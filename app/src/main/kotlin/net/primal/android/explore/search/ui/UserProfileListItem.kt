@@ -31,8 +31,6 @@ import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.profile.model.UserProfileItemUi
 import net.primal.android.core.utils.formatNip05Identifier
 
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -57,7 +55,6 @@ fun UserProfileListItem(
                 avatarSize = avatarSize,
                 avatarBlossoms = data.avatarBlossoms,
                 onClick = { onClick(data) },
-                legendaryCustomization = data.legendaryCustomization,
                 isLive = data.isLive,
             )
         },
@@ -112,11 +109,6 @@ fun PreviewLegendaryUserProfileListItemWithFollow() {
                     displayName = "alex",
                     internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
-                    legendaryCustomization = LegendaryCustomization(
-                        avatarGlow = true,
-                        customBadge = true,
-                        legendaryStyle = LegendaryStyle.GOLD,
-                    ),
                 ),
                 followUnfollowVisibility = FollowUnfollowVisibility.Visible,
                 isFollowed = false,
@@ -137,11 +129,6 @@ fun PreviewLegendaryUserProfileListItemWithUnfollow() {
                     displayName = "alex",
                     internetIdentifier = "alex@nostrich.org",
                     followersCount = 12345,
-                    legendaryCustomization = LegendaryCustomization(
-                        avatarGlow = true,
-                        customBadge = true,
-                        legendaryStyle = LegendaryStyle.SUN_FIRE,
-                    ),
                 ),
                 followUnfollowVisibility = FollowUnfollowVisibility.Visible,
                 isFollowed = true,

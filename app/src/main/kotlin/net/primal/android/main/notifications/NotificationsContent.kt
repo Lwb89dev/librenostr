@@ -64,7 +64,6 @@ import net.primal.android.notes.feed.zaps.UnableToZapBottomSheet
 import net.primal.android.notes.feed.zaps.ZapBottomSheet
 import net.primal.android.notifications.list.ui.NotificationListItem
 import net.primal.android.notifications.list.ui.NotificationUi
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.Badges
 import net.primal.domain.links.CdnImage
@@ -456,7 +455,6 @@ private fun NotificationsList(
 @Composable
 internal fun NotificationsTopAppBar(
     avatarCdnImage: CdnImage?,
-    avatarLegendaryCustomization: LegendaryCustomization?,
     avatarBlossoms: List<String>,
     scrollBehavior: TopAppBarScrollBehavior?,
     onAvatarClick: () -> Unit,
@@ -479,7 +477,6 @@ internal fun NotificationsTopAppBar(
             subtitleOverride = subtitleOverride,
             avatarCdnImage = avatarCdnImage,
             avatarBlossoms = avatarBlossoms,
-            avatarLegendaryCustomization = avatarLegendaryCustomization,
             onAvatarClick = onAvatarClick,
             onAvatarSwipeDown = onAvatarSwipeDown,
             showDivider = false,

@@ -7,8 +7,6 @@ import net.primal.android.core.compose.attachment.model.asEventUriUiModel
 import net.primal.android.events.polls.votes.asPollUi
 import net.primal.android.events.ui.EventZapUiModel
 import net.primal.android.events.ui.asEventZapUiModel
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.domain.links.CdnImage
 import net.primal.domain.nostr.MAX_RELAY_HINTS
 import net.primal.domain.nostr.Nevent
@@ -39,7 +37,6 @@ data class FeedPostUi(
     val isBookmarked: Boolean = false,
     val isThreadMuted: Boolean = false,
     val eventZaps: List<EventZapUiModel> = emptyList(),
-    val authorLegendaryCustomization: LegendaryCustomization? = null,
     val authorBlossoms: List<String> = emptyList(),
     val eventRelayHints: List<String> = emptyList(),
     val isAuthorLiveStreamingNow: Boolean = false,
@@ -89,7 +86,6 @@ fun FeedPost.asFeedPostUi(): FeedPostUi {
         eventZaps = this.eventZaps
             .map { it.asEventZapUiModel() }
             .sortedWith(EventZapUiModel.DefaultComparator),
-        authorLegendaryCustomization = this.author.legendProfile?.asLegendaryCustomization(),
         eventRelayHints = this.eventRelayHints?.relays ?: emptyList(),
         isAuthorLiveStreamingNow = this.author.isLiveStreamingNow,
         poll = this.pollInfo?.asPollUi(),

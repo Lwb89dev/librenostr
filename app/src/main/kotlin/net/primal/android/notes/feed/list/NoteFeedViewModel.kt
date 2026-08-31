@@ -31,9 +31,7 @@ import net.primal.android.notes.feed.list.NoteFeedContract.UiState
 import net.primal.android.notes.feed.model.FeedPostsSyncStats
 import net.primal.android.notes.feed.model.StreamsSyncStats
 import net.primal.android.notes.feed.model.asFeedPostUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
-import net.primal.android.premium.repository.mapAsProfileDataDO
-import net.primal.android.premium.utils.hasPremiumMembership
+import net.primal.android.profile.domain.mapAsProfileDataDO
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.wallet.repository.ExchangeRateHandler
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -148,7 +146,7 @@ class NoteFeedViewModel @AssistedInject constructor(
         viewModelScope.launch {
             activeAccountStore.activeUserAccount.collect {
                 setState {
-                    copy(paywall = feedSpec.isPremiumFeedSpec() && !it.hasPremiumMembership())
+                    copy(paywall = feedSpec.isPremiumFeedSpec())
                 }
             }
         }
@@ -292,24 +290,17 @@ class NoteFeedViewModel @AssistedInject constructor(
 
         val allNotesFromNotMutedProfiles = allNotes.filter { note -> note.pubKey !in state.value.mutedProfileIds }
 
-        val avatarCdnImagesAndLegendaryCustomizations = allNotesFromNotMutedProfiles
+        val latestAvatars = allNotesFromNotMutedProfiles
             .mapNotNull { note -> profiles.find { it.profileId == note.pubKey } }
-            .map { profileData ->
-                Pair(
-                    profileData.avatarCdnImage,
-                    profileData.primalPremiumInfo?.legendProfile?.asLegendaryCustomization(),
-                )
-            }
+            .mapNotNull { profileData -> profileData.avatarCdnImage }
             .distinct()
 
-        val limit = avatarCdnImagesAndLegendaryCustomizations.count().coerceAtMost(MAX_AVATARS)
+        val limit = latestAvatars.count().coerceAtMost(MAX_AVATARS)
 
         val newSyncStats = FeedPostsSyncStats(
             latestNotesCount = allNotesFromNotMutedProfiles.size,
             latestNoteIds = allNotesFromNotMutedProfiles.map { it.id },
-            latestAvatarCdnImages = avatarCdnImagesAndLegendaryCustomizations
-                .map { it.first }
-                .take(limit),
+            latestAvatarCdnImages = latestAvatars.take(limit),
         )
 
         if (newSyncStats.isTopVisibleNoteTheLatestNote() || latestTimestamp == null) {

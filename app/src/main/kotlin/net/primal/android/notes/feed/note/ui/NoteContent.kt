@@ -45,7 +45,6 @@ import net.primal.android.notes.feed.model.toAnnotatedString
 import net.primal.android.notes.feed.note.ui.attachment.NoteAttachments
 import net.primal.android.notes.feed.note.ui.events.InvoicePayClickEvent
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
@@ -230,20 +229,16 @@ fun NoteContent(
                     noteCallbacks = noteCallbacks,
                     message = zap.message,
                     senderAvatarCdnImage = zap.senderAvatarCdnImage,
-                    senderLegendaryCustomization = zap.senderPrimalLegendProfile?.asLegendaryCustomization(),
                     receiverDisplayName = zap.receiverDisplayName,
                     receiverAvatarCdnImage = zap.receiverAvatarCdnImage,
-                    receiverLegendaryCustomization = zap.senderPrimalLegendProfile?.asLegendaryCustomization(),
                 )
             } else {
                 ReferencedZap(
                     senderId = zap.senderId,
                     senderAvatarCdnImage = zap.senderAvatarCdnImage,
-                    senderPrimalLegendProfile = zap.senderPrimalLegendProfile,
                     receiverId = zap.receiverId,
                     receiverDisplayName = zap.receiverDisplayName,
                     receiverAvatarCdnImage = zap.receiverAvatarCdnImage,
-                    receiverPrimalLegendProfile = zap.receiverPrimalLegendProfile,
                     amountInSats = zap.amountInSats,
                     message = zap.message,
                     noteCallbacks = noteCallbacks,

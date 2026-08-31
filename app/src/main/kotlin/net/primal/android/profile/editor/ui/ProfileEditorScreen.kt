@@ -82,7 +82,6 @@ fun ProfileEditorScreen(
             },
             onConfirmClick = {
                 eventPublisher(ProfileEditorContract.UiEvent.DismissPremiumPaywallDialog)
-                callbacks.onNavigateToPremiumBuying()
             },
         )
     }
@@ -329,7 +328,6 @@ fun PreviewEditProfileScreen() {
             eventPublisher = {},
             callbacks = ProfileEditorContract.ScreenCallbacks(
                 onClose = {},
-                onNavigateToPremiumBuying = {},
             ),
         )
     }

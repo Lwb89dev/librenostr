@@ -250,7 +250,6 @@ private fun DvmFeedListItem(
                                         height = profileAvatarSize,
                                     ),
                                 avatarCdnImages = dvmFeed.featuredUserAvatars,
-                                avatarLegendaryCustomizations = dvmFeed.featuredUserLegendaryCustomizations,
                                 onClick = onProfileClick?.let {
                                     { index -> dvmFeed.featuredUserIds.getOrNull(index)?.let(it) }
                                 },

@@ -57,8 +57,6 @@ import net.primal.android.main.explore.followpack.FollowPackContract.UiEvent
 import net.primal.android.main.explore.people.model.FollowPackUi
 import net.primal.android.main.explore.people.ui.ProfileFollowUnfollowListItem
 import net.primal.android.main.explore.ui.FollowPackCoverImage
-import net.primal.android.premium.legend.domain.LegendaryCustomization
-import net.primal.android.premium.legend.domain.LegendaryStyle
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.domain.links.CdnImage
@@ -309,7 +307,6 @@ private fun LazyListScope.followPackAuthor(
             UniversalAvatarThumbnail(
                 avatarSize = 40.dp,
                 avatarCdnImage = data.avatarCdnImage,
-                legendaryCustomization = data.legendaryCustomization,
                 onClick = { onProfileClick(data.profileId) },
             )
 
@@ -334,7 +331,6 @@ private fun LazyListScope.followPackAuthor(
                         displayNameFontWeight = FontWeight.SemiBold,
                         style = AppTheme.typography.bodyMedium,
                         internetIdentifier = data.internetIdentifier,
-                        legendaryCustomization = data.legendaryCustomization,
                         profileId = data.profileId,
                     )
 
@@ -425,11 +421,6 @@ private fun FollowPackScreenPreview() {
                             displayName = "miljan",
                             followersCount = null,
                             isFollowed = true,
-                            legendaryCustomization = LegendaryCustomization(
-                                avatarGlow = true,
-                                customBadge = true,
-                                legendaryStyle = LegendaryStyle.BLUE,
-                            ),
                         ),
                         UserProfileItemUi(
                             profileId = "profile5",

@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.UserAccount
 import net.primal.android.user.repository.UserRepository
@@ -128,7 +127,6 @@ class WalletNoticeSheetViewModel @Inject constructor(
                 setState {
                     copy(
                         activeUserCdnImage = userAccount.avatarCdnImage,
-                        activeUserLegendaryCustomization = userAccount.primalLegendProfile?.asLegendaryCustomization(),
                     )
                 }
             }

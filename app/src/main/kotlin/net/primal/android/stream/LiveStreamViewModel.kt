@@ -31,7 +31,6 @@ import net.primal.android.events.ui.EventZapUiModel
 import net.primal.android.events.ui.asEventZapUiModel
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.notes.feed.model.NoteNostrUriUi
-import net.primal.android.premium.legend.domain.asLegendaryCustomization
 import net.primal.android.profile.details.ui.model.PremiumProfileDataUi
 import net.primal.android.profile.mention.UserMentionHandler
 import net.primal.android.profile.mention.appendUserTagAtSignAtCursorPosition
@@ -476,7 +475,6 @@ class LiveStreamViewModel @AssistedInject constructor(
                     avatarCdnImage = activeAccount.avatarCdnImage,
                     internetIdentifier = activeAccount.internetIdentifier,
                     premiumDetails = PremiumProfileDataUi(
-                        legendaryCustomization = activeAccount.primalLegendProfile?.asLegendaryCustomization(),
                     ),
                 ),
                 content = text,
@@ -702,7 +700,6 @@ class LiveStreamViewModel @AssistedInject constructor(
                 zapperHandle = activeAccount.userDisplayName,
                 zapperAvatarCdnImage = activeAccount.avatarCdnImage,
                 zapperInternetIdentifier = activeAccount.internetIdentifier,
-                zapperLegendaryCustomization = activeAccount.primalLegendProfile?.asLegendaryCustomization(),
             ),
         )
         zaps = listOf(temporaryZap) + (zaps ?: emptyList())

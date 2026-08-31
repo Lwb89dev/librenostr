@@ -1,6 +1,5 @@
 package net.primal.android.wallet.notice.sheet
 
-import net.primal.android.premium.legend.domain.LegendaryCustomization
 import net.primal.domain.links.CdnImage
 
 interface WalletNoticeSheetContract {
@@ -10,7 +9,6 @@ interface WalletNoticeSheetContract {
         val creatingWallet: Boolean = false,
         val error: WalletCreationError? = null,
         val activeUserCdnImage: CdnImage? = null,
-        val activeUserLegendaryCustomization: LegendaryCustomization? = null,
     ) {
         sealed class WalletCreationError {
             data class Failed(val cause: Throwable) : WalletCreationError()
