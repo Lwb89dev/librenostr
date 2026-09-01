@@ -204,6 +204,7 @@ class RelayPool(
         timeoutMs: Long = SUBSCRIBE_TIMEOUT.toLong(),
     ): RelayPoolQueryResult {
         val safeFilter = filter.withSafeLimit()
+        val requestedCount = safeFilter["limit"]?.jsonPrimitive?.intOrNull ?: MAX_EVENTS_PER_QUERY
         val safeTimeoutMs = timeoutMs.coerceIn(MIN_QUERY_TIMEOUT_MS, SUBSCRIBE_TIMEOUT.toLong())
         val clients = readClients()
         if (clients.isEmpty()) return RelayPoolQueryResult()
@@ -216,6 +217,7 @@ class RelayPool(
                 subscriptionId = subscriptionId,
                 filter = safeFilter,
                 timeoutMs = safeTimeoutMs,
+                requestedCount = requestedCount,
             )
             publishQueryStats(requested = clients.size, result = result)
             return result
@@ -294,11 +296,13 @@ class RelayPool(
         }
     }
 
+    @Suppress("LongParameterList")
     private suspend fun collectUntilEose(
         clients: List<NostrSocketClient>,
         subscriptionId: String,
         filter: JsonObject,
         timeoutMs: Long,
+        requestedCount: Int,
     ): RelayPoolQueryResult {
         val eventsById = LinkedHashMap<String, NostrEvent>()
         val eoseRelays = mutableSetOf<String>()
@@ -308,6 +312,10 @@ class RelayPool(
         val mutex = Mutex()
         val firstEoseOrAllFailed = CompletableDeferred<Boolean>()
         val allRelaysCompleted = CompletableDeferred<Unit>()
+        // A page that already holds everything the caller asked for is a complete answer. Without
+        // this the query kept paying the EOSE grace and, on an empty first EOSE, waited for the
+        // slowest relay — on every request, even when the first relay had already delivered.
+        val pageFull = CompletableDeferred<Unit>()
 
         supervisorScope {
             clients.forEach { client ->
@@ -323,14 +331,16 @@ class RelayPool(
                         failedRelays = failedRelays,
                         completedRelays = completedRelays,
                         clientCount = clients.size,
+                        requestedCount = requestedCount,
                         firstEoseOrAllFailed = firstEoseOrAllFailed,
                         allRelaysCompleted = allRelaysCompleted,
+                        pageFull = pageFull,
                         onDuplicate = { duplicates += 1 },
                     )
                 }
             }
             val hadEose = withTimeoutOrNull(timeoutMs) { firstEoseOrAllFailed.await() } ?: false
-            if (hadEose) {
+            if (hadEose && !pageFull.isCompleted) {
                 // EOSE with zero events is valid. Keep slower relays alive in that case;
                 // otherwise the first empty relay could hide events available elsewhere.
                 delay(FIRST_EOSE_GRACE_MS)
@@ -364,8 +374,10 @@ class RelayPool(
         failedRelays: MutableMap<String, String>,
         completedRelays: MutableSet<String>,
         clientCount: Int,
+        requestedCount: Int,
         firstEoseOrAllFailed: CompletableDeferred<Boolean>,
         allRelaysCompleted: CompletableDeferred<Unit>,
+        pageFull: CompletableDeferred<Unit>,
         onDuplicate: () -> Unit,
     ) {
         queryOneRelay(
@@ -374,12 +386,17 @@ class RelayPool(
             filter = filter,
             timeoutMs = timeoutMs,
             onEvent = { event ->
-                mutex.withLock {
+                val reachedTarget = mutex.withLock {
                     when {
                         eventsById.containsKey(event.id) -> onDuplicate()
                         eventsById.size >= MAX_EVENTS_PER_QUERY -> Unit
                         else -> eventsById[event.id] = event
                     }
+                    eventsById.size >= requestedCount
+                }
+                if (reachedTarget) {
+                    pageFull.complete(Unit)
+                    firstEoseOrAllFailed.complete(true)
                 }
             },
             onEose = {

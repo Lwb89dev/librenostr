@@ -417,6 +417,74 @@ class RelayPoolTest {
         }
 
     @Test
+    fun query_returnsWithoutTheEoseGraceOnceTheRequestedCountIsReached() =
+        runTest {
+            // A page holding everything the caller asked for is a complete answer. Before this,
+            // every query paid the EOSE grace and, on an empty first EOSE, waited for the
+            // slowest relay — even when the first relay had already delivered a full page.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-full" }
+            val incomingFast = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val incomingSlow = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val fast = buildQuerySocket("wss://fast", incomingFast)
+            val slow = buildQuerySocket("wss://slow", incomingSlow)
+            relayPool.socketClients = listOf(fast, slow)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 2)) }
+            runCurrent()
+            incomingFast.emit(
+                NostrIncomingMessage.EventMessage(subscriptionId = "sub-full", nostrEvent = buildNostrEvent("a")),
+            )
+            incomingFast.emit(
+                NostrIncomingMessage.EventMessage(subscriptionId = "sub-full", nostrEvent = buildNostrEvent("b")),
+            )
+            runCurrent()
+
+            // No EOSE from anyone and the slow relay never replies. The query must still come
+            // back immediately: virtual time proves it did not sit on the grace or the timeout.
+            val startedAt = testScheduler.currentTime
+            val result = deferred.await()
+            val elapsed = testScheduler.currentTime - startedAt
+
+            result.events.map { it.id } shouldBe listOf("a", "b")
+            (elapsed < RelayPool.FIRST_EOSE_GRACE_MS) shouldBe true
+        }
+
+    @Test
+    fun query_stillWaitsForOtherRelaysWhenThePageIsNotFull() =
+        runTest {
+            // The early exit must not fire on a partial page, or one fast relay with a single
+            // event would hide everything the rest of the network has.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-partial" }
+            val incomingFast = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val incomingLate = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val fast = buildQuerySocket("wss://fast", incomingFast)
+            val late = buildQuerySocket("wss://late", incomingLate)
+            relayPool.socketClients = listOf(fast, late)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 10)) }
+            runCurrent()
+            incomingFast.emit(
+                NostrIncomingMessage.EventMessage(subscriptionId = "sub-partial", nostrEvent = buildNostrEvent("a")),
+            )
+            incomingFast.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-partial"))
+            runCurrent()
+
+            // The second relay answers during the grace window and must still be collected.
+            incomingLate.emit(
+                NostrIncomingMessage.EventMessage(subscriptionId = "sub-partial", nostrEvent = buildNostrEvent("b")),
+            )
+            incomingLate.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-partial"))
+            runCurrent()
+            testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS)
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id }.sorted() shouldBe listOf("a", "b")
+        }
+
+    @Test
     fun query_timesOutWhenNoRelayReplies() =
         runTest {
             val relayPool = buildRelayPool()

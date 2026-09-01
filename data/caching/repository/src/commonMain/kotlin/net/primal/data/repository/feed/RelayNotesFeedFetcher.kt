@@ -24,6 +24,14 @@ internal class RelayNotesFeedFetcher(
     private val querier: RelayEventQuerier,
 ) {
 
+    /**
+     * The follow list is a kind 3 that changes rarely, but it was fetched from relays before
+     * every single page — a full round trip, paid up front, blocking the notes query behind it.
+     * The mediator keeps one fetcher per feed, so caching it here removes that round trip from
+     * every page after the first.
+     */
+    private var cachedFollows: Pair<String, List<String>>? = null
+
     suspend fun fetch(
         userId: String,
         feedSpec: String,
@@ -152,6 +160,7 @@ internal class RelayNotesFeedFetcher(
         }.getOrDefault(emptyList())
 
     private suspend fun loadFollows(userId: String): List<String> {
+        cachedFollows?.let { (cachedUserId, cached) -> if (cachedUserId == userId) return cached }
         val events = runCatching {
             querier.query(
                 RelayFilter(
@@ -163,15 +172,19 @@ internal class RelayNotesFeedFetcher(
         }.getOrDefault(emptyList())
         val latest = events.maxByOrNull { it.createdAt } ?: return emptyList()
         return latest.tags.pubkeyTagValues().distinct().take(MAX_FOLLOW_AUTHORS)
+            .also { cachedFollows = userId to it }
     }
 
     companion object {
         /** Relays reject very large filter arrays; a page of notes cannot need more. */
         private const val MAX_METADATA_AUTHORS = 500
 
-        private const val AUTHOR_CHUNK = 100
+        // Wider chunks and more of them in flight mean fewer sequential waves. A page used to
+        // cost ceil(follows / 100) / 4 waves, and each wave is bounded by the relay timeout, so
+        // 800 follows paid two full waves before a single note could be shown.
+        private const val AUTHOR_CHUNK = 250
         private const val MAX_FOLLOW_AUTHORS = 2_000
-        private const val MAX_PARALLEL_CHUNKS = 4
+        private const val MAX_PARALLEL_CHUNKS = 8
     }
 }
 
