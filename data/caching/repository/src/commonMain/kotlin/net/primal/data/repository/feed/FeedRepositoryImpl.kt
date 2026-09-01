@@ -63,10 +63,9 @@ internal class FeedRepositoryImpl(
     private val invalidationTracker: FeedSpecInvalidationTracker,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    /** Shared with every other repository, so the dedupe spans the app and not one object. */
+    private val localEventCache: LocalEventCache,
 ) : FeedRepository {
-
-    /** Session-scoped, so the metadata dedupe spans pages rather than a single call. */
-    private val localEventCache = LocalEventCache(database = database)
 
     /** Held rather than rebuilt per call, so its cached follow list survives between pages. */
     private val notesFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }

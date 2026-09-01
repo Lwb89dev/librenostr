@@ -32,7 +32,7 @@ import net.primal.domain.notifications.NotificationGroup
 import net.primal.shared.data.local.db.withTransaction
 
 @ExperimentalPagingApi
-class NotificationsRemoteMediator(
+internal class NotificationsRemoteMediator(
     private val userId: String,
     private val group: NotificationGroup,
     private val dispatcherProvider: DispatcherProvider,
@@ -40,12 +40,11 @@ class NotificationsRemoteMediator(
     private val database: CachingDatabase,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    /** Shared, not per Pager: a per-mediator cache made every tab re-ask for the same authors. */
+    private val localEventCache: LocalEventCache,
 ) : RemoteMediator<Int, Notification>() {
 
     private var lastSeenTimestamp: Long = Instant.DISTANT_PAST.epochSeconds
-
-    /** Session-scoped, so referenced notes and actor metadata are not re-requested per page. */
-    private val localEventCache = LocalEventCache(database = database)
 
     private val lastRequests: MutableMap<LoadType, NotificationsRequestBody> = mutableMapOf()
 

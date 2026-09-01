@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.notifications.NotificationsApi
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -110,6 +111,7 @@ class NotificationBackfillTest {
                 database = database,
                 notificationsApi = mockk<NotificationsApi>(relaxed = true),
                 relayEventQuerier = querier,
+                localEventCache = LocalEventCache(database = database),
             )
             block(repository, querier)
         } finally {

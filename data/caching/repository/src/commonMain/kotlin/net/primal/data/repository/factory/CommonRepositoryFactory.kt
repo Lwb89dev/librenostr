@@ -9,6 +9,7 @@ import net.primal.data.repository.UserDataCleanupRepositoryImpl
 import net.primal.data.repository.articles.ArticleRepositoryImpl
 import net.primal.data.repository.articles.HighlightRepositoryImpl
 import net.primal.data.repository.bookmarks.PublicBookmarksRepositoryImpl
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.events.EventInteractionRepositoryImpl
 import net.primal.data.repository.events.EventRelayHintsRepositoryImpl
 import net.primal.data.repository.events.EventRepositoryImpl
@@ -59,6 +60,14 @@ abstract class CommonRepositoryFactory {
     private val dispatcherProvider = createDispatcherProvider()
 
     private val feedSpecInvalidationTracker = FeedSpecInvalidationTracker()
+
+    /**
+     * One hot layer for the whole app.
+     *
+     * Lazy because [resolveCachingDatabase] is the subclass's to answer and must not be called
+     * while this base class is still being constructed.
+     */
+    private val localEventCache by lazy { LocalEventCache(database = resolveCachingDatabase()) }
 
     abstract fun resolveCachingDatabase(): CachingDatabase
 
@@ -133,6 +142,7 @@ abstract class CommonRepositoryFactory {
             invalidationTracker = feedSpecInvalidationTracker,
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
+            localEventCache = localEventCache,
         )
     }
 
@@ -217,6 +227,7 @@ abstract class CommonRepositoryFactory {
             notificationsApi = PrimalApiServiceFactory.createNotificationsApi(cachingPrimalApiClient),
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
+            localEventCache = localEventCache,
         )
     }
 
@@ -259,6 +270,7 @@ abstract class CommonRepositoryFactory {
         return UserDataCleanupRepositoryImpl(
             database = resolveCachingDatabase(),
             invalidationTracker = feedSpecInvalidationTracker,
+            localEventCache = localEventCache,
         )
     }
 

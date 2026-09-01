@@ -102,13 +102,7 @@ internal class RelayNotificationsFetcher(
                 if (wanted.isEmpty()) {
                     emptyList()
                 } else {
-                    query(
-                        RelayFilter(
-                            kinds = listOf(NostrEventKind.Metadata.value),
-                            authors = wanted,
-                            limit = wanted.size,
-                        ),
-                    ).latestMetadataByPubkey()
+                    fetchMetadata(wanted)
                 }
             }
             listOf(referenced, profiles).awaitAll()
@@ -204,6 +198,24 @@ internal class RelayNotificationsFetcher(
             NotificationGroup.MENTIONS -> this == NotificationType.YOU_WERE_MENTIONED_IN_POST
             NotificationGroup.REPOSTS -> this == NotificationType.YOUR_POST_WAS_REPOSTED
         }
+
+    /**
+     * Fetches kind 0 for [wanted] and gives back the claims that came back empty.
+     *
+     * A claim that is kept after a failed or empty request is how an actor stays a raw npub for
+     * the rest of the session: nothing would ever ask a second time.
+     */
+    private suspend fun fetchMetadata(wanted: List<String>): List<NostrEvent> {
+        val metadata = query(
+            RelayFilter(
+                kinds = listOf(NostrEventKind.Metadata.value),
+                authors = wanted,
+                limit = wanted.size,
+            ),
+        ).latestMetadataByPubkey()
+        cache?.releaseMetadataPubkeys(wanted - metadata.map { it.pubKey }.toSet())
+        return metadata
+    }
 
     private companion object {
         const val MILLISATS_PER_SAT = 1000L

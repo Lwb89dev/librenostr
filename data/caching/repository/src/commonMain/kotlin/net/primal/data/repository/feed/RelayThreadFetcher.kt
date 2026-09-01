@@ -140,7 +140,7 @@ internal class RelayThreadFetcher(
         // cached permanently.
         val pubkeys = cache?.claimMetadataPubkeys(rawPubkeys) ?: rawPubkeys
         if (pubkeys.isEmpty()) return emptyList()
-        return coroutineScope {
+        val metadata = coroutineScope {
             pubkeys.chunked(AUTHOR_CHUNK).map { chunk ->
                 async {
                     runCatching {
@@ -155,6 +155,10 @@ internal class RelayThreadFetcher(
                 }
             }.awaitAll().flatten().latestMetadataByPubkey()
         }
+        // A claim that is kept after coming back empty is how an author stays a raw npub for the
+        // rest of the session: one timed-out request and nothing ever asks again.
+        cache?.releaseMetadataPubkeys(pubkeys - metadata.map { it.pubKey }.toSet())
+        return metadata
     }
 
     companion object {

@@ -28,16 +28,17 @@ import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.notifications.NotificationRepository
 
 @OptIn(ExperimentalPagingApi::class)
-class NotificationRepositoryImpl(
+internal class NotificationRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
     private val notificationsApi: NotificationsApi,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    /** Shared with every other repository, so the dedupe spans the app and not one object. */
+    private val localEventCache: LocalEventCache,
 ) : NotificationRepository {
 
     /** Session-scoped, so the session-start sync does not re-request what a page just fetched. */
-    private val localEventCache = LocalEventCache(database = database)
 
     override fun observeUnseenNotifications(ownerId: String, group: NotificationGroup): Flow<List<NotificationDO>> =
         database.notifications().unseenByGroup(ownerId = ownerId, groupKey = group.name)
@@ -102,6 +103,7 @@ class NotificationRepositoryImpl(
 
     private fun constructRemoteMediator(userId: String, group: NotificationGroup) =
         NotificationsRemoteMediator(
+            localEventCache = localEventCache,
             userId = userId,
             group = group,
             dispatcherProvider = dispatcherProvider,

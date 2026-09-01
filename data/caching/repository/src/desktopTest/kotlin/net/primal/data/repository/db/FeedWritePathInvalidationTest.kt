@@ -23,11 +23,12 @@ import net.primal.data.local.queries.ChronologicalFeedWithRepostsQueryBuilder
 import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.repository.UserDataCleanupRepositoryImpl
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.FeedRepositoryImpl
-import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.domain.nostr.NostrEvent
 import net.primal.shared.data.local.db.LocalDatabaseFactory
 
@@ -123,8 +124,11 @@ class FeedWritePathInvalidationTest {
         withDatabase { database, tracker ->
             val mainSource = armedTrackedSource(database, tracker, feedSpec = MAIN_SPEC)
 
-            UserDataCleanupRepositoryImpl(database = database, invalidationTracker = tracker)
-                .clearUserData(userId = USER_ID)
+            UserDataCleanupRepositoryImpl(
+                database = database,
+                invalidationTracker = tracker,
+                localEventCache = LocalEventCache(database = database),
+            ).clearUserData(userId = USER_ID)
 
             mainSource.awaitInvalidation(reason = "account data cleanup (spec-blind crossref delete)")
         }
@@ -218,6 +222,7 @@ class FeedWritePathInvalidationTest {
             database = database,
             dispatcherProvider = testDispatcherProvider(),
             invalidationTracker = tracker,
+            localEventCache = LocalEventCache(database = database),
         )
 
     private fun noteFeedRemoteMediator(
