@@ -126,3 +126,33 @@ From the project brief. Mapping:
 ## Next implementation step after this audit
 
 Phase 2 only: subscription API on `RelayPool`. No cache deletion yet.
+
+## Multi-profile: scope decision (2026-08-31)
+
+The scaffolding for several accounts on one device already exists and is wired:
+`CredentialsStore` holds a `Set<Credential>`, `UserAccountsStore` a
+`List<UserAccount>`, `ActiveAccountStore` switches the active pubkey, and
+`drawer/multiaccount/` is reachable from the drawer. `RelaysSocketManager`
+rebuilds its pools when the active user changes. The work left is exercising the
+switch and fixing what the relay-only migration broke, not building the feature.
+
+**Scope: convenience, not identity separation.** Running several accounts on one
+device is supported. Keeping two identities *unlinkable* is not, and must not be
+implied:
+
+- all accounts share one SQLCipher database with one key, so anyone with the
+  unlocked device sees every account's data, not just the active one;
+- the fallback relay connections stay open and shared across a switch, so a relay
+  sees two pubkeys from the same connection and IP seconds apart — trivial
+  correlation;
+- the IP is unchanged regardless.
+
+Real separation would need per-account relay connections that are never
+concurrent, no shared fallback relays, a database per account with its own key,
+and Tor for the IP. That is a separate roadmap item, deliberately not folded into
+this one.
+
+**Required when this ships:** the changelog entry and the in-app copy must state
+plainly that multi-profile is for convenience, that it is not suitable for
+keeping identities unlinkable, and that identity separation is a distinct item
+still in the pipeline.
