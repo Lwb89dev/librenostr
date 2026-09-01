@@ -17,4 +17,6 @@ data class Notification(
     val actionOnPost: FeedPost?,
     val liveActivity: Stream?,
     val reaction: String? = null,
+    /** How many notifications this one stands for; follows are collapsed to one row per day. */
+    val groupCount: Int = 1,
 )

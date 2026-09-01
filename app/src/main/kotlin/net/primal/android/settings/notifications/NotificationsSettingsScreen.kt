@@ -182,6 +182,12 @@ private fun NotificationsContent(
             onChange = { eventPublisher(NotificationsSettingsContract.UiEvent.PushNotificationsToggled(it)) },
         )
 
+        FollowNotificationsSection(
+            modifier = Modifier.padding(bottom = 12.dp),
+            showFollowNotifications = state.showFollowNotifications,
+            onChange = { eventPublisher(NotificationsSettingsContract.UiEvent.FollowNotificationsToggled(it)) },
+        )
+
         NotificationEventFiltersBlock(
             notifications = state.pushNotificationsSettings,
             eventPublisher = eventPublisher,
@@ -300,6 +306,39 @@ private fun NotificationEventFilterRow(
                 uncheckedColor = AppTheme.colorScheme.outline,
                 checkmarkColor = AppTheme.colorScheme.onPrimary,
             ),
+        )
+    }
+}
+
+/**
+ * Whether new followers show up in the notifications feed at all.
+ *
+ * Shaped like the push toggle above it deliberately: same card, same row, same switch, so it
+ * reads as one more thing the notifications screen lets you turn off rather than a special case.
+ */
+@Composable
+private fun FollowNotificationsSection(
+    showFollowNotifications: Boolean,
+    onChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .padding(horizontal = 12.dp)
+            .background(
+                color = AppTheme.extraColorScheme.surfaceVariantAlt3,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(size = 12.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        NotificationSettingsRow(
+            modifier = Modifier.height(48.dp),
+            title = stringResource(R.string.settings_notifications_show_new_followers),
+            enabled = showFollowNotifications,
+            icon = PrimalIcons.Follow,
+            onCheckedChange = onChange,
         )
     }
 }

@@ -34,4 +34,12 @@ data class Notification(
 
     @Relation(entityColumns = ["aTag"], parentColumns = ["actionPostId"])
     val liveActivity: StreamData? = null,
+
+    /**
+     * How many rows this one stands for.
+     *
+     * Follows are collapsed to one row per day by the query, because a day's new followers are
+     * one piece of news and not twenty. Everything else stands for itself and counts one.
+     */
+    val groupCount: Int = 1,
 )

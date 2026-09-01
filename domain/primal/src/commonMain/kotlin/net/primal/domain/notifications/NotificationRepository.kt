@@ -8,9 +8,24 @@ import net.primal.domain.nostr.NostrEvent
 
 interface NotificationRepository {
 
-    fun observeUnseenNotifications(ownerId: String, group: NotificationGroup): Flow<List<Notification>>
+    fun observeUnseenNotifications(
+        ownerId: String,
+        group: NotificationGroup,
+        showFollows: Boolean = true,
+    ): Flow<List<Notification>>
 
-    fun observeSeenNotifications(userId: String, group: NotificationGroup): Flow<PagingData<Notification>>
+    /**
+     * The seen feed.
+     *
+     * [utcOffsetSeconds] is supplied by the caller rather than read here, because the day a
+     * follow belongs to is the reader's day and only the UI layer knows which timezone that is.
+     */
+    fun observeSeenNotifications(
+        userId: String,
+        group: NotificationGroup,
+        showFollows: Boolean = true,
+        utcOffsetSeconds: Long = 0,
+    ): Flow<PagingData<Notification>>
 
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun markAllNotificationsAsSeen(authorization: NostrEvent)

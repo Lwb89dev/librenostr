@@ -157,7 +157,12 @@ class NotificationPagingSourceInvalidationTest {
                 ),
             )
 
-            val pagingSource = database.notifications().seenByGroupPaged(ownerId = USER_ID, groupKey = GROUP_KEY)
+            val pagingSource = database.notifications().seenByGroupPaged(
+                ownerId = USER_ID,
+                groupKey = GROUP_KEY,
+                showFollows = true,
+                utcOffsetSeconds = 0,
+            )
 
             val initialLoad = pagingSource.load(
                 PagingSource.LoadParams.Refresh(key = null, loadSize = 20, placeholdersEnabled = false),

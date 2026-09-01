@@ -19,4 +19,12 @@ data class NotificationUi(
     val actionPost: FeedPostUi? = null,
     val actionUserSatsZapped: Long? = null,
     val referencedStream: ReferencedStream? = null,
+    /**
+     * How many notifications this row stands for.
+     *
+     * The seen feed collapses a day of follows in SQL, so one row can speak for many; the unseen
+     * feed groups in memory and passes the rows themselves. Reading the count instead of the list
+     * size lets one composable render both.
+     */
+    val groupCount: Int = 1,
 )

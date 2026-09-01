@@ -40,8 +40,13 @@ internal class NotificationRepositoryImpl(
 
     /** Session-scoped, so the session-start sync does not re-request what a page just fetched. */
 
-    override fun observeUnseenNotifications(ownerId: String, group: NotificationGroup): Flow<List<NotificationDO>> =
-        database.notifications().unseenByGroup(ownerId = ownerId, groupKey = group.name)
+    override fun observeUnseenNotifications(
+        ownerId: String,
+        group: NotificationGroup,
+        showFollows: Boolean,
+    ): Flow<List<NotificationDO>> =
+        database.notifications()
+            .unseenByGroup(ownerId = ownerId, groupKey = group.name, showFollows = showFollows)
             .map { it.map { it.asNotificationDO() } }
 
     override suspend fun markAllNotificationsAsSeen(authorization: NostrEvent) {
@@ -94,9 +99,19 @@ internal class NotificationRepositoryImpl(
             }
         }
 
-    override fun observeSeenNotifications(userId: String, group: NotificationGroup): Flow<PagingData<NotificationDO>> {
+    override fun observeSeenNotifications(
+        userId: String,
+        group: NotificationGroup,
+        showFollows: Boolean,
+        utcOffsetSeconds: Long,
+    ): Flow<PagingData<NotificationDO>> {
         return createPager(userId = userId, group = group) {
-            database.notifications().seenByGroupPaged(ownerId = userId, groupKey = group.name)
+            database.notifications().seenByGroupPaged(
+                ownerId = userId,
+                groupKey = group.name,
+                showFollows = showFollows,
+                utcOffsetSeconds = utcOffsetSeconds,
+            )
         }.flow.map { it.map { it.asNotificationDO() } }
             .flowOn(dispatcherProvider.io())
     }

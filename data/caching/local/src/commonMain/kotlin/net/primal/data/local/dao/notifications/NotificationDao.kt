@@ -14,33 +14,65 @@ import net.primal.data.local.db.NotificationPagingSourceDaoReturnTypeConverter
 @DaoReturnTypeConverters(NotificationPagingSourceDaoReturnTypeConverter::class)
 interface NotificationDao {
 
+    /**
+     * The seen feed, with follows collapsed to one row per local day.
+     *
+     * Grouping happens here rather than after paging because a page boundary must not be able to
+     * split a day in two: the rows that belong together are decided before anything is paged.
+     * [utcOffsetSeconds] shifts the day boundary to the reader's timezone, so the bucket matches
+     * the date the screen prints next to it.
+     *
+     * MAX(n.createdAt) is what makes the remaining bare columns come from the newest row of each
+     * group, so a collapsed day is represented by its most recent follower.
+     *
+     * The count is of people rather than of rows. Rows written before follows were keyed by
+     * follower and day are still duplicated in existing databases, and counting them would say
+     * fifteen people followed you on a day when three did.
+     */
     @Transaction
     @Query(
         """
-            SELECT n.* FROM NotificationData n
+            SELECT n.*, COUNT(DISTINCT n.actionUserId) AS groupCount, MAX(n.createdAt) AS newestCreatedAt
+            FROM NotificationData n
             INNER JOIN NotificationGroupCrossRef g
                 ON n.notificationId = g.notificationId AND n.ownerId = g.ownerId
             WHERE n.ownerId = :ownerId
               AND g.groupKey = :groupKey
               AND n.seenGloballyAt IS NOT NULL
+              AND (:showFollows OR n.type != 'NEW_USER_FOLLOWED_YOU')
+            GROUP BY CASE
+                WHEN n.type = 'NEW_USER_FOLLOWED_YOU'
+                    THEN 'follow-day-' || ((n.createdAt + :utcOffsetSeconds) / 86400)
+                ELSE n.notificationId
+            END
             ORDER BY n.createdAt DESC, n.notificationId DESC
         """,
     )
-    fun seenByGroupPaged(ownerId: String, groupKey: String): PagingSource<Int, Notification>
+    fun seenByGroupPaged(
+        ownerId: String,
+        groupKey: String,
+        showFollows: Boolean,
+        utcOffsetSeconds: Long,
+    ): PagingSource<Int, Notification>
 
     @Transaction
     @Query(
         """
-            SELECT n.* FROM NotificationData n
+            SELECT n.*, 1 AS groupCount FROM NotificationData n
             INNER JOIN NotificationGroupCrossRef g
                 ON n.notificationId = g.notificationId AND n.ownerId = g.ownerId
             WHERE n.ownerId = :ownerId
               AND g.groupKey = :groupKey
               AND n.seenGloballyAt IS NULL
+              AND (:showFollows OR n.type != 'NEW_USER_FOLLOWED_YOU')
             ORDER BY n.createdAt DESC, n.notificationId DESC
         """,
     )
-    fun unseenByGroup(ownerId: String, groupKey: String): Flow<List<Notification>>
+    fun unseenByGroup(
+        ownerId: String,
+        groupKey: String,
+        showFollows: Boolean,
+    ): Flow<List<Notification>>
 
     @Query(
         """

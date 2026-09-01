@@ -48,6 +48,13 @@ data class UserAccount(
     val lastAccessedAt: Long = Instant.now().epochSecond,
     val blossomServers: List<String> = emptyList(),
     val pushNotificationsEnabled: Boolean = false,
+    /**
+     * Whether new followers appear in the notifications feed.
+     *
+     * Off is a reasonable setting, not a niche one: accounts that follow and unfollow in a loop
+     * can bury everything else, and a follow is the one notification that carries nothing to read.
+     */
+    val showFollowNotifications: Boolean = true,
     val shouldShowStreamControlPopup: Boolean = true,
     val shouldShowWalletDetectedNotice: Boolean = true,
     val shouldShowWalletDiscontinuedNotice: Boolean = true,

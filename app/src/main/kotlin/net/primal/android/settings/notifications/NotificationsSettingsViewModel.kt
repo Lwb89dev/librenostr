@@ -86,6 +86,9 @@ class NotificationsSettingsViewModel @Inject constructor(
 
                     is NotificationsSettingsContract.UiEvent.PushNotificationsToggled ->
                         updatePushNotificationsEnabled(event.value)
+
+                    is NotificationsSettingsContract.UiEvent.FollowNotificationsToggled ->
+                        updateShowFollowNotifications(event.value)
                 }
             }
         }
@@ -98,6 +101,15 @@ class NotificationsSettingsViewModel @Inject constructor(
                 }
 
                 pushNotificationsTokenUpdater.updateTokenForAllUsers()
+            }
+        }
+
+    private fun updateShowFollowNotifications(value: Boolean) =
+        viewModelScope.launch {
+            withContext(dispatcherProvider.io()) {
+                accountsStore.getAndUpdateAccount(activeAccountStore.activeUserId()) {
+                    copy(showFollowNotifications = value)
+                }
             }
         }
 
@@ -132,6 +144,7 @@ class NotificationsSettingsViewModel @Inject constructor(
                     setState {
                         copy(
                             pushNotificationsEnabled = activeAccount.pushNotificationsEnabled,
+                            showFollowNotifications = activeAccount.showFollowNotifications,
                             pushNotificationsSettings = activeAccount.appSettings?.mapAsPushNotificationSwitchUi()
                                 ?: emptyList(),
                             tabNotificationsSettings = activeAccount.appSettings?.mapAsTabNotificationSwitchUi()

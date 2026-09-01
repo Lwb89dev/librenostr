@@ -144,9 +144,9 @@ private fun NotificationListItem(
         modifier = Modifier
             .background(color = AppTheme.colorScheme.surfaceVariant)
             .clickable(
-                enabled = notifications.size == 1 || firstNotification.actionPost != null,
+                enabled = notifications.collapsedCount() == 1 || firstNotification.actionPost != null,
                 onClick = {
-                    if (notifications.size == 1) {
+                    if (notifications.collapsedCount() == 1) {
                         if (firstNotification.notificationType == NotificationType.NEW_USER_FOLLOWED_YOU) {
                             firstNotification.actionUserId?.let { noteCallbacks.onProfileClick?.invoke(it) }
                         } else {
@@ -192,7 +192,7 @@ private fun NotificationContent(
     Column(
         modifier = modifier.fillMaxWidth(),
     ) {
-        if (notifications.size == 1) {
+        if (notifications.collapsedCount() == 1) {
             val bottomPadding = if (firstNotification.referencedStream != null) 5.dp else 12.dp
             NotificationHeader(
                 modifier = Modifier.padding(top = 12.dp, bottom = bottomPadding, end = 12.dp),
@@ -431,8 +431,8 @@ private fun HeaderContent(
 
     val andOthersText = pluralStringResource(
         R.plurals.notification_list_item_and_others,
-        notifications.size - 1,
-        notifications.size - 1,
+        notifications.collapsedCount() - 1,
+        notifications.collapsedCount() - 1,
     )
 
     NostrUserText(
@@ -450,13 +450,23 @@ private fun HeaderContent(
         internetIdentifierBadgeAlign = PlaceholderVerticalAlign.TextCenter,
         overflow = TextOverflow.Ellipsis,
         annotatedStringSuffixBuilder = {
-            val appendText = if (notifications.size > 1) andOthersText else suffixText
+            val appendText = if (notifications.collapsedCount() > 1) andOthersText else suffixText
             if (firstNotification.actionUserInternetIdentifier.isNullOrEmpty()) append(' ')
             append(appendText)
         },
         profileId = firstNotification.actionUserId,
     )
 }
+
+/**
+ * How many notifications a row speaks for.
+ *
+ * The unseen feed groups in memory and hands over the rows themselves; the seen feed collapses a
+ * day of follows in SQL and hands over one row carrying a count. Taking the larger of the two lets
+ * a single composable render either without knowing which path produced it.
+ */
+private fun List<NotificationUi>.collapsedCount(): Int =
+    maxOf(size, maxOfOrNull { it.groupCount } ?: 1)
 
 private fun NotificationType.shouldDisplayIcon(): Boolean {
     return when (this) {

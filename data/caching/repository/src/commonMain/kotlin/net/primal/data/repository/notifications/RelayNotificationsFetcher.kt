@@ -174,7 +174,7 @@ internal class RelayNotificationsFetcher(
             null
         }
         return NotificationData(
-            notificationId = id,
+            notificationId = notificationIdFor(type = type, actionUserId = actionUserId),
             ownerId = userId,
             createdAt = createdAt,
             type = type,
@@ -189,6 +189,27 @@ internal class RelayNotificationsFetcher(
             reaction = if (type == NotificationType.YOUR_POST_WAS_LIKED) content else null,
         )
     }
+
+    /**
+     * Identity of a notification row, which for follows is not the identity of the event.
+     *
+     * A follow notification comes from a kind 3 list, and a list is republished in full every
+     * time it changes. Accounts that follow and unfollow in a loop therefore emit a new event id
+     * on every cycle, and keying rows by event id turned one bot into dozens of identical
+     * "followed you" rows within the same minute — seven from a single account in the case that
+     * prompted this.
+     *
+     * Keying a follow by who did it and on what day collapses the loop into the one fact it
+     * carries: this person followed you today. A genuine follow months later is a different day
+     * and stays its own row. Every other kind is content, where the event id is the right
+     * identity and re-publishing does not happen.
+     */
+    private fun NostrEvent.notificationIdFor(type: NotificationType, actionUserId: String): String =
+        when (type) {
+            NotificationType.NEW_USER_FOLLOWED_YOU ->
+                "$FOLLOW_ID_PREFIX$actionUserId:${createdAt / SECONDS_PER_DAY}"
+            else -> id
+        }
 
     private fun NotificationType.belongsTo(group: NotificationGroup): Boolean =
         when (group) {
@@ -219,6 +240,8 @@ internal class RelayNotificationsFetcher(
 
     private companion object {
         const val MILLISATS_PER_SAT = 1000L
+        const val SECONDS_PER_DAY = 86_400L
+        const val FOLLOW_ID_PREFIX = "follow:"
 
         val CONTENT_KINDS = listOf(
             NostrEventKind.ShortTextNote.value,

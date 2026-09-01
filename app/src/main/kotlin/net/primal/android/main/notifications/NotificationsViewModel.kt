@@ -11,11 +11,14 @@ import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlin.time.toJavaInstant
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
@@ -43,6 +46,7 @@ import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.notifications.NotificationType
 import net.primal.domain.streams.mappers.asReferencedStream
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class NotificationsViewModel @Inject constructor(
     private val dispatcherProvider: DispatcherProvider,
@@ -51,18 +55,36 @@ class NotificationsViewModel @Inject constructor(
     private val subscriptionsManager: SubscriptionsManager,
 ) : ViewModel() {
 
+    /** Follows can be turned off entirely; the feed has to follow the switch without a restart. */
+    private val showFollowNotifications: Flow<Boolean> = activeAccountStore.activeUserAccount
+        .map { it.showFollowNotifications }
+        .distinctUntilChanged()
+
     private val seenPagerCache: Map<NotificationGroup, Flow<PagingData<NotificationUi>>> =
         NotificationGroup.entries.associateWith { group ->
-            notificationRepository
-                .observeSeenNotifications(userId = activeAccountStore.activeUserId(), group = group)
+            showFollowNotifications
+                .flatMapLatest { showFollows ->
+                    notificationRepository.observeSeenNotifications(
+                        userId = activeAccountStore.activeUserId(),
+                        group = group,
+                        showFollows = showFollows,
+                        utcOffsetSeconds = currentUtcOffsetSeconds(),
+                    )
+                }
                 .map { it.map { notification -> notification.asNotificationUi() } }
                 .cachedIn(viewModelScope + dispatcherProvider.io())
         }
 
     private val unseenCache: Map<NotificationGroup, Flow<List<List<NotificationUi>>>> =
         NotificationGroup.entries.associateWith { group ->
-            notificationRepository
-                .observeUnseenNotifications(ownerId = activeAccountStore.activeUserId(), group = group)
+            showFollowNotifications
+                .flatMapLatest { showFollows ->
+                    notificationRepository.observeUnseenNotifications(
+                        ownerId = activeAccountStore.activeUserId(),
+                        group = group,
+                        showFollows = showFollows,
+                    )
+                }
                 .map { notifications -> groupUnseenNotifications(notifications) }
                 .shareIn(
                     scope = viewModelScope,
@@ -171,6 +193,13 @@ class NotificationsViewModel @Inject constructor(
             .map { byType -> byType.map { it.asNotificationUi() } }
     }
 
+    /**
+     * The reader's offset from UTC, so the query buckets follows into the same day the screen
+     * prints. Read here because only this layer knows the timezone the rows are read in.
+     */
+    private fun currentUtcOffsetSeconds(): Long =
+        ZoneId.systemDefault().rules.getOffset(Instant.now()).totalSeconds.toLong()
+
     /** Local-day bucket for a unix timestamp, so follows collapse per day rather than forever. */
     private fun Long.toDayBucket(): String =
         Instant.ofEpochSecond(this)
@@ -198,6 +227,7 @@ class NotificationsViewModel @Inject constructor(
             actionUserSatsZapped = this.satsZapped,
             actionPost = this.extractFeedPostUi(),
             referencedStream = this.extractReferencedStream(),
+            groupCount = this.groupCount,
         )
     }
 

@@ -40,6 +40,7 @@
     <string name="settings_content_display_animated_avatars">Mostra avatar animati</string>
     <string name="settings_content_display_live_streams">Live streaming</string>
     <string name="settings_notifications_enable_push_notifications">Abilita notifiche push</string>
+    <string name="settings_notifications_show_new_followers">Mostra i nuovi follower</string>
     <string name="settings_media_uploads_blossom_server_section_title">Server media</string>
     <string name="settings_network_relays_recommendation">Suggerimento: per la maggior parte degli utenti, 5–6 relay sono un buon equilibrio tra affidabilità e velocità. Più relay possono aumentare il consumo di rete e batteria.</string>
     <string name="settings_notifications_enable_push_notifications_description">Ricevi notifiche di sistema da LibreNostr. Puoi configurarle anche nelle impostazioni di sistema.</string>
