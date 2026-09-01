@@ -45,13 +45,16 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
         brushAlpha = PrimalGradientAlpha,
         backgroundColor = PrimalGradientBackgroundColor,
     ) { _ ->
+        // Mark and name at the top, what the app actually is at the bottom, with the space
+        // between them left empty rather than filled.
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Image(
                 modifier = Modifier
                     .widthIn(max = 220.dp)
@@ -73,9 +76,9 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
                 ),
                 color = PrimalDarkTextColor,
             )
+            }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 modifier = Modifier.widthIn(max = 420.dp),
                 text = stringResource(id = R.string.onboarding_welcome_description),
@@ -88,6 +91,7 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
                 text = stringResource(id = R.string.welcome_sign_in_button_title),
                 onClick = callbacks.onSignInClick,
             )
+            }
         }
     }
 }

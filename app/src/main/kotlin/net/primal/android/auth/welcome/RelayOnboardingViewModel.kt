@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.primal.android.networking.relays.FALLBACK_RELAY_URLS
+import net.primal.android.networking.relays.ONBOARDING_RELAY_OPTIONS
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.RelayKind
 import net.primal.android.user.repository.RelayRepository
@@ -34,15 +34,16 @@ class RelayOnboardingViewModel @Inject constructor(
                     relayRepository.syncUserRelaysOrBootstrap(userId)
                     val configured = relayRepository.findRelays(userId, RelayKind.UserRelay)
                         .map { it.url }
-                    (configured + FALLBACK_RELAY_URLS).distinct().take(7)
+                    (configured + ONBOARDING_RELAY_OPTIONS.map { it.url }).distinct()
                 }.getOrElse { error ->
                     Napier.w(error) { "Unable to load relay onboarding suggestions; using defaults." }
-                    FALLBACK_RELAY_URLS.take(3)
+                    ONBOARDING_RELAY_OPTIONS.map { it.url }
                 }
             }
             _state.value = RelayOnboardingState(
                 suggestions = suggestions,
-                selected = suggestions.take(3).toSet(),
+                // Left empty deliberately: see RelayOnboardingState.
+                selected = emptySet(),
                 loading = false,
             )
         }
@@ -90,8 +91,10 @@ class RelayOnboardingViewModel @Inject constructor(
 }
 
 data class RelayOnboardingState(
-    val suggestions: List<String> = FALLBACK_RELAY_URLS.take(3),
-    val selected: Set<String> = FALLBACK_RELAY_URLS.take(3).toSet(),
+    val suggestions: List<String> = ONBOARDING_RELAY_OPTIONS.map { it.url },
+    // Nothing is ticked by default. A pre-ticked list reads like an endorsement, and which
+    // relays someone talks to is the one choice this app should never make for them.
+    val selected: Set<String> = emptySet(),
     val loading: Boolean = true,
     val saving: Boolean = false,
 )

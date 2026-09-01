@@ -63,15 +63,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             events.collect {
                 when (it) {
-                    UiEvent.RequestUserDataUpdate -> {
-                        setState { copy(showPullToRefreshHint = true) }
-                        dataUpdater.updateData()
-                    }
-                    UiEvent.UpdateFeedFromHint -> {
-                        setState { copy(showPullToRefreshHint = false) }
-                        dataUpdater.updateData()
-                    }
-                    UiEvent.DismissPullToRefreshHint -> setState { copy(showPullToRefreshHint = false) }
+                    UiEvent.RequestUserDataUpdate -> dataUpdater.updateData()
                     UiEvent.SwitchToNextAccount -> switchToNextAccount()
                     UiEvent.DismissExploreHint -> dismissExploreHint()
                     UiEvent.NotificationsViewed -> setState {

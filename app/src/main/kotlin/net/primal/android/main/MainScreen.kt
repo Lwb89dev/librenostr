@@ -592,11 +592,6 @@ private fun MainScreenScaffold(
     val walletPickerVisible = activeOverlay == ActiveOverlay.WalletPicker
     val exploreSectionPickerVisible = activeOverlay == ActiveOverlay.ExploreSectionPicker
     val accountDrawerVisible = activeOverlay == ActiveOverlay.AccountDrawer
-    val showPullToRefreshHint = mainState.showPullToRefreshHint &&
-        activeTab == PrimalTopLevelDestination.Feeds &&
-        activeOverlay == null &&
-        !algorithmDrawerVisible &&
-        !longReadVisible
     val exploreActiveSection = ExploreSection.entries
         .getOrElse(sharedState.explorePagerState.currentPage) { ExploreSection.Explore }
 
@@ -622,13 +617,6 @@ private fun MainScreenScaffold(
 
     fun toggleOverlay(overlay: ActiveOverlay) {
         activeOverlay = if (activeOverlay == overlay) null else overlay
-    }
-
-    LaunchedEffect(mainState.showPullToRefreshHint) {
-        if (mainState.showPullToRefreshHint) {
-            delay(PULL_TO_REFRESH_HINT_DURATION_MS)
-            mainEventPublisher(MainContract.UiEvent.DismissPullToRefreshHint)
-        }
     }
 
     PrimalMainScaffold(
@@ -763,11 +751,6 @@ private fun MainScreenScaffold(
                 onTabChanged = onTabChanged,
             )
 
-            PullToRefreshHint(
-                visible = showPullToRefreshHint,
-                onUpdate = { mainEventPublisher(MainContract.UiEvent.UpdateFeedFromHint) },
-                onDismiss = { mainEventPublisher(MainContract.UiEvent.DismissPullToRefreshHint) },
-            )
 
             AnchoredBubble(
                 anchor = exploreAnchor,
@@ -785,7 +768,6 @@ private fun MainScreenScaffold(
     )
 }
 
-private const val PULL_TO_REFRESH_HINT_DURATION_MS = 6_000L
 private val ALGORITHM_DRAWER_WIDTH = 320.dp
 private val LONG_READS_FEED_SPEC = buildAdvancedSearchReadsFeedSpec(query = "")
 
@@ -848,66 +830,6 @@ private fun LongReadOverlay(
     }
 }
 
-@Composable
-private fun PullToRefreshHint(
-    visible: Boolean,
-    onUpdate: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AnimatedVisibility(
-        visible = visible,
-        modifier = Modifier.fillMaxSize(),
-        enter = slideInVertically(initialOffsetY = { -it / 2 }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { -it / 2 }) + fadeOut(),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 12.dp),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            val shape = CircleShape
-            Row(
-                modifier = Modifier
-                    .shadow(elevation = 10.dp, shape = shape)
-                    .clip(shape)
-                    .clickable(onClick = onUpdate)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                AppTheme.colorScheme.primary,
-                                AppTheme.colorScheme.secondary,
-                            ),
-                        ),
-                        shape = shape,
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = AppTheme.colorScheme.onPrimary.copy(alpha = 0.28f),
-                        shape = shape,
-                    )
-                    .padding(start = 16.dp, top = 9.dp, bottom = 9.dp, end = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(id = R.string.pull_down_to_update),
-                    color = AppTheme.colorScheme.onPrimary,
-                    style = AppTheme.typography.bodyMedium,
-                )
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.padding(start = 4.dp).size(28.dp),
-                ) {
-                    Icon(
-                        imageVector = PrimalIcons.Close,
-                        contentDescription = stringResource(id = R.string.accessibility_close),
-                        tint = AppTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun MainScreenFab(activeTab: PrimalTopLevelDestination, navController: NavController) {

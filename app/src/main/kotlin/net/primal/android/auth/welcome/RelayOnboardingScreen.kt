@@ -31,6 +31,11 @@ import net.primal.android.core.compose.PrimalDarkTextColor
 import net.primal.android.core.compose.PrimalGradientAlpha
 import net.primal.android.core.compose.PrimalGradientBackgroundColor
 import net.primal.android.core.compose.primalGradientBrush
+import androidx.compose.ui.focus.onFocusChanged
+import net.primal.android.networking.relays.ONBOARDING_RELAY_OPTIONS
+import net.primal.android.networking.relays.RelayNote
+import androidx.compose.ui.res.stringResource
+import net.primal.android.R
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -78,15 +83,31 @@ fun RelayOnboardingScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OutlinedTextField(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            // Every relay address starts the same way, so the scheme is filled in
+                            // on focus and the user only types the host.
+                            .onFocusChanged { focus ->
+                                if (focus.isFocused && customRelay.isEmpty()) {
+                                    customRelay = RELAY_URL_SCHEME
+                                }
+                            },
                         value = customRelay,
-                        onValueChange = { customRelay = it },
+                        onValueChange = { typed ->
+                            // Keep the scheme pinned: deleting into it would otherwise leave a
+                            // half-scheme that never validates.
+                            customRelay = if (typed.startsWith(RELAY_URL_SCHEME)) {
+                                typed
+                            } else {
+                                RELAY_URL_SCHEME + typed.removePrefix(RELAY_URL_SCHEME.take(typed.length))
+                            }
+                        },
                         singleLine = true,
                         placeholder = { Text("wss://your-relay.example") },
                     )
                     Spacer(Modifier.width(8.dp))
                     Button(
-                        enabled = customRelay.isNotBlank(),
+                        enabled = customRelay.length > RELAY_URL_SCHEME.length,
                         onClick = {
                             viewModel.addRelay(customRelay)
                             customRelay = ""
@@ -106,6 +127,7 @@ fun RelayOnboardingScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(state.suggestions, key = { it }) { relay ->
+                        val note = ONBOARDING_RELAY_OPTIONS.find { it.url == relay }?.note
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -115,11 +137,28 @@ fun RelayOnboardingScreen(
                                 onCheckedChange = { viewModel.toggleRelay(relay) },
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = relay.removePrefix("wss://"),
-                                color = PrimalDarkTextColor,
-                                style = AppTheme.typography.bodyLarge,
-                            )
+                            Column {
+                                Text(
+                                    text = relay.removePrefix(RELAY_URL_SCHEME),
+                                    color = PrimalDarkTextColor,
+                                    style = AppTheme.typography.bodyLarge,
+                                )
+                                // What the probe found, said up front rather than discovered
+                                // after picking it.
+                                val caption = when (note) {
+                                    RelayNote.Paid -> stringResource(id = R.string.onboarding_relay_note_paid)
+                                    RelayNote.ProfilesOnly ->
+                                        stringResource(id = R.string.onboarding_relay_note_profiles)
+                                    else -> null
+                                }
+                                if (caption != null) {
+                                    Text(
+                                        text = caption,
+                                        color = PrimalDarkTextColor.copy(alpha = 0.62f),
+                                        style = AppTheme.typography.labelMedium,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -134,3 +173,5 @@ fun RelayOnboardingScreen(
         }
     }
 }
+
+private const val RELAY_URL_SCHEME = "wss://"

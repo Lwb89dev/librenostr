@@ -52,6 +52,7 @@ import net.primal.android.auth.onboarding.account.OnboardingContract
 import net.primal.android.auth.onboarding.account.OnboardingViewModel
 import net.primal.android.auth.onboarding.account.ui.OnboardingScreen
 import net.primal.android.auth.welcome.WelcomeContract
+import net.primal.android.auth.welcome.GesturesOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingViewModel
 import net.primal.android.auth.welcome.WelcomeScreen
@@ -162,6 +163,8 @@ private fun NavController.navigateToWelcome() =
 private fun NavController.navigateToLogin() = navigate(route = "login")
 
 private fun NavController.navigateToRelayOnboarding() = navigate(route = "relayOnboarding")
+
+private fun NavController.navigateToGesturesOnboarding() = navigate(route = "gesturesOnboarding")
 
 private fun NavController.navigateToOnboarding() = navigate(route = "onboarding")
 
@@ -490,6 +493,8 @@ private fun PrimalAppNavigation(
         login(route = "login", navController = navController)
 
         relayOnboarding(route = "relayOnboarding", navController = navController)
+
+        gesturesOnboarding(route = "gesturesOnboarding", navController = navController)
 
         onboarding(
             route = "onboarding",
@@ -1019,8 +1024,21 @@ private fun NavGraphBuilder.relayOnboarding(route: String, navController: NavCon
             ApplyEdgeToEdge(isDarkTheme = false)
             RelayOnboardingScreen(
                 viewModel = viewModel,
-                onComplete = { navController.navigateToHome() },
+                onComplete = { navController.navigateToGesturesOnboarding() },
             )
+        }
+    }
+
+private fun NavGraphBuilder.gesturesOnboarding(route: String, navController: NavController) =
+    composable(
+        route = route,
+        enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) },
+    ) {
+        LockToOrientationPortrait()
+        PrimalTheme(PrimalTheme.Midnight) {
+            ApplyEdgeToEdge(isDarkTheme = false)
+            GesturesOnboardingScreen(onComplete = { navController.navigateToHome() })
         }
     }
 

@@ -12,13 +12,10 @@ interface MainContract {
         val badges: Badges = Badges(),
         val hasMultipleAccounts: Boolean = false,
         val showExploreHint: Boolean = false,
-        val showPullToRefreshHint: Boolean = false,
     )
 
     sealed class UiEvent {
         data object RequestUserDataUpdate : UiEvent()
-        data object UpdateFeedFromHint : UiEvent()
-        data object DismissPullToRefreshHint : UiEvent()
         data object SwitchToNextAccount : UiEvent()
         data object DismissExploreHint : UiEvent()
         data object NotificationsViewed : UiEvent()
