@@ -17,8 +17,18 @@ interface ChatRepository {
 
     fun newestMessages(userId: String, participantId: String): Flow<PagingData<DirectMessage>>
 
+    /**
+     * Pulls direct messages newest first, then walks back through [backfillPages] older pages.
+     *
+     * Session start asks for the backfill: without it a conversation only existed locally once its
+     * tab had been opened and scrolled, so a fresh install showed an empty inbox even when the
+     * relays held years of messages. A pull-to-refresh passes zero and just takes the newest page.
+     *
+     * The first page is the one the caller asked for and its failure is thrown; a backfill page
+     * failing only means there is no more history to be had right now.
+     */
     @Throws(NetworkException::class, CancellationException::class)
-    suspend fun fetchFollowConversations(userId: String)
+    suspend fun syncConversations(userId: String, backfillPages: Int = DEFAULT_BACKFILL_PAGES)
 
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun fetchNonFollowsConversations(userId: String)
@@ -46,4 +56,9 @@ interface ChatRepository {
         receiverId: String,
         text: String,
     )
+
+    companion object {
+        /** Bounded on purpose: relays hold years of kind-4 events and every one must be decrypted. */
+        const val DEFAULT_BACKFILL_PAGES = 3
+    }
 }

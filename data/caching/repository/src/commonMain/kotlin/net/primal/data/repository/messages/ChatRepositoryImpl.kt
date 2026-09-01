@@ -5,12 +5,15 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.map
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.messages.DirectMessage
 import net.primal.data.local.dao.messages.MessageConversation
+import net.primal.data.local.dao.messages.MessageConversationDao
 import net.primal.data.local.dao.messages.MessageConversationData
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.messages.MessagesApi
@@ -65,14 +68,25 @@ internal class ChatRepositoryImpl(
             database.messages().newestMessagesPagedByOwnerId(ownerId = userId, participantId = participantId)
         }.flow.map { it.map { it.asDirectMessageDO() } }
 
-    private suspend fun fetchConversations(userId: String, relation: ConversationRelation) {
+    /**
+     * Fetches one page of conversation messages and returns the events it contained.
+     *
+     * The caller gets the events rather than a count because the backfill decides where the next
+     * page starts from the oldest event in this one.
+     */
+    private suspend fun fetchConversations(
+        userId: String,
+        relation: ConversationRelation,
+        limit: Int? = null,
+        until: Long? = null,
+    ): List<NostrEvent> {
         // A relay has no notion of Primal's Follows/Other conversation relation: both
         // requests query the same kind-4 event set. The list screen requests both
         // relations to keep the legacy tabs available, so skip the duplicate request
         // in relay-only mode. Two snapshots arriving in either order used to make the
         // Paging source flash and briefly render an empty state.
         if (relayEventQuerier != null && relation == ConversationRelation.Other) {
-            return
+            return emptyList()
         }
 
         val response = withContext(dispatcherProvider.io()) {
@@ -80,12 +94,13 @@ internal class ChatRepositoryImpl(
                 body = ConversationRequestBody(
                     userId = userId,
                     relation = relation,
+                    limit = limit,
+                    until = until,
                 ),
             )
         }
         mediaCacher?.cacheAvatarUrls(metadata = response.profileMetadata, cdnResources = response.cdnResources)
-        val summary = response.conversationsSummary
-        val messageConversation = summary?.summaryPerParticipantId
+        val messageConversation = response.conversationsSummary?.summaryPerParticipantId
             ?.map { (participantId, conversation) ->
                 MessageConversationData(
                     ownerId = userId,
@@ -99,25 +114,7 @@ internal class ChatRepositoryImpl(
                     relation = relation,
                 )
             }
-            ?: response.messages
-                .mapNotNull { event ->
-                    val recipientId = event.tags.findFirstProfileId() ?: return@mapNotNull null
-                    val participantId = if (event.pubKey == userId) recipientId else event.pubKey
-                    participantId to event
-                }
-                .groupBy { it.first }
-                .mapNotNull { (participantId, events) ->
-                    val latest = events.maxByOrNull { it.second.createdAt } ?: return@mapNotNull null
-                    MessageConversationData(
-                        ownerId = userId,
-                        participantId = participantId,
-                        participantMetadataId = null,
-                        lastMessageId = latest.second.id,
-                        lastMessageAt = latest.second.createdAt,
-                        unreadMessagesCount = 0,
-                        relation = relation,
-                    )
-                }
+            ?: response.messages.asConversationIndex(userId = userId, relation = relation)
 
         withContext(dispatcherProvider.io()) {
             messagesProcessor.processMessageEventsAndSave(
@@ -130,27 +127,46 @@ internal class ChatRepositoryImpl(
                 primalLegendProfiles = response.primalLegendProfiles,
                 blossomServerEvents = response.blossomServers,
             )
-            // An unavailable/slow relay is a valid empty response. Do not invalidate
-            // the conversation PagingSource when it contains no new rows: keeping the
-            // last known local snapshot avoids replacing visible conversations with
-            // the empty-state placeholder during a refresh.
-            if (messageConversation.isNotEmpty()) {
-                database.messageConversations().upsertAll(data = messageConversation)
-            }
+            database.messageConversations().persistConversationIndex(
+                userId = userId,
+                conversations = messageConversation,
+            )
+        }
+        return response.messages
+    }
+
+    override suspend fun syncConversations(userId: String, backfillPages: Int) {
+        // The first page is the refresh the caller asked for, so let its failure reach them.
+        var messages = fetchConversations(
+            userId = userId,
+            relation = ConversationRelation.Follows,
+            limit = SYNC_PAGE_SIZE,
+        )
+        var page = 0
+        // A page shorter than asked for — an empty one included — is how a relay says it has
+        // nothing older.
+        while (messages.size >= SYNC_PAGE_SIZE && page < backfillPages) {
+            // Strictly older than this page's oldest event, so the next request cannot come back
+            // with the same window and stall the walk.
+            val until = messages.minOf { it.createdAt } - 1
+            // Backfill is best effort: history that a relay will not hand over is not a failure
+            // the user needs to be told about.
+            messages = runCatching {
+                fetchConversations(
+                    userId = userId,
+                    relation = ConversationRelation.Follows,
+                    limit = SYNC_PAGE_SIZE,
+                    until = until,
+                )
+            }.getOrNull().orEmpty()
+            page++
+            Napier.d { "DM backfill page $page: ${messages.size} events." }
         }
     }
 
-    override suspend fun fetchFollowConversations(userId: String) =
-        fetchConversations(
-            userId = userId,
-            relation = ConversationRelation.Follows,
-        )
-
-    override suspend fun fetchNonFollowsConversations(userId: String) =
-        fetchConversations(
-            userId = userId,
-            relation = ConversationRelation.Other,
-        )
+    override suspend fun fetchNonFollowsConversations(userId: String) {
+        fetchConversations(userId = userId, relation = ConversationRelation.Other)
+    }
 
     override suspend fun fetchNewConversationMessages(userId: String, conversationUserId: String) {
         withContext(dispatcherProvider.io()) {
@@ -270,4 +286,61 @@ internal class ChatRepositoryImpl(
         ),
         pagingSourceFactory = pagingSourceFactory,
     )
+}
+
+/**
+ * Builds the per-participant conversation rows from a page of kind-4 events.
+ *
+ * A relay returns messages, not Primal's conversation summary, so the index is derived here: the
+ * other side of the conversation is the `p` tag when we are the author and the author otherwise.
+ */
+private fun List<NostrEvent>.asConversationIndex(userId: String, relation: ConversationRelation) =
+    mapNotNull { event ->
+        val recipientId = event.tags.findFirstProfileId() ?: return@mapNotNull null
+        val participantId = if (event.pubKey == userId) recipientId else event.pubKey
+        participantId to event
+    }
+        .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+        .mapNotNull { (participantId, events) ->
+            val latest = events.maxByOrNull { it.createdAt } ?: return@mapNotNull null
+            MessageConversationData(
+                ownerId = userId,
+                participantId = participantId,
+                participantMetadataId = null,
+                lastMessageId = latest.id,
+                lastMessageAt = latest.createdAt,
+                unreadMessagesCount = 0,
+                relation = relation,
+            )
+        }
+
+/**
+ * Smaller than the notification page: every message on a page has to be decrypted, and a session
+ * start should not spend its first seconds on ECDH for messages nobody is looking at.
+ */
+private const val SYNC_PAGE_SIZE = 100
+
+/**
+ * Writes the conversation index, keeping whichever row is newer.
+ *
+ * The upsert replaces the whole row and the backfill deliberately walks into older pages. Without
+ * the comparison, a page of old messages would drag a conversation's last-message timestamp
+ * backwards and reorder the inbox under the user.
+ */
+private suspend fun MessageConversationDao.persistConversationIndex(
+    userId: String,
+    conversations: List<MessageConversationData>,
+) {
+    // An unavailable/slow relay is a valid empty response. Do not invalidate the conversation
+    // PagingSource when it contains no new rows: keeping the last known local snapshot avoids
+    // replacing visible conversations with the empty-state placeholder during a refresh.
+    if (conversations.isEmpty()) return
+
+    val existing = findAllByOwnerId(ownerId = userId).associateBy { it.participantId }
+    val newer = conversations.filter {
+        it.lastMessageAt > (existing[it.participantId]?.lastMessageAt ?: Long.MIN_VALUE)
+    }
+    if (newer.isNotEmpty()) {
+        upsertAll(data = newer)
+    }
 }

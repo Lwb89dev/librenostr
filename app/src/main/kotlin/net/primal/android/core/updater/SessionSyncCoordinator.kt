@@ -59,7 +59,7 @@ class SessionSyncCoordinator @Inject constructor(
                     .onFailure { Napier.w(throwable = it) { "Notification session sync failed." } }
             }
             launch {
-                runCatching { chatRepository.fetchFollowConversations(userId = userId) }
+                runCatching { chatRepository.syncConversations(userId = userId) }
                     .onFailure { Napier.w(throwable = it) { "Conversation session sync failed." } }
             }
         }

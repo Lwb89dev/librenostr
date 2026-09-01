@@ -27,7 +27,11 @@ internal class MessagesApiImpl(
 
     override suspend fun getConversations(body: ConversationRequestBody): ConversationsResponse {
         relayEventQuerier?.let { querier ->
-            val messages = querier.queryDirectMessages(userId = body.userId)
+            val messages = querier.queryDirectMessages(
+                userId = body.userId,
+                limit = body.limit,
+                until = body.until,
+            )
             Napier.d { "Relay DM conversation query returned ${messages.size} events." }
             return ConversationsResponse(
                 conversationsSummary = null,

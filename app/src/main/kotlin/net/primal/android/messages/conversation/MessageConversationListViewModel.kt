@@ -101,13 +101,13 @@ class MessageConversationListViewModel @Inject constructor(
                     val userId = activeAccountStore.activeUserId()
                     when (state.value.activeRelation) {
                         ConversationRelation.Follows -> {
-                            chatRepository.fetchFollowConversations(userId = userId)
+                            chatRepository.syncConversations(userId = userId, backfillPages = 0)
                             chatRepository.fetchNonFollowsConversations(userId = userId)
                         }
 
                         ConversationRelation.Other -> {
                             chatRepository.fetchNonFollowsConversations(userId = userId)
-                            chatRepository.fetchFollowConversations(userId = userId)
+                            chatRepository.syncConversations(userId = userId, backfillPages = 0)
                         }
                     }
                 } catch (error: NetworkException) {
