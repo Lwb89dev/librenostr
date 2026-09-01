@@ -8,6 +8,7 @@ import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 import kotlin.time.toJavaInstant
 import kotlinx.coroutines.flow.Flow
@@ -125,7 +126,14 @@ class NotificationsViewModel @Inject constructor(
             groupByType[notificationType]?.let { notificationsByType ->
                 when (notificationType.collapsable) {
                     true -> {
-                        val groupByPostId = notificationsByType.groupBy { it.actionPostId }
+                        // Follows carry no post, so grouping them by actionPostId would collapse
+                        // the entire history into one row. Bucket them by day instead, so
+                        // "12 people followed you" stays about today rather than about forever.
+                        val groupByPostId = if (notificationType == NotificationType.NEW_USER_FOLLOWED_YOU) {
+                            notificationsByType.groupBy { it.createdAt.toDayBucket() }
+                        } else {
+                            notificationsByType.groupBy { it.actionPostId }
+                        }
                         groupByPostId.keys.forEach { postId ->
                             groupByPostId[postId]?.let {
                                 if (notificationType.isLike()) {
@@ -162,6 +170,13 @@ class NotificationsViewModel @Inject constructor(
             )
             .map { byType -> byType.map { it.asNotificationUi() } }
     }
+
+    /** Local-day bucket for a unix timestamp, so follows collapse per day rather than forever. */
+    private fun Long.toDayBucket(): String =
+        Instant.ofEpochSecond(this)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .toString()
 
     private fun NotificationType.isLike() =
         this == NotificationType.YOUR_POST_WAS_LIKED ||

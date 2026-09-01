@@ -51,7 +51,12 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
-        val metadataAuthors = page.map { it.pubKey }.distinct()
+        // Authors plus everyone mentioned inside the notes. Without the mentioned profiles the
+        // renderer has no kind 0 to resolve a `nostr:` mention against and falls back to an
+        // ellipsized npub, so a tagged user showed up as @npub1abc…xyz instead of their name.
+        val metadataAuthors = (page.map { it.pubKey } + page.flatMap { it.tags.pubkeyTagValues() })
+            .distinct()
+            .take(MAX_METADATA_AUTHORS)
         val metadata = if (metadataAuthors.isEmpty()) {
             emptyList()
         } else {
@@ -161,6 +166,9 @@ internal class RelayNotesFeedFetcher(
     }
 
     companion object {
+        /** Relays reject very large filter arrays; a page of notes cannot need more. */
+        private const val MAX_METADATA_AUTHORS = 500
+
         private const val AUTHOR_CHUNK = 100
         private const val MAX_FOLLOW_AUTHORS = 2_000
         private const val MAX_PARALLEL_CHUNKS = 4
