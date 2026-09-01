@@ -7,6 +7,7 @@ import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -36,6 +37,7 @@ import net.primal.domain.nostr.relay.RelayFilter
  */
 internal class RelayThreadFetcher(
     private val querier: RelayEventQuerier,
+    private val cache: LocalEventCache? = null,
 ) {
 
     suspend fun fetch(noteId: String, kinds: List<Int>, limit: Int): FeedResponse {
@@ -89,9 +91,18 @@ internal class RelayThreadFetcher(
         return all.toThreadFeedResponse(metadata)
     }
 
-    private suspend fun queryByIds(ids: List<String>): List<NostrEvent> {
-        if (ids.isEmpty()) return emptyList()
-        return coroutineScope {
+    /**
+     * Requests only the ids the database does not already hold. Nostr events are immutable and
+     * content-addressed, so a stored id is the same event and re-requesting it buys nothing —
+     * and a thread's ancestors are usually already there, put by the feed.
+     */
+    private suspend fun queryByIds(rawIds: List<String>): List<NostrEvent> {
+        if (rawIds.isEmpty()) return emptyList()
+        val cached = cache?.partitionKnownEventIds(rawIds)
+        val ids = cached?.missing ?: rawIds
+        val known = cached?.known.orEmpty()
+        if (ids.isEmpty()) return known
+        return known + coroutineScope {
             ids.chunked(ID_CHUNK).map { chunk ->
                 async {
                     runCatching {
@@ -123,7 +134,11 @@ internal class RelayThreadFetcher(
             .take(MISSING_CAP)
     }
 
-    private suspend fun loadMetadata(pubkeys: List<String>): List<NostrEvent> {
+    private suspend fun loadMetadata(rawPubkeys: List<String>): List<NostrEvent> {
+        if (rawPubkeys.isEmpty()) return emptyList()
+        // Asked once per session rather than on every thread; profiles change, so this is not
+        // cached permanently.
+        val pubkeys = cache?.claimMetadataPubkeys(rawPubkeys) ?: rawPubkeys
         if (pubkeys.isEmpty()) return emptyList()
         return coroutineScope {
             pubkeys.chunked(AUTHOR_CHUNK).map { chunk ->

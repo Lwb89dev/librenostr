@@ -24,6 +24,7 @@ import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
 import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
 import net.primal.domain.feeds.isFollowSetFeedSpec
@@ -54,6 +55,9 @@ internal class FeedRepositoryImpl(
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
 ) : FeedRepository {
+
+    /** Session-scoped, so the metadata dedupe spans pages rather than a single call. */
+    private val localEventCache = LocalEventCache(database = database)
 
     override fun feedBySpec(
         userId: String,
@@ -199,7 +203,7 @@ internal class FeedRepositoryImpl(
         limit: Int,
         kinds: List<Int>,
     ) = relayEventQuerier?.let { querier ->
-        RelayThreadFetcher(querier).fetch(noteId = noteId, kinds = kinds, limit = limit)
+        RelayThreadFetcher(querier, localEventCache).fetch(noteId = noteId, kinds = kinds, limit = limit)
     } ?: run {
         try {
             feedApi.getMultiKindThread(

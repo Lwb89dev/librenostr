@@ -7,6 +7,7 @@ import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.notifications.NotificationData
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.toFeedResponse
 import net.primal.data.repository.mappers.remote.extractZapRequestOrNull
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
@@ -35,6 +36,7 @@ import net.primal.domain.notifications.NotificationType
  */
 internal class RelayNotificationsFetcher(
     private val querier: RelayEventQuerier,
+    private val cache: LocalEventCache? = null,
 ) {
 
     suspend fun fetch(
@@ -77,27 +79,34 @@ internal class RelayNotificationsFetcher(
 
         val (referencedEvents, metadata) = coroutineScope {
             val referenced = async {
-                if (referencedEventIds.isEmpty()) {
-                    emptyList()
+                // The notes a notification points at are usually already stored by the feed.
+                // The cached ones are folded back in, not dropped: they still have to reach the
+                // response so the row renders its preview.
+                val cached = cache?.partitionKnownEventIds(referencedEventIds)
+                val missing = cached?.missing ?: referencedEventIds
+                val known = cached?.known.orEmpty()
+                if (missing.isEmpty()) {
+                    known
                 } else {
-                    query(
+                    known + query(
                         RelayFilter(
-                            ids = referencedEventIds,
+                            ids = missing,
                             kinds = CONTENT_KINDS,
-                            limit = referencedEventIds.size,
+                            limit = missing.size,
                         ),
                     )
                 }
             }
             val profiles = async {
-                if (actors.isEmpty()) {
+                val wanted = cache?.claimMetadataPubkeys(actors) ?: actors
+                if (wanted.isEmpty()) {
                     emptyList()
                 } else {
                     query(
                         RelayFilter(
                             kinds = listOf(NostrEventKind.Metadata.value),
-                            authors = actors,
-                            limit = actors.size,
+                            authors = wanted,
+                            limit = wanted.size,
                         ),
                     ).latestMetadataByPubkey()
                 }

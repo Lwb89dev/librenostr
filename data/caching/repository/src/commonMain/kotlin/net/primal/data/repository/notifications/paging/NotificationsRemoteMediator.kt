@@ -15,6 +15,7 @@ import net.primal.data.local.dao.notifications.Notification
 import net.primal.data.local.dao.notifications.NotificationData
 import net.primal.data.local.dao.notifications.NotificationGroupCrossRef
 import net.primal.data.local.db.CachingDatabase
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.notifications.NotificationsApi
 import net.primal.data.remote.api.notifications.model.NotificationsRequestBody
@@ -41,6 +42,9 @@ class NotificationsRemoteMediator(
 ) : RemoteMediator<Int, Notification>() {
 
     private var lastSeenTimestamp: Long = Instant.DISTANT_PAST.epochSeconds
+
+    /** Session-scoped, so referenced notes and actor metadata are not re-requested per page. */
+    private val localEventCache = LocalEventCache(database = database)
 
     private val lastRequests: MutableMap<LoadType, NotificationsRequestBody> = mutableMapOf()
 
@@ -187,7 +191,7 @@ class NotificationsRemoteMediator(
         }
         val result = try {
             withContext(dispatcherProvider.io()) {
-                net.primal.data.repository.notifications.RelayNotificationsFetcher(querier).fetch(
+                net.primal.data.repository.notifications.RelayNotificationsFetcher(querier, localEventCache).fetch(
                     userId = userId,
                     group = group,
                     limit = maxOf(state.config.pageSize, RELAY_PAGE_SIZE),
