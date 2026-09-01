@@ -7,6 +7,77 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.1.5] - 2026-09-01
+
+Reliability with more than a handful of relays, a session that fetches before
+you go looking, and a notifications tab that stops shouting.
+
+### Added
+
+- **A countdown before a note goes out.** Posting holds the note for a few
+  seconds behind a countdown that can be tapped to call it off, because a note
+  published to relays is effectively permanent. Configurable in
+  Settings > Content display: a switch, and a slider from one to seven seconds.
+  Replies go out immediately unless asked otherwise, since they are usually
+  short and deliberate.
+- **Notifications and direct messages are fetched at session start**, per
+  account and cancelled on a switch. They used to be fetched only by their own
+  paging mediators, which run when their tab is first shown, so the unread dot
+  could not appear until you had already gone looking.
+- **Older direct messages are pulled in on start.** The conversation request
+  sent no limit and no `until`, so whatever a relay chose to return was the
+  whole of local DM history and nothing would ever go back for the rest. It now
+  walks backwards a few pages, stopping when a page comes back short.
+- **A fourth onboarding screen** naming the two gestures that are otherwise
+  undiscoverable: drag right from the middle of Home for the algorithm picker,
+  drag left for the long-form reader.
+- **Settings > Notifications > Show new followers**, to keep follows out of the
+  notifications feed entirely. A follow is the one notification that carries
+  nothing to read, and a bot loop can bury everything else.
+
+### Fixed
+
+- **Feeds, notifications and DMs lost events once the pool grew past about four
+  relays.** The incoming socket flow was unbuffered, so a slow collector blocked
+  the read loop for every relay behind it, and a query could finish on the first
+  EOSE while other relays still had events in flight. The flow is buffered, the
+  read loop no longer sleeps before EOSE, and a query now waits for a quorum
+  rather than for whoever answers first.
+- **Follow and unfollow loops filled the notifications tab.** A follow list is
+  republished in full on every change, so accounts that follow and unfollow
+  repeatedly emitted a new event id each cycle; keying rows by event id turned
+  one account into seven identical rows inside a minute. Follows are keyed by
+  who did it and on what day now.
+- **Follows were grouped per day only until the tab was opened.** The seen feed
+  is paged and mapped rows one to one, so marking everything seen brought every
+  follow back as its own row. The grouping happens in the query now, where a
+  page boundary cannot split a day, and the count is of people rather than of
+  events.
+- **One failed profile request left an author as a raw npub for the rest of the
+  session.** Metadata requests were marked as done before knowing whether
+  anything came back, and nothing would ask a second time.
+
+### Changed
+
+- **The default relay set was rebuilt by measurement.** Every candidate was
+  asked for its NIP-11 document and then opened for a real REQ; the ones that
+  answered with events and an EOSE on repeated attempts were kept.
+  `relay.nostr.band` and `nostr.wine` were dropped from the defaults — the first
+  answered nothing unauthenticated, the second requires payment and restricted
+  writes; it is still offered during onboarding, unticked. `purplepag.es` moved
+  to metadata-only, where it is unusually good and where it stops costing a
+  round trip in note queries. Nothing is ticked by default: a pre-ticked list
+  reads like an endorsement.
+- **The event cache gained an in-memory hot layer and is now shared.** A note
+  recurring across feed pages, a thread and a notification preview was read from
+  SQLite and parsed from its raw JSON every time — about 378us per lookup of 40
+  ids, against about 15us once hot. The cache was also constructed per
+  repository and per paging mediator while being described as session-scoped, so
+  every notifications tab started empty and re-asked the relays for authors the
+  feed had already resolved. There is one instance now.
+- The manual feed-refresh button is gone; the live subscription and the
+  five-minute refresh underneath it make it redundant.
+
 ## [0.1.4] - 2026-09-01
 
 Speed: fewer round trips, nothing re-downloaded, and a live subscription in
@@ -284,6 +355,7 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.1.5]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.2
