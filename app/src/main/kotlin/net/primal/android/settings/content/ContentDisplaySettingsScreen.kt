@@ -28,6 +28,16 @@ import net.primal.android.core.compose.icons.primaliconpack.FeedPicker
 import net.primal.android.core.compose.icons.primaliconpack.VideoPlay
 import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.settings.content.ContentDisplaySettingsContract.UiEvent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import net.primal.android.core.compose.PrimalSliderThumb
+import androidx.compose.runtime.remember
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.ContentDisplaySettings
 
@@ -98,6 +108,91 @@ private fun ContentDisplaySettingsScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsItem(
+                    headlineText = stringResource(id = R.string.settings_content_display_undo_post_timer),
+                    supportText = stringResource(id = R.string.settings_content_display_undo_post_timer_hint),
+                    leadingIcon = PrimalIcons.FeedPicker,
+                    trailingContent = {
+                        PrimalSwitch(
+                            checked = state.undoPostTimerEnabled,
+                            onCheckedChange = { eventPublisher(UiEvent.UpdateUndoPostTimerEnabled(enabled = it)) },
+                        )
+                    },
+                    onClick = {
+                        eventPublisher(UiEvent.UpdateUndoPostTimerEnabled(enabled = !state.undoPostTimerEnabled))
+                    },
+                )
+
+                if (state.undoPostTimerEnabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val sliderColors = SliderDefaults.colors(
+                        thumbColor = AppTheme.colorScheme.primary,
+                        activeTrackColor = AppTheme.colorScheme.primary,
+                        inactiveTrackColor = AppTheme.extraColorScheme.surfaceVariantAlt1,
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.settings_content_display_undo_post_seconds),
+                            style = AppTheme.typography.bodyMedium,
+                            color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
+                        )
+                        Slider(
+                            modifier = Modifier.weight(1f),
+                            interactionSource = interactionSource,
+                            colors = sliderColors,
+                            thumb = {
+                                PrimalSliderThumb(
+                                    interactionSource = interactionSource,
+                                    colors = sliderColors,
+                                )
+                            },
+                            value = state.undoPostTimerSeconds.toFloat(),
+                            onValueChange = {
+                                eventPublisher(UiEvent.UpdateUndoPostTimerSeconds(seconds = it.toInt()))
+                            },
+                            // One stop per whole second between the two ends.
+                            steps = ContentDisplaySettings.MAX_UNDO_POST_SECONDS -
+                                ContentDisplaySettings.MIN_UNDO_POST_SECONDS - 1,
+                            valueRange = ContentDisplaySettings.MIN_UNDO_POST_SECONDS.toFloat()..
+                                ContentDisplaySettings.MAX_UNDO_POST_SECONDS.toFloat(),
+                        )
+                        Text(
+                            text = "${state.undoPostTimerSeconds}s",
+                            style = AppTheme.typography.bodyMedium,
+                            color = AppTheme.colorScheme.onSurface,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    SettingsItem(
+                        headlineText = stringResource(id = R.string.settings_content_display_undo_post_timer_replies),
+                        leadingIcon = PrimalIcons.FeedPicker,
+                        trailingContent = {
+                            PrimalSwitch(
+                                checked = state.undoPostTimerForReplies,
+                                onCheckedChange = {
+                                    eventPublisher(UiEvent.UpdateUndoPostTimerForReplies(enabled = it))
+                                },
+                            )
+                        },
+                        onClick = {
+                            eventPublisher(
+                                UiEvent.UpdateUndoPostTimerForReplies(enabled = !state.undoPostTimerForReplies),
+                            )
+                        },
+                    )
+                }
 
                 SettingsItem(
                     headlineText = stringResource(id = R.string.settings_content_display_auto_play_videos),

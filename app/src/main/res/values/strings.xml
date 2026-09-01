@@ -121,6 +121,16 @@
         <item quantity="one">%1$s month</item>
         <item quantity="other">%1$s months</item>
     </plurals>
+    <plurals name="editor_publish_countdown_title">
+        <item quantity="one">Sending your note in %d second</item>
+        <item quantity="other">Sending your note in %d seconds</item>
+    </plurals>
+    <string name="editor_publish_countdown_cancel">Don\'t send</string>
+    <string name="editor_publish_countdown_attachments_notice">Attachments were uploaded when you picked them, so calling this off does not remove them from the media server.</string>
+    <string name="settings_content_display_undo_post_timer">Undo send timer</string>
+    <string name="settings_content_display_undo_post_timer_hint">Hold a note back for a few seconds after tapping post, so you can still call it off. Publishing to Nostr cannot be undone afterwards.</string>
+    <string name="settings_content_display_undo_post_timer_replies">Also for replies</string>
+    <string name="settings_content_display_undo_post_seconds">Seconds to wait</string>
     <string name="scan_code_to_redeem_notice">To redeem your code, onboard to LibreNostr by\ncreating your Nostr account and activating\nyour wallet.</string>
     <string name="scan_code_no_wallet_notice">To redeem your code,\nactivate your wallet.</string>
     <string name="scan_code_scan_anything_title">Scan Anything:</string>

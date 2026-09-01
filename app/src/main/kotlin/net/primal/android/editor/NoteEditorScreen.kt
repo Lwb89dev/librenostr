@@ -86,6 +86,7 @@ import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.PrimalLoadingSpinner
 import net.primal.android.core.compose.PrimalScaffold
+import net.primal.android.editor.ui.PublishCountdownOverlay
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.ReplyingToText
 import net.primal.android.core.compose.SnackbarErrorHandler
@@ -215,6 +216,17 @@ fun NoteEditorScreen(
         errorMessageResolver = { it.resolveUiErrorMessage(context) },
         onErrorDismiss = { eventPublisher(UiEvent.DismissError) },
     )
+
+    if (state.undoCountdownSeconds != null) {
+        // Takes over the screen on purpose: this is the only chance to call the note back.
+        PublishCountdownOverlay(
+            secondsRemaining = state.undoCountdownSeconds,
+            totalSeconds = state.undoPostTimerSeconds,
+            hasUploadedAttachments = state.attachments.isNotEmpty(),
+            onCancel = { eventPublisher(UiEvent.CancelScheduledPublish) },
+        )
+        return
+    }
 
     PrimalScaffold(
         topBar = {

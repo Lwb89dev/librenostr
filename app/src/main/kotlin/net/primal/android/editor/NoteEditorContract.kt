@@ -34,6 +34,10 @@ interface NoteEditorContract {
     )
 
     data class UiState(
+        /** Seconds left before the note goes out, or null when nothing is pending. */
+        val undoCountdownSeconds: Int? = null,
+        /** The configured total, so the countdown ring knows what fraction is left. */
+        val undoPostTimerSeconds: Int = 0,
         val content: TextFieldValue = TextFieldValue(),
         val replyToConversation: List<FeedPostUi> = emptyList(),
         val replyToArticle: FeedArticleUi? = null,
@@ -63,6 +67,7 @@ interface NoteEditorContract {
         data class RemoveHighlightByArticle(val articleATag: String) : UiEvent()
         data object AppendUserTagAtSign : UiEvent()
         data object PublishNote : UiEvent()
+        data object CancelScheduledPublish : UiEvent()
         data class ImportLocalFiles(val uris: List<Uri>) : UiEvent()
         data class DiscardNoteAttachment(val attachmentId: UUID) : UiEvent()
         data class RetryUpload(val attachmentId: UUID) : UiEvent()

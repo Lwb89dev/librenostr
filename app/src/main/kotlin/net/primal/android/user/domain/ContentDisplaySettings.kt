@@ -11,10 +11,19 @@ data class ContentDisplaySettings(
     val showLiveStreams: Boolean = false,
     /** Refresh the active feed when the app/feed becomes visible again. */
     val autoUpdateFeed: Boolean = true,
+    /** Hold a note back for a few seconds after tapping post, so it can still be called off. */
+    val undoPostTimerEnabled: Boolean = true,
+    val undoPostTimerSeconds: Int = DEFAULT_UNDO_POST_SECONDS,
+    /** Replies are usually short and deliberate, so they go out immediately unless asked. */
+    val undoPostTimerForReplies: Boolean = false,
     @SerialName("noteAppearance") val contentAppearance: ContentAppearance = ContentAppearance.Default,
 ) {
     companion object {
         const val AUTO_PLAY_VIDEO_NEVER = 0
         const val AUTO_PLAY_VIDEO_ALWAYS = 1
+
+        const val MIN_UNDO_POST_SECONDS = 1
+        const val MAX_UNDO_POST_SECONDS = 7
+        const val DEFAULT_UNDO_POST_SECONDS = 5
     }
 }

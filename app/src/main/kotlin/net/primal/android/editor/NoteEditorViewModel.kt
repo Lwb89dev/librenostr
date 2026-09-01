@@ -52,6 +52,7 @@ import net.primal.android.profile.mention.UserMentionHandler
 import net.primal.android.profile.mention.appendUserTagAtSignAtCursorPosition
 import net.primal.android.user.accounts.UserAccountsStore
 import net.primal.android.user.accounts.active.ActiveAccountStore
+import net.primal.android.user.domain.ContentDisplaySettings
 import net.primal.core.networking.blossom.AndroidPrimalBlossomUploadService
 import net.primal.core.networking.blossom.UploadJob
 import net.primal.core.networking.blossom.UploadResult
@@ -112,6 +113,8 @@ class NoteEditorViewModel @AssistedInject constructor(
         scope = viewModelScope,
         userId = activeAccountStore.activeUserId(),
     )
+
+    private var countdownJob: Job? = null
 
     private val referencedArticleNaddr = args.referencedArticleNaddr?.let(Nip19TLV::parseUriAsNaddrOrNull)
     private val referencedHighlightNevent = args.referencedHighlightNevent?.let(Nip19TLV::parseUriAsNeventOrNull)
@@ -250,7 +253,8 @@ class NoteEditorViewModel @AssistedInject constructor(
                 when (event) {
                     is UiEvent.UpdateContent -> setState { copy(content = event.content) }
                     is UiEvent.PasteContent -> handlePasteContent(content = event.content)
-                    is UiEvent.PublishNote -> publishPost()
+                    is UiEvent.PublishNote -> schedulePublish()
+                    is UiEvent.CancelScheduledPublish -> cancelScheduledPublish()
                     is UiEvent.ImportLocalFiles -> importPhotos(event.uris)
                     is UiEvent.DiscardNoteAttachment -> discardAttachment(event.attachmentId)
                     is UiEvent.RetryUpload -> retryAttachmentUpload(event.attachmentId)
@@ -725,6 +729,56 @@ class NoteEditorViewModel @AssistedInject constructor(
                 Napier.w(throwable = error) { "Failed to fetch article details for naddr=$replyToArticleNaddr" }
             }
         }
+
+    /**
+     * Holds the note back for a few seconds so it can still be called off.
+     *
+     * Publishing to Nostr is effectively final — relays keep what they accept, a NIP-09 deletion
+     * is only a request, and anyone who already fetched the note keeps their copy. A few seconds
+     * of hesitation is the only recall this protocol offers.
+     *
+     * Attachments are a deliberate exception and the UI says so: images are uploaded to Blossom
+     * when they are picked, not when the note is sent, so calling the note off leaves the upload
+     * where it is. The timer holds back the note, not the file.
+     */
+    private fun schedulePublish() =
+        viewModelScope.launch {
+            val settings = activeAccountStore.activeUserAccount().contentDisplaySettings
+            val isReply = referencedNoteNevent != null
+            val timerApplies = settings.undoPostTimerEnabled &&
+                (!isReply || settings.undoPostTimerForReplies)
+            // Coerced on read: a value stored before the range existed must not stall the note.
+            val seconds = settings.undoPostTimerSeconds.coerceIn(
+                ContentDisplaySettings.MIN_UNDO_POST_SECONDS,
+                ContentDisplaySettings.MAX_UNDO_POST_SECONDS,
+            )
+
+            if (!timerApplies || seconds <= 0) {
+                publishPost()
+                return@launch
+            }
+
+            countdownJob?.cancel()
+            countdownJob = viewModelScope.launch {
+                try {
+                    for (remaining in seconds downTo 1) {
+                        setState { copy(undoCountdownSeconds = remaining, undoPostTimerSeconds = seconds) }
+                        delay(1.seconds)
+                    }
+                    setState { copy(undoCountdownSeconds = null) }
+                    publishPost().join()
+                } finally {
+                    // Also runs on cancellation, so a called-off note never leaves the overlay up.
+                    setState { copy(undoCountdownSeconds = null) }
+                }
+            }
+        }
+
+    private fun cancelScheduledPublish() {
+        countdownJob?.cancel()
+        countdownJob = null
+        setState { copy(undoCountdownSeconds = null) }
+    }
 
     private fun publishPost() =
         viewModelScope.launch {

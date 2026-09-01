@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import net.primal.android.settings.content.ContentDisplaySettingsContract.UiEvent
 import net.primal.android.settings.content.ContentDisplaySettingsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
+import net.primal.android.user.domain.ContentDisplaySettings
 import net.primal.android.user.repository.UserRepository
 
 @HiltViewModel
@@ -40,6 +41,9 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                     is UiEvent.UpdateShowAnimatedAvatars -> handleShowAnimatedAvatarsUpdate(it)
                     is UiEvent.UpdateShowLiveStreams -> handleShowLiveStreamsUpdate(it)
                     is UiEvent.UpdateAutoUpdateFeed -> handleAutoUpdateFeedUpdate(it)
+                    is UiEvent.UpdateUndoPostTimerEnabled -> handleUndoPostTimerEnabled(it)
+                    is UiEvent.UpdateUndoPostTimerSeconds -> handleUndoPostTimerSeconds(it)
+                    is UiEvent.UpdateUndoPostTimerForReplies -> handleUndoPostTimerForReplies(it)
                 }
             }
         }
@@ -54,6 +58,12 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                         showAnimatedAvatars = it.contentDisplaySettings.showAnimatedAvatars,
                         showLiveStreams = it.contentDisplaySettings.showLiveStreams,
                         autoUpdateFeed = it.contentDisplaySettings.autoUpdateFeed,
+                        undoPostTimerEnabled = it.contentDisplaySettings.undoPostTimerEnabled,
+                        undoPostTimerSeconds = it.contentDisplaySettings.undoPostTimerSeconds.coerceIn(
+                            ContentDisplaySettings.MIN_UNDO_POST_SECONDS,
+                            ContentDisplaySettings.MAX_UNDO_POST_SECONDS,
+                        ),
+                        undoPostTimerForReplies = it.contentDisplaySettings.undoPostTimerForReplies,
                     )
                 }
             }
@@ -82,6 +92,37 @@ class ContentDisplaySettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
                 copy(showLiveStreams = event.enabled)
+            }
+        }
+    }
+
+    private fun handleUndoPostTimerEnabled(event: UiEvent.UpdateUndoPostTimerEnabled) {
+        setState { copy(undoPostTimerEnabled = event.enabled) }
+        viewModelScope.launch {
+            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
+                copy(undoPostTimerEnabled = event.enabled)
+            }
+        }
+    }
+
+    private fun handleUndoPostTimerSeconds(event: UiEvent.UpdateUndoPostTimerSeconds) {
+        val seconds = event.seconds.coerceIn(
+            ContentDisplaySettings.MIN_UNDO_POST_SECONDS,
+            ContentDisplaySettings.MAX_UNDO_POST_SECONDS,
+        )
+        setState { copy(undoPostTimerSeconds = seconds) }
+        viewModelScope.launch {
+            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
+                copy(undoPostTimerSeconds = seconds)
+            }
+        }
+    }
+
+    private fun handleUndoPostTimerForReplies(event: UiEvent.UpdateUndoPostTimerForReplies) {
+        setState { copy(undoPostTimerForReplies = event.enabled) }
+        viewModelScope.launch {
+            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
+                copy(undoPostTimerForReplies = event.enabled)
             }
         }
     }
