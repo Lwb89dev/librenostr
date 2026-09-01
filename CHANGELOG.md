@@ -7,6 +7,50 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.1.4] - 2026-09-01
+
+Speed: fewer round trips, nothing re-downloaded, and a live subscription in
+place of polling.
+
+### Changed
+
+- **New notes arrive over a live subscription instead of a 30-second poll.** The
+  feed used to ask the relays for a fresh snapshot every thirty seconds whether
+  or not anything had happened, so a new note appeared somewhere between
+  instantly and half a minute late and the request went out either way. It now
+  opens a live REQ scoped to the same authors as the feed, carrying only what is
+  published from that moment on. The delay drops to about a second and nothing is
+  sent while nothing happens. A five-minute refresh stays underneath, because a
+  subscription can die quietly and a feed that silently stops updating is worse
+  than one that updates late.
+- **Events and profiles already in the database are no longer re-requested.** A
+  thread's ancestors and the notes a notification points at are usually already
+  stored by the feed; Nostr events are immutable and content-addressed, so a
+  locally held id is the same event. Profile metadata is deduplicated per session
+  rather than permanently, so a changed display name still comes through.
+- **A full page no longer waits for the slowest relay.** Every query paid a grace
+  period after the first EOSE and, when that EOSE carried no events, waited for
+  the slowest relay up to the full timeout — even when the first relay had
+  already delivered everything asked for. The early exit is gated on a *full*
+  page, never a partial one, so a fast relay with a single event still cannot
+  hide the rest of the network.
+- **The follow list is no longer refetched before every page**, and author
+  chunks are wider with more in flight, which brings the common case down to one
+  sequential wave instead of two.
+
+### Fixed
+
+- Opening a reply from the notification list walked the ancestor chain one relay
+  round trip at a time, up to five, then made three or four more in sequence.
+  NIP-10 already names a reply's root and parent in its `e` tags, so the whole
+  ancestor set fits in one filter: ten sequential round trips become three, and
+  the first is the opened note together with its replies.
+- A tagged user rendered as an ellipsized npub instead of the name they chose.
+  The feed and thread fetchers requested metadata only for the authors of the
+  events they loaded, never for the profiles mentioned inside them.
+- Follow notifications were grouped under a single key that covered every follow
+  the account had ever received. They are bucketed by day now.
+
 ## [0.1.3] - 2026-08-31
 
 Notifications, Reads scoping, highlights and external-signer permissions.
@@ -240,6 +284,7 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.1.4]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.1
