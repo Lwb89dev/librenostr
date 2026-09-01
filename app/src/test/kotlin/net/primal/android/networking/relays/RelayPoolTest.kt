@@ -485,6 +485,92 @@ class RelayPoolTest {
         }
 
     @Test
+    fun query_waitsForAQuorumRatherThanTheFirstEose() =
+        runTest {
+            // The first EOSE used to settle the query, so with a larger pool whatever the slower
+            // relays still had was systematically discarded — the loss grew with relay count.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-quorum" }
+            val incoming = (1..5).map { MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16) }
+            val sockets = incoming.mapIndexed { index, flow -> buildQuerySocket("wss://relay$index", flow) }
+            relayPool.socketClients = sockets
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 50)) }
+            runCurrent()
+
+            // One fast relay answers and finishes.
+            incoming[0].emit(
+                NostrIncomingMessage.EventMessage(
+                    subscriptionId = "sub-quorum",
+                    nostrEvent = buildNostrEvent("fast"),
+                ),
+            )
+            incoming[0].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-quorum"))
+            runCurrent()
+
+            // Past the grace window, so completing on the first EOSE would already have settled
+            // the query and thrown these away.
+            testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS * 2)
+            runCurrent()
+
+            // Two more answer late; with a five relay pool the quorum is three.
+            incoming[1].emit(
+                NostrIncomingMessage.EventMessage(
+                    subscriptionId = "sub-quorum",
+                    nostrEvent = buildNostrEvent("second"),
+                ),
+            )
+            incoming[1].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-quorum"))
+            incoming[2].emit(
+                NostrIncomingMessage.EventMessage(
+                    subscriptionId = "sub-quorum",
+                    nostrEvent = buildNostrEvent("third"),
+                ),
+            )
+            incoming[2].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-quorum"))
+            runCurrent()
+            testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS)
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id }.sorted() shouldBe listOf("fast", "second", "third")
+        }
+
+    @Test
+    fun query_countsFailedRelaysTowardsTheQuorum() =
+        runTest {
+            // Otherwise a single dead relay would make every query wait out the whole timeout.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-dead" }
+            val alive = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16)
+            val aliveSocket = buildQuerySocket("wss://alive", alive)
+            val deadSocket = mockk<NostrSocketClient>(relaxed = true) {
+                every { socketUrl } returns "wss://dead"
+                every { incomingMessages } returns MutableSharedFlow()
+                every { connectionGeneration } returns MutableStateFlow(0L)
+                coEvery { ensureSocketConnectionOrThrow() } throws IllegalStateException("down")
+            }
+            relayPool.socketClients = listOf(aliveSocket, deadSocket)
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 50)) }
+            runCurrent()
+            alive.emit(
+                NostrIncomingMessage.EventMessage(
+                    subscriptionId = "sub-dead",
+                    nostrEvent = buildNostrEvent("ok"),
+                ),
+            )
+            alive.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-dead"))
+            runCurrent()
+            testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS)
+            runCurrent()
+
+            val result = deferred.await()
+            result.events.map { it.id } shouldBe listOf("ok")
+            result.failedRelays.keys shouldBe setOf("wss://dead")
+        }
+
+    @Test
     fun query_timesOutWhenNoRelayReplies() =
         runTest {
             val relayPool = buildRelayPool()

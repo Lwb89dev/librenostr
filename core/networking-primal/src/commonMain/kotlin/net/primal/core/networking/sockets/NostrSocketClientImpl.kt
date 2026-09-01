@@ -13,14 +13,12 @@ import kotlin.concurrent.Volatile
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 import kotlin.time.ComparableTimeMark
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,7 +63,14 @@ internal class NostrSocketClientImpl(
     @Volatile
     private var lastReceivedMark: ComparableTimeMark? = null
 
-    private val _incomingMessages = MutableSharedFlow<NostrIncomingMessage>()
+    // Buffered on purpose. With no buffer, emit suspends until every collector has processed the
+    // value, and every concurrent query subscribes to every relay — so one socket's read loop
+    // stalled behind N filters per frame, and the stall grew with both relay count and query
+    // concurrency. A buffer keeps reading decoupled from consumption; SharedFlow still delivers
+    // in emission order, so nothing is reordered and nothing is dropped.
+    private val _incomingMessages = MutableSharedFlow<NostrIncomingMessage>(
+        extraBufferCapacity = INCOMING_BUFFER_CAPACITY,
+    )
     override val incomingMessages = _incomingMessages.asSharedFlow()
 
     private val _connectionGeneration = MutableStateFlow(0L)
@@ -224,9 +229,10 @@ internal class NostrSocketClientImpl(
 
     private suspend fun processIncomingMessage(text: String) {
         val parsed = text.parseIncomingMessage() ?: return
-        if (parsed is NostrIncomingMessage.EoseMessage) {
-            delay(75.milliseconds)
-        }
+        // No pause before EOSE any more. It existed to give preceding EVENTs a chance to land
+        // first, which was only necessary because the unbuffered flow dropped values when a
+        // collector was not ready; it cost every socket 75 ms of blocked reading per EOSE.
+        // Ordering is now guaranteed by the buffer.
         _incomingMessages.emit(value = parsed)
     }
 
@@ -263,6 +269,9 @@ internal class NostrSocketClientImpl(
 
     companion object {
         private const val MAX_SOCKET_MESSAGE_CHARS = 1024 * 1024
+
+        /** Deep enough that a burst of events never blocks the socket's read loop. */
+        private const val INCOMING_BUFFER_CAPACITY = 256
     }
 
     @Suppress("unused")

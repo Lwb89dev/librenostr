@@ -310,6 +310,12 @@ class RelayPool(
         val completedRelays = mutableSetOf<String>()
         var duplicates = 0
         val mutex = Mutex()
+        // Completing on the *first* EOSE discarded whatever the slower relays still had, and the
+        // loss grew with the size of the pool: with four relays the spread between first and last
+        // is small, with a dozen the first arrives long before the rest. Waiting for a quorum
+        // keeps the result representative of the pool without waiting for its slowest member.
+        val quorum = (clients.size + 1) / 2
+        val quorumReached = CompletableDeferred<Boolean>()
         val firstEoseOrAllFailed = CompletableDeferred<Boolean>()
         val allRelaysCompleted = CompletableDeferred<Unit>()
         // A page that already holds everything the caller asked for is a complete answer. Without
@@ -331,8 +337,10 @@ class RelayPool(
                         failedRelays = failedRelays,
                         completedRelays = completedRelays,
                         clientCount = clients.size,
+                        quorum = quorum,
                         requestedCount = requestedCount,
                         firstEoseOrAllFailed = firstEoseOrAllFailed,
+                        quorumReached = quorumReached,
                         allRelaysCompleted = allRelaysCompleted,
                         pageFull = pageFull,
                         onDuplicate = { duplicates += 1 },
@@ -340,6 +348,11 @@ class RelayPool(
                 }
             }
             val hadEose = withTimeoutOrNull(timeoutMs) { firstEoseOrAllFailed.await() } ?: false
+            if (hadEose && !pageFull.isCompleted) {
+                // Give the rest of the pool its turn before settling, unless the page is already
+                // full. Bounded by the same timeout, so a dead relay cannot hold the screen.
+                withTimeoutOrNull(timeoutMs) { quorumReached.await() }
+            }
             if (hadEose && !pageFull.isCompleted) {
                 // EOSE with zero events is valid. Keep slower relays alive in that case;
                 // otherwise the first empty relay could hide events available elsewhere.
@@ -374,8 +387,10 @@ class RelayPool(
         failedRelays: MutableMap<String, String>,
         completedRelays: MutableSet<String>,
         clientCount: Int,
+        quorum: Int,
         requestedCount: Int,
         firstEoseOrAllFailed: CompletableDeferred<Boolean>,
+        quorumReached: CompletableDeferred<Boolean>,
         allRelaysCompleted: CompletableDeferred<Unit>,
         pageFull: CompletableDeferred<Unit>,
         onDuplicate: () -> Unit,
@@ -400,20 +415,26 @@ class RelayPool(
                 }
             },
             onEose = {
-                mutex.withLock {
+                val reachedQuorum = mutex.withLock {
                     eoseRelays += client.socketUrl
                     completedRelays += client.socketUrl
                     if (completedRelays.size >= clientCount) allRelaysCompleted.complete(Unit)
+                    completedRelays.size >= quorum
                 }
+                if (reachedQuorum) quorumReached.complete(true)
                 firstEoseOrAllFailed.complete(true)
             },
             onFailure = { reason ->
-                val allFailed = mutex.withLock {
+                // A relay that failed has had its turn: it counts towards the quorum, otherwise
+                // one dead relay would make every query wait out the full timeout.
+                val (allFailed, reachedQuorum) = mutex.withLock {
                     failedRelays[client.socketUrl] = reason
                     completedRelays += client.socketUrl
                     if (completedRelays.size >= clientCount) allRelaysCompleted.complete(Unit)
-                    eoseRelays.isEmpty() && failedRelays.size >= clientCount
+                    (eoseRelays.isEmpty() && failedRelays.size >= clientCount) to
+                        (completedRelays.size >= quorum)
                 }
+                if (reachedQuorum) quorumReached.complete(true)
                 if (allFailed) firstEoseOrAllFailed.complete(false)
             },
         )
