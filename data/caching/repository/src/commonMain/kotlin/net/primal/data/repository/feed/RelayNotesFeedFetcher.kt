@@ -77,6 +77,9 @@ internal class RelayNotesFeedFetcher(
         return page.toFeedResponse(metadata)
     }
 
+    /** The author scope for a feed spec. Exposed so a live subscription can reuse it. */
+    suspend fun resolveAuthors(userId: String, feedSpec: String): List<String> = loadAuthors(userId, feedSpec)
+
     private suspend fun loadAuthors(userId: String, feedSpec: String): List<String> {
         if (feedSpec.isFollowSetFeedSpec()) {
             val pubkey = feedSpec.extractFollowSetPubkey() ?: userId

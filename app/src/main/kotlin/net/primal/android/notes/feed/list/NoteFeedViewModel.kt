@@ -16,6 +16,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import net.primal.core.utils.onFailure
+import net.primal.core.utils.runCatching
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +57,7 @@ import net.primal.domain.posts.FeedRepository
 import net.primal.domain.posts.FeedRepository.Companion.INITIAL_PAGE_SIZE
 import net.primal.domain.streams.StreamRepository
 
+@OptIn(FlowPreview::class)
 @HiltViewModel(assistedFactory = NoteFeedViewModel.Factory::class)
 class NoteFeedViewModel @AssistedInject constructor(
     @Assisted private val feedSpec: String,
@@ -168,17 +173,42 @@ class NoteFeedViewModel @AssistedInject constructor(
             }
         }
 
+    /**
+     * Watches for new notes with a live relay subscription instead of a short poll.
+     *
+     * The subscription is the trigger, not the content: an arriving event only says "something
+     * new exists", and the existing snapshot fetch still produces what the new-notes pill shows.
+     * That keeps the visible behaviour identical while cutting the delay from up to a poll
+     * interval down to about a second, and sending nothing to the relays while nothing happens.
+     *
+     * A slow refresh stays underneath it. A subscription can die quietly — a relay drops it, a
+     * filter is capped, the author list is longer than the streamed slice — and a feed that
+     * silently stops updating is worse than one that updates late.
+     */
     private fun startPollingIfSupported() {
-        if (feedSpec.supportsUpwardsNotesPagination()) {
-            pollingJob = viewModelScope.launch(dispatcherProvider.io()) {
-                try {
-                    while (isActive) {
-                        fetchLatestNotes()
-                        val pollInterval = POLL_INTERVAL + Random.nextInt(from = -5, until = 5)
-                        delay(pollInterval.seconds)
-                    }
-                } catch (error: NetworkException) {
-                    Napier.e(throwable = error) { "Polling failed due to network error." }
+        if (!feedSpec.supportsUpwardsNotesPagination()) return
+
+        pollingJob = viewModelScope.launch(dispatcherProvider.io()) {
+            launch {
+                runCatching {
+                    feedRepository.streamNewNotes(
+                        userId = activeAccountStore.activeUserId(),
+                        feedSpec = feedSpec,
+                    )
+                        // New notes arrive in bursts; one refresh per burst is enough.
+                        .debounce(STREAM_DEBOUNCE_MILLIS)
+                        .collect {
+                            runCatching { fetchLatestNotes() }
+                                .onFailure { Napier.w(throwable = it) { "Latest notes refresh failed." } }
+                        }
+                }.onFailure { Napier.w(throwable = it) { "New note subscription ended." } }
+            }
+
+            launch {
+                while (isActive) {
+                    delay(SAFETY_REFRESH_INTERVAL_SECONDS.seconds)
+                    runCatching { fetchLatestNotes() }
+                        .onFailure { Napier.w(throwable = it) { "Safety refresh failed." } }
                 }
             }
         }
@@ -331,6 +361,10 @@ class NoteFeedViewModel @AssistedInject constructor(
 
     companion object {
         private const val MAX_AVATARS = 3
-        private const val POLL_INTERVAL = 30 // seconds
+        /** Collapses a burst of arriving notes into a single refresh. */
+        private const val STREAM_DEBOUNCE_MILLIS = 1_000L
+
+        /** Backstop for a subscription that dies quietly; far rarer than the old 30s poll. */
+        private const val SAFETY_REFRESH_INTERVAL_SECONDS = 300
     }
 }

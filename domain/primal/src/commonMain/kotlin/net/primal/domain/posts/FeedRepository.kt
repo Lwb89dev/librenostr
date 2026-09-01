@@ -5,6 +5,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import net.primal.core.utils.Result
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 
 interface FeedRepository {
@@ -68,6 +69,15 @@ interface FeedRepository {
     )
 
     suspend fun findConversation(userId: String, noteId: String): List<FeedPost>
+
+    /**
+     * Emits notes published on the user's feed scope from now on, as the relays deliver them.
+     *
+     * A live REQ replaces polling: a new note is known about within a second of being published
+     * instead of up to a poll interval later, and nothing is sent to the relays while nothing is
+     * happening. History stays the paging path's job.
+     */
+    fun streamNewNotes(userId: String, feedSpec: String): Flow<NostrEvent>
 
     companion object {
         const val DEFAULT_PAGE_SIZE = 20

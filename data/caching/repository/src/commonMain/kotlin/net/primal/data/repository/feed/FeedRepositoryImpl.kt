@@ -6,8 +6,13 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.map
+import kotlin.time.Clock
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -31,6 +36,10 @@ import net.primal.domain.feeds.isFollowSetFeedSpec
 import net.primal.domain.feeds.isFollowingNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.isAdvancedSearchFeedSpec
+import net.primal.domain.nostr.relay.RelayEventSubscriber
+import net.primal.domain.nostr.relay.RelayFilter
+import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.data.repository.feed.processors.persistNoteRepliesAndArticleCommentsToDatabase
 import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
@@ -58,6 +67,9 @@ internal class FeedRepositoryImpl(
 
     /** Session-scoped, so the metadata dedupe spans pages rather than a single call. */
     private val localEventCache = LocalEventCache(database = database)
+
+    /** Held rather than rebuilt per call, so its cached follow list survives between pages. */
+    private val notesFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }
 
     override fun feedBySpec(
         userId: String,
@@ -261,6 +273,36 @@ internal class FeedRepositoryImpl(
         Unit
     }
 
+    override fun streamNewNotes(userId: String, feedSpec: String): Flow<NostrEvent> {
+        // The injected querier is the socket manager, which already implements the subscriber
+        // port; nothing extra has to be wired to open a live REQ.
+        val subscriber = relayEventQuerier as? RelayEventSubscriber ?: return emptyFlow()
+        val fetcher = notesFeedFetcher ?: return emptyFlow()
+
+        return flow {
+            val authors = fetcher.resolveAuthors(userId = userId, feedSpec = feedSpec)
+            if (authors.isEmpty()) return@flow
+
+            // `since` is now, so the subscription carries only what is published from here on;
+            // history stays the paging path's job.
+            val since = Clock.System.now().epochSeconds
+            val chunks = authors.take(MAX_STREAMED_AUTHORS).chunked(STREAM_AUTHOR_CHUNK)
+            val streams = chunks.map { chunk ->
+                subscriber.subscribe(
+                    RelayFilter(
+                        kinds = listOf(
+                            NostrEventKind.ShortTextNote.value,
+                            NostrEventKind.ShortTextNoteRepost.value,
+                        ),
+                        authors = chunk,
+                        since = since,
+                    ),
+                )
+            }
+            emitAll(merge(*streams.toTypedArray()))
+        }.flowOn(dispatcherProvider.io())
+    }
+
     override suspend fun fetchFeedPageSnapshot(
         userId: String,
         feedSpec: String,
@@ -289,7 +331,7 @@ internal class FeedRepositoryImpl(
                 querier != null &&
                 (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
             ) {
-                RelayNotesFeedFetcher(querier).fetch(
+                RelayNotesFeedFetcher(querier).let { notesFeedFetcher ?: it }.fetch(
                     userId = userId,
                     feedSpec = feedSpec,
                     includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
@@ -384,6 +426,15 @@ internal class FeedRepositoryImpl(
                 userPubkey = userId,
                 allowMutedThreads = allowMutedThreads,
         )
+    }
+
+
+    private companion object {
+        /** One REQ per chunk; a handful is well within the pool's subscription budget. */
+        const val STREAM_AUTHOR_CHUNK = 250
+
+        /** Past this the filter gets unwieldy; the periodic refresh still covers the rest. */
+        const val MAX_STREAMED_AUTHORS = 1_000
     }
 
 }
