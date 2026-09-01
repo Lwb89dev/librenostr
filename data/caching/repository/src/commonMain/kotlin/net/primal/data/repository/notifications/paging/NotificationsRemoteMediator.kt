@@ -24,6 +24,7 @@ import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
 import net.primal.data.repository.mappers.remote.mapNotNullAsNotificationPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsProfileStatsPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
+import net.primal.data.repository.notifications.persist
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -207,25 +208,7 @@ class NotificationsRemoteMediator(
             return MediatorResult.Success(endOfPaginationReached = true)
         }
         withContext(dispatcherProvider.io()) {
-            val existing = database.notifications()
-                .findByIds(userId, result.notifications.map { it.notificationId })
-                .associateBy { it.notificationId }
-            val tagged = result.notifications.map { notification ->
-                notification.copy(seenGloballyAt = existing[notification.notificationId]?.seenGloballyAt)
-            }
-            result.feedResponse.persistToDatabaseAsTransaction(userId = userId, database = database)
-            database.withTransaction {
-                database.notifications().upsertAll(tagged)
-                database.notificationGroupCrossRef().insertAll(
-                    tagged.map {
-                        NotificationGroupCrossRef(
-                            notificationId = it.notificationId,
-                            ownerId = userId,
-                            groupKey = group.name,
-                        )
-                    },
-                )
-            }
+            result.persist(userId = userId, group = group, database = database)
         }
         // End of list is decided by what the relays returned, not by how many rows survived the
         // group filter. Judging by the filtered count stopped a sparse tab — Zaps especially —

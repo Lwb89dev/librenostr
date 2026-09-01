@@ -17,4 +17,17 @@ interface NotificationRepository {
 
     /** Marks the local cache as read without contacting any proprietary notification service. */
     suspend fun markAllNotificationsAsSeenLocally(userId: String)
+
+    /**
+     * Pulls notifications at session start, newest first, then walks back through older pages.
+     *
+     * Without this nothing is fetched until the tab is opened, so the unread dot could only ever
+     * appear after the user had already gone looking.
+     */
+    suspend fun syncNotifications(userId: String, backfillPages: Int = DEFAULT_BACKFILL_PAGES)
+
+    companion object {
+        /** Bounded on purpose: a public relay's history is effectively endless. */
+        const val DEFAULT_BACKFILL_PAGES = 3
+    }
 }

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import net.primal.android.core.updater.DataUpdater
+import net.primal.android.core.updater.SessionSyncCoordinator
 import net.primal.android.main.MainContract.UiEvent
 import net.primal.android.main.MainContract.UiState
 import net.primal.android.user.accounts.UserAccountsStore
@@ -31,6 +32,9 @@ import net.primal.domain.notifications.NotificationRepository
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel @Inject constructor(
     private val dataUpdater: DataUpdater,
+    // Injected so the singleton is constructed and starts observing the active account; it has
+    // no methods to call, it reacts on its own.
+    @Suppress("unused") private val sessionSyncCoordinator: SessionSyncCoordinator,
     private val activeAccountStore: ActiveAccountStore,
     private val accountsStore: UserAccountsStore,
     private val userRepository: UserRepository,

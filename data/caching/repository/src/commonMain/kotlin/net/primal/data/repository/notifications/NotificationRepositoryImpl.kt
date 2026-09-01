@@ -6,6 +6,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.map
+import io.github.aakira.napier.Napier
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -13,9 +14,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.notifications.Notification as NotificationPO
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.notifications.NotificationsApi
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.mappers.local.asNotificationDO
 import net.primal.data.repository.notifications.paging.NotificationsRemoteMediator
 import net.primal.domain.nostr.NostrEvent
@@ -32,6 +35,9 @@ class NotificationRepositoryImpl(
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
 ) : NotificationRepository {
+
+    /** Session-scoped, so the session-start sync does not re-request what a page just fetched. */
+    private val localEventCache = LocalEventCache(database = database)
 
     override fun observeUnseenNotifications(ownerId: String, group: NotificationGroup): Flow<List<NotificationDO>> =
         database.notifications().unseenByGroup(ownerId = ownerId, groupKey = group.name)
@@ -56,6 +62,36 @@ class NotificationRepositoryImpl(
             )
         }
     }
+
+    override suspend fun syncNotifications(userId: String, backfillPages: Int) =
+        withContext(dispatcherProvider.io()) {
+            val querier = relayEventQuerier ?: return@withContext
+            val fetcher = RelayNotificationsFetcher(querier, localEventCache)
+
+            // Only the ALL group is walked. Every other tab is a filter over the same events, so
+            // fetching per group would ask the relays for the same page several times over.
+            var until: Long? = null
+            repeat(backfillPages + 1) { page ->
+                val result = runCatching {
+                    fetcher.fetch(
+                        userId = userId,
+                        group = NotificationGroup.ALL,
+                        limit = SYNC_PAGE_SIZE,
+                        until = until,
+                    )
+                }.getOrNull() ?: return@withContext
+
+                if (result.notifications.isEmpty()) return@withContext
+                result.persist(userId = userId, group = NotificationGroup.ALL, database = database)
+
+                // Older than the oldest row of this page, so the next request cannot return it
+                // again and stall the walk.
+                val oldest = result.notifications.minOf { it.createdAt }
+                if (result.relayEventCount < SYNC_PAGE_SIZE) return@withContext
+                until = oldest - 1
+                Napier.d("Notification backfill page ${page + 1}: ${result.notifications.size} rows")
+            }
+        }
 
     override fun observeSeenNotifications(userId: String, group: NotificationGroup): Flow<PagingData<NotificationDO>> {
         return createPager(userId = userId, group = group) {
@@ -89,4 +125,9 @@ class NotificationRepositoryImpl(
         remoteMediator = constructRemoteMediator(userId = userId, group = group),
         pagingSourceFactory = pagingSourceFactory,
     )
+
+    private companion object {
+        /** Matches the paging mediator's page, so a sync and a scroll ask for the same shape. */
+        const val SYNC_PAGE_SIZE = 200
+    }
 }
