@@ -84,6 +84,29 @@ class FetchCoordinatorTest {
         }
 
     @Test
+    fun `overlapping interaction requests ask about each note once`() =
+        runTest {
+            // A note that turns up in two feeds had its counters fetched once per feed, because
+            // the stats fetcher is built per page and knows nothing of the others.
+            val querier = GatedQuerier()
+            val coordinator = coordinator()
+
+            val homeFeed = async { coordinator.fetchEventInteractions(querier, listOf(NOTE_A, NOTE_B)) }
+            runCurrent()
+            val profileFeed = async { coordinator.fetchEventInteractions(querier, listOf(NOTE_B, NOTE_C)) }
+            runCurrent()
+            querier.answerWith(emptyList())
+            homeFeed.await()
+            profileFeed.await()
+
+            assertEquals(
+                listOf(setOf(NOTE_A, NOTE_B), setOf(NOTE_C)),
+                querier.queries.mapNotNull { it.eventTags?.toSet() }.distinct(),
+                "the second feed must only ask about the note nobody had claimed",
+            )
+        }
+
+    @Test
     fun `a caller giving up does not cancel the request others are waiting for`() =
         runTest {
             val querier = GatedQuerier()
@@ -245,5 +268,8 @@ class FetchCoordinatorTest {
         const val ALICE = "alice-pubkey"
         const val BOB = "bob-pubkey"
         const val CAROL = "carol-pubkey"
+        const val NOTE_A = "note-a"
+        const val NOTE_B = "note-b"
+        const val NOTE_C = "note-c"
     }
 }

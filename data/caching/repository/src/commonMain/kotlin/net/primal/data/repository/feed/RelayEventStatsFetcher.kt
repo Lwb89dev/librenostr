@@ -1,17 +1,12 @@
 package net.primal.data.repository.feed
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import net.primal.core.utils.getOrDefault
-import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.events.EventStats
 import net.primal.data.local.dao.events.EventUserStats
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.eventIdTagValues
 import net.primal.domain.nostr.findFirstZapAmount
 import net.primal.domain.nostr.relay.RelayEventQuerier
-import net.primal.domain.nostr.relay.RelayFilter
 
 internal data class RelayEventStatsSnapshot(
     val eventStats: List<EventStats>,
@@ -21,29 +16,16 @@ internal data class RelayEventStatsSnapshot(
 /** Derives note counters from the interaction events published on relays. */
 internal class RelayEventStatsFetcher(
     private val querier: RelayEventQuerier,
+    private val coordinator: FetchCoordinator,
 ) {
 
     suspend fun fetch(eventIds: List<String>, userId: String): RelayEventStatsSnapshot {
         val ids = eventIds.distinct()
         if (ids.isEmpty()) return RelayEventStatsSnapshot(emptyList(), emptyList())
 
-        val interactions = coroutineScope {
-            INTERACTION_KINDS.flatMap { kind ->
-                ids.chunked(EVENT_TAG_CHUNK).map { chunk ->
-                    async {
-                        runCatching {
-                            querier.query(
-                                RelayFilter(
-                                    kinds = listOf(kind),
-                                    eventTags = chunk,
-                                    limit = MAX_EVENTS_PER_QUERY,
-                                ),
-                            )
-                        }.getOrDefault(emptyList())
-                    }
-                }
-            }.awaitAll().flatten().distinctBy { it.id }
-        }
+        // Built fresh for every page, so it used to re-ask for the counters of a note the moment
+        // it appeared in a second feed. The coordinator shares that per note.
+        val interactions = coordinator.fetchEventInteractions(querier = querier, eventIds = ids)
 
         val eventsByTarget = interactions
             .flatMap { event ->
@@ -84,15 +66,4 @@ internal class RelayEventStatsFetcher(
     }
 
     private fun Long.toSats(): Long = if (this >= 1_000L) this / 1_000L else this
-
-    private companion object {
-        private const val EVENT_TAG_CHUNK = 50
-        private const val MAX_EVENTS_PER_QUERY = 500
-        private val INTERACTION_KINDS = listOf(
-            NostrEventKind.Reaction.value,
-            NostrEventKind.ShortTextNote.value,
-            NostrEventKind.ShortTextNoteRepost.value,
-            NostrEventKind.Zap.value,
-        )
-    }
 }

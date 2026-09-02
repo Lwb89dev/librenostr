@@ -21,6 +21,7 @@ import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.PrimalEvent
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
@@ -34,6 +35,7 @@ internal class MessagesProcessor(
     private val messageCipher: MessageCipher,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    private val fetchCoordinator: FetchCoordinator? = null,
 ) {
 
     suspend fun processMessageEventsAndSave(
@@ -106,15 +108,12 @@ internal class MessagesProcessor(
         val localProfiles = database.profiles().findProfileData(allProfileIds.toList())
         val missingProfileIds = allProfileIds - localProfiles.map { it.ownerId }.toSet()
         val remoteProfiles = if (missingProfileIds.isNotEmpty()) {
+            // The people mentioned in a conversation are usually the people already on screen
+            // elsewhere. This path used to sit outside every dedupe there is and ask again.
             val metadataEvents: List<NostrEvent> = relayEventQuerier?.let { querier ->
                 runCatching {
-                    querier.query(
-                        RelayFilter(
-                            kinds = listOf(NostrEventKind.Metadata.value),
-                            authors = missingProfileIds.toList(),
-                            limit = missingProfileIds.size,
-                        ),
-                    )
+                    fetchCoordinator?.fetchMetadata(querier = querier, pubkeys = missingProfileIds.toList())
+                        ?: emptyList()
                 }.getOrDefault(emptyList())
             }.orEmpty()
             val profiles = metadataEvents

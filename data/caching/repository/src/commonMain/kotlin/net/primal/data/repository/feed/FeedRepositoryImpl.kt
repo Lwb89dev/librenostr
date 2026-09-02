@@ -196,7 +196,7 @@ internal class FeedRepositoryImpl(
                     .map { it.id }
                     .distinct()
                 if (eventIds.isNotEmpty()) {
-                    val stats = RelayEventStatsFetcher(querier).fetch(
+                    val stats = RelayEventStatsFetcher(querier = querier, coordinator = fetchCoordinator).fetch(
                         eventIds = eventIds,
                         userId = userId,
                     )
@@ -262,7 +262,8 @@ internal class FeedRepositoryImpl(
                 .map { it.id }
                 .distinct()
             if (eventIds.isNotEmpty()) {
-                val stats = RelayEventStatsFetcher(querier).fetch(eventIds = eventIds, userId = userId)
+                val stats = RelayEventStatsFetcher(querier = querier, coordinator = fetchCoordinator)
+                    .fetch(eventIds = eventIds, userId = userId)
                 database.withTransaction {
                     database.eventStats().upsertAll(stats.eventStats)
                     if (stats.userStats.isNotEmpty()) {

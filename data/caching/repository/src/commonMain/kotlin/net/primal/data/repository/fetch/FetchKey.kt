@@ -17,6 +17,9 @@ internal sealed interface FetchKey {
     /** Kind 3 for one author. Requested independently by most feeds and by the profile screen. */
     data class FollowList(val pubkey: String) : FetchKey
 
+    /** Likes, replies, reposts and zaps pointing at one note. Per note, so feeds share them. */
+    data class EventInteractions(val eventId: String) : FetchKey
+
     /** Anything not yet worth its own case. The caller supplies a stable, self-describing name. */
     data class Custom(val name: String) : FetchKey
 }

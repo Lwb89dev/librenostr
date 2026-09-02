@@ -134,6 +134,7 @@ abstract class CommonRepositoryFactory {
                 messageCipher = messageCipher,
                 mediaCacher = mediaCacher,
                 relayEventQuerier = relayEventQuerier,
+                fetchCoordinator = fetchCoordinator,
             ),
             primalPublisher = primalPublisher,
             mediaCacher = mediaCacher,

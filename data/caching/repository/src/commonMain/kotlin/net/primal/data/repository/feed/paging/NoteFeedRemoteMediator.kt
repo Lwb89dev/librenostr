@@ -59,7 +59,9 @@ internal class NoteFeedRemoteMediator(
         RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator)
     }
     private val relayAdvancedSearchFetcher = relayEventQuerier?.let { RelayAdvancedSearchFeedFetcher(it) }
-    private val relayEventStatsFetcher = relayEventQuerier?.let { RelayEventStatsFetcher(it) }
+    private val relayEventStatsFetcher = relayEventQuerier?.let {
+        RelayEventStatsFetcher(querier = it, coordinator = fetchCoordinator)
+    }
     private val useRelayAdvancedSearch = relayAdvancedSearchFetcher != null && feedSpec.isAdvancedSearchFeedSpec()
     private val useRelayFollowingFeed =
         relayFeedFetcher != null &&
