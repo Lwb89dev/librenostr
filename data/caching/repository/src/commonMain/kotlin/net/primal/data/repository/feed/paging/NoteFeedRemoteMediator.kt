@@ -25,6 +25,7 @@ import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.RelayEventStatsFetcher
 import net.primal.data.repository.feed.RelayNotesFeedFetcher
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.feed.processors.FeedProcessor
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
@@ -51,9 +52,12 @@ internal class NoteFeedRemoteMediator(
     private val mediaCacher: MediaCacher? = null,
     private val kinds: List<Int> = FeedRepository.DEFAULT_FEED_KINDS,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    private val fetchCoordinator: FetchCoordinator,
 ) : RemoteMediator<Int, FeedPost>() {
 
-    private val relayFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }
+    private val relayFeedFetcher = relayEventQuerier?.let {
+        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator)
+    }
     private val relayAdvancedSearchFetcher = relayEventQuerier?.let { RelayAdvancedSearchFeedFetcher(it) }
     private val relayEventStatsFetcher = relayEventQuerier?.let { RelayEventStatsFetcher(it) }
     private val useRelayAdvancedSearch = relayAdvancedSearchFetcher != null && feedSpec.isAdvancedSearchFeedSpec()

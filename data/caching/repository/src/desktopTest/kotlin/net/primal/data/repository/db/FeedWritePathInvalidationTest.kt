@@ -28,6 +28,7 @@ import net.primal.data.repository.feed.FeedRepositoryImpl
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.domain.nostr.NostrEvent
 import net.primal.shared.data.local.db.LocalDatabaseFactory
@@ -128,6 +129,7 @@ class FeedWritePathInvalidationTest {
                 database = database,
                 invalidationTracker = tracker,
                 localEventCache = LocalEventCache(database = database),
+                fetchCoordinator = FetchCoordinator(dispatcherProvider = testDispatcherProvider()),
             ).clearUserData(userId = USER_ID)
 
             mainSource.awaitInvalidation(reason = "account data cleanup (spec-blind crossref delete)")
@@ -223,6 +225,7 @@ class FeedWritePathInvalidationTest {
             dispatcherProvider = testDispatcherProvider(),
             invalidationTracker = tracker,
             localEventCache = LocalEventCache(database = database),
+            fetchCoordinator = FetchCoordinator(dispatcherProvider = testDispatcherProvider()),
         )
 
     private fun noteFeedRemoteMediator(
@@ -230,6 +233,7 @@ class FeedWritePathInvalidationTest {
         tracker: FeedSpecInvalidationTracker,
         feedSpec: String,
     ) = NoteFeedRemoteMediator(
+        fetchCoordinator = FetchCoordinator(dispatcherProvider = testDispatcherProvider()),
         dispatcherProvider = testDispatcherProvider(),
         feedSpec = feedSpec,
         userId = USER_ID,

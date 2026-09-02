@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.withPermit
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.common.ContentPrimalPaging
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -22,15 +23,8 @@ import net.primal.domain.nostr.relay.RelayFilter
 
 internal class RelayNotesFeedFetcher(
     private val querier: RelayEventQuerier,
+    private val coordinator: FetchCoordinator,
 ) {
-
-    /**
-     * The follow list is a kind 3 that changes rarely, but it was fetched from relays before
-     * every single page — a full round trip, paid up front, blocking the notes query behind it.
-     * The mediator keeps one fetcher per feed, so caching it here removes that round trip from
-     * every page after the first.
-     */
-    private var cachedFollows: Pair<String, List<String>>? = null
 
     suspend fun fetch(
         userId: String,
@@ -162,20 +156,17 @@ internal class RelayNotesFeedFetcher(
             )
         }.getOrDefault(emptyList())
 
+    /**
+     * The follow list used to be fetched before every single page — a full round trip paid up
+     * front, with the notes query blocked behind it — and the per-fetcher cache that replaced it
+     * lived as long as the object, which meant the article feed and the profile screen each kept
+     * their own copy. The coordinator holds one, briefly, for all of them.
+     */
     private suspend fun loadFollows(userId: String): List<String> {
-        cachedFollows?.let { (cachedUserId, cached) -> if (cachedUserId == userId) return cached }
-        val events = runCatching {
-            querier.query(
-                RelayFilter(
-                    kinds = listOf(NostrEventKind.FollowList.value),
-                    authors = listOf(userId),
-                    limit = 1,
-                ),
-            )
-        }.getOrDefault(emptyList())
+        val events = runCatching { coordinator.fetchFollowList(querier = querier, pubkey = userId) }
+            .getOrDefault(emptyList())
         val latest = events.maxByOrNull { it.createdAt } ?: return emptyList()
         return latest.tags.pubkeyTagValues().distinct().take(MAX_FOLLOW_AUTHORS)
-            .also { cachedFollows = userId to it }
     }
 
     companion object {

@@ -29,6 +29,7 @@ import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
 import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
@@ -65,10 +66,12 @@ internal class FeedRepositoryImpl(
     private val relayEventQuerier: RelayEventQuerier? = null,
     /** Shared with every other repository, so the dedupe spans the app and not one object. */
     private val localEventCache: LocalEventCache,
+    private val fetchCoordinator: FetchCoordinator,
 ) : FeedRepository {
 
-    /** Held rather than rebuilt per call, so its cached follow list survives between pages. */
-    private val notesFeedFetcher = relayEventQuerier?.let { RelayNotesFeedFetcher(it) }
+    private val notesFeedFetcher = relayEventQuerier?.let {
+        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator)
+    }
 
     override fun feedBySpec(
         userId: String,
@@ -330,7 +333,7 @@ internal class FeedRepositoryImpl(
                 querier != null &&
                 (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
             ) {
-                RelayNotesFeedFetcher(querier).let { notesFeedFetcher ?: it }.fetch(
+                (notesFeedFetcher ?: RelayNotesFeedFetcher(querier = querier, coordinator = fetchCoordinator)).fetch(
                     userId = userId,
                     feedSpec = feedSpec,
                     includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
@@ -389,6 +392,7 @@ internal class FeedRepositoryImpl(
             enablePlaceholders = true,
         ),
         remoteMediator = NoteFeedRemoteMediator(
+            fetchCoordinator = fetchCoordinator,
             dispatcherProvider = dispatcherProvider,
             feedSpec = feedSpec,
             userId = userId,

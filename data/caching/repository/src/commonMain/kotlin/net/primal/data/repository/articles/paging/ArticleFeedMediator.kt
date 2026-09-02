@@ -19,6 +19,7 @@ import net.primal.data.local.dao.reads.ArticleFeedItem
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.articles.model.ArticleResponse
 import net.primal.data.repository.articles.processors.persistToDatabase
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.remote.mapNotNullAsArticleDataPO
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.ContentPrimalPaging
@@ -34,10 +35,14 @@ internal class ArticleFeedMediator(
     private val dispatcherProvider: DispatcherProvider,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier,
+    private val fetchCoordinator: FetchCoordinator,
 ) : RemoteMediator<Int, ArticleFeedItem>() {
 
     private val lastRequests: MutableMap<LoadType, Long> = mutableMapOf()
-    private val relayFetcher = RelayArticleFeedFetcher(relayEventQuerier)
+    private val relayFetcher = RelayArticleFeedFetcher(
+        querier = relayEventQuerier,
+        coordinator = fetchCoordinator,
+    )
 
     override suspend fun initialize(): InitializeAction {
         val latestRemoteKey = withContext(dispatcherProvider.io()) {

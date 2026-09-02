@@ -18,6 +18,7 @@ import net.primal.data.repository.explore.ExploreRepositoryImpl
 import net.primal.data.repository.feed.FeedRepositoryImpl
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feeds.FeedsRepositoryImpl
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.data.repository.messages.ChatRepositoryImpl
 import net.primal.data.repository.messages.processors.MessagesProcessor
@@ -69,6 +70,15 @@ abstract class CommonRepositoryFactory {
      */
     private val localEventCache by lazy { LocalEventCache(database = resolveCachingDatabase()) }
 
+    /**
+     * One request coordinator for the whole app.
+     *
+     * The relay transport is handed to it per call rather than held, so this needs nothing but a
+     * dispatcher to exist and cannot be raced into existence twice by two providers starting at
+     * the same time.
+     */
+    private val fetchCoordinator by lazy { FetchCoordinator(dispatcherProvider = dispatcherProvider) }
+
     abstract fun resolveCachingDatabase(): CachingDatabase
 
     fun createArticleRepository(
@@ -80,6 +90,7 @@ abstract class CommonRepositoryFactory {
             database = resolveCachingDatabase(),
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
+            fetchCoordinator = fetchCoordinator,
         )
     }
 
@@ -143,6 +154,7 @@ abstract class CommonRepositoryFactory {
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
             localEventCache = localEventCache,
+            fetchCoordinator = fetchCoordinator,
         )
     }
 
@@ -249,6 +261,7 @@ abstract class CommonRepositoryFactory {
             primalPublisher = primalPublisher,
             nip05VerificationService = nip05VerificationService,
             relayEventQuerier = relayEventQuerier,
+            fetchCoordinator = fetchCoordinator,
         )
     }
 
@@ -271,6 +284,7 @@ abstract class CommonRepositoryFactory {
             database = resolveCachingDatabase(),
             invalidationTracker = feedSpecInvalidationTracker,
             localEventCache = localEventCache,
+            fetchCoordinator = fetchCoordinator,
         )
     }
 

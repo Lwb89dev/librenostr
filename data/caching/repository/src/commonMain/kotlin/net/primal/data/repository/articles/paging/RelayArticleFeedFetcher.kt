@@ -16,6 +16,7 @@ import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.pubkeyTagValues
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 
@@ -30,7 +31,10 @@ import net.primal.domain.nostr.relay.RelayFilter
  * The scope is the user's follows, optionally widened to the follows of those follows when
  * follows alone cannot fill a page. That is the widest this ever goes.
  */
-internal class RelayArticleFeedFetcher(private val querier: RelayEventQuerier) {
+internal class RelayArticleFeedFetcher(
+    private val querier: RelayEventQuerier,
+    private val coordinator: FetchCoordinator,
+) {
 
     private var cachedNetwork: Pair<String, List<String>>? = null
 
@@ -122,14 +126,10 @@ internal class RelayArticleFeedFetcher(private val querier: RelayEventQuerier) {
         )
     }
 
+    /** The same kind 3 the note feed wants; the coordinator makes it one request, not two. */
     private suspend fun loadFollows(userId: String): List<String> = runCatching {
-        querier.query(
-            RelayFilter(
-                kinds = listOf(NostrEventKind.FollowList.value),
-                authors = listOf(userId),
-                limit = 1,
-            ),
-        ).maxByOrNull { it.createdAt }?.tags?.pubkeyTagValues().orEmpty()
+        coordinator.fetchFollowList(querier = querier, pubkey = userId)
+            .maxByOrNull { it.createdAt }?.tags?.pubkeyTagValues().orEmpty()
     }.getOrDefault(emptyList())
 
     private suspend fun loadFollowSet(pubkey: String, dTag: String): List<String> = runCatching {

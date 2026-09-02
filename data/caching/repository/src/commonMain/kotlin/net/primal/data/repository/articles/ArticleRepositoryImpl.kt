@@ -22,6 +22,7 @@ import net.primal.data.repository.articles.paging.RelayArticleDetailsFetcher
 import net.primal.data.repository.articles.paging.RelayArticleHighlightsFetcher
 import net.primal.data.repository.articles.processors.persistArticleCommentsToDatabase
 import net.primal.data.repository.articles.processors.persistToDatabaseAsTransaction
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.local.asArticleDO
 import net.primal.data.repository.mappers.local.mapAsFeedPostDO
 import net.primal.data.repository.utils.cacheAvatarUrls
@@ -31,11 +32,12 @@ import net.primal.domain.reads.Article as ArticleDO
 import net.primal.domain.reads.ArticleRepository
 import net.primal.shared.data.local.db.withTransaction
 
-class ArticleRepositoryImpl(
+internal class ArticleRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier,
+    private val fetchCoordinator: FetchCoordinator,
 ) : ArticleRepository {
 
     override fun feedBySpec(userId: String, feedSpec: String): Flow<PagingData<ArticleDO>> {
@@ -178,6 +180,7 @@ class ArticleRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
+            fetchCoordinator = fetchCoordinator,
         ),
         pagingSourceFactory = pagingSourceFactory,
     )

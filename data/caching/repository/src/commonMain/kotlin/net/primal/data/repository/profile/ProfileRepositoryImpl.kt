@@ -20,6 +20,7 @@ import net.primal.domain.nostr.ReportType
 import net.primal.domain.nostr.asEventIdTag
 import net.primal.domain.nostr.asPubkeyTag
 import net.primal.domain.nostr.asReplaceableEventTag
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.profile.Nip05VerificationService
@@ -30,16 +31,16 @@ import net.primal.domain.publisher.PrimalPublisher
 import net.primal.domain.nostr.utils.isValidHex
 import kotlinx.serialization.json.jsonPrimitive
 
-class ProfileRepositoryImpl(
+internal class ProfileRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
     private val primalPublisher: PrimalPublisher,
     private val nip05VerificationService: Nip05VerificationService? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    private val fetchCoordinator: FetchCoordinator,
 ) : ProfileRepository {
 
     companion object {
-        private const val METADATA_AUTHOR_CHUNK = 50
         private const val FOLLOW_LIST_QUERY_LIMIT = 20
         private const val FOLLOWERS_QUERY_LIMIT = 200
         private const val PROFILE_NAME_QUERY_LIMIT = 500
@@ -162,20 +163,18 @@ class ProfileRepositoryImpl(
         return profiles.map { it.asProfileDataDO() }
     }
 
+    /**
+     * Profile metadata, coalesced per author with whatever else is asking for it.
+     *
+     * This screen wants what the relays hold now, so it takes no part in the event cache's
+     * once-per-session claim: a display name that changed while the app was open has to show up
+     * here. Sharing a request already in flight costs nothing in freshness, which is the whole
+     * reason the coordinator draws that line where it does.
+     */
     private suspend fun queryRelayMetadata(profileIds: List<String>): List<NostrEvent> {
         val querier = relayEventQuerier ?: return emptyList()
         if (profileIds.isEmpty()) return emptyList()
-        return profileIds.chunked(METADATA_AUTHOR_CHUNK).flatMap { chunk ->
-            runCatching {
-                querier.query(
-                    RelayFilter(
-                        kinds = listOf(NostrEventKind.Metadata.value),
-                        authors = chunk,
-                        limit = chunk.size,
-                    ),
-                )
-            }.getOrDefault(emptyList())
-        }
+        return fetchCoordinator.fetchMetadata(querier = querier, pubkeys = profileIds)
     }
 
     private suspend fun verifyNip05IfPresent(profileId: String, profile: ProfileData?) {
