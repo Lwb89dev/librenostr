@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.messages.DirectMessage
 import net.primal.data.local.dao.messages.MessageConversation
@@ -24,6 +25,7 @@ import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.fetch.FetchKey
 import net.primal.data.repository.mappers.local.asDMConversation
 import net.primal.data.repository.mappers.local.asDirectMessageDO
+import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.messages.paging.MessagesRemoteMediator
 import net.primal.data.repository.messages.processors.MessagesProcessor
 import net.primal.data.repository.utils.cacheAvatarUrls
@@ -136,11 +138,24 @@ internal class ChatRepositoryImpl(
             }
             ?: response.messages.asConversationIndex(userId = userId, relation = relation)
 
+        // A relay hands back kind 4 events and nothing else, so this response carries no profiles
+        // and the conversation list rendered raw npubs for anyone the database had not already
+        // met through the feed. The people you have talked to are the last ones who should be
+        // showing up as an npub.
+        val participantMetadata = relayEventQuerier?.let { querier ->
+            runCatching {
+                fetchCoordinator.fetchMetadata(
+                    querier = querier,
+                    pubkeys = messageConversation.map { it.participantId },
+                )
+            }.getOrDefault(emptyList())
+        }.orEmpty().latestMetadataByPubkey()
+
         withContext(dispatcherProvider.io()) {
             messagesProcessor.processMessageEventsAndSave(
                 userId = userId,
                 messages = response.messages,
-                profileMetadata = response.profileMetadata,
+                profileMetadata = response.profileMetadata + participantMetadata,
                 mediaResources = response.cdnResources,
                 primalUserNames = response.primalUserNames,
                 primalPremiumInfo = response.primalPremiumInfo,
