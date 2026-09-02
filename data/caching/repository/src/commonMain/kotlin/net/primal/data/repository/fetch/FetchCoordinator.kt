@@ -153,7 +153,7 @@ internal class FetchCoordinator(
 
         val operation = Operation(key = key, deferred = scope.async { block() })
         inFlight[key] = operation
-        stats = stats.copy(relayQueries = stats.relayQueries + 1)
+        countRelayQuery()
         return operation
     }
 
@@ -181,7 +181,7 @@ internal class FetchCoordinator(
     /** Call under [mutex]. */
     private fun startMetadataBatch(querier: RelayEventQuerier, pubkeys: List<String>): List<Operation> {
         val batch = scope.async { queryMetadata(querier, pubkeys) }
-        stats = stats.copy(relayQueries = stats.relayQueries + 1)
+        countRelayQuery()
 
         return pubkeys.map { pubkey ->
             // Failure is handled a level down, per chunk, so one unreachable relay costs its own
@@ -237,6 +237,24 @@ internal class FetchCoordinator(
             }
         }
 
+    /**
+     * Call under [mutex].
+     *
+     * Summarised every so often rather than per request: the counters are only interesting as a
+     * ratio, and a line per fetch would bury everything else in the log. Counts only — no filters,
+     * no pubkeys, no event content — so this is safe to leave on.
+     */
+    private fun countRelayQuery() {
+        stats = stats.copy(relayQueries = stats.relayQueries + 1)
+        if (stats.relayQueries % STATS_LOG_INTERVAL != 0) return
+
+        val current = stats
+        Napier.i {
+            "FetchCoordinator queries=${current.relayQueries} coalesced=${current.coalescedRequests} " +
+                "cached=${current.servedFromCache} abandoned=${current.abandonedQueries}"
+        }
+    }
+
     private suspend fun cachedFollowList(pubkey: String): List<NostrEvent>? =
         mutex.withLock {
             val cached = followListCache[pubkey] ?: return@withLock null
@@ -264,6 +282,9 @@ internal class FetchCoordinator(
          * that following somebody shows up in the feed without a restart.
          */
         const val FOLLOW_LIST_TTL_SECONDS = 300L
+
+        /** How many relay queries between summary lines in the log. */
+        private const val STATS_LOG_INTERVAL = 50
 
         /** Relays reject very large filter arrays. */
         private const val METADATA_AUTHOR_CHUNK = 50

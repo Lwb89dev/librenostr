@@ -259,23 +259,44 @@ class NoteFeedViewModel @AssistedInject constructor(
             }
         } == true
 
+    /**
+     * Asks the relays for what arrived since the newest note already stored, not for the whole
+     * head of the feed.
+     *
+     * This runs on every burst the live subscription reports, and it used to re-request a full
+     * page across the entire follow list each time — the same notes the database already had,
+     * fetched again to work out that a handful were new. `since` moves that comparison to the
+     * relays, where it costs nothing.
+     *
+     * The bound is deliberately inclusive. Nostr timestamps are whole seconds and notes published
+     * inside the same second are common, so asking for strictly-newer would silently drop a note
+     * sharing its timestamp with the newest one held. The count below already discards the note it
+     * matches by id, so the overlap costs one row and no correctness.
+     */
     private suspend fun fetchLatestNotes() {
+        val userId = activeAccountStore.activeUserId()
+        val newestLocalNote = feedRepository
+            .findNewestPosts(userId = userId, feedDirective = feedSpec, limit = 1)
+            .firstOrNull()
+
         val latestFeedPageResponse = feedRepository.fetchFeedPageSnapshot(
-            userId = activeAccountStore.activeUserId(),
+            userId = userId,
             feedSpec = feedSpec,
+            since = newestLocalNote?.newestTimestampSeconds(),
         )
 
         latestFeedResponse = latestFeedPageResponse
-        latestFeedPageResponse.processSyncCount(
-            newestLocalNote = feedRepository
-                .findNewestPosts(
-                    userId = activeAccountStore.activeUserId(),
-                    feedDirective = feedSpec,
-                    limit = 1,
-                )
-                .firstOrNull(),
-        )
+        latestFeedPageResponse.processSyncCount(newestLocalNote = newestLocalNote)
     }
+
+    /**
+     * The newest moment this feed knows about, reposts included.
+     *
+     * A repost carries its own timestamp and is what the feed sorts by, so taking only the note's
+     * own timestamp would ask again for everything reposted since.
+     */
+    private fun FeedPost.newestTimestampSeconds(): Long? =
+        (reposts.mapNotNull { it.repostCreatedAt } + listOfNotNull(timestamp?.epochSeconds)).maxOrNull()
 
     private fun FeedPageSnapshot.processSyncCount(newestLocalNote: FeedPost? = null) {
         val allReferencedNotes = this.referencedEvents.mapNotNull {
