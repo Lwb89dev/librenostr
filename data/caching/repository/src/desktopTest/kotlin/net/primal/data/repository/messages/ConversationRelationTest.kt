@@ -120,6 +120,25 @@ class ConversationRelationTest {
         }
 
     @Test
+    fun `an old conversation misfiled before this fix exists is corrected without a relay round trip`() =
+        runTest {
+            // The exact shape of the bug found on device: a conversation months old, already
+            // carrying a reply the database has held the whole time, wrongly filed as a request
+            // because it was classified before the fix that reads this page's own messages
+            // existed — and it will never surface in a fresh fetch again to get a second chance,
+            // because the sync only ever asks for the newest events. Fixing it cannot depend on
+            // the relay handing the old event back.
+            withRepository(api = FakeMessagesApi(messages = emptyList())) { repository, database ->
+                database.insertConversation(participantId = STRANGER, relation = ConversationRelation.Other)
+                database.insertSentMessage(to = STRANGER)
+
+                repository.syncConversations(userId = ME, backfillPages = 0)
+
+                assertEquals(ConversationRelation.Follows, database.relationOf(STRANGER))
+            }
+        }
+
+    @Test
     fun `the two tabs no longer hold the same conversations`() =
         runTest {
             withRepository(follows = listOf(FRIEND)) { repository, database ->

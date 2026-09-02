@@ -114,9 +114,7 @@ internal class ChatRepositoryImpl(
         // see a conversation classifies it by whether the *previous* sync had already saved the
         // reply, and a conversation whose reply and first-seen message land in the same page never
         // gets another chance: nothing revisits it once it falls outside later, narrower windows.
-        val writtenToInThisPage = currentPage
-            .filter { it.pubKey == userId }
-            .mapNotNull { it.tags.findFirstProfileId() }
+        val writtenToInThisPage = currentPage.participantsWrittenToBy(userId)
         val follows = relayEventQuerier?.let { querier ->
             runCatching { fetchCoordinator.fetchFollowList(querier = querier, pubkey = userId) }
                 .getOrDefault(emptyList())
@@ -206,12 +204,18 @@ internal class ChatRepositoryImpl(
     }
 
     override suspend fun syncConversations(userId: String, backfillPages: Int) {
+        // Accumulated independently of persistence: reclassification below must not depend on
+        // whether processMessageEventsAndSave has actually written this sync's messages to disk
+        // by the time it runs, only on what this sync itself has seen.
+        val writtenToThisSync = mutableSetOf<String>()
+
         // The first page is the refresh the caller asked for, so let its failure reach them.
         var messages = fetchConversations(
             userId = userId,
             relation = ConversationRelation.Follows,
             limit = SYNC_PAGE_SIZE,
         )
+        writtenToThisSync += messages.participantsWrittenToBy(userId)
         var page = 0
         // A page shorter than asked for — an empty one included — is how a relay says it has
         // nothing older.
@@ -229,10 +233,49 @@ internal class ChatRepositoryImpl(
                     until = until,
                 )
             }.getOrNull().orEmpty()
+            writtenToThisSync += messages.participantsWrittenToBy(userId)
             page++
             Napier.d { "DM backfill page $page: ${messages.size} events." }
         }
+        reclassifyStoredConversations(userId = userId, alsoAccepted = writtenToThisSync)
     }
+
+    /**
+     * Recomputes Follows/Other for every conversation already on disk, using only local data.
+     *
+     * A stored conversation's relation is only touched when its events happen to reappear in a
+     * fresh relay fetch, and an old, quiet conversation never does — the sync pages ask for the
+     * most recent events globally, and a conversation from months ago falls out of that window
+     * long before it falls out of the database. Its relation is then whatever the very first
+     * classification decided, forever, even after the reply that should flip it has been sitting
+     * on disk the whole time. This sweeps every stored row against the same accepted set the fetch
+     * path uses, needing nothing back from the relays to do it.
+     *
+     * [alsoAccepted] folds in this sync's own pages directly, rather than trusting that whatever
+     * they discovered has already landed in the database by the time this runs.
+     */
+    private suspend fun reclassifyStoredConversations(userId: String, alsoAccepted: Set<String>) {
+        val accepted = acceptedParticipants(userId = userId, currentPage = emptyList()) + alsoAccepted
+        val stored = withContext(dispatcherProvider.io()) {
+            database.messageConversations().findAllByOwnerId(ownerId = userId)
+        }
+        withContext(dispatcherProvider.io()) {
+            stored.forEach { conversation ->
+                database.messageConversations().updateRelation(
+                    ownerId = userId,
+                    participantId = conversation.participantId,
+                    relation = if (conversation.participantId in accepted) {
+                        ConversationRelation.Follows
+                    } else {
+                        ConversationRelation.Other
+                    },
+                )
+            }
+        }
+    }
+
+    private fun List<NostrEvent>.participantsWrittenToBy(userId: String): Set<String> =
+        filter { it.pubKey == userId }.mapNotNull { it.tags.findFirstProfileId() }.toSet()
 
     override suspend fun fetchNonFollowsConversations(userId: String) {
         fetchConversations(userId = userId, relation = ConversationRelation.Other)
