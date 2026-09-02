@@ -37,6 +37,7 @@ import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asPubkeyTag
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.findFirstProfileId
+import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.publisher.PrimalPublisher
 
@@ -62,10 +63,6 @@ internal class ChatRepositoryImpl(
             database.messageConversations().newestConversationsPagedByOwnerId(
                 ownerId = userId,
                 relation = relation,
-                // NIP-04 relay events do not carry Primal's follows/other contact
-                // classification. Keep the local list visible in either tab, including
-                // rows written by an older session before relay mode was enabled.
-                includeAll = true,
             )
         }.flow.map { it.map { it.asDMConversation() } }
 
@@ -94,6 +91,33 @@ internal class ChatRepositoryImpl(
         // one pass of decrypting and storing what comes back, instead of two.
         val key = FetchKey.Conversations(ownerId = userId, until = until)
         return fetchCoordinator.coalesce(key) { fetchConversationsPage(userId, relation, limit, until) }
+    }
+
+    /**
+     * Who counts as a conversation you chose to be in.
+     *
+     * A NIP-04 event carries nothing that separates a message from a friend from one from a
+     * stranger, so the split has to be decided here. Two things say you chose this conversation:
+     * you follow the other person, or you have written to them. The second is what makes the
+     * Others tab a request list rather than a dead end — answering somebody accepts them, and the
+     * conversation moves across on the next refresh.
+     *
+     * The follow list comes through the coordinator, so on a screen that opens after the feed it
+     * costs nothing.
+     */
+    private suspend fun acceptedParticipants(userId: String): Set<String> {
+        val writtenTo = withContext(dispatcherProvider.io()) {
+            database.messages().participantsWrittenTo(ownerId = userId)
+        }
+        val follows = relayEventQuerier?.let { querier ->
+            runCatching { fetchCoordinator.fetchFollowList(querier = querier, pubkey = userId) }
+                .getOrDefault(emptyList())
+                .maxByOrNull { it.createdAt }
+                ?.tags
+                ?.pubkeyTagValues()
+                .orEmpty()
+        }.orEmpty()
+        return writtenTo.toSet() + follows
     }
 
     private suspend fun fetchConversationsPage(
@@ -136,7 +160,10 @@ internal class ChatRepositoryImpl(
                     relation = relation,
                 )
             }
-            ?: response.messages.asConversationIndex(userId = userId, relation = relation)
+            ?: response.messages.asConversationIndex(
+                userId = userId,
+                accepted = acceptedParticipants(userId = userId),
+            )
 
         // A relay hands back kind 4 events and nothing else, so this response carries no profiles
         // and the conversation list rendered raw npubs for anyone the database had not already
@@ -329,7 +356,7 @@ internal class ChatRepositoryImpl(
  * A relay returns messages, not Primal's conversation summary, so the index is derived here: the
  * other side of the conversation is the `p` tag when we are the author and the author otherwise.
  */
-private fun List<NostrEvent>.asConversationIndex(userId: String, relation: ConversationRelation) =
+private fun List<NostrEvent>.asConversationIndex(userId: String, accepted: Set<String>) =
     mapNotNull { event ->
         val recipientId = event.tags.findFirstProfileId() ?: return@mapNotNull null
         val participantId = if (event.pubKey == userId) recipientId else event.pubKey
@@ -345,7 +372,11 @@ private fun List<NostrEvent>.asConversationIndex(userId: String, relation: Conve
                 lastMessageId = latest.id,
                 lastMessageAt = latest.createdAt,
                 unreadMessagesCount = 0,
-                relation = relation,
+                relation = if (participantId in accepted) {
+                    ConversationRelation.Follows
+                } else {
+                    ConversationRelation.Other
+                },
             )
         }
 
@@ -377,5 +408,16 @@ private suspend fun MessageConversationDao.persistConversationIndex(
     }
     if (newer.isNotEmpty()) {
         upsertAll(data = newer)
+    }
+
+    // Which tab a conversation belongs in is recomputed every time, not carried by the upsert.
+    // A row whose last message has not moved still has to be able to change sides: answering a
+    // stranger accepts them, and rows written before this split existed all claim to be accepted.
+    conversations.forEach { conversation ->
+        updateRelation(
+            ownerId = userId,
+            participantId = conversation.participantId,
+            relation = conversation.relation,
+        )
     }
 }

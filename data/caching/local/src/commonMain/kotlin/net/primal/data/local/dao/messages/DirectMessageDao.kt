@@ -41,6 +41,20 @@ interface DirectMessageDao {
     )
     fun newestMessagesPagedByOwnerId(ownerId: String, participantId: String): PagingSource<Int, DirectMessage>
 
+    /**
+     * Everyone this user has written to.
+     *
+     * Answering a stranger is how you accept them: it is the difference between a conversation you
+     * chose to be in and one somebody started at you.
+     */
+    @Query(
+        """
+        SELECT DISTINCT participantId FROM DirectMessageData
+        WHERE ownerId = :ownerId AND senderId = :ownerId
+        """,
+    )
+    suspend fun participantsWrittenTo(ownerId: String): List<String>
+
     @Query("DELETE FROM DirectMessageData WHERE ownerId = :ownerId")
     suspend fun deleteAllByOwnerId(ownerId: String)
 }
