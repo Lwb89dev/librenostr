@@ -105,10 +105,18 @@ internal class ChatRepositoryImpl(
      * The follow list comes through the coordinator, so on a screen that opens after the feed it
      * costs nothing.
      */
-    private suspend fun acceptedParticipants(userId: String): Set<String> {
+    private suspend fun acceptedParticipants(userId: String, currentPage: List<NostrEvent>): Set<String> {
         val writtenTo = withContext(dispatcherProvider.io()) {
             database.messages().participantsWrittenTo(ownerId = userId)
         }
+        // A reply this page just discovered is not in that query yet — persisting happens after
+        // this classification runs, later in the same call. Without this, the first page to ever
+        // see a conversation classifies it by whether the *previous* sync had already saved the
+        // reply, and a conversation whose reply and first-seen message land in the same page never
+        // gets another chance: nothing revisits it once it falls outside later, narrower windows.
+        val writtenToInThisPage = currentPage
+            .filter { it.pubKey == userId }
+            .mapNotNull { it.tags.findFirstProfileId() }
         val follows = relayEventQuerier?.let { querier ->
             runCatching { fetchCoordinator.fetchFollowList(querier = querier, pubkey = userId) }
                 .getOrDefault(emptyList())
@@ -117,7 +125,7 @@ internal class ChatRepositoryImpl(
                 ?.pubkeyTagValues()
                 .orEmpty()
         }.orEmpty()
-        return writtenTo.toSet() + follows
+        return writtenTo.toSet() + writtenToInThisPage + follows
     }
 
     private suspend fun fetchConversationsPage(
@@ -162,7 +170,7 @@ internal class ChatRepositoryImpl(
             }
             ?: response.messages.asConversationIndex(
                 userId = userId,
-                accepted = acceptedParticipants(userId = userId),
+                accepted = acceptedParticipants(userId = userId, currentPage = response.messages),
             )
 
         // A relay hands back kind 4 events and nothing else, so this response carries no profiles

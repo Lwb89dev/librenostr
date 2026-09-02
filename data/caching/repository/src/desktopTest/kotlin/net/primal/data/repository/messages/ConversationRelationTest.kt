@@ -82,6 +82,29 @@ class ConversationRelationTest {
         }
 
     @Test
+    fun `a reply discovered in the same page as the stranger's message is accepted`() =
+        runTest {
+            // The failure this pins: on a fresh sync with nothing in the database yet, both sides
+            // of a conversation can arrive in the same page. The reply is not persisted until
+            // after classification runs, so a check against the database alone would call this a
+            // stranger and there would be no later page to correct it — the conversation shown in
+            // the list already carries its newest message, and nothing revisits an old one.
+            val bothDirectionsInOnePage = listOf(
+                incomingMessage(from = STRANGER),
+                replyMessage(to = STRANGER),
+            )
+            withRepository(api = FakeMessagesApi(messages = bothDirectionsInOnePage)) { repository, database ->
+                repository.syncConversations(userId = ME, backfillPages = 0)
+
+                assertEquals(
+                    ConversationRelation.Follows,
+                    database.relationOf(STRANGER),
+                    "the reply in this same page is what accepts them",
+                )
+            }
+        }
+
+    @Test
     fun `a row written before the split is reclassified`() =
         runTest {
             withRepository { repository, database ->
@@ -154,11 +177,16 @@ class ConversationRelationTest {
             ) { it.step() }
         }
 
-    private class FakeMessagesApi : MessagesApi by mockk(relaxed = true) {
+    private class FakeMessagesApi(
+        private val messages: List<NostrEvent> = listOf(
+            incomingMessage(from = STRANGER),
+            incomingMessage(from = FRIEND),
+        ),
+    ) : MessagesApi by mockk(relaxed = true) {
         override suspend fun getConversations(body: ConversationRequestBody) =
             ConversationsResponse(
                 conversationsSummary = null,
-                messages = listOf(incomingMessage(from = STRANGER), incomingMessage(from = FRIEND)),
+                messages = messages,
                 profileMetadata = emptyList(),
                 cdnResources = emptyList(),
                 primalUserNames = null,
@@ -192,6 +220,7 @@ class ConversationRelationTest {
 
     private suspend fun TestScope.withRepository(
         follows: List<String> = emptyList(),
+        api: FakeMessagesApi = FakeMessagesApi(),
         block: suspend (ChatRepositoryImpl, CachingDatabase) -> Unit,
     ) {
         val databaseName = "primal_conversation_relation_${counter++}.db"
@@ -207,7 +236,7 @@ class ConversationRelationTest {
                 dispatcherProvider = dispatcherProvider,
                 database = database,
                 messageCipher = mockk<MessageCipher>(relaxed = true),
-                messagesApi = FakeMessagesApi(),
+                messagesApi = api,
                 messagesProcessor = mockk<MessagesProcessor>(relaxed = true),
                 primalPublisher = mockk<PrimalPublisher>(relaxed = true),
                 relayEventQuerier = FollowListQuerier(follows),
@@ -238,6 +267,22 @@ private fun incomingMessage(from: String) =
             buildJsonArray {
                 add(JsonPrimitive("p"))
                 add(JsonPrimitive("me-pubkey"))
+            },
+        ),
+        content = "ciphertext",
+        sig = "sig",
+    )
+
+private fun replyMessage(to: String) =
+    NostrEvent(
+        id = "reply-to-$to",
+        pubKey = "me-pubkey",
+        createdAt = 2_000L,
+        kind = NostrEventKind.EncryptedDirectMessages.value,
+        tags = listOf(
+            buildJsonArray {
+                add(JsonPrimitive("p"))
+                add(JsonPrimitive(to))
             },
         ),
         content = "ciphertext",
