@@ -139,6 +139,7 @@ abstract class CommonRepositoryFactory {
             primalPublisher = primalPublisher,
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
+            fetchCoordinator = fetchCoordinator,
         )
     }
 

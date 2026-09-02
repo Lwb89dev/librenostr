@@ -15,6 +15,7 @@ import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.messages.MessagesApi
 import net.primal.data.remote.api.messages.model.ConversationRequestBody
 import net.primal.data.remote.api.messages.model.ConversationsResponse
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.messages.processors.MessagesProcessor
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -140,6 +141,12 @@ class ConversationBackfillTest {
                 // conversation index, both of which use the real database.
                 messagesProcessor = mockk<MessagesProcessor>(relaxed = true),
                 primalPublisher = mockk<PrimalPublisher>(relaxed = true),
+                fetchCoordinator = FetchCoordinator(
+                    dispatcherProvider = mockk<DispatcherProvider> {
+                        every { io() } returns dispatcher
+                        every { main() } returns dispatcher
+                    },
+                ),
             )
             block(repository, api, database)
         } finally {

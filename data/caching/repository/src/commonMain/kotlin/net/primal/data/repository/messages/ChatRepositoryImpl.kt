@@ -20,6 +20,8 @@ import net.primal.data.remote.api.messages.MessagesApi
 import net.primal.data.remote.api.messages.model.ConversationRequestBody
 import net.primal.data.remote.api.messages.model.MarkMessagesReadRequestBody
 import net.primal.data.remote.api.messages.model.MessagesRequestBody
+import net.primal.data.repository.fetch.FetchCoordinator
+import net.primal.data.repository.fetch.FetchKey
 import net.primal.data.repository.mappers.local.asDMConversation
 import net.primal.data.repository.mappers.local.asDirectMessageDO
 import net.primal.data.repository.messages.paging.MessagesRemoteMediator
@@ -37,6 +39,10 @@ import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.publisher.PrimalPublisher
 
 @OptIn(ExperimentalPagingApi::class)
+// A repository holding its collaborators. Folding them into a parameter object would add a type
+// that exists only to satisfy a count, and the coordinator is deliberately not optional: a null
+// one would disable coalescing silently, which is the failure this whole change is about.
+@Suppress("LongParameterList")
 internal class ChatRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
@@ -46,6 +52,7 @@ internal class ChatRepositoryImpl(
     private val primalPublisher: PrimalPublisher,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
+    private val fetchCoordinator: FetchCoordinator,
 ) : ChatRepository {
 
     override fun newestConversations(userId: String, relation: ConversationRelation) =
@@ -79,6 +86,19 @@ internal class ChatRepositoryImpl(
         relation: ConversationRelation,
         limit: Int? = null,
         until: Long? = null,
+    ): List<NostrEvent> {
+        // Session start pulls the newest page and so does the messages tab, so opening messages
+        // right after launching runs both at once. Sharing means one set of kind 4 requests, and
+        // one pass of decrypting and storing what comes back, instead of two.
+        val key = FetchKey.Conversations(ownerId = userId, until = until)
+        return fetchCoordinator.coalesce(key) { fetchConversationsPage(userId, relation, limit, until) }
+    }
+
+    private suspend fun fetchConversationsPage(
+        userId: String,
+        relation: ConversationRelation,
+        limit: Int?,
+        until: Long?,
     ): List<NostrEvent> {
         // A relay has no notion of Primal's Follows/Other conversation relation: both
         // requests query the same kind-4 event set. The list screen requests both

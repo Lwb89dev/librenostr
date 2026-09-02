@@ -20,6 +20,20 @@ internal sealed interface FetchKey {
     /** Likes, replies, reposts and zaps pointing at one note. Per note, so feeds share them. */
     data class EventInteractions(val eventId: String) : FetchKey
 
+    /**
+     * One page of direct-message conversations.
+     *
+     * Session start and the messages tab both ask for the newest page, and opening messages right
+     * after launching the app runs them at the same time. These are kind 4 requests, which tell a
+     * relay who is asking, so sending one instead of two is worth more here than elsewhere.
+     *
+     * [until] is part of the identity because it is part of the question. Pages of one backfill
+     * run in sequence and never overlap, so no test today can tell the difference — but a key that
+     * did not name its window could hand a caller somebody else's page, and that is not a property
+     * to leave resting on scheduling.
+     */
+    data class Conversations(val ownerId: String, val until: Long?) : FetchKey
+
     /** Anything not yet worth its own case. The caller supplies a stable, self-describing name. */
     data class Custom(val name: String) : FetchKey
 }

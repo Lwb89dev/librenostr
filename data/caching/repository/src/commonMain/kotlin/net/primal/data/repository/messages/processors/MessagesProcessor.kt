@@ -35,7 +35,7 @@ internal class MessagesProcessor(
     private val messageCipher: MessageCipher,
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
-    private val fetchCoordinator: FetchCoordinator? = null,
+    private val fetchCoordinator: FetchCoordinator,
 ) {
 
     suspend fun processMessageEventsAndSave(
@@ -112,8 +112,7 @@ internal class MessagesProcessor(
             // elsewhere. This path used to sit outside every dedupe there is and ask again.
             val metadataEvents: List<NostrEvent> = relayEventQuerier?.let { querier ->
                 runCatching {
-                    fetchCoordinator?.fetchMetadata(querier = querier, pubkeys = missingProfileIds.toList())
-                        ?: emptyList()
+                    fetchCoordinator.fetchMetadata(querier = querier, pubkeys = missingProfileIds.toList())
                 }.getOrDefault(emptyList())
             }.orEmpty()
             val profiles = metadataEvents

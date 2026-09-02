@@ -81,8 +81,17 @@ internal class FetchCoordinator(
         querier: RelayEventQuerier,
         key: FetchKey,
         filter: RelayFilter,
-    ): List<NostrEvent> {
-        val operation = mutex.withLock { joinOrStart(key) { querier.query(filter) } }
+    ): List<NostrEvent> = coalesce(key) { querier.query(filter) }
+
+    /**
+     * Shares [block] under [key] with anyone already running it.
+     *
+     * For work that is not one filter: a conversation page is two filters plus the decrypting and
+     * storing that follows, and sharing it means that happens once rather than twice. Whoever gets
+     * there first does the work; the rest wait on the same answer and see the same failure.
+     */
+    suspend fun coalesce(key: FetchKey, block: suspend () -> List<NostrEvent>): List<NostrEvent> {
+        val operation = mutex.withLock { joinOrStart(key, block) }
         return operation.awaitAndRelease()
     }
 
