@@ -14,7 +14,10 @@ import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.feeds.extractFollowSetDTag
 import net.primal.domain.feeds.extractFollowSetPubkey
+import net.primal.domain.feeds.extractPubkeyFromFeedSpec
 import net.primal.domain.feeds.isFollowSetFeedSpec
+import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
+import net.primal.domain.feeds.isProfileAuthoredNotesFeedSpec
 import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.hasEventIdTag
 import net.primal.domain.nostr.pubkeyTagValues
@@ -80,8 +83,28 @@ internal class RelayNotesFeedFetcher(
             val dTag = feedSpec.extractFollowSetDTag() ?: return emptyList()
             return loadFollowSet(pubkey, dTag)
         }
+        feedSpec.profileFeedAuthor()?.let { return listOf(it) }
         return loadFollows(userId) + userId
     }
+
+    /**
+     * The one person a profile tab is about.
+     *
+     * Somebody's notes are a plain `authors` filter, so there was never a reason for these tabs to
+     * need anything a relay cannot do. They fell through to the centralized feed API instead,
+     * which in a relay-only build always throws, so the notes and replies tabs of every profile
+     * showed "unable to load content" and always had.
+     */
+    private fun String.profileFeedAuthor(): String? =
+        when {
+            isProfileAuthoredNotesFeedSpec() ->
+                extractPubkeyFromFeedSpec(prefix = AUTHORED_NOTES_PREFIX, suffix = "}")
+
+            isProfileAuthoredNoteRepliesFeedSpec() ->
+                extractPubkeyFromFeedSpec(prefix = AUTHORED_REPLIES_PREFIX, suffix = "}")
+
+            else -> null
+        }
 
     private suspend fun loadFollowSet(pubkey: String, dTag: String): List<String> {
         val events = runCatching {
@@ -179,6 +202,10 @@ internal class RelayNotesFeedFetcher(
         private const val AUTHOR_CHUNK = 250
         private const val MAX_FOLLOW_AUTHORS = 2_000
         private const val MAX_PARALLEL_CHUNKS = 8
+
+        private const val AUTHORED_NOTES_PREFIX = """{"id":"feed","kind":"notes","notes":"authored""""
+        private const val AUTHORED_REPLIES_PREFIX =
+            """{"id":"feed","include_replies":true,"kind":"notes","notes":"authored""""
     }
 }
 

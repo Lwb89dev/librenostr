@@ -25,16 +25,15 @@ import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.RelayEventStatsFetcher
 import net.primal.data.repository.feed.RelayNotesFeedFetcher
-import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
-import net.primal.domain.feeds.isFollowSetFeedSpec
-import net.primal.domain.feeds.isFollowingNotesFeedSpec
 import net.primal.domain.feeds.isAdvancedSearchFeedSpec
 import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNotesFeedSpec
+import net.primal.domain.feeds.isRelayServableNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.supportsUpwardsNotesPagination
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -63,9 +62,7 @@ internal class NoteFeedRemoteMediator(
         RelayEventStatsFetcher(querier = it, coordinator = fetchCoordinator)
     }
     private val useRelayAdvancedSearch = relayAdvancedSearchFetcher != null && feedSpec.isAdvancedSearchFeedSpec()
-    private val useRelayFollowingFeed =
-        relayFeedFetcher != null &&
-            (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
+    private val useRelayFollowingFeed = relayFeedFetcher != null && feedSpec.isRelayServableNotesFeedSpec()
 
     private val lastRequests: MutableMap<LoadType, Pair<MultiKindFeedBySpecRequestBody, Long>> = mutableMapOf()
 
@@ -286,7 +283,8 @@ internal class NoteFeedRemoteMediator(
             return fetcher.fetch(
                 userId = userId,
                 feedSpec = feedSpec,
-                includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
+                includeReplies = feedSpec.isUserNotesLwrFeedSpec() ||
+                    feedSpec.isProfileAuthoredNoteRepliesFeedSpec(),
                 limit = requestBody.limit ?: FeedRepository.DEFAULT_PAGE_SIZE,
                 until = requestBody.until,
                 since = requestBody.since,

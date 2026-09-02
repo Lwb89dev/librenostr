@@ -91,6 +91,18 @@ fun String.isProfileAuthoredNoteRepliesFeedSpec(): Boolean {
     )
 }
 
+/**
+ * Feeds a relay can serve directly, because their author scope is known without asking anyone.
+ *
+ * A following feed resolves to the user's kind 3, a follow set to its list, and a profile tab to
+ * the one person it is about. Anything else — trending, discovery, media thumbnails — depends on
+ * ranking that only a centralized index can do, and has no relay equivalent to fall back to.
+ */
+fun String.isRelayServableNotesFeedSpec(): Boolean {
+    return isFollowingNotesFeedSpec() || isFollowSetFeedSpec() ||
+        isProfileAuthoredNotesFeedSpec() || isProfileAuthoredNoteRepliesFeedSpec()
+}
+
 fun String.supportsUpwardsNotesPagination(): Boolean {
     return isUserNotesFeedSpec() || isUserNotesLwrFeedSpec() || isProfileNotesFeedSpec() ||
         isProfileAuthoredNotesFeedSpec() || isProfileAuthoredNoteRepliesFeedSpec()

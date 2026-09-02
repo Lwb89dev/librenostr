@@ -33,8 +33,7 @@ import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
-import net.primal.domain.feeds.isFollowSetFeedSpec
-import net.primal.domain.feeds.isFollowingNotesFeedSpec
+import net.primal.domain.feeds.isRelayServableNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.isAdvancedSearchFeedSpec
 import net.primal.domain.nostr.relay.RelayEventSubscriber
@@ -330,10 +329,7 @@ internal class FeedRepositoryImpl(
                     until = until,
                     since = since,
                 )
-            } else if (
-                querier != null &&
-                (feedSpec.isFollowingNotesFeedSpec() || feedSpec.isFollowSetFeedSpec())
-            ) {
+            } else if (querier != null && feedSpec.isRelayServableNotesFeedSpec()) {
                 (notesFeedFetcher ?: RelayNotesFeedFetcher(querier = querier, coordinator = fetchCoordinator)).fetch(
                     userId = userId,
                     feedSpec = feedSpec,
