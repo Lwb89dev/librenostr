@@ -7,6 +7,80 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.0] - 2026-09-02
+
+A request coordinator so the app stops asking relays the same question
+twice, and three bugs it turned up along the way: direct messages showing
+raw npubs, profile tabs that never loaded, and a Requests/Follows split
+that was not actually splitting anything.
+
+### Added
+
+- **A fetch coordinator sits between every repository and the relays.**
+  Before this, each repository asked on its own and nothing knew what
+  anything else had already requested. The active user's follow list was
+  fetched independently by the note feed, the article feed, advanced
+  search, explore and the profile screen — five requests for one kind-3
+  event, all at once on app start. Profile metadata was worse: two screens
+  showing the same author each asked for kind 0 separately, and the
+  profile screen bypassed the existing cache entirely. A concurrent request
+  for something already in flight now attaches to it instead of opening a
+  second one; two screens asking for overlapping sets of authors or notes
+  now share whatever overlaps and only ask separately for what does not.
+  The follow list additionally gets a short time-to-live, since the
+  screens that want it open seconds apart rather than at the same instant.
+
+### Fixed
+
+- **Feeds, notifications and DMs lost events past about four relays.** The
+  incoming socket flow was unbuffered, so one slow collector blocked the
+  read loop for every relay behind it, and a query could finish on the
+  first EOSE while other relays still had events in flight. Buffered now,
+  and a query waits for a quorum instead of a winner.
+- **Direct messages showed a raw npub instead of a name for many
+  conversations.** A relay hands back kind-4 events and nothing else, so
+  the conversation list never asked for the participants' profiles — a
+  name appeared only when another screen happened to have fetched that
+  profile first. The people you have exchanged messages with are the last
+  ones who should read as a hex string.
+- **A profile's Notes and Replies tabs never loaded**, showing "unable to
+  load content" every time. Somebody's own notes are a plain author filter
+  a relay can answer directly, but the feed mediator only recognised
+  following feeds and follow sets, so a profile tab fell through to the
+  centralized API this build doesn't have. Dead since the relay migration,
+  not introduced by this release.
+- **The Requests and Follows message tabs showed the same conversations.**
+  Every conversation was written under one relation regardless of which
+  tab it was fetched for, and the list query ignored the column besides.
+  A relation is now decided locally, the way Amethyst does it: a
+  conversation counts as accepted if you follow the other person or you
+  have written back to them, and everything else is a request. Answering
+  somebody is what accepts them, so a request does not sit there forever.
+- **Follow/unfollow loops filled the notifications tab.** A follow list is
+  republished in full on every change, so an account cycling follow and
+  unfollow emits a new event id each time; one account produced seven
+  identical "followed you" rows inside a minute. Follows are now keyed by
+  who did it and what day, and are grouped per day in the notifications
+  list itself rather than only until the tab is opened.
+- One failed profile-metadata request used to leave an author rendered as
+  a raw npub for the rest of the session, because the request was marked
+  done before anything came back. It is released and asked again now.
+
+### Changed
+
+- **A live note arriving no longer re-fetches the whole feed.** The
+  refresh triggered by the live subscription asked for a full page across
+  the entire follow list on every burst; it now asks the relays only for
+  what is newer than the newest note already held, with an inclusive
+  boundary so a note sharing a timestamp with it is not silently dropped.
+- **Note interaction counts and DM-referenced profiles are shared through
+  the coordinator.** Likes, replies, reposts and zaps for a note were
+  re-fetched by every feed that displayed it; profiles referenced inside a
+  conversation sat outside every existing dedupe. Both now coalesce with
+  whatever else is already asking.
+- Settings > Notifications gained a "Show new followers" switch, for
+  turning follow notifications off entirely.
+
 ## [0.1.5] - 2026-09-01
 
 Reliability with more than a handful of relays, a session that fetches before
@@ -355,6 +429,7 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.2.0]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.2.0
 [0.1.5]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.3
