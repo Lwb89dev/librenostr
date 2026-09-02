@@ -151,8 +151,9 @@ internal class FetchCoordinator(
     /**
      * Drops what was remembered for the current account.
      *
-     * Requests still in flight are left alone: they are keyed by pubkey, so they cannot deliver
-     * one account's data to another, and their callers are still waiting for an answer.
+     * Requests still in flight are left alone. Their callers are waiting on an answer, and
+     * nothing keyed here belongs to an account: a profile, a follow list and the reactions to a
+     * note are public events, identical whoever asked for them.
      */
     suspend fun clearSession() =
         mutex.withLock {
@@ -234,6 +235,9 @@ internal class FetchCoordinator(
         val batch = scope.async { query(items) }
         countRelayQuery()
 
+        // Abandoning every item of a batch cancels the per-item work but lets the batch itself
+        // run to completion and be discarded. Untangling that would mean tracking a batch's items
+        // to cancel it early, for at most one query already bounded by the relay timeout.
         return items.map { item ->
             // Failure is handled a level down, per chunk, so one unreachable relay costs its own
             // chunk and nothing else. By the time the batch resolves there is nothing left to
@@ -363,13 +367,15 @@ internal class FetchCoordinator(
         private const val EVENT_TAG_CHUNK = 50
         private const val MAX_INTERACTIONS_PER_QUERY = 500
 
+        /** A follow list is replaceable; only the newest one means anything. */
+        private const val FOLLOW_LIST_QUERY_LIMIT = 1
+
         private val INTERACTION_KINDS = listOf(
             NostrEventKind.Reaction.value,
             NostrEventKind.ShortTextNote.value,
             NostrEventKind.ShortTextNoteRepost.value,
             NostrEventKind.Zap.value,
         )
-        private const val FOLLOW_LIST_QUERY_LIMIT = 1
     }
 }
 
