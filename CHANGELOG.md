@@ -7,6 +7,32 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.1] - 2026-09-02
+
+Two follow-up fixes to the Follows/Requests split shipped in 0.2.0, found
+by using the app rather than by reading the code.
+
+### Fixed
+
+- **A reply landing in the same relay page as the stranger's first message
+  was still filed as a request.** The classification read who you had
+  written to from the local database, and the page that just discovered
+  the conversation had not been saved yet — persisting happens after
+  classification runs. A conversation whose reply and first-seen message
+  arrive together got judged before its own evidence existed, and nothing
+  would ever revisit it: a quiet conversation's events do not reappear in
+  a later sync once they fall outside its window. Fixed by folding the
+  page's own messages into the same check, so a reply counts the moment
+  it is seen instead of waiting for a future sync to notice it already
+  happened.
+- **A conversation misclassified before the fix existed stayed that way
+  forever**, even carrying a reply the database had held all along. A
+  stored conversation's relation only changed when its events reappeared
+  in a fresh relay fetch — which an old, quiet conversation never does, so
+  its very first classification became permanent. Every sync now sweeps
+  every stored conversation against current local data once, correcting
+  rows like this without needing anything back from the relays.
+
 ## [0.2.0] - 2026-09-02
 
 A request coordinator so the app stops asking relays the same question
@@ -429,6 +455,7 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.2.1]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.2.0
 [0.1.5]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.4
