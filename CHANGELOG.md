@@ -7,6 +7,35 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.2] - 2026-09-02
+
+A privacy-preserving relay stopped handing back direct messages at all, and
+thread replies rendered as one flat pile regardless of who was actually
+answering whom.
+
+### Fixed
+
+- **A relay's NIP-42 challenge for direct messages was never answered.**
+  Some relays require authentication before returning kind-4 events
+  specifically, so nobody can read your DMs off them without proving who
+  they are — a real relay-side privacy protection. LibreNostr's socket
+  layer already had the wire message to answer that challenge, unused
+  since the day it was written; nothing upstream ever called it, so every
+  relay enforcing this policy silently returned nothing, forever, for
+  every conversation whose only copy lived there. Every relay pool now
+  answers a challenge with a signed event when it has a signer — only the
+  account's own relay pool gets one, never the fallback pool or the
+  wallet-connect pool, since authenticating on either would disclose more
+  than that relationship calls for.
+- **A reply to a reply rendered at the same rank as every other reply.**
+  Everything after the opened note in a thread was sorted by timestamp
+  alone, in two flat buckets, with no notion of who was actually replying
+  to whom. A NIP-10 tag names a reply's parent exactly, and the thread
+  screen was not using it. Replies are now walked into a proper tree from
+  that tag, and the screen draws one vertical bar per level — a reply to a
+  reply visibly nests under the comment it answers instead of sitting at
+  the same rank as an unrelated reply that merely arrived nearby in time.
+
 ## [0.2.1] - 2026-09-02
 
 Two follow-up fixes to the Follows/Requests split shipped in 0.2.0, found
@@ -455,6 +484,7 @@ Nostr relays directly instead of a Primal cache server.
   is deferred until after the networking migration, per
   `docs/LIBRENOSTR_ROADMAP.md`.
 
+[0.2.2]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.2.2
 [0.2.1]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.2.0
 [0.1.5]: https://github.com/Lwb89dev/librenostr/releases/tag/v0.1.5
