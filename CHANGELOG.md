@@ -7,6 +7,36 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.6] - 2026-09-03
+
+A quoted note that wasn't already cached for some other reason showed
+"Mentioned event not found", the new Accounts entry in Settings had nothing
+inside it, and a bunker connection could leak a socket if you backed out
+mid-login.
+
+### Fixed
+
+- **Quoted notes often rendered as "Mentioned event not found."** A note
+  quoting another note — via a `nostr:note1…`/`nevent1…` reference or a
+  NIP-18 `q` tag — used to only render correctly by coincidence, if the
+  quoted note happened to already be cached from something else. The field
+  that used to carry it was Primal's centralized cache server's job, and
+  was never replaced with a relay fetch after the fork. The thread screen
+  and the main feed now ask relays for a quoted note (and its author's
+  profile) whenever it's missing.
+- **The new "Accounts" entry in Settings showed nothing when tapped.**
+  Settings rows render their content inline rather than navigating away,
+  and this one had no inline content wired up, so it just expanded to an
+  empty box. It now shows the "Add an existing account" action.
+- **A bunker (NIP-46) account could be asked to approve leftover event
+  kinds it should never see**, the same "leftover cache/wallet kind" set
+  Amber accounts were already shielded from — the filter only checked for
+  Amber, not for a bunker connection.
+- **A cancelled bunker connection (backing out mid-login, or cancelling a
+  pending publish) could leak an open socket.** The connection's cleanup
+  ran as a normal step after the work, not in a `finally`, so a
+  cancellation skipped it.
+
 ## [0.2.5] - 2026-09-03
 
 Adding a second account was only possible from a switcher tucked inside the
