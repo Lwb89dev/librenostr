@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.cryptography.utils.hexToNoteHrp
 import net.primal.domain.nostr.eventIdTagValues
 import net.primal.domain.nostr.findRootEventId
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -73,6 +74,39 @@ class RelayThreadFetcherTest {
     }
 
     @Test
+    fun fetch_quotedNoteInContent_isFetchedAndReturnedAsReferencedEvent() = runTest {
+        val quotedId = "b".repeat(64)
+        val quoted = note(quotedId, "carol", 5)
+        val root = note("root", "alice", 10).copy(content = "check this out nostr:${quotedId.hexToNoteHrp()}")
+        val response = RelayThreadFetcher(FakeQuerier(listOf(root, quoted)))
+            .fetch(noteId = "root", kinds = noteKind, limit = 50)
+
+        response.referencedEvents.map { it.id } shouldBe listOf(quotedId)
+    }
+
+    @Test
+    fun fetch_quoteTag_isFetchedAndReturnedAsReferencedEvent() = runTest {
+        val quotedId = "c".repeat(64)
+        val quoted = note(quotedId, "carol", 5)
+        val root = note("root", "alice", 10).copy(tags = listOf(qTag(quotedId)))
+        val response = RelayThreadFetcher(FakeQuerier(listOf(root, quoted)))
+            .fetch(noteId = "root", kinds = noteKind, limit = 50)
+
+        response.referencedEvents.map { it.id } shouldBe listOf(quotedId)
+    }
+
+    @Test
+    fun fetch_quotedNoteNeverArrives_stillReturnsWhatItHas() = runTest {
+        val missingId = "d".repeat(64)
+        val root = note("root", "alice", 10).copy(content = "nostr:${missingId.hexToNoteHrp()}")
+        val response = RelayThreadFetcher(FakeQuerier(listOf(root)))
+            .fetch(noteId = "root", kinds = noteKind, limit = 50)
+
+        response.notes.map { it.id } shouldBe listOf("root")
+        response.referencedEvents shouldBe emptyList()
+    }
+
+    @Test
     fun findRootEventId_prefersRootMarker() {
         val tags = listOf(
             eTag("mention", marker = "mention"),
@@ -124,6 +158,11 @@ class RelayThreadFetcherTest {
         add(JsonPrimitive(eventId))
         add(JsonPrimitive(""))
         add(JsonPrimitive(marker))
+    }
+
+    private fun qTag(eventId: String) = buildJsonArray {
+        add(JsonPrimitive("q"))
+        add(JsonPrimitive(eventId))
     }
 
     private class FakeQuerier(private val events: List<NostrEvent>) : RelayEventQuerier {

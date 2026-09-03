@@ -1,6 +1,8 @@
 package net.primal.data.account.signer.remote
 
 import kotlin.time.Duration
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import net.primal.core.nips.encryption.service.NostrEncryptionService
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
@@ -38,11 +40,16 @@ suspend fun <T> connectToBunker(
             bunkerPubkey = channel.bunkerPubkey,
             nostrEncryptionService = nostrEncryptionService,
         )
-        val result = runCatching {
-            client.connect().getOrThrow()
-            block(client)
+        val result = try {
+            runCatching {
+                client.connect().getOrThrow()
+                block(client)
+            }
+        } finally {
+            // Must run even if block() above was cancelled (e.g. the screen that started this
+            // login was left) — otherwise the client's own socket and coroutine scope leak.
+            withContext(NonCancellable) { client.destroy() }
         }
-        client.destroy()
 
         if (result.isSuccess) return result.getOrThrow()
         lastError = result.exceptionOrNull() ?: lastError

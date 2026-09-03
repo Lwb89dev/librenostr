@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import net.primal.android.user.credentials.CredentialsStore
@@ -11,9 +12,11 @@ import net.primal.android.user.domain.Credential
 import net.primal.android.user.domain.CredentialType
 import net.primal.core.nips.encryption.service.NostrEncryptionService
 import net.primal.core.testing.CoroutinesTestRule
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.cryptography.SignResult
 import net.primal.domain.nostr.cryptography.SigningKeyNotFoundException
+import net.primal.domain.nostr.cryptography.SigningRejectedException
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 import org.junit.Rule
 import org.junit.Test
@@ -99,8 +102,31 @@ class NostrNotaryTest {
             (result as SignResult.Rejected).error::class shouldBe SigningKeyNotFoundException::class
         }
 
-    private fun unsignedEvent() =
-        NostrUnsignedEvent(pubKey = userId, kind = 1, content = "hello")
+    @Test
+    fun `a remote-signer credential is never asked to sign a leftover kind that isn't in the signable set`() =
+        runTest {
+            // NwcRequest is signed with the wallet connection's own secret, never the account's
+            // identity — it must never reach a bunker at all, the same way it never reached Amber.
+            val credentialsStore = fakeCredentialsStore(
+                Credential(
+                    nsec = null,
+                    npub = userId.hexToNpubHrp(),
+                    type = CredentialType.RemoteSigner,
+                    remoteSignerPubkey = "bunker-pubkey",
+                    remoteSignerRelays = listOf("wss://relay.example.com"),
+                    remoteSignerClientPrivateKey = "client-privkey-hex",
+                ),
+            )
+
+            val result = notary(credentialsStore)
+                .signNostrEvent(unsignedEvent(kind = NostrEventKind.NwcRequest.value))
+
+            (result as SignResult.Rejected).error::class shouldBe SigningRejectedException::class
+            verify(exactly = 0) { credentialsStore.findOrThrow(any()) }
+        }
+
+    private fun unsignedEvent(kind: Int = 1) =
+        NostrUnsignedEvent(pubKey = userId, kind = kind, content = "hello")
 
     private fun fakeCredentialsStore(credential: Credential): CredentialsStore =
         mockk<CredentialsStore>(relaxed = true) {

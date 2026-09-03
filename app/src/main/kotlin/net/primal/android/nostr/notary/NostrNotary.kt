@@ -80,10 +80,10 @@ class NostrNotary @Inject constructor(
             return SignResult.Rejected(SigningRejectedException())
         }
 
-        if (isExternalSigner(unsignedNostrEvent.pubKey) &&
-            unsignedNostrEvent.kind !in SIGNABLE_EVENT_KIND_VALUES
-        ) {
-            Napier.d { "Skipping Amber prompt for leftover kind ${unsignedNostrEvent.kind}" }
+        val isPromptBasedSigner = isExternalSigner(unsignedNostrEvent.pubKey) ||
+            isRemoteSigner(unsignedNostrEvent.pubKey)
+        if (isPromptBasedSigner && unsignedNostrEvent.kind !in SIGNABLE_EVENT_KIND_VALUES) {
+            Napier.d { "Skipping external-signer prompt for leftover kind ${unsignedNostrEvent.kind}" }
             return SignResult.Rejected(SigningRejectedException())
         }
 

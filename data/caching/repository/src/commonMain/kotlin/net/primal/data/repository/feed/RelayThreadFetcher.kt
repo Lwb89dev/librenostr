@@ -9,6 +9,7 @@ import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
+import net.primal.domain.common.PrimalEvent
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.eventIdTagValues
@@ -81,14 +82,24 @@ internal class RelayThreadFetcher(
         val filled = queryByIds(missingParentIds(known))
         val all = (known + filled).distinctBy { it.id }
 
+        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) name a
+        // specific note the content renderer needs, same as an ancestor — without this a quote of
+        // anything not already fetched for another reason showed "Mentioned event not found."
+        val knownIds = all.map { it.id }.toSet()
+        val referencedNotes = queryByIds(all.referencedNoteIds().filterNot { it in knownIds })
+
         // Authors plus everyone the thread mentions, so a `nostr:` mention renders as the name
         // its owner chose rather than as an ellipsized npub.
+        val metadataSubjects = all + referencedNotes
         val metadata = loadMetadata(
-            (all.map { it.pubKey } + all.flatMap { it.tags.pubkeyTagValues() }).distinct(),
+            (metadataSubjects.map { it.pubKey } + metadataSubjects.flatMap { it.tags.pubkeyTagValues() }).distinct(),
         )
 
         Napier.d("Relay thread note=$noteId events=${all.size} ancestors=${ancestors.size}")
-        return all.toThreadFeedResponse(metadata)
+        return all.toThreadFeedResponse(
+            metadata = metadata,
+            referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() },
+        )
     }
 
     /**
@@ -168,7 +179,10 @@ internal class RelayThreadFetcher(
     }
 }
 
-internal fun List<NostrEvent>.toThreadFeedResponse(metadata: List<NostrEvent>): FeedResponse {
+internal fun List<NostrEvent>.toThreadFeedResponse(
+    metadata: List<NostrEvent>,
+    referencedEvents: List<PrimalEvent> = emptyList(),
+): FeedResponse {
     return FeedResponse(
         paging = null,
         metadata = metadata,
@@ -176,7 +190,7 @@ internal fun List<NostrEvent>.toThreadFeedResponse(metadata: List<NostrEvent>): 
         articles = emptyList(),
         reposts = filter { it.kind == NostrEventKind.ShortTextNoteRepost.value },
         zaps = filter { it.kind == NostrEventKind.Zap.value },
-        referencedEvents = emptyList(),
+        referencedEvents = referencedEvents,
         primalEventStats = emptyList(),
         primalEventUserStats = emptyList(),
         cdnResources = emptyList(),

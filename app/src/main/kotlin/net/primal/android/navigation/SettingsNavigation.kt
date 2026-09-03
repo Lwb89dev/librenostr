@@ -2,7 +2,15 @@ package net.primal.android.navigation
 
 import androidx.activity.compose.LocalActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController
 import androidx.navigation.NavDeepLink
@@ -12,10 +20,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
+import net.primal.android.R
 import net.primal.android.core.activity.LocalPrimalTheme
 import net.primal.android.core.compose.ApplyEdgeToEdge
 import net.primal.android.core.compose.LockToOrientationPortrait
+import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.settings.account.AccountSettingsScreen
+import net.primal.android.theme.AppTheme
 import net.primal.android.settings.account.AccountSettingsViewModel
 import net.primal.android.settings.appearance.AppearanceSettingsScreen
 import net.primal.android.settings.appearance.di.appearanceSettingsViewModel
@@ -327,8 +338,32 @@ private fun EmbeddedSettingsSection(
             onClose = {},
             embedded = true,
         )
+        PrimalSettingsSection.Accounts -> AccountsSettingsEmbedded(
+            onAddAccountClick = { navController.navigateToLogin() },
+        )
         PrimalSettingsSection.Language -> LanguageSettingsScreen()
         else -> Unit
+    }
+}
+
+@Composable
+private fun AccountsSettingsEmbedded(onAddAccountClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(id = R.string.settings_accounts_description),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colorScheme.onSurface,
+        )
+        PrimalLoadingButton(
+            modifier = Modifier.fillMaxWidth(),
+            text = stringResource(id = R.string.account_switcher_add_existing_account),
+            onClick = onAddAccountClick,
+        )
     }
 }
 

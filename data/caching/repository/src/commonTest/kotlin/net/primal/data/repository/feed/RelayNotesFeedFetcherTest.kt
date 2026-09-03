@@ -1,13 +1,23 @@
 package net.primal.data.repository.feed
 
 import io.kotest.matchers.shouldBe
+import io.mockk.every
+import io.mockk.mockk
 import kotlin.test.Test
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
+import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.cryptography.utils.hexToNoteHrp
 import net.primal.domain.nostr.hasEventIdTag
 import net.primal.domain.nostr.pubkeyTagValues
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayFilter
 
 class RelayNotesFeedFetcherTest {
 
@@ -70,5 +80,54 @@ class RelayNotesFeedFetcherTest {
         response.paging?.sinceId shouldBe 10
         response.paging?.untilId shouldBe 20
         response.paging?.elements shouldBe listOf("n1", "n0", "r1")
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun fetch_quotedNoteInContent_isFetchedAndReturnedAsReferencedEvent() =
+        runTest {
+            val quotedId = "b".repeat(64)
+            val quoted = event(quotedId, "carol", NostrEventKind.ShortTextNote.value, 5)
+            val page = event(
+                id = "n1",
+                pubkey = "alice",
+                kind = NostrEventKind.ShortTextNote.value,
+                createdAt = 20,
+            ).copy(content = "check this out nostr:${quotedId.hexToNoteHrp()}")
+
+            val querier = FakeQuerier(listOf(page, quoted))
+            val dispatcher = UnconfinedTestDispatcher(testScheduler)
+            val coordinator = FetchCoordinator(
+                dispatcherProvider = mockk<DispatcherProvider> {
+                    every { io() } returns dispatcher
+                    every { main() } returns dispatcher
+                },
+            )
+
+            val response = RelayNotesFeedFetcher(querier = querier, coordinator = coordinator).fetch(
+                userId = "alice",
+                feedSpec = """{"id":"feed","kind":"notes","notes":"authored","pubkey":"alice"}""",
+                includeReplies = false,
+                limit = 20,
+            )
+
+            response.referencedEvents.map { it.id } shouldBe listOf(quotedId)
+        }
+
+    private class FakeQuerier(private val events: List<NostrEvent>) : RelayEventQuerier {
+        override suspend fun query(filter: RelayFilter): List<NostrEvent> {
+            val matched = events.filter { event -> matches(event, filter) }
+            return filter.limit?.let { matched.take(it) } ?: matched
+        }
+
+        private fun matches(event: NostrEvent, filter: RelayFilter): Boolean {
+            val ids = filter.ids
+            if (ids != null && event.id !in ids) return false
+            val authors = filter.authors
+            if (authors != null && event.pubKey !in authors) return false
+            val kinds = filter.kinds
+            if (kinds != null && event.kind !in kinds) return false
+            return true
+        }
     }
 }

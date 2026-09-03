@@ -10,6 +10,7 @@ import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.common.ContentPrimalPaging
+import net.primal.domain.common.PrimalEvent
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.feeds.extractFollowSetDTag
@@ -56,10 +57,18 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
+
+        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) name a
+        // specific note the content renderer needs — without this, a quote of anything not
+        // already in the page for some other reason showed "Mentioned event not found."
+        val pageIds = page.map { it.id }.toSet()
+        val referencedNotes = queryByIds(page.referencedNoteIds().filterNot { it in pageIds })
+
         // Authors plus everyone mentioned inside the notes. Without the mentioned profiles the
         // renderer has no kind 0 to resolve a `nostr:` mention against and falls back to an
         // ellipsized npub, so a tagged user showed up as @npub1abc…xyz instead of their name.
-        val metadataAuthors = (page.map { it.pubKey } + page.flatMap { it.tags.pubkeyTagValues() })
+        val metadataSubjects = page + referencedNotes
+        val metadataAuthors = (metadataSubjects.map { it.pubKey } + metadataSubjects.flatMap { it.tags.pubkeyTagValues() })
             .distinct()
             .take(MAX_METADATA_AUTHORS)
         val metadata = if (metadataAuthors.isEmpty()) {
@@ -71,7 +80,22 @@ internal class RelayNotesFeedFetcher(
                 limit = metadataAuthors.size,
             )
         }
-        return page.toFeedResponse(metadata)
+        return page.toFeedResponse(metadata, referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() })
+    }
+
+    private suspend fun queryByIds(ids: List<String>): List<NostrEvent> {
+        if (ids.isEmpty()) return emptyList()
+        return ids.chunked(ID_CHUNK).let { chunks ->
+            coroutineScope {
+                chunks.map { chunk ->
+                    async {
+                        runCatching {
+                            querier.query(RelayFilter(ids = chunk, limit = chunk.size))
+                        }.getOrDefault(emptyList())
+                    }
+                }.awaitAll().flatten()
+            }
+        }
     }
 
     /** The author scope for a feed spec. Exposed so a live subscription can reuse it. */
@@ -202,6 +226,7 @@ internal class RelayNotesFeedFetcher(
         private const val AUTHOR_CHUNK = 250
         private const val MAX_FOLLOW_AUTHORS = 2_000
         private const val MAX_PARALLEL_CHUNKS = 8
+        private const val ID_CHUNK = 50
 
         private const val AUTHORED_NOTES_PREFIX = """{"id":"feed","kind":"notes","notes":"authored""""
         private const val AUTHORED_REPLIES_PREFIX =
@@ -209,7 +234,10 @@ internal class RelayNotesFeedFetcher(
     }
 }
 
-internal fun List<NostrEvent>.toFeedResponse(metadata: List<NostrEvent>): FeedResponse {
+internal fun List<NostrEvent>.toFeedResponse(
+    metadata: List<NostrEvent>,
+    referencedEvents: List<PrimalEvent> = emptyList(),
+): FeedResponse {
     val notes = filter { it.kind == NostrEventKind.ShortTextNote.value }
     val reposts = filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
     val created = map { it.createdAt }
@@ -230,7 +258,7 @@ internal fun List<NostrEvent>.toFeedResponse(metadata: List<NostrEvent>): FeedRe
         articles = filter { it.kind == NostrEventKind.LongFormContent.value },
         reposts = reposts,
         zaps = emptyList(),
-        referencedEvents = emptyList(),
+        referencedEvents = referencedEvents,
         primalEventStats = emptyList(),
         primalEventUserStats = emptyList(),
         cdnResources = emptyList(),
