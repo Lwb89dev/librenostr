@@ -22,3 +22,12 @@ fun NostrUnsignedEventNoPubkey.withPubKey(pubkey: String) =
         kind = kind,
         content = content,
     )
+
+/** The NIP-46 `sign_event` wire shape: a bunker fills in the pubkey itself, so it isn't sent. */
+fun NostrUnsignedEvent.withoutPubKey() =
+    NostrUnsignedEventNoPubkey(
+        createdAt = createdAt,
+        tags = tags,
+        kind = kind,
+        content = content,
+    )

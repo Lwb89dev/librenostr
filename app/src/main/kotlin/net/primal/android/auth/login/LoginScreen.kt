@@ -76,6 +76,7 @@ import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.primalGradientBrush
 import net.primal.android.core.compose.profile.model.ProfileDetailsUi
 import net.primal.android.core.utils.pasteText
+import net.primal.android.signer.bunker.isBunkerUrl
 import net.primal.android.signer.client.launchGetPublicKey
 import net.primal.android.signer.client.rememberAmberPubkeyLauncher
 import net.primal.android.stream.player.hideStreamMiniPlayer
@@ -180,9 +181,14 @@ fun LoginScreen(
                     ).show()
                 }
             },
+            onLoginWithBunkerClick = { bunkerUrl ->
+                eventPublisher(LoginContract.UiEvent.LoginWithBunkerEvent(bunkerUrl = bunkerUrl))
+            },
         )
     }
 }
+
+private enum class LoginEntryMode { Amber, Nsec, Bunker }
 
 @Composable
 fun LoginContent(
@@ -192,11 +198,12 @@ fun LoginContent(
     onLoginInputChanged: (String) -> Unit,
     onLoginClick: () -> Unit,
     onLoginWithAmberClick: () -> Unit,
+    onLoginWithBunkerClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val keyboardVisible by keyboardVisibilityAsState()
-    var nsecLoginVisible by rememberSaveable { mutableStateOf(false) }
+    var loginEntryMode by rememberSaveable { mutableStateOf(LoginEntryMode.Amber) }
 
     fun pasteFromClipboard() {
         val clipboardText = context.pasteText().trim()
@@ -217,50 +224,30 @@ fun LoginContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            if (nsecLoginVisible) {
-                LoginInputFieldContent(
+            when (loginEntryMode) {
+                LoginEntryMode.Nsec -> LoginInputFieldContent(
                     state = state,
                     uiMode = uiMode,
                     keyboardVisible = keyboardVisible,
                     onLoginInputChanged = onLoginInputChanged,
                     onLoginClick = onLoginClick,
                 )
-            } else {
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(id = R.string.login_amber_primary_hint),
-                    style = AppTheme.typography.bodyLarge,
-                    color = PrimalDarkTextColor.copy(alpha = 0.86f),
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(20.dp))
-                OnboardingButton(
-                    text = stringResource(id = R.string.login_with_amber_button),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
+
+                LoginEntryMode.Bunker -> BunkerInputFieldContent(
                     loading = state.loading,
-                    enabled = !state.loading,
-                    onClick = onLoginWithAmberClick,
+                    onConnectClick = onLoginWithBunkerClick,
                 )
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(id = R.string.login_security_notice),
-                    style = AppTheme.typography.bodySmall,
-                    color = PrimalDarkTextColor.copy(alpha = 0.78f),
-                    textAlign = TextAlign.Center,
+
+                LoginEntryMode.Amber -> AmberPrimaryContent(
+                    loading = state.loading,
+                    onLoginWithAmberClick = onLoginWithAmberClick,
+                    onNsecModeClick = { loginEntryMode = LoginEntryMode.Nsec },
+                    onBunkerModeClick = { loginEntryMode = LoginEntryMode.Bunker },
                 )
-                TextButton(
-                    enabled = !state.loading,
-                    onClick = { nsecLoginVisible = true },
-                ) {
-                    Text(text = stringResource(id = R.string.login_nsec_unsafe))
-                }
             }
         }
 
-        if (nsecLoginVisible) {
+        if (loginEntryMode == LoginEntryMode.Nsec) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -290,6 +277,114 @@ fun LoginContent(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AmberPrimaryContent(
+    loading: Boolean,
+    onLoginWithAmberClick: () -> Unit,
+    onNsecModeClick: () -> Unit,
+    onBunkerModeClick: () -> Unit,
+) {
+    Text(
+        modifier = Modifier.fillMaxWidth(),
+        text = stringResource(id = R.string.login_amber_primary_hint),
+        style = AppTheme.typography.bodyLarge,
+        color = PrimalDarkTextColor.copy(alpha = 0.86f),
+        textAlign = TextAlign.Center,
+    )
+    Spacer(modifier = Modifier.height(20.dp))
+    OnboardingButton(
+        text = stringResource(id = R.string.login_with_amber_button),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        loading = loading,
+        enabled = !loading,
+        onClick = onLoginWithAmberClick,
+    )
+    Spacer(modifier = Modifier.height(14.dp))
+    Text(
+        modifier = Modifier.fillMaxWidth(),
+        text = stringResource(id = R.string.login_security_notice),
+        style = AppTheme.typography.bodySmall,
+        color = PrimalDarkTextColor.copy(alpha = 0.78f),
+        textAlign = TextAlign.Center,
+    )
+    TextButton(enabled = !loading, onClick = onNsecModeClick) {
+        Text(text = stringResource(id = R.string.login_nsec_unsafe))
+    }
+    TextButton(enabled = !loading, onClick = onBunkerModeClick) {
+        Text(text = stringResource(id = R.string.login_with_bunker))
+    }
+}
+
+@Composable
+private fun BunkerInputFieldContent(loading: Boolean, onConnectClick: (String) -> Unit) {
+    var bunkerInput by rememberSaveable { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val isValidBunkerUrl = bunkerInput.isBunkerUrl()
+
+    fun submit() {
+        keyboardController?.hide()
+        if (isValidBunkerUrl) onConnectClick(bunkerInput)
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 32.dp),
+            text = stringResource(id = R.string.login_enter_bunker_url),
+            textAlign = TextAlign.Center,
+            style = AppTheme.typography.bodyMedium,
+            color = PrimalDarkTextColor,
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Color.White, shape = AppTheme.shapes.extraLarge)
+                .padding(all = 2.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                value = bunkerInput,
+                onValueChange = { bunkerInput = it.trim() },
+                placeholder = {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(id = R.string.login_bunker_url_hint),
+                        textAlign = TextAlign.Center,
+                        style = AppTheme.typography.bodyLarge,
+                        color = AppTheme.extraColorScheme.onSurfaceVariantAlt4,
+                    )
+                },
+                singleLine = true,
+                isError = bunkerInput.isNotEmpty() && !isValidBunkerUrl,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go, keyboardType = KeyboardType.Uri),
+                keyboardActions = KeyboardActions(onGo = { submit() }),
+                textStyle = AppTheme.typography.titleLarge.copy(fontSize = 16.sp, color = Color.Black),
+                colors = loginTextFieldColors(keyboardVisible = true, loginInput = bunkerInput),
+                shape = AppTheme.shapes.extraLarge,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OnboardingButton(
+            text = stringResource(id = R.string.login_bunker_button_connect),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            loading = loading,
+            enabled = !loading && isValidBunkerUrl,
+            onClick = ::submit,
+        )
     }
 }
 

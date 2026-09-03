@@ -29,6 +29,7 @@ interface LoginContract {
             val credentialType: CredentialType? = null,
         ) : UiEvent()
         data class UpdateLoginInput(val newInput: String, val credentialType: CredentialType? = null) : UiEvent()
+        data class LoginWithBunkerEvent(val bunkerUrl: String) : UiEvent()
     }
 
     sealed class SideEffect {

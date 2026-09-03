@@ -160,7 +160,7 @@ private fun NavController.navigateToWelcome() =
         navOptions = navOptions { clearBackStack() },
     )
 
-private fun NavController.navigateToLogin() = navigate(route = "login")
+fun NavController.navigateToLogin() = navigate(route = "login")
 
 private fun NavController.navigateToRelayOnboarding() = navigate(route = "relayOnboarding")
 

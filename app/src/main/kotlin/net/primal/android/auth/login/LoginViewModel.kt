@@ -68,6 +68,7 @@ class LoginViewModel @Inject constructor(
                         input = it.newInput,
                         credentialType = it.credentialType,
                     )
+                    is UiEvent.LoginWithBunkerEvent -> loginWithBunker(bunkerUrl = it.bunkerUrl)
                     UiEvent.ResetLoginState -> resetLoginState()
                 }
             }
@@ -105,6 +106,25 @@ class LoginViewModel @Inject constructor(
             setState { copy(loading = false) }
         }
     }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun loginWithBunker(bunkerUrl: String) =
+        viewModelScope.launch {
+            if (bunkerUrl.isBlank()) return@launch
+
+            setState { copy(loading = true, credentialType = CredentialType.RemoteSigner, loginInput = bunkerUrl) }
+            try {
+                loginHandler.loginWithBunker(bunkerUrl = bunkerUrl)
+                setEffect(SideEffect.LoginSuccess)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Napier.w(throwable = error) { "Bunker login failed." }
+                setErrorState(error = UiState.LoginError.GenericError(error))
+            } finally {
+                setState { copy(loading = false) }
+            }
+        }
 
     private fun setErrorState(error: UiState.LoginError) {
         setState { copy(error = error) }

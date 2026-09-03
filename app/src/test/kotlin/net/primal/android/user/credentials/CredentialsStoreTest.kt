@@ -13,11 +13,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import net.primal.android.security.NoEncryption
 import net.primal.android.user.domain.Credential
+import net.primal.android.user.domain.CredentialType
 import net.primal.core.testing.CoroutinesTestRule
 import net.primal.core.testing.advanceUntilIdleAndDelay
 import net.primal.domain.nostr.cryptography.utils.Bech32
 import net.primal.domain.nostr.cryptography.utils.CryptoUtils
 import net.primal.domain.nostr.cryptography.utils.InvalidNostrPrivateKeyException
+import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 import net.primal.domain.nostr.cryptography.utils.toHex
 import net.primal.domain.nostr.cryptography.utils.toNpub
 import org.junit.Rule
@@ -107,6 +109,32 @@ class CredentialsStoreTest {
         val credentialsStore = CredentialsStore(persistence = persistence)
         credentialsStore.find(npub = "missing npub") shouldBe null
     }
+
+    @Test
+    fun `saveRemoteSignerConnection stores a RemoteSigner credential keyed by the discovered user pubkey`() =
+        runTest {
+            val credentialsStore = CredentialsStore(persistence = persistence)
+            val userPubkeyHex = CryptoUtils.generateHexEncodedKeypair().pubKey
+
+            val actualUserId = credentialsStore.saveRemoteSignerConnection(
+                userPubkeyHex = userPubkeyHex,
+                remoteSignerPubkey = "bunker-pubkey",
+                relays = listOf("wss://relay.example.com"),
+                secret = "s3cr3t",
+                clientPrivateKeyHex = "client-privkey-hex",
+            )
+            advanceUntilIdleAndDelay()
+
+            actualUserId shouldBe userPubkeyHex
+            val saved = credentialsStore.findOrThrow(npub = userPubkeyHex.hexToNpubHrp())
+            saved.type shouldBe CredentialType.RemoteSigner
+            saved.nsec shouldBe null
+            saved.remoteSignerPubkey shouldBe "bunker-pubkey"
+            saved.remoteSignerRelays shouldBe listOf("wss://relay.example.com")
+            saved.remoteSignerSecret shouldBe "s3cr3t"
+            saved.remoteSignerClientPrivateKey shouldBe "client-privkey-hex"
+            credentialsStore.isRemoteSignerCredential(npub = userPubkeyHex.hexToNpubHrp()) shouldBe true
+        }
 
     @Test
     fun `clearCredentials removes all credentials from data store`() =

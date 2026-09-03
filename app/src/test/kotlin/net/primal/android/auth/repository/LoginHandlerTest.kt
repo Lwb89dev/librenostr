@@ -7,6 +7,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import net.primal.android.signer.bunker.BunkerConnection
+import net.primal.android.signer.bunker.BunkerLoginClient
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.Credential
@@ -16,6 +18,7 @@ import net.primal.android.user.repository.UserRepository
 import net.primal.core.testing.CoroutinesTestRule
 import net.primal.core.testing.FakeDataStore
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.cryptography.NostrKeyPair
 import org.junit.Rule
 import org.junit.Test
 
@@ -36,6 +39,7 @@ class LoginHandlerTest {
         userRepository: UserRepository = mockk(relaxed = true),
         credentialsStore: CredentialsStore = mockk(relaxed = true),
         relayRepository: RelayRepository = mockk(relaxed = true),
+        bunkerLoginClient: BunkerLoginClient = mockk(relaxed = true),
     ): LoginHandler =
         LoginHandler(
             authRepository = authRepository,
@@ -43,6 +47,7 @@ class LoginHandlerTest {
             dispatchers = coroutinesTestRule.dispatcherProvider,
             credentialsStore = credentialsStore,
             relayRepository = relayRepository,
+            bunkerLoginClient = bunkerLoginClient,
         )
 
     @Test
@@ -208,4 +213,78 @@ class LoginHandlerTest {
             coVerify(exactly = 1) { userRepository.ensureLocalUserAccount(expectedUserId) }
             coVerify(exactly = 0) { userRepository.fetchAndUpdateUserAccount(any()) }
         }
+
+    @Test
+    fun loginWithBunker_activatesTheAccountTheBunkerAnswersConnectWith() =
+        runTest {
+            val connection = bunkerConnection()
+            val bunkerLoginClient = mockk<BunkerLoginClient> {
+                coEvery { connect(bunkerUrl = "bunker://remote-signer") } returns connection
+            }
+            val credentialsStore = mockk<CredentialsStore>(relaxed = true) {
+                coEvery {
+                    saveRemoteSignerConnection(any(), any(), any(), any(), any())
+                } returns connection.userPubkeyHex
+            }
+            val authRepository = mockk<AuthRepository>(relaxed = true)
+            val relayRepository = mockk<RelayRepository>(relaxed = true)
+            val userRepository = mockk<UserRepository>(relaxed = true)
+            val loginHandler = createLoginHandler(
+                authRepository = authRepository,
+                userRepository = userRepository,
+                credentialsStore = credentialsStore,
+                relayRepository = relayRepository,
+                bunkerLoginClient = bunkerLoginClient,
+            )
+
+            val actualUserId = loginHandler.loginWithBunker(bunkerUrl = "bunker://remote-signer")
+
+            actualUserId shouldBe connection.userPubkeyHex
+            coVerify(exactly = 1) { relayRepository.ensureLocalBootstrapRelays(connection.userPubkeyHex) }
+            coVerify(exactly = 1) { userRepository.ensureLocalUserAccount(connection.userPubkeyHex) }
+            coVerify(exactly = 1) {
+                authRepository.loginWithRemoteSigner(
+                    userPubkeyHex = connection.userPubkeyHex,
+                    remoteSignerPubkey = connection.bunkerPubkey,
+                    relays = connection.relays,
+                    secret = connection.secret,
+                    clientPrivateKeyHex = connection.clientKeyPair.privateKey,
+                )
+            }
+        }
+
+    @Test
+    fun loginWithBunker_removesTheSavedCredential_ifCompletingLoginFails() =
+        runTest {
+            val connection = bunkerConnection()
+            val bunkerLoginClient = mockk<BunkerLoginClient> {
+                coEvery { connect(bunkerUrl = "bunker://remote-signer") } returns connection
+            }
+            val credentialsPersistence = FakeDataStore(emptySet<Credential>())
+            val credentialsStore = CredentialsStore(persistence = credentialsPersistence)
+            val userRepository = mockk<UserRepository>(relaxed = true) {
+                coEvery { ensureLocalUserAccount(any()) } throws NetworkException()
+            }
+            val loginHandler = createLoginHandler(
+                userRepository = userRepository,
+                credentialsStore = credentialsStore,
+                bunkerLoginClient = bunkerLoginClient,
+            )
+
+            try {
+                loginHandler.loginWithBunker(bunkerUrl = "bunker://remote-signer")
+            } catch (_: NetworkException) {
+            }
+
+            credentialsPersistence.latestData shouldBe emptyList()
+        }
+
+    private fun bunkerConnection() =
+        BunkerConnection(
+            userPubkeyHex = expectedUserId,
+            bunkerPubkey = "bunker-pubkey",
+            relays = listOf("wss://relay.example.com"),
+            secret = "s3cr3t",
+            clientKeyPair = NostrKeyPair(privateKey = "client-privkey-hex", pubKey = "client-pubkey-hex"),
+        )
 }

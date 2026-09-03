@@ -47,6 +47,7 @@ import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.AddAccount
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.ConnectRelay
 import net.primal.android.core.compose.icons.primaliconpack.DarkMode
@@ -294,6 +295,7 @@ private fun VersionBadge(modifier: Modifier, versionName: String, onClick: () ->
 private fun PrimalSettingsSection.icon(): ImageVector {
     return when (this) {
         PrimalSettingsSection.Account -> PrimalIcons.MenuAccount
+        PrimalSettingsSection.Accounts -> PrimalIcons.AddAccount
         PrimalSettingsSection.Wallet -> PrimalIcons.NavWallet
         PrimalSettingsSection.Network -> PrimalIcons.ConnectRelay
         PrimalSettingsSection.Appearance -> PrimalIcons.DarkMode
@@ -311,6 +313,7 @@ private fun PrimalSettingsSection.icon(): ImageVector {
 private fun PrimalSettingsSection.title(): String {
     return when (this) {
         PrimalSettingsSection.Account -> stringResource(id = R.string.settings_account_title)
+        PrimalSettingsSection.Accounts -> stringResource(id = R.string.settings_accounts_title)
         PrimalSettingsSection.Network -> stringResource(id = R.string.settings_network_title)
         PrimalSettingsSection.Wallet -> stringResource(id = R.string.settings_wallet_title)
         PrimalSettingsSection.Appearance -> stringResource(id = R.string.settings_appearance_title)

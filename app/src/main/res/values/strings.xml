@@ -98,6 +98,10 @@
     <string name="login_with_amber_button">Login with Amber</string>
     <string name="login_amber_primary_hint">Amber keeps your private key in a dedicated signer and approves access securely.</string>
     <string name="login_nsec_unsafe">Login with nsec – unsafe</string>
+    <string name="login_with_bunker">Connect with a bunker</string>
+    <string name="login_bunker_url_hint">bunker://…</string>
+    <string name="login_bunker_button_connect">Connect</string>
+    <string name="login_enter_bunker_url">Paste the bunker connection string your signer gave you:</string>
     <string name="login_amber_required">LibreNostr signs with Amber. Install Amber to continue.</string>
     <string name="login_description">Enter your Nostr key to sign in:</string>
     <string name="login_button_sign_in">Sign In</string>
@@ -683,6 +687,7 @@
     <string name="accessibility_long_reads">Long reads</string>
 
     <string name="settings_account_title">Account</string>
+    <string name="settings_accounts_title">Accounts</string>
     <string name="settings_account_copy_public_key">Copy public key</string>
     <string name="settings_account_public_key_hint">Anyone on Nostr can find you via your public key. Feel free to share anywhere.</string>
     <string name="settings_account_public_key_title">Your Public Key</string>

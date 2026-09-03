@@ -18,6 +18,7 @@ import net.primal.domain.nostr.cryptography.utils.bech32ToHexOrThrow
 import net.primal.domain.nostr.cryptography.utils.extractKeyPairFromPrivateKeyOrThrow
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
+@Suppress("TooManyFunctions")
 @Singleton
 class CredentialsStore @Inject constructor(
     private val persistence: DataStore<Set<Credential>>,
@@ -38,6 +39,9 @@ class CredentialsStore @Inject constructor(
 
     fun isExternalSignerCredential(npub: String) =
         checkCredentialType(npub = npub, credentialType = CredentialType.ExternalSigner)
+
+    fun isRemoteSignerCredential(npub: String) =
+        checkCredentialType(npub = npub, credentialType = CredentialType.RemoteSigner)
 
     fun isNpubCredential(npub: String) = checkCredentialType(npub = npub, credentialType = CredentialType.PublicKey)
 
@@ -70,6 +74,28 @@ class CredentialsStore @Inject constructor(
     suspend fun saveNpub(npub: String): String {
         addCredential(Credential(nsec = null, npub = npub, type = CredentialType.PublicKey))
         return npub.bech32ToHexOrThrow()
+    }
+
+    /** Persists a working bunker connection. [userPubkeyHex] is what the bunker answered `get_public_key` with. */
+    suspend fun saveRemoteSignerConnection(
+        userPubkeyHex: String,
+        remoteSignerPubkey: String,
+        relays: List<String>,
+        secret: String?,
+        clientPrivateKeyHex: String,
+    ): String {
+        addCredential(
+            Credential(
+                nsec = null,
+                npub = userPubkeyHex.hexToNpubHrp(),
+                type = CredentialType.RemoteSigner,
+                remoteSignerPubkey = remoteSignerPubkey,
+                remoteSignerRelays = relays,
+                remoteSignerSecret = secret,
+                remoteSignerClientPrivateKey = clientPrivateKeyHex,
+            ),
+        )
+        return userPubkeyHex
     }
 
     suspend fun removeCredentialByNsec(nsec: String) =

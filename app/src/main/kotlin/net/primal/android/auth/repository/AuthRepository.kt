@@ -36,6 +36,24 @@ class AuthRepository @Inject constructor(
         return userId
     }
 
+    suspend fun loginWithRemoteSigner(
+        userPubkeyHex: String,
+        remoteSignerPubkey: String,
+        relays: List<String>,
+        secret: String?,
+        clientPrivateKeyHex: String,
+    ): String {
+        val userId = credentialsStore.saveRemoteSignerConnection(
+            userPubkeyHex = userPubkeyHex,
+            remoteSignerPubkey = remoteSignerPubkey,
+            relays = relays,
+            secret = secret,
+            clientPrivateKeyHex = clientPrivateKeyHex,
+        )
+        activeAccountStore.setActiveUserId(userId)
+        return userId
+    }
+
     suspend fun logout(pubkey: String) {
         if (pubkey == activeAccountStore.activeUserId()) {
             setNextActiveAccount()

@@ -131,6 +131,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
             onSettingsSectionClick = {
                 when (it) {
                     PrimalSettingsSection.Account -> navController.navigateToAccountSettings()
+                    PrimalSettingsSection.Accounts -> navController.navigateToLogin()
                     PrimalSettingsSection.Network -> navController.navigateToNetworkSettings()
                     PrimalSettingsSection.Wallet -> navController.navigateToWalletSettings()
                     PrimalSettingsSection.Appearance -> navController.navigateToAppearanceSettings()

@@ -5,6 +5,7 @@ import fr.acinq.secp256k1.Hex
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -21,10 +22,18 @@ import net.primal.android.signer.client.signEventWithAmber
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.Relay
 import net.primal.android.user.domain.toZapTag
+import net.primal.core.nips.encryption.service.NostrEncryptionService
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
+import net.primal.core.utils.getOrElse
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
+import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
+import net.primal.data.account.signer.remote.BunkerChannel
+import net.primal.data.account.signer.remote.connectToBunker
+import net.primal.data.account.signer.remote.model.RemoteSignerMethodType
+import net.primal.data.account.signer.remote.model.withoutPubKey
+import net.primal.data.account.signer.remote.requestAndAwait
 import net.primal.domain.global.ContentAppSettings
 import net.primal.domain.nostr.ContentMetadata
 import net.primal.domain.nostr.NostrEvent
@@ -34,21 +43,25 @@ import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asClientTag
 import net.primal.domain.nostr.asPubkeyTag
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
+import net.primal.domain.nostr.cryptography.NostrKeyPair
 import net.primal.domain.nostr.cryptography.SignResult
 import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.cryptography.SigningKeyNotFoundException
 import net.primal.domain.nostr.cryptography.SigningRejectedException
 import net.primal.domain.nostr.cryptography.signOrThrow
+import net.primal.domain.nostr.cryptography.utils.CryptoUtils
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
+import net.primal.domain.nostr.cryptography.utils.toHex
 import net.primal.domain.nostr.cryptography.utils.toNpub
 import net.primal.domain.nostr.zaps.ZapTarget
 import net.primal.domain.nostr.zaps.toTags
 
 @Singleton
 class NostrNotary @Inject constructor(
-    dispatchers: DispatcherProvider,
+    private val dispatchers: DispatcherProvider,
     private val contentResolver: ContentResolver,
     private val credentialsStore: CredentialsStore,
+    private val nostrEncryptionService: NostrEncryptionService,
 ) : NostrEventSignatureHandler {
 
     private val scope = CoroutineScope(dispatchers.main())
@@ -113,18 +126,62 @@ class NostrNotary @Inject constructor(
             credentialsStore.isExternalSignerCredential(npub = userId.hexToNpubHrp())
         }.getOrDefault(false)
 
-    private fun signNostrEvent(userId: String, event: NostrUnsignedEvent): NostrEvent? {
-        if (isExternalSigner(userId)) {
-            val result = contentResolver.signEventWithAmber(event = event)
-            return when (result) {
+    private fun isRemoteSigner(userId: String): Boolean =
+        runCatching {
+            credentialsStore.isRemoteSignerCredential(npub = userId.hexToNpubHrp())
+        }.getOrDefault(false)
+
+    private suspend fun signNostrEvent(userId: String, event: NostrUnsignedEvent): NostrEvent? =
+        when {
+            isExternalSigner(userId) -> when (val result = contentResolver.signEventWithAmber(event = event)) {
                 AmberSignResult.Rejected -> throw SigningRejectedException()
                 is AmberSignResult.Signed -> result.nostrEvent
                 AmberSignResult.Undecided -> null
             }
+
+            isRemoteSigner(userId) -> signViaRemoteSigner(userId = userId, event = event)
+
+            else -> event.signOrThrow(nsec = findNsecOrThrow(userId))
         }
 
-        return event.signOrThrow(nsec = findNsecOrThrow(userId))
+    private suspend fun signViaRemoteSigner(userId: String, event: NostrUnsignedEvent): NostrEvent {
+        val credential = credentialsStore.findOrThrow(npub = userId.hexToNpubHrp())
+        val bunkerPubkey = credential.remoteSignerPubkey
+        val clientPrivateKey = credential.remoteSignerClientPrivateKey
+        if (bunkerPubkey == null || clientPrivateKey.isNullOrEmpty() || credential.remoteSignerRelays.isEmpty()) {
+            throw SigningKeyNotFoundException()
+        }
+
+        val clientKeyPair = NostrKeyPair(
+            privateKey = clientPrivateKey,
+            pubKey = CryptoUtils.publicKeyCreate(privateKey = Hex.decode(clientPrivateKey)).toHex(),
+        )
+
+        val channel = BunkerChannel(
+            relays = credential.remoteSignerRelays,
+            clientKeyPair = clientKeyPair,
+            bunkerPubkey = bunkerPubkey,
+        )
+        val response = runCatching {
+            connectToBunker(
+                channel = channel,
+                dispatchers = dispatchers,
+                nostrEncryptionService = nostrEncryptionService,
+            ) { client ->
+                client.requestAndAwait(
+                    method = RemoteSignerMethodType.SignEvent,
+                    params = listOf(NostrNotaryJson.encodeToString(event.withoutPubKey())),
+                    timeout = REMOTE_SIGN_TIMEOUT,
+                )
+            }
+        }.getOrElse { throw SigningRejectedException(message = null, cause = it) }
+
+        return response.parseSignedEventOrThrow()
     }
+
+    private fun String?.parseSignedEventOrThrow(): NostrEvent =
+        this?.decodeFromJsonStringOrNull<NostrEvent>()
+            ?: throw SigningRejectedException("The bunker did not return a signed event.")
 
     suspend fun signMetadataNostrEvent(
         userId: String,
@@ -236,5 +293,6 @@ class NostrNotary @Inject constructor(
             NostrEventKind.ApplicationSpecificData.value,
             NostrEventKind.PrimalWalletOperation.value,
         )
+        val REMOTE_SIGN_TIMEOUT = 20.seconds
     }
 }

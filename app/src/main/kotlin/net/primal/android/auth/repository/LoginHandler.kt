@@ -2,6 +2,8 @@ package net.primal.android.auth.repository
 
 import javax.inject.Inject
 import kotlinx.coroutines.withContext
+import net.primal.android.signer.bunker.BunkerConnection
+import net.primal.android.signer.bunker.BunkerLoginClient
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.CredentialType
 import net.primal.android.user.repository.RelayRepository
@@ -10,6 +12,7 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.cryptography.utils.assureValidNsec
+import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
 class LoginHandler @Inject constructor(
     private val authRepository: AuthRepository,
@@ -17,6 +20,7 @@ class LoginHandler @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val credentialsStore: CredentialsStore,
     private val relayRepository: RelayRepository,
+    private val bunkerLoginClient: BunkerLoginClient,
 ) {
     @Suppress("UNUSED_PARAMETER", "TooGenericExceptionCaught")
     suspend fun login(
@@ -52,7 +56,7 @@ class LoginHandler @Inject constructor(
             CredentialType.ExternalSigner -> authRepository.loginWithExternalSignerNpub(npub = nostrKey)
             CredentialType.PublicKey -> authRepository.loginWithNpub(npub = nostrKey)
             CredentialType.PrivateKey -> authRepository.loginWithNsec(nostrKey = nostrKey)
-            CredentialType.InternalSigner -> Unit
+            CredentialType.InternalSigner, CredentialType.RemoteSigner -> Unit
         }
     }
 
@@ -65,6 +69,8 @@ class LoginHandler @Inject constructor(
             CredentialType.PrivateKey -> credentialsStore.saveNsec(nostrKey = nostrKey)
 
             CredentialType.InternalSigner -> error("Can't login with InternalSigner key.")
+
+            CredentialType.RemoteSigner -> error("Bunker connections go through loginWithBunker().")
         }
     }
 
@@ -75,7 +81,44 @@ class LoginHandler @Inject constructor(
 
             CredentialType.PrivateKey -> credentialsStore.removeCredentialByNsec(nsec = nostrKey.assureValidNsec())
 
-            CredentialType.InternalSigner -> Unit
+            CredentialType.InternalSigner, CredentialType.RemoteSigner -> Unit
         }
+    }
+
+    /**
+     * A bunker connection doesn't fit [login]'s single `nostrKey` shape: the handshake with the
+     * bunker has to happen first, over a relay, before there's even a `userId` to save credentials
+     * under — nsec/npub/Amber all know their identity from the input alone.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun loginWithBunker(bunkerUrl: String): String =
+        withContext(dispatchers.io()) {
+            val connection = bunkerLoginClient.connect(bunkerUrl)
+            val userId = credentialsStore.saveRemoteSignerConnection(
+                userPubkeyHex = connection.userPubkeyHex,
+                remoteSignerPubkey = connection.bunkerPubkey,
+                relays = connection.relays,
+                secret = connection.secret,
+                clientPrivateKeyHex = connection.clientKeyPair.privateKey,
+            )
+            try {
+                completeBunkerLogin(connection = connection, userId = userId)
+                userId
+            } catch (exception: Exception) {
+                credentialsStore.removeCredentialByNpub(npub = userId.hexToNpubHrp())
+                throw exception
+            }
+        }
+
+    private suspend fun completeBunkerLogin(connection: BunkerConnection, userId: String) {
+        runCatching { relayRepository.ensureLocalBootstrapRelays(userId) }
+        userRepository.ensureLocalUserAccount(userId)
+        authRepository.loginWithRemoteSigner(
+            userPubkeyHex = connection.userPubkeyHex,
+            remoteSignerPubkey = connection.bunkerPubkey,
+            relays = connection.relays,
+            secret = connection.secret,
+            clientPrivateKeyHex = connection.clientKeyPair.privateKey,
+        )
     }
 }
