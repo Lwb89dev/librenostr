@@ -321,7 +321,7 @@ internal class FeedRepositoryImpl(
                 querier != null &&
                 feedSpec.isAdvancedSearchFeedSpec()
             ) {
-                RelayAdvancedSearchFeedFetcher(querier).fetch(
+                RelayAdvancedSearchFeedFetcher(querier = querier, coordinator = fetchCoordinator).fetch(
                     userId = userId,
                     feedSpec = feedSpec,
                     fallbackKinds = kinds,

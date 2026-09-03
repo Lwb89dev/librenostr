@@ -166,7 +166,11 @@ class UserRepository @Inject constructor(
 
     suspend fun clearAllUserRelatedData(userId: String) =
         withContext(dispatchers.io()) {
-            userDataCleanupRepository.clearUserData(userId)
+            // Called after the account is already gone from the accounts store (see
+            // AuthRepository.logout), so an empty list here means nobody is left logged in and the
+            // shared coordinator/event caches are safe to drop along with this account's own rows.
+            val isLastAccount = accountsStore.userAccounts.value.isEmpty()
+            userDataCleanupRepository.clearUserData(userId, clearSharedCaches = isLastAccount)
             usersDatabase.withTransaction {
                 usersDatabase.userProfileInteractions().deleteAllByOwnerId(ownerId = userId)
                 usersDatabase.recentSearches().deleteAllByOwnerId(ownerId = userId)

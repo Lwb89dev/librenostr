@@ -4,6 +4,7 @@ import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import io.github.aakira.napier.Napier
 import net.primal.data.remote.api.feed.model.FeedResponse
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.domain.feeds.extractAdvancedSearchQuery
 import net.primal.domain.nostr.NostrEvent
@@ -26,6 +27,7 @@ import kotlin.time.Duration.Companion.days
  */
 internal class RelayAdvancedSearchFeedFetcher(
     private val querier: RelayEventQuerier,
+    private val coordinator: FetchCoordinator,
 ) {
 
     suspend fun fetch(
@@ -98,13 +100,10 @@ internal class RelayAdvancedSearchFeedFetcher(
     }.getOrDefault(emptyList())
 
     private suspend fun loadFollowAuthors(userId: String): List<String> = runCatching {
-        querier.query(
-            RelayFilter(
-                kinds = listOf(NostrEventKind.FollowList.value),
-                authors = listOf(userId),
-                limit = 1,
-            ),
-        ).maxByOrNull { it.createdAt }
+        // Routed through the coordinator: the note feed, article feed and profile screen already
+        // ask for this same follow list, often within the same burst of tab loads at app start.
+        coordinator.fetchFollowList(querier = querier, pubkey = userId)
+            .maxByOrNull { it.createdAt }
             ?.tags
             ?.mapNotNull { tag ->
                 if (tag.size >= 2 && tag.getOrNull(0)?.jsonPrimitive?.contentOrNull == "p") {

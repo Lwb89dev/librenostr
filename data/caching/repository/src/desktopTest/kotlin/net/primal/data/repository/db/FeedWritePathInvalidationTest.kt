@@ -130,7 +130,7 @@ class FeedWritePathInvalidationTest {
                 invalidationTracker = tracker,
                 localEventCache = LocalEventCache(database = database),
                 fetchCoordinator = FetchCoordinator(dispatcherProvider = testDispatcherProvider()),
-            ).clearUserData(userId = USER_ID)
+            ).clearUserData(userId = USER_ID, clearSharedCaches = true)
 
             mainSource.awaitInvalidation(reason = "account data cleanup (spec-blind crossref delete)")
         }

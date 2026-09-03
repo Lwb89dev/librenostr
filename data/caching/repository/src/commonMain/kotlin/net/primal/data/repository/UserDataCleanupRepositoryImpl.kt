@@ -13,7 +13,7 @@ internal class UserDataCleanupRepositoryImpl(
     private val localEventCache: LocalEventCache,
     private val fetchCoordinator: FetchCoordinator,
 ) : UserDataCleanupRepository {
-    override suspend fun clearUserData(userId: String) {
+    override suspend fun clearUserData(userId: String, clearSharedCaches: Boolean) {
         database.withTransaction {
             database.messages().deleteAllByOwnerId(ownerId = userId)
             database.messageConversations().deleteAllByOwnerId(ownerId = userId)
@@ -27,8 +27,11 @@ internal class UserDataCleanupRepositoryImpl(
             database.publicBookmarks().deleteAllBookmarks(userId = userId)
         }
         invalidationTracker.invalidateAll()
-        // The hot layer outlives the database rows it mirrors. Leaving it warm would hand the
-        // next account a set of authors somebody else had already asked the relays about.
+        if (!clearSharedCaches) return
+
+        // The hot layer outlives the database rows it mirrors, and it is shared by every
+        // logged-in account, not just this one. Only drop it once nobody is left to use it —
+        // otherwise this throws away cache still-logged-in accounts are relying on for nothing.
         localEventCache.clearSession()
         fetchCoordinator.clearSession()
     }
