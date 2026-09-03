@@ -14,8 +14,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.intOrNull
 import net.primal.android.networking.relays.errors.NostrPublishException
+import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.db.UsersDatabase
 import net.primal.android.user.domain.Relay
@@ -27,6 +29,8 @@ import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayEventSubscriber
+import net.primal.domain.nostr.NostrUnsignedEvent
+import net.primal.domain.nostr.cryptography.SignResult
 import net.primal.domain.nostr.relay.RelayFilter
 
 @Singleton
@@ -35,6 +39,7 @@ class RelaysSocketManager @Inject constructor(
     private val nostrSocketClientFactory: NostrSocketClientFactory,
     private val activeAccountStore: ActiveAccountStore,
     private val usersDatabase: UsersDatabase,
+    private val nostrNotary: NostrNotary,
 ) : RelayEventSubscriber {
 
     private val scope = CoroutineScope(dispatchers.io())
@@ -42,13 +47,17 @@ class RelaysSocketManager @Inject constructor(
 
     private var relaysObserverJob: Job? = null
 
-    private fun buildRelayPool() =
+    private fun buildRelayPool(signAuthEvent: (suspend (String, String) -> NostrEvent?)? = null) =
         RelayPool(
             dispatchers = dispatchers,
             nostrSocketClientFactory = nostrSocketClientFactory,
+            signAuthEvent = signAuthEvent,
         )
 
-    private val userRelaysPool: RelayPool = buildRelayPool()
+    // Only the account's own relays are worth authenticating to. The fallback pool is relays the
+    // user did not choose, and the NWC pool speaks for a wallet connection, not the user's own
+    // identity — proving who is asking on either would leak more than either relationship calls for.
+    private val userRelaysPool: RelayPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
     private val nwcRelaysPool: RelayPool = buildRelayPool()
     private val fallbackRelaysPool: RelayPool = buildRelayPool()
 
@@ -215,6 +224,39 @@ class RelaysSocketManager @Inject constructor(
         userRelaysPool.activeSubscriptionCount() +
             nwcRelaysPool.activeSubscriptionCount() +
             fallbackRelaysPool.activeSubscriptionCount()
+
+    /**
+     * Signs a relay's NIP-42 challenge as the active account.
+     *
+     * The event kind is already in the app's Amber permission set — declared for exactly this —
+     * so for the common case this returns synchronously with no prompt: Amber answers a
+     * pre-approved kind over its content provider without ever opening. A read-only account, or an
+     * external signer that has not granted the permission, cannot produce a signature at all; both
+     * fail here the same way a relay would if it simply never authenticates, no worse than today.
+     */
+    private suspend fun signAuthChallenge(challenge: String, relayUrl: String): NostrEvent? {
+        val userId = activeAccountStore.activeUserId()
+        if (userId.isEmpty()) return null
+        val unsigned = NostrUnsignedEvent(
+            pubKey = userId,
+            kind = NostrEventKind.ClientAuthentication.value,
+            tags = listOf(
+                buildJsonArray {
+                    add(JsonPrimitive("relay"))
+                    add(JsonPrimitive(relayUrl))
+                },
+                buildJsonArray {
+                    add(JsonPrimitive("challenge"))
+                    add(JsonPrimitive(challenge))
+                },
+            ),
+            content = "",
+        )
+        return when (val result = nostrNotary.signNostrEvent(unsigned)) {
+            is SignResult.Signed -> result.event
+            is SignResult.Rejected -> null
+        }
+    }
 
     private fun JsonObject.isPrivateScopeFilter(): Boolean {
         val kinds = (this["kinds"] as? JsonArray) ?: return false

@@ -23,7 +23,10 @@ import net.primal.core.networking.sockets.NostrIncomingMessage
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.testing.CoroutinesTestRule
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.serialization.toNostrJsonObject
 import org.junit.Rule
 import org.junit.Test
 
@@ -46,9 +49,11 @@ class RelayPoolTest {
 
     private fun buildRelayPool(
         nostrSocketClientFactory: NostrSocketClientFactory = mockk(relaxed = true),
+        signAuthEvent: (suspend (String, String) -> NostrEvent?)? = null,
     ) = RelayPool(
         dispatchers = coroutinesTestRule.dispatcherProvider,
         nostrSocketClientFactory = nostrSocketClientFactory,
+        signAuthEvent = signAuthEvent,
     )
 
     private fun buildSocketClientReturningOkMessageSuccessFalse(
@@ -629,6 +634,109 @@ class RelayPoolTest {
             relayPool.socketClients.size shouldBe RelayPool.MAX_RELAYS
             relayPool.relays.all { it.url.isValidRelayUrl() } shouldBe true
         }
+
+    /**
+     * A relay's AUTH challenge is a message on the connection, not tied to any one subscription,
+     * so this drives it the same way `changeRelays` wires a client up in production: through the
+     * factory, not by poking `socketClients` directly.
+     */
+    private fun mockAuthChallengingClient(
+        scope: CoroutineScope,
+        url: String,
+        challenge: String,
+    ): NostrSocketClientFactory {
+        val factory = mockk<NostrSocketClientFactory>(relaxed = true)
+        every {
+            factory.create(wssUrl = any(), onSocketConnectionOpened = any(), onSocketConnectionClosed = any())
+        } answers {
+            mockk<NostrSocketClient>(relaxed = true) {
+                every { socketUrl } returns url
+                // replay = 1 so the single test event is not lost to a race between this eager
+                // upstream and RelayPool's own collector starting to subscribe.
+                every { incomingMessages } returns flowOf(
+                    NostrIncomingMessage.AuthMessage(challenge = challenge),
+                ).shareIn(scope = scope, started = SharingStarted.Eagerly, replay = 1)
+                every { connectionGeneration } returns MutableStateFlow(0L)
+            }
+        }
+        return factory
+    }
+
+    private fun buildSignedAuthEvent(challenge: String, relayUrl: String) =
+        NostrEvent(
+            id = "auth-event",
+            pubKey = "user-pubkey",
+            kind = 22_242,
+            content = "",
+            createdAt = 1_700_000_000L,
+            sig = "sig",
+            tags = listOf(
+                buildJsonArray { add(JsonPrimitive("relay")); add(JsonPrimitive(relayUrl)) },
+                buildJsonArray { add(JsonPrimitive("challenge")); add(JsonPrimitive(challenge)) },
+            ),
+        )
+
+    @Test
+    fun changeRelays_answersAnAuthChallengeWhenAPoolHasASigner() =
+        runTest {
+            val url = "wss://auth-required.example.com"
+            val challenge = "the-challenge"
+            var signedFor: Pair<String, String>? = null
+            val factory = mockAuthChallengingClient(scope = backgroundScope, url = url, challenge = challenge)
+            val relayPool = buildRelayPool(
+                nostrSocketClientFactory = factory,
+                signAuthEvent = { seenChallenge, seenUrl ->
+                    signedFor = seenChallenge to seenUrl
+                    buildSignedAuthEvent(challenge = seenChallenge, relayUrl = seenUrl)
+                },
+            )
+
+            relayPool.changeRelays(listOf(Relay(url = url, read = true, write = true)))
+            runCurrent()
+
+            signedFor shouldBe (challenge to url)
+            coVerify {
+                relayPool.socketClients.single().sendAUTH(
+                    buildSignedAuthEvent(challenge = challenge, relayUrl = url).toNostrJsonObject(),
+                )
+            }
+        }
+
+    @Test
+    fun changeRelays_neverAnswersAChallengeWhenThePoolHasNoSigner() =
+        runTest {
+            // The fallback and NWC pools are built with no signer at all — proving identity to
+            // relays the user did not choose, or under a wallet connection's identity, is not this
+            // feature's job. A pool with no signer must not even try.
+            val url = "wss://auth-required.example.com"
+            val factory = mockAuthChallengingClient(scope = backgroundScope, url = url, challenge = "the-challenge")
+            val relayPool = buildRelayPool(nostrSocketClientFactory = factory)
+
+            relayPool.changeRelays(listOf(Relay(url = url, read = true, write = true)))
+            runCurrent()
+
+            coVerify(exactly = 0) { relayPool.socketClients.single().sendAUTH(any()) }
+        }
+
+    @Test
+    fun changeRelays_doesNotAnswerWhenTheSignerDeclines() =
+        runTest {
+            // A read-only account, or an external signer that never grants the permission, cannot
+            // produce a signature. That must fail quietly — the same as a relay that never
+            // authenticates today — not throw and not send a malformed AUTH.
+            val url = "wss://auth-required.example.com"
+            val factory = mockAuthChallengingClient(scope = backgroundScope, url = url, challenge = "the-challenge")
+            val relayPool = buildRelayPool(
+                nostrSocketClientFactory = factory,
+                signAuthEvent = { _, _ -> null },
+            )
+
+            relayPool.changeRelays(listOf(Relay(url = url, read = true, write = true)))
+            runCurrent()
+
+            coVerify(exactly = 0) { relayPool.socketClients.single().sendAUTH(any()) }
+        }
+
 
     @Test
     fun query_emptyPoolReturnsEmptyResult() =

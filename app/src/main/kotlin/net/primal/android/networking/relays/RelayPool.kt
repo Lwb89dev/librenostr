@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -29,6 +30,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.json.JsonObject
@@ -54,6 +56,14 @@ import net.primal.domain.nostr.serialization.toNostrJsonObject
 class RelayPool(
     dispatchers: DispatcherProvider,
     private val nostrSocketClientFactory: NostrSocketClientFactory,
+    /**
+     * Answers a relay's NIP-42 challenge with a signed kind-22242 event, or null to decline.
+     *
+     * Left null for pools that must not authenticate as the user: the fallback pool is relays the
+     * user did not choose, and proving identity to one of those on every query would tell it who
+     * is asking. Only the user's own relay pool is wired with a signer.
+     */
+    private val signAuthEvent: (suspend (challenge: String, relayUrl: String) -> NostrEvent?)? = null,
 ) {
 
     companion object {
@@ -64,6 +74,9 @@ class RelayPool(
         const val MAX_EVENTS_PER_QUERY = 500
         const val MAX_RELAYS = 30
         const val MAX_ACTIVE_SUBSCRIPTIONS = 64
+
+        /** Amber answers a pre-approved kind synchronously; this only guards against no answer. */
+        const val AUTH_SIGN_TIMEOUT_MS = 5_000L
     }
 
     private val scope = CoroutineScope(dispatchers.io())
@@ -143,13 +156,42 @@ class RelayPool(
     }
 
     private fun List<Relay>.mapAsNostrSocketClient() =
-        this.map {
+        this.map { relay ->
             nostrSocketClientFactory.create(
-                wssUrl = it.url,
+                wssUrl = relay.url,
                 onSocketConnectionOpened = onSocketConnectionOpenedCallback,
                 onSocketConnectionClosed = onSocketConnectionClosedCallback,
-            )
+            ).also { client -> observeAuthChallenges(client) }
         }
+
+    /**
+     * Answers this relay's AUTH challenges for as long as the client lives.
+     *
+     * A relay can send `["AUTH", challenge]` unprompted at any point, commonly the moment a query
+     * for privacy-sensitive content arrives — a direct-message REQ, in the case this exists for.
+     * Nothing ever answered it: the wire-level `sendAUTH` has existed since this client was
+     * written, with nothing upstream ever calling it, so every relay that requires NIP-42 before
+     * returning DMs returned nothing, silently, forever. That read from outside as "half my
+     * conversations are missing" with no error anywhere to explain why.
+     */
+    private fun observeAuthChallenges(client: NostrSocketClient) {
+        val sign = signAuthEvent ?: return
+        scope.launch {
+            client.incomingMessages
+                .filterIsInstance<NostrIncomingMessage.AuthMessage>()
+                .collect { challenge ->
+                    // Bounded so a signer that never answers — an external signer app with no UI
+                    // listening for this specific request — cannot hang this collector, or the
+                    // shared signing lock other, unrelated signing requests also wait on.
+                    val signed = withTimeoutOrNull(AUTH_SIGN_TIMEOUT_MS) {
+                        runCatching { sign(challenge.challenge, client.socketUrl) }.getOrNull()
+                    }
+                    if (signed != null) {
+                        runCatching { client.sendAUTH(signed.toNostrJsonObject()) }
+                    }
+                }
+        }
+    }
 
     @Throws(NostrPublishException::class)
     suspend fun publishEvent(nostrEvent: NostrEvent) {
