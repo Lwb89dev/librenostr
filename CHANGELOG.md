@@ -7,6 +7,29 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.5] - 2026-09-03
+
+Adding a second account was only possible from a switcher tucked inside the
+drawer; there was also no way at all to sign in with a remote signer
+("bunker") instead of a raw key or Amber.
+
+### Added
+
+- **An "Accounts" entry in Settings for adding another account.** Reuses the
+  existing sign-in screen — nsec/npub paste or Amber — which was already
+  safe to use for a second account (it never touches an already-logged-in
+  one). As before, multiple accounts on this device share the same relay
+  connections and local database: this is convenience, not identity
+  separation, and a relay can trivially tell they belong to the same
+  device. Keeping two identities genuinely unlinkable is a separate,
+  larger piece of work, not something this screen provides.
+- **Sign in with a bunker (NIP-46 remote signer).** Paste a `bunker://`
+  connection string from Amber's bunker mode, nsec.app, or any other NIP-46
+  signer to add an account without ever handing LibreNostr your private
+  key. Each note published from that account is signed by a round trip to
+  the bunker over its own relay channel, using a throwaway keypair
+  generated just for that connection — never the account's real key.
+
 ## [0.2.4] - 2026-09-03
 
 Two accounts on the same device already shared their relay connections and
