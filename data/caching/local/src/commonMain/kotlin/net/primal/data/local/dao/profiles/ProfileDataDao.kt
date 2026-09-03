@@ -78,4 +78,14 @@ interface ProfileDataDao {
 
     @Query("SELECT * FROM ProfileData WHERE lightningAddress = :lightningAddress LIMIT 1")
     suspend fun findProfileDataByLightningAddress(lightningAddress: String): ProfileData?
+
+    @Query(
+        """
+        SELECT * FROM ProfileData
+        WHERE handle LIKE :prefix || '%' OR displayName LIKE :prefix || '%'
+        ORDER BY handle
+        LIMIT :limit
+        """,
+    )
+    suspend fun findProfilesByPrefix(prefix: String, limit: Int): List<ProfileData>
 }

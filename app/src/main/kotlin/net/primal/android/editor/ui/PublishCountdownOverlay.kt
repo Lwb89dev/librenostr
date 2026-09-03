@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.primal.android.R
 import net.primal.android.core.compose.button.PrimalLoadingButton
+import net.primal.android.notes.feed.model.NoteContentUi
+import net.primal.android.notes.feed.note.ui.NoteContent
+import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.theme.AppTheme
 
 /**
@@ -38,6 +44,7 @@ fun PublishCountdownOverlay(
     secondsRemaining: Int,
     totalSeconds: Int,
     hasUploadedAttachments: Boolean,
+    notePreview: NoteContentUi,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -58,6 +65,30 @@ fun PublishCountdownOverlay(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            if (notePreview.content.isNotBlank() || notePreview.uris.isNotEmpty()) {
+                // A last look at what is about to go out, not just that something will. The
+                // countdown alone tells you a note is queued, not whether it says what you meant.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = PREVIEW_MAX_HEIGHT_DP.dp)
+                        .verticalScroll(rememberScrollState())
+                        .background(
+                            color = AppTheme.extraColorScheme.surfaceVariantAlt1,
+                            shape = AppTheme.shapes.medium,
+                        )
+                        .padding(12.dp),
+                ) {
+                    NoteContent(
+                        data = notePreview,
+                        expanded = true,
+                        noteCallbacks = NoteCallbacks(),
+                        onClick = {},
+                        onUrlClick = {},
+                    )
+                }
+            }
+
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(120.dp),
@@ -100,3 +131,5 @@ fun PublishCountdownOverlay(
         }
     }
 }
+
+private const val PREVIEW_MAX_HEIGHT_DP = 220

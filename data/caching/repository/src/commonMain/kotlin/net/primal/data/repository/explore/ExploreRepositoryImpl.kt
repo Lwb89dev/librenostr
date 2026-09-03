@@ -189,7 +189,25 @@ class ExploreRepositoryImpl(
 
     override suspend fun searchUsers(query: String, limit: Int): List<UserProfileSearchItem> =
         withContext(dispatcherProvider.io()) {
-            searchUsersFromRelays(query = query, limit = limit)
+            val normalizedQuery = query.trim().removePrefix("@").removePrefix("#").lowercase()
+            if (normalizedQuery.isBlank()) return@withContext emptyList()
+
+            // Profiles already cached locally (followed, seen in the feed, previously fetched)
+            // match instantly and offline. Relays fill in whatever is still missing, so typing
+            // stays responsive even before a single relay round-trip lands.
+            val localMatches = database.profiles()
+                .findProfilesByPrefix(prefix = normalizedQuery, limit = limit)
+                .map { UserProfileSearchItem(metadata = it.asProfileDataDO()) }
+
+            val remaining = limit - localMatches.size
+            val relayMatches = if (remaining > 0) {
+                searchUsersFromRelays(query = normalizedQuery, limit = remaining)
+            } else {
+                emptyList()
+            }
+
+            val localIds = localMatches.map { it.metadata.profileId }.toSet()
+            localMatches + relayMatches.filterNot { it.metadata.profileId in localIds }
         }
 
     private suspend fun searchUsersFromRelays(query: String, limit: Int): List<UserProfileSearchItem> {

@@ -109,9 +109,12 @@ import net.primal.android.editor.ui.NoteOutlinedTextField
 import net.primal.android.editor.ui.NoteTagUserLazyColumn
 import net.primal.android.editor.ui.poll.PollEditorSection
 import net.primal.android.nostr.mappers.toReferencedHighlight
+import net.primal.android.core.compose.attachment.model.EventUriUi
 import net.primal.android.notes.feed.model.FeedPostUi
+import net.primal.android.notes.feed.model.NoteContentUi
 import net.primal.android.notes.feed.model.PollType
 import net.primal.android.notes.feed.model.toNoteContentUi
+import net.primal.domain.links.EventUriType
 import net.primal.android.notes.feed.note.ui.FeedNoteHeader
 import net.primal.android.notes.feed.note.ui.NoteContent
 import net.primal.android.notes.feed.note.ui.NoteLightningInvoice
@@ -223,6 +226,7 @@ fun NoteEditorScreen(
             secondsRemaining = state.undoCountdownSeconds,
             totalSeconds = state.undoPostTimerSeconds,
             hasUploadedAttachments = state.attachments.isNotEmpty(),
+            notePreview = state.toPreviewNoteContentUi(),
             onCancel = { eventPublisher(UiEvent.CancelScheduledPublish) },
         )
         return
@@ -955,6 +959,39 @@ private fun NoteAttachmentsLazyRow(
             }
         }
     }
+}
+
+/**
+ * What the countdown overlay shows back to the user: the note text as typed, plus whatever media
+ * is already attached, rendered the same way a published note would be. Mentions still read as
+ * plain `@name` here since they are only rewritten into `nostr:` references at publish time — the
+ * wording is what matters for proofreading, not the final encoding.
+ */
+private fun NoteEditorContract.UiState.toPreviewNoteContentUi(): NoteContentUi {
+    val attachmentUris = attachments
+        .filter { it.isMediaAttachment }
+        .mapIndexed { index, attachment ->
+            EventUriUi(
+                eventId = attachment.id.toString(),
+                url = attachment.remoteUrl ?: attachment.localUri.toString(),
+                type = if (attachment.isVideoAttachment) EventUriType.Video else EventUriType.Image,
+                mimeType = attachment.mimeType,
+                position = index,
+            )
+        }
+    val gifUris = pendingGifUploads.mapIndexed { index, gif ->
+        EventUriUi(
+            eventId = gif.id.toString(),
+            url = gif.blossomUrl ?: gif.originalUrl,
+            type = EventUriType.Image,
+            position = attachmentUris.size + index,
+        )
+    }
+    return NoteContentUi(
+        noteId = "publish-preview",
+        content = content.text,
+        uris = attachmentUris + gifUris,
+    )
 }
 
 @Composable
