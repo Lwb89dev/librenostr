@@ -1,3 +1,4 @@
+import com.android.build.api.variant.FilterConfiguration
 import java.util.*
 
 plugins {
@@ -214,6 +215,21 @@ android {
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
+    }
+}
+
+// Zapstore (see zapstore.yaml) matches release assets against a fixed filename pattern, so the
+// altRelease ABI splits need a stable name instead of AGP's default "app-<abi>-altRelease.apk".
+androidComponents {
+    onVariants(selector().withBuildType("altRelease")) { variant ->
+        variant.outputs.forEach { output ->
+            val abi = output.filters
+                .find { it.filterType == FilterConfiguration.FilterType.ABI }
+                ?.identifier
+            if (abi != null) {
+                output.outputFileName.set("librenostr-$appVersionName-$abi.apk")
+            }
+        }
     }
 }
 
