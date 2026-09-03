@@ -7,6 +7,26 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.3] - 2026-09-03
+
+Proofreading a note before it went out meant trusting the countdown alone,
+and tagging someone by name only worked if a relay happened to answer.
+
+### Added
+
+- **The publish countdown now shows a preview of the note.** The last few
+  seconds before a note goes out were a bare timer with no way to see what
+  was actually about to be published. The countdown screen now renders the
+  note's text and any attached image or GIF the same way a published note
+  would look, so a mistake is caught by reading it, not by guessing.
+- **Mention search now checks profiles you already have before asking a
+  relay.** Typing `@` followed by a name only searched relays — a NIP-50
+  `search` filter if the relay supported it, otherwise a scan of the last
+  500 arbitrary profile events, meaning a followed or previously-seen
+  profile could still fail to show up. Profiles already cached locally now
+  match instantly by name prefix, offline included; a relay is only asked
+  to fill whatever the local cache didn't already cover.
+
 ## [0.2.2] - 2026-09-02
 
 A privacy-preserving relay stopped handing back direct messages at all, and
