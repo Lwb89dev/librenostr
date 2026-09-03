@@ -43,6 +43,13 @@ data class FeedPostUi(
     val poll: PollUi? = null,
     val feedNoteContent: NoteContentUi? = null,
     val feedNoteContentRendered: RenderedNoteContent? = null,
+    /**
+     * How deep this reply sits under the note a thread screen opened, 0 for that note itself and
+     * for anything rendered outside a thread. A thread draws one vertical bar per level, so a
+     * reply to a reply reads as visibly nested under the comment it answers instead of sitting at
+     * the same rank as every other reply in the conversation.
+     */
+    val replyLevel: Int = 0,
 )
 
 fun FeedPost.asFeedPostUi(): FeedPostUi {

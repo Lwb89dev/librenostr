@@ -47,6 +47,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
@@ -91,9 +94,9 @@ import net.primal.android.core.compose.icons.primaliconpack.Expand
 import net.primal.android.core.compose.icons.primaliconpack.Gif
 import net.primal.android.core.compose.icons.primaliconpack.ImportPhotoFromCamera
 import net.primal.android.core.compose.icons.primaliconpack.ImportPhotoFromGallery
-import net.primal.android.core.compose.profile.approvals.ApproveBookmarkAlertDialog
 import net.primal.android.core.compose.icons.primaliconpack.Poll
 import net.primal.android.core.compose.preview.PrimalPreview
+import net.primal.android.core.compose.profile.approvals.ApproveBookmarkAlertDialog
 import net.primal.android.core.compose.pulltorefresh.PrimalIndicator
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
 import net.primal.android.core.compose.zaps.ThreadNoteTopZapsSection
@@ -491,13 +494,25 @@ private fun ThreadLazyColumn(
             val isReply = index > state.highlightPostIndex
             val highlighted = index == state.highlightPostIndex
             Column(
-                modifier = Modifier.onSizeChanged {
-                    if (highlighted) {
-                        highlightPostHeightPx = it.height
-                    } else if (isReply) {
-                        repliesHeightPx = repliesHeightPx.toMutableMap().apply { this[index] = it.height }
+                modifier = Modifier
+                    .onSizeChanged {
+                        if (highlighted) {
+                            highlightPostHeightPx = it.height
+                        } else if (isReply) {
+                            repliesHeightPx = repliesHeightPx.toMutableMap().apply { this[index] = it.height }
+                        }
                     }
-                },
+                    .let {
+                        if (isReply) {
+                            it.drawReplyLevel(
+                                level = item.replyLevel,
+                                color = AppTheme.colorScheme.outline,
+                                selected = AppTheme.colorScheme.primary,
+                            )
+                        } else {
+                            it
+                        }
+                    },
             ) {
                 FeedNoteCard(
                     data = item,
@@ -664,6 +679,37 @@ private fun isConnectedBackward(index: Int, highlightIndex: Int): Boolean {
 private fun isConnectedForward(index: Int, highlightIndex: Int): Boolean {
     return index in 0 until highlightIndex
 }
+
+/**
+ * Draws one full-height vertical bar per reply level, the deepest one in the accent color.
+ *
+ * The ancestor chain above the opened note is a straight line and [FeedNoteCard]'s own
+ * `drawLineAboveAvatar`/`drawLineBelowAvatar` already connect it avatar to avatar. Replies below
+ * are a tree, not a line: two replies to the same comment are siblings, not a chain, so a reply
+ * to a reply is marked by an extra bar next to it rather than by connecting it to whatever
+ * happens to be above it in the list. Mirrors how Amethyst marks reply depth.
+ */
+private fun Modifier.drawReplyLevel(level: Int, color: Color, selected: Color): Modifier =
+    this
+        .drawBehind {
+            val padding = REPLY_LEVEL_PADDING_DP.dp.toPx()
+            val strokeWidth = REPLY_LEVEL_STROKE_WIDTH_DP.dp.toPx()
+            val levelWidth = REPLY_LEVEL_WIDTH_DP.dp.toPx()
+
+            repeat(level) {
+                drawLine(
+                    color = if (it == level - 1) selected else color,
+                    start = Offset(x = padding + it * levelWidth, y = 0f),
+                    end = Offset(x = padding + it * levelWidth, y = size.height),
+                    strokeWidth = strokeWidth,
+                )
+            }
+        }
+        .padding(start = (REPLY_LEVEL_PADDING_DP + level * REPLY_LEVEL_WIDTH_DP).dp)
+
+private const val REPLY_LEVEL_PADDING_DP = 2
+private const val REPLY_LEVEL_STROKE_WIDTH_DP = 2
+private const val REPLY_LEVEL_WIDTH_DP = REPLY_LEVEL_STROKE_WIDTH_DP + 1
 
 private fun EventStatsUi.hasAnyCount() = repliesCount > 0 || zapsCount > 0 || likesCount > 0 || repostsCount > 0
 

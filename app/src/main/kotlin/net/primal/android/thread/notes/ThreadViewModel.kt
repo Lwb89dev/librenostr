@@ -20,7 +20,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.primal.android.articles.feed.ui.mapAsFeedArticleUi
 import net.primal.android.navigation.noteIdOrThrow
-import net.primal.android.notes.feed.model.asFeedPostUi
 import net.primal.android.thread.notes.ThreadContract.UiEvent
 import net.primal.android.thread.notes.ThreadContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -77,7 +76,7 @@ class ThreadViewModel @Inject constructor(
             var articleObserverStarted = false
             feedRepository.observeConversation(userId = activeAccountStore.activeUserId(), noteId = highlightPostId)
                 .filter { it.isNotEmpty() }
-                .map { posts -> posts.map { it.asFeedPostUi() } }
+                .map { posts -> posts.asDisplayOrderedFeedPostUi(highlightPostId = highlightPostId) }
                 .flowOn(dispatcherProvider.io())
                 .collect { conversation ->
                     setState { copy(highlightNote = conversation.find { it.postId == highlightPostId }) }
@@ -94,14 +93,9 @@ class ThreadViewModel @Inject constructor(
                         delay(100.milliseconds)
                     }
 
-                    val thread = conversation.subList(0, highlightPostIndex + 1)
-                    val rootAuthorId = conversation.firstOrNull()?.authorId
-                    val sortedReplies = conversation.subList(highlightPostIndex + 1, conversation.size)
-                        .sortedByDescending { it.timestamp }
-                    val (authorReplies, otherReplies) = sortedReplies.partition { it.authorId == rootAuthorId }
                     setState {
                         copy(
-                            conversation = thread + authorReplies + otherReplies,
+                            conversation = conversation,
                             highlightPostIndex = highlightPostIndex,
                         )
                     }
