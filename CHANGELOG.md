@@ -7,6 +7,27 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.4] - 2026-09-03
+
+Two accounts on the same device already shared their relay connections and
+local cache; the cleanup and search-feed code paths had not caught up with
+that.
+
+### Fixed
+
+- **Logging out one account discarded shared cache other logged-in accounts
+  were still using.** The coordinator's follow-list cache and hot event
+  layer are one process-wide instance, shared by every account signed in on
+  the device — logging out account A used to wipe both unconditionally,
+  even with account B still logged in and relying on them. It is now reset
+  only when the account being removed was the last one signed in.
+- **Advanced search's `myfollows` scope asked relays directly instead of
+  going through the fetch coordinator.** This was the case named when the
+  coordinator was introduced — the note feed, article feed and advanced
+  search all want the same follow list, often within the same burst of tab
+  loads — but this call site was never actually wired to it. It now shares
+  the same coalesced, briefly-cached request as everything else.
+
 ## [0.2.3] - 2026-09-03
 
 Proofreading a note before it went out meant trusting the countdown alone,
