@@ -450,6 +450,11 @@ private fun PrimalAppNavigation(
                             else -> Unit
                         }
                     },
+                    // While on Profile, activeDestination above falls back to Feeds for lack of a
+                    // dedicated case, which makes tapping Home look like tapping the already-active
+                    // tab. This bar is never shown while genuinely on Feeds, so "go home" is always
+                    // the right outcome for this fallback regardless of which branch fires.
+                    onActiveDestinationClick = { navController.navigateToMain(PrimalTopLevelDestination.Feeds) },
                     onMessagesClick = {
                         if (!isMessages) navController.navigateToMessages()
                     },
@@ -1168,7 +1173,10 @@ private fun NavGraphBuilder.main(
         }
     },
     popEnterTransition = {
-        if (initialState.destination.route.isMainScreenRoute()) {
+        // Messages is switched to and from via the persistent bottom bar, the same as any other
+        // top-level tab — a scale-in here reads as the whole screen flashing and rebuilding
+        // instead of an instant tab switch.
+        if (initialState.destination.route.isMainScreenRoute() || initialState.destination.route == "messages") {
             null
         } else {
             primalScaleIn
@@ -1479,7 +1487,10 @@ private fun NavGraphBuilder.messages(
     enterTransition = { primalSlideInHorizontallyFromEnd },
     exitTransition = { primalScaleOut },
     popEnterTransition = { primalScaleIn },
-    popExitTransition = { primalSlideOutHorizontallyToEnd },
+    // Popped both by the top bar's back arrow and, more often, by tapping another bottom-nav
+    // tab while on Messages — the latter is a tab switch, not a screen dismissal, so it should
+    // be instant rather than sliding out.
+    popExitTransition = { null },
 ) { navBackEntry ->
     val viewModel = hiltViewModel<MessageConversationListViewModel>(navBackEntry)
     ApplyEdgeToEdge()

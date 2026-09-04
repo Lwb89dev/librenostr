@@ -9,7 +9,7 @@ interface MessageConversationListContract {
     data class UiState(
         val loading: Boolean = false,
         val activeRelation: ConversationRelation,
-        val conversations: Flow<PagingData<MessageConversationUi>>,
+        val conversationsByRelation: Map<ConversationRelation, Flow<PagingData<MessageConversationUi>>>,
     )
 
     sealed class UiEvent {

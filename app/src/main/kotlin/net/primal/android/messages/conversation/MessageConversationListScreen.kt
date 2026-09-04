@@ -1,6 +1,7 @@
 package net.primal.android.messages.conversation
 
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -37,7 +40,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,10 +60,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.paging.LoadState
+import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import net.primal.android.R
 import net.primal.android.core.compose.ListNoContent
 import net.primal.android.core.compose.NostrUserText
@@ -109,29 +117,25 @@ fun MessageListScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MessageListScreen(
     state: MessageConversationListContract.UiState,
     eventPublisher: (UiEvent) -> Unit,
     callbacks: MessageConversationListContract.ScreenCallbacks,
 ) {
-    val conversations = state.conversations.collectAsLazyPagingItems()
-    val listState = conversations.rememberLazyListStatePagingWorkaround()
-    var pullToRefreshing by remember { mutableStateOf(false) }
-    val pullToRefreshState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+    val relations = ConversationRelation.entries
+    val pagerState = rememberPagerState(
+        initialPage = relations.indexOf(state.activeRelation).coerceAtLeast(0),
+    ) { relations.size }
+    val pagerScope = rememberCoroutineScope()
 
-    LaunchedEffect(conversations.loadState.refresh, state.loading) {
-        if (conversations.loadState.refresh !is LoadState.Loading && !state.loading) {
-            pullToRefreshing = false
-        }
-    }
-
-    val firstConversationId = if (conversations.isNotEmpty()) conversations[0]?.participantId else null
-    LaunchedEffect(firstConversationId) {
-        if (listState.firstVisibleItemIndex <= 1) {
-            listState.animateScrollToItem(index = 0)
-        }
+    // The pager is the single source of truth for which relation is showing — a tab tap just
+    // asks it to scroll there, and this mirrors wherever it lands (tap or swipe alike) back to
+    // the ViewModel, which needs to know for pull-to-refresh and prioritizing future fetches.
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }
+            .collect { page -> eventPublisher(ChangeRelation(relation = relations[page])) }
     }
 
     PrimalScaffold(
@@ -144,10 +148,14 @@ fun MessageListScreen(
                     MessagesTabs(
                         relation = state.activeRelation,
                         onFollowsTabClick = {
-                            eventPublisher(ChangeRelation(relation = ConversationRelation.Follows))
+                            pagerScope.launch {
+                                pagerState.animateScrollToPage(relations.indexOf(ConversationRelation.Follows))
+                            }
                         },
                         onOtherTabClick = {
-                            eventPublisher(ChangeRelation(relation = ConversationRelation.Other))
+                            pagerScope.launch {
+                                pagerState.animateScrollToPage(relations.indexOf(ConversationRelation.Other))
+                            }
                         },
                         onMarkAllRead = {
                             eventPublisher(MarkAllConversationsAsRead)
@@ -157,23 +165,13 @@ fun MessageListScreen(
             )
         },
         content = { paddingValues ->
-            PrimalPullToRefreshBox(
-                modifier = Modifier
-                    .background(color = AppTheme.colorScheme.surfaceVariant)
-                    .fillMaxSize(),
-                isRefreshing = pullToRefreshing,
-                onRefresh = {
-                    pullToRefreshing = true
-                    eventPublisher(UiEvent.RefreshConversations)
-                },
-                state = pullToRefreshState,
-                indicatorPaddingValues = paddingValues,
-            ) {
-                ConversationsList(
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                ConversationsPage(
+                    conversations = state.conversationsByRelation.getValue(relations[page]),
                     loading = state.loading,
-                    conversations = conversations,
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
                     contentPadding = paddingValues,
                     onConversationClick = callbacks.onConversationClick,
                     onProfileClick = callbacks.onProfileClick,
@@ -200,6 +198,58 @@ fun MessageListScreen(
             )
         },
     )
+}
+
+@Composable
+private fun ConversationsPage(
+    conversations: Flow<PagingData<MessageConversationUi>>,
+    loading: Boolean,
+    contentPadding: PaddingValues,
+    onConversationClick: (String) -> Unit,
+    onProfileClick: (profileId: String) -> Unit,
+    onRefreshClick: () -> Unit,
+) {
+    val pagingItems = conversations.collectAsLazyPagingItems()
+    val listState = pagingItems.rememberLazyListStatePagingWorkaround()
+    var pullToRefreshing by remember { mutableStateOf(false) }
+    val pullToRefreshState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+
+    LaunchedEffect(pagingItems.loadState.refresh, loading) {
+        if (pagingItems.loadState.refresh !is LoadState.Loading && !loading) {
+            pullToRefreshing = false
+        }
+    }
+
+    val firstConversationId = if (pagingItems.isNotEmpty()) pagingItems[0]?.participantId else null
+    LaunchedEffect(firstConversationId) {
+        if (listState.firstVisibleItemIndex <= 1) {
+            listState.animateScrollToItem(index = 0)
+        }
+    }
+
+    PrimalPullToRefreshBox(
+        modifier = Modifier
+            .background(color = AppTheme.colorScheme.surfaceVariant)
+            .fillMaxSize(),
+        isRefreshing = pullToRefreshing,
+        onRefresh = {
+            pullToRefreshing = true
+            onRefreshClick()
+        },
+        state = pullToRefreshState,
+        indicatorPaddingValues = contentPadding,
+    ) {
+        ConversationsList(
+            loading = loading,
+            conversations = pagingItems,
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = contentPadding,
+            onConversationClick = onConversationClick,
+            onProfileClick = onProfileClick,
+            onRefreshClick = onRefreshClick,
+        )
+    }
 }
 
 @Composable

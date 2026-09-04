@@ -52,7 +52,7 @@ class MessageConversationListViewModel @Inject constructor(
     private val _state = MutableStateFlow(
         value = UiState(
             activeRelation = ConversationRelation.Follows,
-            conversations = conversationsPagerCache.getValue(ConversationRelation.Follows),
+            conversationsByRelation = conversationsPagerCache,
         ),
     )
     val state = _state.asStateFlow()
@@ -131,12 +131,10 @@ class MessageConversationListViewModel @Inject constructor(
             .cachedIn(viewModelScope + dispatcherProvider.io())
 
     private fun changeRelation(relation: ConversationRelation) {
-        setState {
-            copy(
-                activeRelation = relation,
-                conversations = conversationsPagerCache.getValue(relation),
-            )
-        }
+        // Both relations are kept fresh by every fetchConversations() call regardless of which
+        // is active (see the ordering below) — switching tabs is purely which cached pager the
+        // screen shows, not a reason to fetch again.
+        setState { copy(activeRelation = relation) }
     }
 
     private fun markAllConversationAsRead() {
