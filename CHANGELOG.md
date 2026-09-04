@@ -7,6 +7,31 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.8] - 2026-09-04
+
+Four small polish fixes from a real-device pass: a slightly clipped splash
+logo, a jarring tab switch, a missing swipe gesture, and a dead Home button.
+
+### Fixed
+
+- **The splash screen logo was clipped in a corner.** The icon's artwork
+  extended past the safe zone the system's splash screen uses when masking
+  and scaling it, clipping a sliver off one edge. Re-centered with proper
+  margin.
+- **Switching from Messages to Notifications flashed and rebuilt the whole
+  screen.** Messages lives in its own navigation destination rather than
+  the app's in-place tab system, so switching tabs was popping back to a
+  fully torn-down screen and replaying a "returning from a detail screen"
+  scale animation. That transition is now instant, matching every other
+  tab.
+- **The DM Follows/Other tabs only responded to taps, not swipes.** Rebuilt
+  on a `HorizontalPager` (the same pattern already used elsewhere in the
+  app), so swiping left/right now switches between them, with the tab
+  indicator and underlying data following along either way.
+- **Tapping Home from the Profile screen did nothing.** The persistent
+  bottom bar mislabeled Feeds as the active tab while viewing a profile,
+  so tapping Home read as "you're already here" and silently no-opped.
+
 ## [0.2.7] - 2026-09-03
 
 The new Accounts entry in Settings only offered to add another account,
