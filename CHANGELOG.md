@@ -7,6 +7,23 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.2.7] - 2026-09-03
+
+The new Accounts entry in Settings only offered to add another account,
+with no way to see which accounts were already signed in, switch between
+them, or sign out — a second account you added looked like it had replaced
+the first, since there was nowhere to find it again.
+
+### Fixed
+
+- **Settings > Accounts now shows account switching and logout, not just
+  "add account."** The app already had a fully working account switcher —
+  list of signed-in accounts, tap to switch, an edit mode with a logout
+  button, add/create actions — but it only lived behind a small avatar
+  icon tucked next to the account name in the drawer, easy to miss.
+  Settings now opens that same switcher directly, so a second account
+  doesn't feel like it swallowed the first.
+
 ## [0.2.6] - 2026-09-03
 
 A quoted note that wasn't already cached for some other reason showed
