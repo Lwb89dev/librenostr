@@ -166,9 +166,9 @@ private fun NavController.navigateToRelayOnboarding() = navigate(route = "relayO
 
 private fun NavController.navigateToGesturesOnboarding() = navigate(route = "gesturesOnboarding")
 
-private fun NavController.navigateToOnboarding() = navigate(route = "onboarding")
+fun NavController.navigateToOnboarding() = navigate(route = "onboarding")
 
-private fun NavController.navigateToLogout(profileId: String) = navigate(route = "logout?$PROFILE_ID=$profileId")
+fun NavController.navigateToLogout(profileId: String) = navigate(route = "logout?$PROFILE_ID=$profileId")
 
 internal fun NavController.navigateToSearch(searchScope: SearchScope, initialQuery: String? = null) =
     navigate(route = "search?$SEARCH_SCOPE=$searchScope&$INITIAL_QUERY=$initialQuery")

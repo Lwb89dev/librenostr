@@ -688,7 +688,8 @@
 
     <string name="settings_account_title">Account</string>
     <string name="settings_accounts_title">Accounts</string>
-    <string name="settings_accounts_description">Add another account signed in on this device — with nsec, Amber, or a bunker connection. Switch between logged-in accounts from the drawer.</string>
+    <string name="settings_accounts_description">Manage the accounts signed in on this device — switch between them, sign out, or add another with nsec, Amber, or a bunker connection.</string>
+    <string name="settings_accounts_manage_button">Manage accounts</string>
     <string name="settings_account_copy_public_key">Copy public key</string>
     <string name="settings_account_public_key_hint">Anyone on Nostr can find you via your public key. Feel free to share anywhere.</string>
     <string name="settings_account_public_key_title">Your Public Key</string>

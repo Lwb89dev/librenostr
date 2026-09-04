@@ -6,8 +6,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -25,6 +32,9 @@ import net.primal.android.core.activity.LocalPrimalTheme
 import net.primal.android.core.compose.ApplyEdgeToEdge
 import net.primal.android.core.compose.LockToOrientationPortrait
 import net.primal.android.core.compose.button.PrimalLoadingButton
+import net.primal.android.drawer.multiaccount.AccountSwitcherContract
+import net.primal.android.drawer.multiaccount.AccountSwitcherViewModel
+import net.primal.android.drawer.multiaccount.ui.AccountSwitcherBottomSheet
 import net.primal.android.settings.account.AccountSettingsScreen
 import net.primal.android.theme.AppTheme
 import net.primal.android.settings.account.AccountSettingsViewModel
@@ -338,16 +348,34 @@ private fun EmbeddedSettingsSection(
             onClose = {},
             embedded = true,
         )
-        PrimalSettingsSection.Accounts -> AccountsSettingsEmbedded(
-            onAddAccountClick = { navController.navigateToLogin() },
-        )
+        PrimalSettingsSection.Accounts -> AccountsSettingsEmbedded(navController = navController)
         PrimalSettingsSection.Language -> LanguageSettingsScreen()
         else -> Unit
     }
 }
 
+/**
+ * Settings needed its own entry point into this — the drawer's [AccountSwitcher] is a small
+ * avatar row tucked next to the account name, easy to miss, and someone looking for "switch
+ * accounts" or "log out" naturally checks Settings first. Reuses [AccountSwitcherBottomSheet]
+ * as-is rather than rebuilding the account list: it already gets switch, logout (behind its edit
+ * mode, which still routes through the same confirmation screen), add, and create right.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AccountsSettingsEmbedded(onAddAccountClick: () -> Unit) {
+private fun AccountsSettingsEmbedded(navController: NavController) {
+    val viewModel = hiltViewModel<AccountSwitcherViewModel>()
+    val state by viewModel.state.collectAsState()
+    var sheetVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect {
+            when (it) {
+                AccountSwitcherContract.SideEffect.AccountSwitched -> navController.navigateToHome()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -361,8 +389,23 @@ private fun AccountsSettingsEmbedded(onAddAccountClick: () -> Unit) {
         )
         PrimalLoadingButton(
             modifier = Modifier.fillMaxWidth(),
-            text = stringResource(id = R.string.account_switcher_add_existing_account),
-            onClick = onAddAccountClick,
+            text = stringResource(id = R.string.settings_accounts_manage_button),
+            onClick = { sheetVisible = true },
+        )
+    }
+
+    val activeAccount = state.activeAccount
+    if (sheetVisible && activeAccount != null) {
+        AccountSwitcherBottomSheet(
+            activeAccount = activeAccount,
+            accounts = state.userAccounts,
+            onDismissRequest = { sheetVisible = false },
+            onLogoutClick = { profileId -> navController.navigateToLogout(profileId = profileId) },
+            onCreateNewAccountClick = { navController.navigateToOnboarding() },
+            onAddExistingAccountClick = { navController.navigateToLogin() },
+            onAccountClick = { userId ->
+                viewModel.setEvent(AccountSwitcherContract.UiEvent.SwitchAccount(userId = userId))
+            },
         )
     }
 }
