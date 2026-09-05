@@ -9,6 +9,9 @@ import io.ktor.http.isSuccess
 internal class TranslateApiImpl(private val httpClient: HttpClient) : TranslateApi {
 
     override suspend fun translate(serverUrl: String, text: String, targetLanguage: String): String {
+        require(serverUrl.startsWith("https://")) {
+            "Refusing to send note text to a non-HTTPS translation server: $serverUrl"
+        }
         val response = httpClient.post("${serverUrl.trimEnd('/')}/translate") {
             setBody(TranslateRequest(q = text, target = targetLanguage))
         }

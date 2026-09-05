@@ -84,4 +84,14 @@ class TranslateApiImplTest {
 
         api.translate(serverUrl = "https://translate.example.com", text = "Hello", targetLanguage = "it")
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `translate refuses a non-https server url without making any request`() = runTest {
+        // Note text must never leave the device in cleartext, and this check should not rely
+        // solely on the OS/network-security-config layer to catch it.
+        val httpClient = buildMockHttpClient()
+        val api: TranslateApi = TranslateApiImpl(httpClient = httpClient)
+
+        api.translate(serverUrl = "http://translate.example.com", text = "Hello", targetLanguage = "it")
+    }
 }
