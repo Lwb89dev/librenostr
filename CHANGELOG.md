@@ -7,6 +7,44 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.3.0] - 2026-09-05
+
+The app now speaks 27 languages, and notes in a language you don't understand
+can be translated with a tap.
+
+### Added
+
+- **Translate notes.** A small "Translate" action can now appear below a
+  note's text — styled and placed apart from the reply/zap/like/repost row
+  so it reads as something the app is offering, not something the author
+  wrote. Tapping it calls a LibreTranslate-compatible server (self-hosted or
+  any instance you trust) and shows the result in place, with a
+  "Translated · See original" toggle to switch back. Off by default: enable
+  it and set your server's URL under Settings > Content Display >
+  Translate notes. No default third-party server is bundled — note text is
+  only ever sent somewhere you've explicitly configured.
+- **Full translation into 26 languages.** Every EU official language, plus
+  Chinese, Japanese, and Russian, joins English as a complete UI translation
+  (24 via local, offline neural machine translation; Croatian and Maltese,
+  which that engine doesn't support, via a second offline model). Every
+  translated string was checked for correct placeholder handling, valid
+  XML, and consistent phrasing with the rest of each locale; a number of
+  machine-translation artifacts (corrupted formatting placeholders,
+  duplicated words on short labels, one flipped negation, one truncated
+  sentence) were caught and hand-fixed along the way.
+
+### Fixed
+
+- **Scrolling down a feed could make it randomly jump or reload.** Loading
+  more notes at the bottom of a feed also triggers a fetch of their
+  engagement counts (likes, zaps, reposts) from relays; that fetch used to
+  invalidate and reload the *entire* already-scrolled feed once it
+  finished, however long that took. On a slow relay, this landed well into
+  a later scroll and looked like the feed refreshing itself for no reason.
+  The reload is now scoped to actual refreshes (pull-to-refresh, opening
+  the feed) — scrolling for more notes no longer touches what's already on
+  screen.
+
 ## [0.2.8] - 2026-09-04
 
 Four small polish fixes from a real-device pass: a slightly clipped splash
