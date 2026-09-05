@@ -190,12 +190,12 @@ internal class NoteFeedRemoteMediator(
             response = response,
             clearFeed = loadType == LoadType.REFRESH,
         )
-        refreshRelayEventStats(response = response)
+        refreshRelayEventStats(response = response, invalidateAfter = loadType == LoadType.REFRESH)
 
         lastRequests[loadType] = request to Clock.System.now().epochSeconds
     }
 
-    private suspend fun refreshRelayEventStats(response: FeedResponse) {
+    private suspend fun refreshRelayEventStats(response: FeedResponse, invalidateAfter: Boolean) {
         val statsFetcher = relayEventStatsFetcher ?: return
         val eventIds = (response.notes + response.articles + response.reposts).map { it.id }.distinct()
         if (eventIds.isEmpty()) return
@@ -207,9 +207,18 @@ internal class NoteFeedRemoteMediator(
             }
         }
         // EventStats is a relation and is intentionally excluded from Room's paging
-        // observed-entity set. Explicitly invalidate this feed after the relay snapshot
-        // so visible cards redraw their counters without requiring navigation away/back.
-        invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
+        // observed-entity set, so on REFRESH (where already-visible older items get no
+        // accompanying post write of their own) an explicit invalidate is the only way
+        // their counters redraw without navigating away/back. On APPEND, skip it: the
+        // post/crossref insert that just happened for this same page already triggers
+        // Room's own observer, and by the time that re-query runs this stats upsert has
+        // already committed too — an extra invalidate here only reloads the entire
+        // already-scrolled window, which is what made the feed appear to randomly jump
+        // mid-scroll (worse the slower the relay, since it lands later, further into the
+        // scroll).
+        if (invalidateAfter) {
+            invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
+        }
     }
 
     private suspend fun syncRefresh(pageSize: Int): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
