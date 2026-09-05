@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 15
-val appVersionName = "0.2.8"
+val appVersionCode = 16
+val appVersionName = "0.3.0"
 
 tasks.register("generateReleaseProperties") {
     doLast {
@@ -258,6 +258,7 @@ dependencies {
     implementation(project(":core:networking-primal"))
     implementation(project(":core:networking-upload"))
     implementation(project(":core:networking-lightning"))
+    implementation(project(":core:networking-http"))
     implementation(project(":core:caching"))
 
     implementation(project(":domain:nostr"))
@@ -400,6 +401,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.espresso.core)
     testImplementation(libs.mockk)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.assertions.json)
     testImplementation(libs.kotlinx.coroutines.test)

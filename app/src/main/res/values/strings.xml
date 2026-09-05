@@ -141,6 +141,15 @@
     <string name="settings_content_display_undo_post_timer_hint">Hold a note back for a few seconds after tapping post, so you can still call it off. Publishing to Nostr cannot be undone afterwards.</string>
     <string name="settings_content_display_undo_post_timer_replies">Also for replies</string>
     <string name="settings_content_display_undo_post_seconds">Seconds to wait</string>
+    <string name="settings_content_display_translate_notes">Translate notes</string>
+    <string name="settings_content_display_translate_notes_hint">Show a translate action on notes, using a LibreTranslate-compatible server you choose. Note text is sent to that server.</string>
+    <string name="settings_content_display_translate_server_url">Translation server</string>
+    <string name="settings_content_display_translate_server_url_hint">https://your-libretranslate-server.example</string>
+    <string name="note_translate_button">Translate</string>
+    <string name="note_translate_loading">Translating…</string>
+    <string name="note_translate_error">Couldn\'t translate this note</string>
+    <string name="note_translated_footer">Translated</string>
+    <string name="note_see_original">See original</string>
     <string name="scan_code_to_redeem_notice">To redeem your code, onboard to LibreNostr by\ncreating your Nostr account and activating\nyour wallet.</string>
     <string name="scan_code_no_wallet_notice">To redeem your code,\nactivate your wallet.</string>
     <string name="scan_code_scan_anything_title">Scan Anything:</string>
@@ -1105,7 +1114,7 @@
     <string name="wallet_dashboard_create_wallet_button">Create Wallet</string>
     <string name="wallet_dashboard_create_wallet_hint">You don’t have an active wallet.</string>
     <string name="wallet_dashboard_create_wallet_error">Unable to create wallet.</string>
-    <string name="wallet_dashboard_refresh_error">Couldn\’t refresh wallet. Please try again.</string>
+    <string name="wallet_dashboard_refresh_error">Couldn\'t refresh wallet. Please try again.</string>
     <string name="wallet_dashboard_activate_wallet_button">Activate Wallet</string>
     <string name="wallet_dashboard_activate_wallet_hint">Your wallet is ready to be activated</string>
     <string name="wallet_dashboard_no_sats_hint">You need sats to zap people on Nostr</string>

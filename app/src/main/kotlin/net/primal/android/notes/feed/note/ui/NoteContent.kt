@@ -1,28 +1,46 @@
 package net.primal.android.notes.feed.note.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.aakira.napier.Napier
 import java.time.Instant
+import java.util.Locale
+import kotlinx.coroutines.launch
 import net.primal.android.R
+import net.primal.android.notes.translate.TranslateApiFactory
 import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.activity.LocalPrimalTheme
 import net.primal.android.core.compose.PrimalClickableText
@@ -91,6 +109,13 @@ fun NoteContent(
             )
     }
 
+    var translationState by remember(data.noteId) {
+        mutableStateOf<NoteTranslationState>(NoteTranslationState.Original)
+    }
+    val translateScope = rememberCoroutineScope()
+    val translateApi = remember { TranslateApiFactory.create() }
+    val deviceLanguage = remember { Locale.getDefault().language }
+
     Column(modifier = modifier) {
         if (contentText.isNotEmpty()) {
             val clickHandler = remember(contentText, noteCallbacks, onUrlClick, onClick) {
@@ -110,19 +135,55 @@ fun NoteContent(
                 }
             }
 
-            PrimalClickableText(
-                modifier = Modifier.padding(bottom = 4.dp),
-                style = AppTheme.typography.bodyMedium.copy(
-                    color = contentColor,
-                    fontSize = displaySettings.contentAppearance.noteBodyFontSize,
-                    lineHeight = displaySettings.contentAppearance.noteBodyLineHeight,
-                ),
-                text = contentText,
-                maxLines = maxLines,
-                overflow = overflow,
-                textSelectable = textSelectable,
-                onClick = clickHandler,
-            )
+            val currentTranslationState = translationState
+            if (currentTranslationState is NoteTranslationState.Translated) {
+                Text(
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    text = currentTranslationState.text,
+                    style = AppTheme.typography.bodyMedium.copy(
+                        color = contentColor,
+                        fontSize = displaySettings.contentAppearance.noteBodyFontSize,
+                        lineHeight = displaySettings.contentAppearance.noteBodyLineHeight,
+                    ),
+                )
+            } else {
+                PrimalClickableText(
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    style = AppTheme.typography.bodyMedium.copy(
+                        color = contentColor,
+                        fontSize = displaySettings.contentAppearance.noteBodyFontSize,
+                        lineHeight = displaySettings.contentAppearance.noteBodyLineHeight,
+                    ),
+                    text = contentText,
+                    maxLines = maxLines,
+                    overflow = overflow,
+                    textSelectable = textSelectable,
+                    onClick = clickHandler,
+                )
+            }
+
+            if (displaySettings.translateNotesEnabled && displaySettings.translateServerUrl.isNotBlank()) {
+                NoteTranslateAction(
+                    state = currentTranslationState,
+                    onTranslateClick = {
+                        translationState = NoteTranslationState.Loading
+                        translateScope.launch {
+                            translationState = try {
+                                val translated = translateApi.translate(
+                                    serverUrl = displaySettings.translateServerUrl,
+                                    text = data.content,
+                                    targetLanguage = deviceLanguage,
+                                )
+                                NoteTranslationState.Translated(text = translated)
+                            } catch (error: Throwable) {
+                                Napier.w(throwable = error) { "Failed to translate note ${data.noteId}." }
+                                NoteTranslationState.Error
+                            }
+                        }
+                    },
+                    onSeeOriginalClick = { translationState = NoteTranslationState.Original },
+                )
+            }
         }
 
         val referencedStreams = data.partitions.referencedStreams
@@ -273,6 +334,92 @@ fun NoteContent(
                     { callback(data.noteId) }
                 },
             )
+        }
+    }
+}
+
+private sealed class NoteTranslationState {
+    data object Original : NoteTranslationState()
+    data object Loading : NoteTranslationState()
+    data class Translated(val text: String) : NoteTranslationState()
+    data object Error : NoteTranslationState()
+}
+
+/**
+ * A small, muted, system-styled affordance distinct from the reply/zap/like/repost row below it,
+ * so it reads as the app offering a translation rather than something the note's author wrote.
+ */
+@Composable
+private fun NoteTranslateAction(
+    state: NoteTranslationState,
+    onTranslateClick: () -> Unit,
+    onSeeOriginalClick: () -> Unit,
+) {
+    val mutedColor = AppTheme.extraColorScheme.onSurfaceVariantAlt1
+
+    Row(
+        modifier = Modifier.padding(bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        when (state) {
+            is NoteTranslationState.Original -> {
+                Icon(
+                    modifier = Modifier.size(14.dp),
+                    imageVector = Icons.Filled.Translate,
+                    contentDescription = null,
+                    tint = mutedColor,
+                )
+                Text(
+                    modifier = Modifier.clickable(onClick = onTranslateClick),
+                    text = stringResource(id = R.string.note_translate_button),
+                    style = AppTheme.typography.bodySmall,
+                    color = mutedColor,
+                )
+            }
+
+            is NoteTranslationState.Loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    color = mutedColor,
+                    strokeWidth = 2.dp,
+                )
+                Text(
+                    text = stringResource(id = R.string.note_translate_loading),
+                    style = AppTheme.typography.bodySmall,
+                    color = mutedColor,
+                )
+            }
+
+            is NoteTranslationState.Translated -> {
+                Icon(
+                    modifier = Modifier.size(14.dp),
+                    imageVector = Icons.Filled.Translate,
+                    contentDescription = null,
+                    tint = mutedColor,
+                )
+                Text(
+                    text = stringResource(id = R.string.note_translated_footer),
+                    style = AppTheme.typography.bodySmall,
+                    color = mutedColor,
+                )
+                Text(
+                    modifier = Modifier.clickable(onClick = onSeeOriginalClick),
+                    text = stringResource(id = R.string.note_see_original),
+                    style = AppTheme.typography.bodySmall,
+                    color = mutedColor,
+                    textDecoration = TextDecoration.Underline,
+                )
+            }
+
+            is NoteTranslationState.Error -> {
+                Text(
+                    modifier = Modifier.clickable(onClick = onTranslateClick),
+                    text = stringResource(id = R.string.note_translate_error),
+                    style = AppTheme.typography.bodySmall,
+                    color = mutedColor,
+                )
+            }
         }
     }
 }

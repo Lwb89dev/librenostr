@@ -40,6 +40,13 @@ import net.primal.android.core.compose.PrimalSliderThumb
 import androidx.compose.runtime.remember
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.ContentDisplaySettings
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import net.primal.android.core.compose.PrimalDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -264,6 +271,54 @@ private fun ContentDisplaySettingsScreen(
                         eventPublisher(UiEvent.UpdateShowLiveStreams(enabled = !state.showLiveStreams))
                     },
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsItem(
+                    headlineText = stringResource(id = R.string.settings_content_display_translate_notes),
+                    supportText = stringResource(id = R.string.settings_content_display_translate_notes_hint),
+                    leadingIcon = Icons.Filled.Translate,
+                    trailingContent = {
+                        PrimalSwitch(
+                            checked = state.translateNotesEnabled,
+                            onCheckedChange = {
+                                eventPublisher(UiEvent.UpdateTranslateNotesEnabled(enabled = it))
+                            },
+                        )
+                    },
+                    onClick = {
+                        eventPublisher(UiEvent.UpdateTranslateNotesEnabled(enabled = !state.translateNotesEnabled))
+                    },
+                )
+
+                if (state.translateNotesEnabled) {
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        colors = PrimalDefaults.outlinedTextFieldColors(),
+                        shape = AppTheme.shapes.medium,
+                        value = state.translateServerUrl,
+                        onValueChange = { eventPublisher(UiEvent.UpdateTranslateServerUrl(url = it)) },
+                        singleLine = true,
+                        label = {
+                            Text(text = stringResource(id = R.string.settings_content_display_translate_server_url))
+                        },
+                        placeholder = {
+                            Text(
+                                text = stringResource(
+                                    id = R.string.settings_content_display_translate_server_url_hint,
+                                ),
+                                color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            capitalization = KeyboardCapitalization.None,
+                            autoCorrectEnabled = false,
+                            keyboardType = KeyboardType.Uri,
+                        ),
+                    )
+                }
             }
         },
     )
