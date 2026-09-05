@@ -7,6 +7,31 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.3.1] - 2026-09-05
+
+A privacy/security pass across the codebase, prompted by an audit looking
+specifically for data leaks and unnecessary attack surface.
+
+### Fixed
+
+- **The media-upload HTTP client could write a signed auth header to disk.**
+  Enabling the in-app diagnostic logging (off by default, Settings) and then
+  uploading a photo or video wrote the request's `Authorization` header — a
+  signed Nostr event carrying your pubkey — into the exportable app logs.
+  Anyone using "Share Logs" to send diagnostics to support would have sent
+  that along with it, unknowingly. Logging is now fully disabled for that
+  client, matching every other network client in the app; an additional,
+  separate line of code that printed the same headers unconditionally
+  (independent of the logging setting) was removed outright.
+- **The note-translate server address wasn't required to be HTTPS.** The
+  server URL you configure in Settings > Content Display > Translate notes
+  is now checked before every request; a plain `http://` address is refused
+  rather than relying on Android's network security config to catch it as
+  a side effect. Note text should never leave the device other than
+  encrypted, on purpose, not by accident of a different setting.
+- Removed an unused, unwired no-op logger class left over from an earlier
+  logging setup — dead code, no behavior change.
+
 ## [0.3.0] - 2026-09-05
 
 The app now speaks 27 languages, and notes in a language you don't understand
