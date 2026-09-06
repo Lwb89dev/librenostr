@@ -13,11 +13,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,7 +58,6 @@ import kotlinx.coroutines.delay
 import net.primal.android.R
 import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.button.PrimalLoadingButton
-import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
 import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.core.utils.shortened
 import net.primal.android.settings.zaps.PRESETS_COUNT
@@ -72,18 +74,41 @@ fun ZapBottomSheet(
     onDismissRequest: () -> Unit,
     onZap: (Long, String?) -> Unit,
 ) {
+    // Open at the compact detent so the picker feels like a contextual menu.
+    // Users can still expand it when they need the custom amount/comment fields.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
+        containerColor = AppTheme.extraColorScheme.surfaceVariantAlt2,
+        scrimColor = AppTheme.colorScheme.scrim.copy(alpha = 0.28f),
+        tonalElevation = 0.dp,
+        onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
+    ) {
+        ZapBottomSheetContent(
+            receiverName = receiverName,
+            zappingState = zappingState,
+            onDismissRequest = onDismissRequest,
+            onZap = onZap,
+        )
+    }
+}
+
+@Composable
+private fun ZapBottomSheetContent(
+    receiverName: String,
+    zappingState: ZappingState,
+    onDismissRequest: () -> Unit,
+    onZap: (Long, String?) -> Unit,
+) {
     val zapConfig: List<ContentZapConfigItem> = zappingState.ensureZapConfig()
 
     var customZapAmount by remember { mutableStateOf(zapConfig.first().amount.toString()) }
     var selectedZapIndex by remember { mutableIntStateOf(0) }
     var selectedZapComment by remember { mutableStateOf(zapConfig.first().message) }
     var selectedZapAmount by remember { mutableLongStateOf(zapConfig.first().amount) }
-    // Open at the compact detent so the picker feels like a contextual menu.
-    // Users can still expand it when they need the custom amount/comment fields.
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     val keyboardController = LocalSoftwareKeyboardController.current
-    val keyboardVisible by keyboardVisibilityAsState()
 
     var isZapCooldownActive by remember { mutableStateOf(false) }
     LaunchedEffect(isZapCooldownActive) {
@@ -93,68 +118,67 @@ fun ZapBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        containerColor = AppTheme.extraColorScheme.surfaceVariantAlt2,
-        scrimColor = AppTheme.colorScheme.scrim.copy(alpha = 0.28f),
-        tonalElevation = 0.dp,
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        // Without imePadding() the sheet never shrank for the keyboard, so the comment field
+        // (and the zap button below it) ended up hidden behind it — the only workaround was
+        // hiding the button outright while the keyboard was up. verticalScroll() means that
+        // even on a short screen, where the keyboard leaves less room than the content needs,
+        // everything is still reachable by scrolling instead of being clipped.
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .imePadding()
+            .verticalScroll(rememberScrollState()),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        ) {
-            ZapTitle(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                receiverName = receiverName,
-                amount = selectedZapAmount,
-            )
-            ZapOptions(
-                zapConfig = zapConfig,
-                selectedZapIndex = selectedZapIndex,
-                onSelectedZapAmountChange = { amount, comment, index ->
-                    keyboardController?.hide()
-                    selectedZapAmount = amount
-                    customZapAmount = amount.toString()
-                    selectedZapIndex = index
-                    selectedZapComment = comment
-                },
-            )
-            ZapCustomAmountOutlinedTextField(
-                value = customZapAmount,
-                onValueChange = {
-                    when {
-                        it.isEmpty() -> customZapAmount = ""
-                        it.isDigitsOnly() && it.length <= 8 && it.toLong() > 0 -> customZapAmount = it
-                    }
-                    selectedZapAmount = customZapAmount.toLongOrNull() ?: zapConfig.first().amount
-                },
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            ZapCommentOutlinedTextField(
-                value = selectedZapComment,
-                onValueChange = { selectedZapComment = it },
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            if (!keyboardVisible) {
-                PrimalLoadingButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(horizontal = 24.dp),
-                    text = stringResource(id = R.string.zap_bottom_sheet_zap_button),
-                    leadingIcon = ImageVector.vectorResource(id = R.drawable.zap),
-                    onClick = {
-                        if (!isZapCooldownActive) {
-                            isZapCooldownActive = true
-                            onDismissRequest()
-                            onZap(selectedZapAmount, selectedZapComment)
-                        }
-                    },
-                )
-            }
-        }
+        ZapTitle(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            receiverName = receiverName,
+            amount = selectedZapAmount,
+        )
+        ZapOptions(
+            zapConfig = zapConfig,
+            selectedZapIndex = selectedZapIndex,
+            onSelectedZapAmountChange = { amount, comment, index ->
+                keyboardController?.hide()
+                selectedZapAmount = amount
+                customZapAmount = amount.toString()
+                selectedZapIndex = index
+                selectedZapComment = comment
+            },
+        )
+        ZapCustomAmountOutlinedTextField(
+            value = customZapAmount,
+            onValueChange = {
+                when {
+                    it.isEmpty() -> customZapAmount = ""
+                    it.isDigitsOnly() && it.length <= 8 && it.toLong() > 0 -> customZapAmount = it
+                }
+                selectedZapAmount = customZapAmount.toLongOrNull() ?: zapConfig.first().amount
+            },
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ZapCommentOutlinedTextField(
+            value = selectedZapComment,
+            onValueChange = { selectedZapComment = it },
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        PrimalLoadingButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 24.dp),
+            text = stringResource(id = R.string.zap_bottom_sheet_zap_button),
+            leadingIcon = ImageVector.vectorResource(id = R.drawable.zap),
+            onClick = {
+                if (!isZapCooldownActive) {
+                    isZapCooldownActive = true
+                    onDismissRequest()
+                    onZap(selectedZapAmount, selectedZapComment)
+                }
+            },
+        )
     }
 }
 
@@ -226,7 +250,7 @@ private fun ZapOptions(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(ZAP_OPTIONS_COLUMNS_COUNT),
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(8.dp),
     ) {
         itemsIndexed(zapConfig) { index, config ->
             ZapOption(
@@ -252,7 +276,7 @@ private fun ZapOption(
 
     Box(
         modifier = Modifier
-            .padding(all = 12.dp)
+            .padding(all = 8.dp)
             .clip(AppTheme.shapes.small)
             .border(width = borderWidth, shape = AppTheme.shapes.small, color = borderColor)
             .background(color = backgroundColor)
@@ -261,7 +285,7 @@ private fun ZapOption(
                 indication = null,
                 onClick = onClick,
             )
-            .requiredSize(88.dp)
+            .requiredSize(72.dp)
             .aspectRatio(1f),
     ) {
         Column(
@@ -271,16 +295,16 @@ private fun ZapOption(
         ) {
             if (defaultEmoji.isNotBlank()) {
                 Text(
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    modifier = Modifier.padding(bottom = 4.dp),
                     text = defaultEmoji,
                     fontWeight = FontWeight.Black,
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                 )
             }
             Text(
                 text = defaultAmount.shortened(),
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 color = AppTheme.colorScheme.onPrimary,
             )
         }

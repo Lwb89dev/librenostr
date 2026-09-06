@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -52,7 +55,6 @@ import kotlinx.coroutines.delay
 import net.primal.android.R
 import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.button.PrimalLoadingButton
-import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.core.utils.shortened
@@ -128,7 +130,6 @@ private fun ZapPollBottomSheetContent(
     var comment by remember { mutableStateOf("") }
 
     val keyboardController = LocalSoftwareKeyboardController.current
-    val keyboardVisible by keyboardVisibilityAsState()
 
     var isVoteCooldownActive by remember { mutableStateOf(false) }
     LaunchedEffect(isVoteCooldownActive) {
@@ -140,9 +141,13 @@ private fun ZapPollBottomSheetContent(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        // See ZapBottomSheet.kt for why this needs imePadding()/verticalScroll(): without them,
+        // the comment field (and the vote button below it) end up hidden behind the keyboard.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
+            .padding(bottom = 8.dp)
+            .imePadding()
+            .verticalScroll(rememberScrollState()),
     ) {
         ZapPollHeader(amount = selectedAmount, exchangeRate = exchangeRate)
 
@@ -177,7 +182,6 @@ private fun ZapPollBottomSheetContent(
         Spacer(modifier = Modifier.height(40.dp))
 
         ZapPollVoteButton(
-            isVisible = !keyboardVisible,
             isEnabled = selectedAmount > 0 && !isVoteCooldownActive,
             onVote = {
                 isVoteCooldownActive = true
@@ -262,21 +266,18 @@ private fun ZapPollCustomAmountInput(
 
 @Composable
 private fun ZapPollVoteButton(
-    isVisible: Boolean,
     isEnabled: Boolean,
     onVote: () -> Unit,
 ) {
-    if (isVisible) {
-        PrimalLoadingButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 24.dp),
-            enabled = isEnabled,
-            text = stringResource(id = R.string.zap_poll_vote_button),
-            onClick = { if (isEnabled) onVote() },
-        )
-    }
+    PrimalLoadingButton(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .padding(horizontal = 24.dp),
+        enabled = isEnabled,
+        text = stringResource(id = R.string.zap_poll_vote_button),
+        onClick = { if (isEnabled) onVote() },
+    )
 }
 
 @Composable
