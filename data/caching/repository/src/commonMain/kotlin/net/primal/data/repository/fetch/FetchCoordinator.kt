@@ -148,8 +148,17 @@ internal class FetchCoordinator(
                 limit = FOLLOW_LIST_QUERY_LIMIT,
             ),
         )
-        mutex.withLock {
-            followListCache[pubkey] = CachedFollowList(events = events, fetchedAtSeconds = nowSeconds())
+        // An empty result is far more likely a transient race (most commonly: this fires before
+        // the user's relay pool has finished loading, right after app start) than a genuine
+        // "follows nobody" account — caching it for the full TTL turned a one-off race into a
+        // 5-minute-long "feed shows only my own notes" bug that nothing but a process restart
+        // cleared, since RelayNotesFeedFetcher falls back to just the user's own pubkey when
+        // this comes back empty. Only remembering real data lets the very next feed
+        // refresh/resync retry and self-heal instead.
+        if (events.isNotEmpty()) {
+            mutex.withLock {
+                followListCache[pubkey] = CachedFollowList(events = events, fetchedAtSeconds = nowSeconds())
+            }
         }
         return events
     }

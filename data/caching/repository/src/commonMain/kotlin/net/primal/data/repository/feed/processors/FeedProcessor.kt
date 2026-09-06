@@ -53,7 +53,15 @@ internal class FeedProcessor(
             feedEvents.orderByPagingIfNotNull(pagingEvent = pagingEvent)
                 .processFeedConnections(userId = userId)
         }
-        invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
+        // Invalidating tears down and recreates the PagingSource, which — with placeholders
+        // enabled — reloads a page around the current anchor and can flash existing items to
+        // null for a moment. That's the right price for a real refresh (the feed was actually
+        // cleared), but firing it on every APPEND too meant loading more notes while scrolling
+        // could visibly jump or blip, for no data-changing reason: appended rows don't need the
+        // PagingSource recreated to show up.
+        if (shouldClearFeed) {
+            invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
+        }
     }
 
     private suspend inline fun List<NostrEvent>.processRemoteKeys(userId: String, pagingEvent: ContentPrimalPaging?) {

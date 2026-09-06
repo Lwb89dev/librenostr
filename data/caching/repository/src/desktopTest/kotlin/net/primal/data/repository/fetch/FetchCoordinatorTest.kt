@@ -175,6 +175,26 @@ class FetchCoordinatorTest {
         }
 
     @Test
+    fun `an empty follow list is not cached and is retried on the next call`() =
+        runTest {
+            // An empty result is far more likely a transient race (e.g. this fires before the
+            // user's relay pool has finished loading) than a genuine "follows nobody" account.
+            // Caching it turned a one-off race into a several-minute-long "feed shows only my
+            // own notes" bug that nothing but a process restart cleared.
+            val querier = GatedQuerier()
+            val coordinator = coordinator()
+
+            querier.answerWith(emptyList())
+            val first = coordinator.fetchFollowList(querier, USER)
+            val second = coordinator.fetchFollowList(querier, USER)
+
+            assertTrue(first.isEmpty())
+            assertTrue(second.isEmpty())
+            assertEquals(2, querier.queryCount)
+            assertEquals(0, coordinator.stats().servedFromCache)
+        }
+
+    @Test
     fun `clearing the session forgets the follow list`() =
         runTest {
             // Switching account must not leave the previous user's follows answering for the new one.
