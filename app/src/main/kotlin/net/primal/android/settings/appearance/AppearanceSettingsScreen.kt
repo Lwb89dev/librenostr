@@ -51,6 +51,8 @@ import net.primal.android.settings.appearance.AppearanceSettingsContract.UiEvent
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 
+private const val THEME_GRID_COLUMNS = 3
+
 @Composable
 fun AppearanceSettingsScreen(
     viewModel: AppearanceSettingsViewModel,
@@ -161,17 +163,25 @@ private fun ThemeSection(
             lineHeight = 16.sp,
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            themes.forEach { primalTheme ->
-                ThemeBox(
-                    primalTheme = primalTheme,
-                    selectedThemeName = selectedThemeName,
-                    onThemeChange = onThemeChange,
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            themes.chunked(THEME_GRID_COLUMNS).forEach { rowThemes ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    rowThemes.forEach { primalTheme ->
+                        ThemeBox(
+                            modifier = Modifier.weight(1f),
+                            primalTheme = primalTheme,
+                            selectedThemeName = selectedThemeName,
+                            onThemeChange = onThemeChange,
+                        )
+                    }
+                    repeat(THEME_GRID_COLUMNS - rowThemes.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
@@ -179,11 +189,13 @@ private fun ThemeSection(
 
 @Composable
 private fun ThemeBox(
+    modifier: Modifier = Modifier,
     primalTheme: PrimalTheme,
     selectedThemeName: String?,
     onThemeChange: (String) -> Unit,
 ) {
     Column(
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val selected = primalTheme.themeName == selectedThemeName
@@ -221,7 +233,7 @@ private fun ThemeBox(
                     shape = AppTheme.shapes.small,
                 )
                 .clickable { onThemeChange(primalTheme.themeName) }
-                .background(color = if (primalTheme.isDarkTheme) Color.Black else Color.White)
+                .background(color = primalTheme.colorScheme.background)
                 .size(72.dp),
         ) {
             Image(
@@ -252,9 +264,9 @@ private fun ThemeBox(
 
         Text(
             modifier = Modifier.padding(top = 8.dp),
-            text = if (primalTheme.isDarkTheme) "Dark" else "Light",
+            text = primalTheme.displayName,
             fontWeight = FontWeight.W400,
-            fontSize = 16.sp,
+            fontSize = 13.sp,
             lineHeight = 16.sp,
             textAlign = TextAlign.Center,
             color = AppTheme.extraColorScheme.onSurfaceVariantAlt2,

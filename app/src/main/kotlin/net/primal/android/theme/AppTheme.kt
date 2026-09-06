@@ -27,8 +27,8 @@ fun PrimalTheme(primalTheme: PrimalTheme, content: @Composable () -> Unit) {
     ExtraColorSchemeProvider(extraColorScheme = primalTheme.extraColorScheme) {
         MaterialTheme(
             colorScheme = primalTheme.colorScheme,
-            shapes = PrimalShapes,
-            typography = PrimalTypography,
+            shapes = primalTheme.shapes,
+            typography = primalTheme.typography,
             content = content,
         )
     }

@@ -44,10 +44,7 @@ class AppearanceSettingsViewModel @AssistedInject constructor(
         viewModelScope.launch {
             setState {
                 copy(
-                    themes = listOf(
-                        PrimalTheme.Midnight,
-                        PrimalTheme.Ice,
-                    ),
+                    themes = PrimalTheme.entries,
                 )
             }
         }
