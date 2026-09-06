@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">Alegătorii vor apărea aici.</string>
     <string name="poll_votes_sats_suffix">SAT</string>
     <string name="poll_votes_see_votes">a se vedea voturile</string>
+    <string name="settings_content_display_translate_notes">Tradu notiţe</string>
+    <string name="settings_content_display_translate_notes_hint">Afișează o acțiune de traducere pe notițe, folosind un motor de traducere complet local, pe dispozitiv. Nimic nu părăsește dispozitivul tău — prima dată când traduci către sau dintr-o limbă, se descarcă un pachet lingvistic mic (câțiva MB) pentru utilizare offline.</string>
+    <string name="note_translate_button">Tradu</string>
+    <string name="note_translate_loading">Traduc..</string>
+    <string name="note_translate_error">Nu am putut traduce acest bilet</string>
+    <string name="note_translate_not_configured">Setează un server de traducere mai întâi în Setări</string>
+    <string name="note_translated_footer">Tradus</string>
+    <string name="note_see_original">Vezi original</string>
+    <string name="note_translate_not_available">Traducerea nu este disponibilă pentru această limbă</string>
+    <string name="note_translate_downloading">Se descarcă…</string>
+    <string name="note_translate_download_title">Descarci pachetul de traducere?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nTraducerea are loc integral pe acest dispozitiv, chiar și offline.</string>
+    <string name="note_translate_download_confirm">Descarcă</string>
+    <string name="note_translate_download_cancel">Anulează</string>
 </resources>

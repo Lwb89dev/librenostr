@@ -1068,7 +1068,7 @@
     <string name="wallet_upgrade_faq_sixth_question">Co, jeśli nie uaktualnię, zanim zostanie przerwane wsparcie dla starego portfela?</string>
     <string name="wallet_upgrade_faq_sixth_answer">Po 30 kwiecień 2026 stary powierniczy portfel już nie funkcjonuję. Jeśli nie uaktualnisz i nadal masz jakieś fundusze w tym portfelu, będziesz w stanie odzyskać je kontaktując się z nami na support @ noscich.org.</string>
     <string name="wallet_upgrade_faq_seventh_question">Na której technologii zbudowano nowy portfel LibreNostr?</string>
-    <string name="wallet_upgrade_faq_seventh_answer">Nowy portfel LibreNostr zbudowany jest na technologii sieci Spark. Więcej informacji można znaleźć na stronie: https: / / spark.money.</string>
+    <string name="wallet_upgrade_faq_seventh_answer">Nowy portfel LibreNostr zbudowany jest na technologii sieci Spark. Aby uzyskać więcej informacji, możesz odwiedzić: https://spark.money.</string>
     <string name="wallet_upgrade_faq_eighth_question">Czy są jakieś opłaty transakcyjne, które muszę zapłacić za aktualizację?</string>
     <string name="wallet_upgrade_faq_eighth_answer">Nie. LibreNostr pokryje wszystkie opłaty transakcyjne wymagane do uaktualnienia wszystkich naszych użytkowników do ich nowych portfeli niepowierniczych.</string>
     <string name="wallet_upgrade_faq_ninth_question">Czy nowy portfel obsługuje Nostr Portfel Connect?</string>
@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">Wyborcy się tu zjawią.</string>
     <string name="poll_votes_sats_suffix">sat</string>
     <string name="poll_votes_see_votes">Patrz: głosy</string>
+    <string name="settings_content_display_translate_notes">Przetłumacz notatki</string>
+    <string name="settings_content_display_translate_notes_hint">Pokazuje opcję tłumaczenia przy notatkach, korzystając z silnika tłumaczeniowego działającego całkowicie na urządzeniu. Nic nie opuszcza Twojego urządzenia — przy pierwszym tłumaczeniu na dany język lub z niego pobierany jest niewielki pakiet językowy (kilka MB) do użytku offline.</string>
+    <string name="note_translate_button">Tłumacz</string>
+    <string name="note_translate_loading">Tłumaczenie..</string>
+    <string name="note_translate_error">Nie mogłem przetłumaczyć tej notatki</string>
+    <string name="note_translate_not_configured">Ustaw najpierw serwer tłumaczeń w ustawieniach</string>
+    <string name="note_translated_footer">Przetłumaczone</string>
+    <string name="note_see_original">Zobacz oryginał</string>
+    <string name="note_translate_not_available">Tłumaczenie niedostępne dla tego języka</string>
+    <string name="note_translate_downloading">Pobieranie…</string>
+    <string name="note_translate_download_title">Pobrać pakiet tłumaczenia?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nTłumaczenie odbywa się całkowicie na tym urządzeniu, nawet offline.</string>
+    <string name="note_translate_download_confirm">Pobierz</string>
+    <string name="note_translate_download_cancel">Anuluj</string>
 </resources>

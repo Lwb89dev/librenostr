@@ -58,3 +58,5 @@ include(":domain:nostr")
 include(":domain:primal")
 include(":domain:wallet")
 include(":domain:account")
+
+include(":core:translation-engine")

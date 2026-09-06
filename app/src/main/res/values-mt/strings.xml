@@ -1480,4 +1480,18 @@
     <string name="poll_votes_no_voters">Il-votanti se jidhru hawn.</string>
     <string name="poll_votes_sats_suffix">poġġamani</string>
     <string name="poll_votes_see_votes">ara l-voti</string>
+    <string name="settings_content_display_translate_notes">Ittraduċi noti</string>
+    <string name="settings_content_display_translate_notes_hint">Turi azzjoni ta\' traduzzjoni fuq in-noti, bl-użu ta\' magna tat-traduzzjoni li taħdem kompletament fuq l-apparat. Xejn ma jitlaq mill-apparat tiegħek — l-ewwel darba li tittraduċi lejn jew minn lingwa, jitniżżel pakkett żgħir tal-lingwa (ftit MB) għall-użu offline.</string>
+    <string name="note_translate_button">Ittraduċi</string>
+    <string name="note_translate_loading">It - traduzzjoni...</string>
+    <string name="note_translate_error">Ma nistax nittraduċu din in-nota</string>
+    <string name="note_translate_not_configured">Set server traduzzjoni fil Settings ewwel</string>
+    <string name="note_translated_footer">Tradott</string>
+    <string name="note_see_original">Ara l-oriġinali</string>
+    <string name="note_translate_not_available">It-traduzzjoni mhix disponibbli għal din il-lingwa</string>
+    <string name="note_translate_downloading">Qed jitniżżel…</string>
+    <string name="note_translate_download_title">Tniżżel il-pakkett tat-traduzzjoni?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nIt-traduzzjoni sseħħ għal kollox fuq dan l-apparat, anke offline.</string>
+    <string name="note_translate_download_confirm">Niżżel</string>
+    <string name="note_translate_download_cancel">Ikkanċella</string>
 </resources>

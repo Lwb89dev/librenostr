@@ -1480,4 +1480,18 @@
     <string name="poll_votes_no_voters">Glasači će se pojaviti ovdje.</string>
     <string name="poll_votes_sats_suffix">Sats</string>
     <string name="poll_votes_see_votes">Vidi glasove</string>
+    <string name="settings_content_display_translate_notes">Prevedi bilješke</string>
+    <string name="settings_content_display_translate_notes_hint">Prikazuje mogućnost prevođenja bilješki pomoću mehanizma za prevođenje koji radi u potpunosti na uređaju. Ništa ne napušta vaš uređaj — kada prvi put prevodite na neki jezik ili s njega, preuzima se mali jezični paket (nekoliko MB) za izvanmrežnu upotrebu.</string>
+    <string name="note_translate_button">Prevedi</string>
+    <string name="note_translate_loading">Prevodim..</string>
+    <string name="note_translate_error">Nisam mogao prevesti ovu poruku</string>
+    <string name="note_translate_not_configured">Prvo postavi poslužitelj za prevođenje u postavkama</string>
+    <string name="note_translated_footer">Prevedeno</string>
+    <string name="note_see_original">Vidi original</string>
+    <string name="note_translate_not_available">Prijevod nije dostupan za ovaj jezik</string>
+    <string name="note_translate_downloading">Preuzimanje…</string>
+    <string name="note_translate_download_title">Preuzeti paket za prijevod?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nPrijevod se u potpunosti odvija na ovom uređaju, čak i izvanmrežno.</string>
+    <string name="note_translate_download_confirm">Preuzmi</string>
+    <string name="note_translate_download_cancel">Odustani</string>
 </resources>

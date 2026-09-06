@@ -104,7 +104,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            include("arm64-v8a")
             isUniversalApk = false
         }
     }
@@ -258,7 +258,8 @@ dependencies {
     implementation(project(":core:networking-primal"))
     implementation(project(":core:networking-upload"))
     implementation(project(":core:networking-lightning"))
-    implementation(project(":core:networking-http"))
+    implementation(project(":core:translation-engine"))
+    implementation(libs.lingua)
     implementation(project(":core:caching"))
 
     implementation(project(":domain:nostr"))

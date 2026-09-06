@@ -1068,7 +1068,7 @@
     <string name="wallet_upgrade_faq_sixth_question">Kaj pa, če se ne nadgradim, preden se prekine podpora za staro denarnico?</string>
     <string name="wallet_upgrade_faq_sixth_answer">Po 30. aprilu 2026 stara denarnica ne bo več delovala. Če ne nadgradite in imate še nekaj sredstev v tej denarnici, jih boste lahko izterjali tako, da nas kontaktirate na support@nostrich.org.</string>
     <string name="wallet_upgrade_faq_seventh_question">Na kateri tehnologiji je zgrajena nova denarnica LibreNostr?</string>
-    <string name="wallet_upgrade_faq_seventh_answer">Nova denarnica LibreNostr je zgrajena na tehnologiji omrežja Spark. Za več informacij lahko obiščete: https://spark.denar.</string>
+    <string name="wallet_upgrade_faq_seventh_answer">Nova denarnica LibreNostr je zgrajena na tehnologiji omrežja Spark. Za več informacij lahko obiščete: https://spark.money.</string>
     <string name="wallet_upgrade_faq_eighth_question">Ali obstajajo kakšne provizije za transakcije, ki jih moram plačati za nadgradnjo?</string>
     <string name="wallet_upgrade_faq_eighth_answer">Ne. Ne. LibreNostr bo pokrivala vse provizije za transakcije, ki so potrebne za nadgradnjo vseh naših uporabnikov na njihove nove necarinske denarnice.</string>
     <string name="wallet_upgrade_faq_ninth_question">Ali nova denarnica podpira Nostr Wallet Connect?</string>
@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">Volivci bodo prišli sem.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">glej glasove</string>
+    <string name="settings_content_display_translate_notes">Prevajaj zapiske</string>
+    <string name="settings_content_display_translate_notes_hint">Prikaže možnost prevajanja pri opombah z uporabo prevajalnika, ki deluje v celoti na napravi. Nič ne zapusti vaše naprave — ko prvič prevajate v ali iz nekega jezika, se prenese majhen jezikovni paket (nekaj MB) za uporabo brez povezave.</string>
+    <string name="note_translate_button">Prevedi</string>
+    <string name="note_translate_loading">Prevajanje..</string>
+    <string name="note_translate_error">Nisem mogel prevesti sporočila</string>
+    <string name="note_translate_not_configured">Najprej nastavite prevajalski strežnik v Nastavitve</string>
+    <string name="note_translated_footer">Prevedeno</string>
+    <string name="note_see_original">Glej originalno</string>
+    <string name="note_translate_not_available">Prevod za ta jezik ni na voljo</string>
+    <string name="note_translate_downloading">Prenašanje…</string>
+    <string name="note_translate_download_title">Želite prenesti prevajalski paket?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nPrevajanje poteka v celoti na tej napravi, tudi brez povezave.</string>
+    <string name="note_translate_download_confirm">Prenesi</string>
+    <string name="note_translate_download_cancel">Prekliči</string>
 </resources>

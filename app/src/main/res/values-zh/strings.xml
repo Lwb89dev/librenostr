@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">选民会在这里出现。</string>
     <string name="poll_votes_sats_suffix">坐着</string>
     <string name="poll_votes_see_votes">见表决</string>
+    <string name="settings_content_display_translate_notes">翻译笔记</string>
+    <string name="settings_content_display_translate_notes_hint">在笔记上显示翻译操作,使用完全在设备本地运行的翻译引擎。任何内容都不会离开您的设备——首次翻译成或翻译自某种语言时,会下载一个小型语言包(几 MB)以供离线使用。</string>
+    <string name="note_translate_button">翻译</string>
+    <string name="note_translate_loading">翻译..</string>
+    <string name="note_translate_error">无法翻译这个字条。</string>
+    <string name="note_translate_not_configured">在设置中先设置一个翻译服务器 。</string>
+    <string name="note_translated_footer">翻译。</string>
+    <string name="note_see_original">见原文</string>
+    <string name="note_translate_not_available">此语言暂不支持翻译</string>
+    <string name="note_translate_downloading">正在下载…</string>
+    <string name="note_translate_download_title">下载翻译语言包?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\n翻译完全在本设备上进行,离线也可使用。</string>
+    <string name="note_translate_download_confirm">下载</string>
+    <string name="note_translate_download_cancel">取消</string>
 </resources>

@@ -1,0 +1,1012 @@
+{
+  "packs": [
+    {
+      "source": "en",
+      "target": "bg",
+      "tier": "tiny",
+      "sizeBytes": 25415532,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-bg/model.enbg.intgemm.alphas.bin.gz",
+        "sha256": "ae4b41190c7a0ff662fcda88a2c22fb2f0e09a8f9f5bc28632b23236e1d3ac0b",
+        "sizeBytes": 23432015
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-bg/lex.50.50.enbg.s2t.bin.gz",
+        "sha256": "622efe6dd21c6b142d87457be6d045fb18625b14dedc0ce7e875fe9ee3d5d05c",
+        "sizeBytes": 1548577
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-bg/vocab.enbg.spm.gz",
+        "sha256": "6647c72913621a7edbf04923573a7967092f29d3f3b35f570b7edd076e2437c2",
+        "sizeBytes": 434940
+      }
+    },
+    {
+      "source": "bg",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25021262,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/bg-en/model.bgen.intgemm.alphas.bin.gz",
+        "sha256": "7a16f2855a4d046f77deaa16105338bc29ed42d6eebd8a26908ea7e1da60b736",
+        "sizeBytes": 22399269
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/bg-en/lex.50.50.bgen.s2t.bin.gz",
+        "sha256": "54e5f362ad9d24aa33e928cf388cc7f26269304ae86f862204ae755449cc8e61",
+        "sizeBytes": 2187053
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/bg-en/vocab.bgen.spm.gz",
+        "sha256": "405926c43e22c5eaaef6316c545dfbcf4017f492366a09b2c029921c6651b05d",
+        "sizeBytes": 434940
+      }
+    },
+    {
+      "source": "en",
+      "target": "cs",
+      "tier": "tiny",
+      "sizeBytes": 25501917,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-cs/model.encs.intgemm.alphas.bin.gz",
+        "sha256": "363519c1560786f8c9c85737431ec61c770623b1ee99dff7b154019ab202d8d9",
+        "sizeBytes": 23192301
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-cs/lex.50.50.encs.s2t.bin.gz",
+        "sha256": "e5e54ed7488b5beafef1947788534b6e3919ebe658d0a432ef00962bac1769ff",
+        "sizeBytes": 1896925
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-cs/vocab.encs.spm.gz",
+        "sha256": "842c1396415257eb864d1ce4722eece82f024a23ecdc4e1be5defcdf6b6d2c0e",
+        "sizeBytes": 412691
+      }
+    },
+    {
+      "source": "cs",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25736689,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/cs-en/model.csen.intgemm.alphas.bin.gz",
+        "sha256": "b3a43eedf9ed1dc250ea44aaea3740c9e032a606eaae0e80ae5702f418b056f3",
+        "sizeBytes": 22830296
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/cs-en/lex.50.50.csen.s2t.bin.gz",
+        "sha256": "ab2d7fdd47fab92bf27b80cdb32d5ec6820f784127e7c0d080ffe8005a6b58cc",
+        "sizeBytes": 2493702
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/cs-en/vocab.csen.spm.gz",
+        "sha256": "6c35be6ead9eddbc2c2bda2a059c9cb91690314c15139b347d8e1f79a318f973",
+        "sizeBytes": 412691
+      }
+    },
+    {
+      "source": "en",
+      "target": "da",
+      "tier": "tiny",
+      "sizeBytes": 14705475,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-da/model.enda.intgemm.alphas.bin.gz",
+        "sha256": "5afaea5545cfc759ad1d2c320d17606e95efcfb0c6e4d9019903ee4c00b8091f",
+        "sizeBytes": 12723889
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-da/lex.50.50.enda.s2t.bin.gz",
+        "sha256": "c3d79a2ba450f92ec7cb4f38a39d7b3e157417f6fb60d060fa6f3f2c05d31de9",
+        "sizeBytes": 1582768
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-da/vocab.enda.spm.gz",
+        "sha256": "2d9ff33c0adfc4a137ba0cc51f64e7886ae92dbd53fd718cce30fb6ec9aa33c2",
+        "sizeBytes": 398818
+      }
+    },
+    {
+      "source": "da",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15096083,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/da-en/model.daen.intgemm.alphas.bin.gz",
+        "sha256": "483abf1ae01a79f3231f22b5c0aa44b8696fa0d5527801c7588a07ae2700836e",
+        "sizeBytes": 12525769
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/da-en/lex.50.50.daen.s2t.bin.gz",
+        "sha256": "ab1656c067409541b3bdffd2878f3201ba51de70a42520da870de687ed37c0b8",
+        "sizeBytes": 2170970
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/da-en/vocab.daen.spm.gz",
+        "sha256": "b0055ebdf5291b666c33f15ef41abba6820c09703fff7f6b1fc2726fa10ede73",
+        "sizeBytes": 399344
+      }
+    },
+    {
+      "source": "en",
+      "target": "de",
+      "tier": "tiny",
+      "sizeBytes": 25720702,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-de/model.ende.intgemm.alphas.bin.gz",
+        "sha256": "e3a74458faba3ab2752ed8355c5e3979f13395279c8fc1bd3f54a3c2316e4975",
+        "sizeBytes": 22992073
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-de/lex.50.50.ende.s2t.bin.gz",
+        "sha256": "0370d79cda6fed5dfa8f9b2a0009459bd2766893825bb5b8b5114169d18da6c4",
+        "sizeBytes": 2314750
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-de/vocab.ende.spm.gz",
+        "sha256": "3b2ddbfac73f994f151a8994447d6b3d41ab0d3435da56f79c233f34d03e45c2",
+        "sizeBytes": 413879
+      }
+    },
+    {
+      "source": "de",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25444292,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/de-en/model.deen.intgemm.alphas.bin.gz",
+        "sha256": "38b245bcfc23f6d61fd98a187436ea1320a38f41896df411b103df3e83f51681",
+        "sizeBytes": 22403755
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/de-en/lex.50.50.deen.s2t.bin.gz",
+        "sha256": "231e9caf62e0e867775d5f4c1f4cfae21e37c70d9bf2bd628fa468aeeb2ba869",
+        "sizeBytes": 2626658
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/de-en/vocab.deen.spm.gz",
+        "sha256": "88dcd7fdbf20dc60837ce837244d0d55b20f7079f2cbd2ba8e63530632028310",
+        "sizeBytes": 413879
+      }
+    },
+    {
+      "source": "en",
+      "target": "el",
+      "tier": "tiny",
+      "sizeBytes": 14579945,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-el/model.enel.intgemm.alphas.bin.gz",
+        "sha256": "cfe3af93ed24be241638ff246b716855bfcb7273b7a57c4fb6ac73bbe660479a",
+        "sizeBytes": 12808027
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-el/lex.50.50.enel.s2t.bin.gz",
+        "sha256": "e03309c345e05bf23956a9e3d637d65cea1e75f323dbcb958c51cfb58397306a",
+        "sizeBytes": 1352643
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-el/vocab.enel.spm.gz",
+        "sha256": "bfbab13d4ff67e08e98e9203ab0d7efd02fa143614b3244da1902baf47793b26",
+        "sizeBytes": 419275
+      }
+    },
+    {
+      "source": "el",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 14966961,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/el-en/model.elen.intgemm.alphas.bin.gz",
+        "sha256": "3a1d8af5cdf9ab4ace92dc988f496eb5d4e5c905834aa254b688c95a0fd5863f",
+        "sizeBytes": 12696541
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/el-en/lex.50.50.elen.s2t.bin.gz",
+        "sha256": "eef43a7471758df2a43f505e5670f3509093ab6a0742a3110d873047cc0913af",
+        "sizeBytes": 1851246
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/el-en/vocab.elen.spm.gz",
+        "sha256": "076f2f01f855b08870083c569bd264d22e5bee3c35d30a1d16f7c42ae0bfc50f",
+        "sizeBytes": 419174
+      }
+    },
+    {
+      "source": "en",
+      "target": "es",
+      "tier": "tiny",
+      "sizeBytes": 25373354,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-es/model.enes.intgemm.alphas.bin.gz",
+        "sha256": "fe4025fde24a4d5f80533cfb7acd53d0eb7f194dfc2d8f427f0d4563cfb6ac06",
+        "sizeBytes": 22698792
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-es/lex.50.50.enes.s2t.bin.gz",
+        "sha256": "37a067966f28ff0ba430fddb7412bc5b07afa2cd2fd5a46d9ad74045a1a06380",
+        "sizeBytes": 2265250
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-es/vocab.enes.spm.gz",
+        "sha256": "ae2760c04bc6eb5362b16e5c2f145c376bb04bac421c33ba3c0766805e6f03b3",
+        "sizeBytes": 409312
+      }
+    },
+    {
+      "source": "es",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 26241052,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/es-en/model.esen.intgemm.alphas.bin.gz",
+        "sha256": "54247f1e057180bca1d404dfd5c12836f65bc96cef7af98e59e55acb8bd093b1",
+        "sizeBytes": 23288494
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/es-en/lex.50.50.esen.s2t.bin.gz",
+        "sha256": "3d7856bfa3b12804bdc80f12fd828fd9062c462113ab73fbf87c5c3b68420813",
+        "sizeBytes": 2543246
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/es-en/vocab.esen.spm.gz",
+        "sha256": "1658b529b8858cf2e1e8cef2c4e2d69654d77b5f714ac52205864b336dfeb3ee",
+        "sizeBytes": 409312
+      }
+    },
+    {
+      "source": "en",
+      "target": "et",
+      "tier": "tiny",
+      "sizeBytes": 25231423,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-et/model.enet.intgemm.alphas.bin.gz",
+        "sha256": "f65765a60a5ad5e0db457ee7aca053bd50fc5653b3d1edf3e3d11282db026580",
+        "sizeBytes": 22951751
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-et/lex.50.50.enet.s2t.bin.gz",
+        "sha256": "9b1fd077aa1b6f77193caef680dfbfb21a783750d6bc94903c0ae9e83bc8d683",
+        "sizeBytes": 1865410
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-et/vocab.enet.spm.gz",
+        "sha256": "4fb13bc455726ffb3434a68bd210a83231198c9a62a059debf804821428044c4",
+        "sizeBytes": 414262
+      }
+    },
+    {
+      "source": "et",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25520665,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/et-en/model.eten.intgemm.alphas.bin.gz",
+        "sha256": "66d74dbc32b4ed8fe867fb466a7c4b8aaf7b13f66e4a8b7180b27b931fcb69b4",
+        "sizeBytes": 22785077
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/et-en/lex.50.50.eten.s2t.bin.gz",
+        "sha256": "7e4df142ad4f27d18e3e7f38efb9f39ec1f8c110e6ef7633f6b284f00ecb1337",
+        "sizeBytes": 2321326
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/et-en/vocab.eten.spm.gz",
+        "sha256": "ae1edb16d6c7c7b9591f128038a98c4555ea3dfb9c0abfd80ee3bb4caebf8cae",
+        "sizeBytes": 414262
+      }
+    },
+    {
+      "source": "en",
+      "target": "fi",
+      "tier": "tiny",
+      "sizeBytes": 24869864,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-fi/model.enfi.intgemm.alphas.bin.gz",
+        "sha256": "e75f0b5e86b03273ac1cca68184544913a0ff6483d6f9a01defd19bf973e49cf",
+        "sizeBytes": 22580027
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-fi/lex.50.50.enfi.s2t.bin.gz",
+        "sha256": "c6b670273bdac5e96c78a2dd50c70a3b93bde60af6ead06ffb9f852c9e44c023",
+        "sizeBytes": 1875557
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-fi/vocab.enfi.spm.gz",
+        "sha256": "607524d7b6b8460d823c6b0e90a6593be682bc334a6f9c2c0f0d3767be66bdf9",
+        "sizeBytes": 414280
+      }
+    },
+    {
+      "source": "fi",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25930043,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/fi-en/model.fien.intgemm.alphas.bin.gz",
+        "sha256": "76a66ef31861fa6d3abf55f960165cb6b3dbffad8fc6371e1965dd4ec33a7bf5",
+        "sizeBytes": 22935246
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/fi-en/lex.50.50.fien.s2t.bin.gz",
+        "sha256": "cfc9a2b2feeb41593e23291962bf274ba4d5400f395cbcfa1ed1c5b6eaa098a7",
+        "sizeBytes": 2580517
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/fi-en/vocab.fien.spm.gz",
+        "sha256": "520424fc428c6465d64a9d48c0d14cc7bc6565a172bf9edf9220f6c62219e479",
+        "sizeBytes": 414280
+      }
+    },
+    {
+      "source": "en",
+      "target": "fr",
+      "tier": "tiny",
+      "sizeBytes": 25752472,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-fr/model.enfr.intgemm.alphas.bin.gz",
+        "sha256": "22cdaf3dc9a1da6e5818b5576737182467f3cd97e6fd6f94e4273eb7b56d1e3f",
+        "sizeBytes": 23045432
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-fr/lex.50.50.enfr.s2t.bin.gz",
+        "sha256": "055987f0b585b61c4914fb4469e2392fda0b25d3f7784275974f920e7b631997",
+        "sizeBytes": 2297334
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-fr/vocab.enfr.spm.gz",
+        "sha256": "5dcadaad8191fb4eb7677bce07098a20221dec95976a4db796f3a17cc82b4541",
+        "sizeBytes": 409706
+      }
+    },
+    {
+      "source": "fr",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 26234715,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/fr-en/model.fren.intgemm.alphas.bin.gz",
+        "sha256": "06b1eeedd3944260d00a393d12ec7192490c5b7c930b97212faf4d5f5c90a2ee",
+        "sizeBytes": 23175075
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/fr-en/lex.50.50.fren.s2t.bin.gz",
+        "sha256": "395aa7767220e1bcfc085f2b2787ff98005d0075e55451f1e0832885e3d9642a",
+        "sizeBytes": 2649934
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/fr-en/vocab.fren.spm.gz",
+        "sha256": "8d15b219ffd32327b4cabf0d94a05a4fecb8923a4f386badbcbe5e86ede453a7",
+        "sizeBytes": 409706
+      }
+    },
+    {
+      "source": "en",
+      "target": "hr",
+      "tier": "tiny",
+      "sizeBytes": 24882698,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-hr/model.enhr.intgemm.alphas.bin.gz",
+        "sha256": "fc8c132323b62fa91d2413532444825e727e660bb466fd7fe403d1b391a1afdc",
+        "sizeBytes": 22758240
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-hr/lex.50.50.enhr.s2t.bin.gz",
+        "sha256": "762e3a5f92e10219464e12bdb57bc613aeec61831fe620f614141f16dbc65cf7",
+        "sizeBytes": 1713561
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-hr/vocab.enhr.spm.gz",
+        "sha256": "5f32baf8df8f3203b3e85aa4997fa93e561434f3c1daa85b952e474710617989",
+        "sizeBytes": 410897
+      }
+    },
+    {
+      "source": "hr",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15333032,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/hr-en/model.hren.intgemm.alphas.bin.gz",
+        "sha256": "b0c1857d701bca4c42d8daa8debf4fa93bbc1ab0fc5618330c351cb46c3636d5",
+        "sizeBytes": 13050395
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/hr-en/lex.50.50.hren.s2t.bin.gz",
+        "sha256": "2537de8fd6f27e31eda0b25d2fd426d1c69e04097ab9020f58b644af635c28a7",
+        "sizeBytes": 1888089
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/hr-en/vocab.hren.spm.gz",
+        "sha256": "a8bd79201f937ac6a9d186d851a377b436781e5ac8b7b380de548a2683164e38",
+        "sizeBytes": 394548
+      }
+    },
+    {
+      "source": "en",
+      "target": "hu",
+      "tier": "tiny",
+      "sizeBytes": 25884324,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-hu/model.enhu.intgemm.alphas.bin.gz",
+        "sha256": "fc70a94672e4e68ed34c38ded5c7381ce09ebeeaeb6e7d6f59af2d4321a1babf",
+        "sizeBytes": 23710206
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-hu/lex.50.50.enhu.s2t.bin.gz",
+        "sha256": "b17f0abf8447b525267c2bcc9797756b5f78a2feba5448981bff4053c459fcc8",
+        "sizeBytes": 1768398
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-hu/vocab.enhu.spm.gz",
+        "sha256": "0d7cb45eec941001086e816d9650f651b4f294b412e50f5e5d64003efda334f0",
+        "sizeBytes": 405720
+      }
+    },
+    {
+      "source": "hu",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 16379723,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/hu-en/model.huen.intgemm.alphas.bin.gz",
+        "sha256": "f66a371ab2ba3316b438ae6430a6616469c5ecea307024a07af1205dfd5d716d",
+        "sizeBytes": 13181613
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/hu-en/lex.50.50.huen.s2t.bin.gz",
+        "sha256": "0e062d80c132f8cee111b85adbef9841f502f73be09b1b6596f31385dfcd0add",
+        "sizeBytes": 2778202
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/hu-en/vocab.huen.spm.gz",
+        "sha256": "97fca39ca82670f3dbb0d5e28a5476cd36a3556bbcced590e6e5de7687013dce",
+        "sizeBytes": 419908
+      }
+    },
+    {
+      "source": "en",
+      "target": "it",
+      "tier": "tiny",
+      "sizeBytes": 26509835,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-it/model.enit.intgemm.alphas.bin.gz",
+        "sha256": "cfff470e9f29e27132723589a8bc985648f92773410e5f6fc43293d9e19f97f1",
+        "sizeBytes": 23892889
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-it/lex.50.50.enit.s2t.bin.gz",
+        "sha256": "cd7ef06c0b872c15286a9796f105eb62693f14665490546ac70ce1c6c8f16d47",
+        "sizeBytes": 2209348
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-it/vocab.enit.spm.gz",
+        "sha256": "8f99a6f493bf7e1a03fbba19928d7dc7bf9a1b7938238467f3e80a58c0d50485",
+        "sizeBytes": 407598
+      }
+    },
+    {
+      "source": "it",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 26242301,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/it-en/model.iten.intgemm.alphas.bin.gz",
+        "sha256": "0bc7221c2730723ac4477e8aa1d1d5bd0b9c3450cb8d006a6f86fe5da9129c27",
+        "sizeBytes": 23301774
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/it-en/lex.50.50.iten.s2t.bin.gz",
+        "sha256": "504877085b31edfa3d31a1918a9a42c20fcbf85ff018caf46c54641db5538e62",
+        "sizeBytes": 2532929
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/it-en/vocab.iten.spm.gz",
+        "sha256": "df05fae498f519a828eb388cd08ec1b7205a8bcaf2405a5feb9f5e30c49a0977",
+        "sizeBytes": 407598
+      }
+    },
+    {
+      "source": "en",
+      "target": "lt",
+      "tier": "tiny",
+      "sizeBytes": 36850377,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-lt/model.enlt.intgemm.alphas.bin.gz",
+        "sha256": "8a050bc15946ad11e9dc9766aed5d2f5622a52f6bf7479011a3c9b4057ebf3e1",
+        "sizeBytes": 34697617
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-lt/lex.50.50.enlt.s2t.bin.gz",
+        "sha256": "f8f1e2e353174726fc44c0224b7bf91f02ee21ebc498a0b3ee16b0ca0de81840",
+        "sizeBytes": 1749404
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-lt/vocab.enlt.spm.gz",
+        "sha256": "045a46b5a9fbdd1447e5e75d1b23c60a8898662c827349c5efa4de31ab8941eb",
+        "sizeBytes": 403356
+      }
+    },
+    {
+      "source": "lt",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15284093,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/lt-en/model.lten.intgemm.alphas.bin.gz",
+        "sha256": "88fa4bb09798d0f52d67f4f45a8540fdd4727bc1481cedc153dec4dc70ab892b",
+        "sizeBytes": 12571257
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/lt-en/lex.50.50.lten.s2t.bin.gz",
+        "sha256": "1851b00216bd8f6bac64223757fd547bb79e0b99b3a032078dab12f5f27a195e",
+        "sizeBytes": 2308876
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/lt-en/vocab.lten.spm.gz",
+        "sha256": "3be489b994ec61caa9ab9a0bd5cd6d5253daacf45f0cf7dcbc2bb56a8c25391c",
+        "sizeBytes": 403960
+      }
+    },
+    {
+      "source": "en",
+      "target": "lv",
+      "tier": "tiny",
+      "sizeBytes": 25861087,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-lv/model.enlv.intgemm.alphas.bin.gz",
+        "sha256": "559b5f51424888b10b1872e7348906e946ac702d62b1ef9872ecb49ea865537d",
+        "sizeBytes": 23727668
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-lv/lex.50.50.enlv.s2t.bin.gz",
+        "sha256": "f5cdd08a781f95aaa8473c0286d4878a7935aedd591b4ce00abc2a30a5a0c5d9",
+        "sizeBytes": 1725879
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-lv/vocab.enlv.spm.gz",
+        "sha256": "9a76e5785b64445762b1771ba9c15468e20794530e332880a25999362c7c7774",
+        "sizeBytes": 407540
+      }
+    },
+    {
+      "source": "lv",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15228176,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/lv-en/model.lven.intgemm.alphas.bin.gz",
+        "sha256": "81d5f3b41f22c1759ce1398769e7732d8eb59b6056d6c46ad915e6ace05c6e01",
+        "sizeBytes": 12689153
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/lv-en/lex.50.50.lven.s2t.bin.gz",
+        "sha256": "720f6d513f64275daf17b7a9bf78835a442819fbf2d24ba199a3a1088349cfc0",
+        "sizeBytes": 2131786
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/lv-en/vocab.lven.spm.gz",
+        "sha256": "8d4e565e5f39f6e0d5033c4b2fdfc5c1e85a5857f28859765f98ced0366a4a8d",
+        "sizeBytes": 407237
+      }
+    },
+    {
+      "source": "en",
+      "target": "nl",
+      "tier": "tiny",
+      "sizeBytes": 25951889,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-nl/model.ennl.intgemm.alphas.bin.gz",
+        "sha256": "a1ab24477ca1289e123e9a2817434f99b47b9b5e461ec65ad273f3dd394814a2",
+        "sizeBytes": 23386633
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-nl/lex.50.50.ennl.s2t.bin.gz",
+        "sha256": "b95c612e69270142c352589b4082b936810ec02ab7842c2a573bab6441709d06",
+        "sizeBytes": 2155034
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-nl/vocab.ennl.spm.gz",
+        "sha256": "0b12be4ccd0ee5182ad7e8ecd3254eece806ae183bece90fa625ceae7c851f80",
+        "sizeBytes": 410222
+      }
+    },
+    {
+      "source": "nl",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25674063,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/nl-en/model.nlen.intgemm.alphas.bin.gz",
+        "sha256": "ed02d0f965fa78335a7ef326337267c04c5c444a7261ab4cdeb82fcfbb67d617",
+        "sizeBytes": 22647743
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/nl-en/lex.50.50.nlen.s2t.bin.gz",
+        "sha256": "ddc7811550e820a081353556f5b5bfdc907251a20850e945bfc887bcd28f8c56",
+        "sizeBytes": 2616098
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/nl-en/vocab.nlen.spm.gz",
+        "sha256": "12c2bb8bf4d7b39cba7dc1b3eb16232ea29f1325e963eb9a29d7cc886c306599",
+        "sizeBytes": 410222
+      }
+    },
+    {
+      "source": "en",
+      "target": "pl",
+      "tier": "tiny",
+      "sizeBytes": 24864968,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-pl/model.enpl.intgemm.alphas.bin.gz",
+        "sha256": "80b549e5f4d1d1db3f66f850c71683c9449a259e6eac2abe3b8f04f0781088ed",
+        "sizeBytes": 22577447
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-pl/lex.50.50.enpl.s2t.bin.gz",
+        "sha256": "6e7cbf38d9298877d9631a33a7bd3608326ba169be9a0fe9c7b2ee0c6c7e6d59",
+        "sizeBytes": 1874327
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-pl/vocab.enpl.spm.gz",
+        "sha256": "13b8f1dc8bf7a29d052008d78aa4429b1311f8fd0fcb63c5490fe1714b00606c",
+        "sizeBytes": 413194
+      }
+    },
+    {
+      "source": "pl",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25533351,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/pl-en/model.plen.intgemm.alphas.bin.gz",
+        "sha256": "7f37aa5e065581c02fbd5fd4f3862a714944e223055edafe23095a68f3a49a76",
+        "sizeBytes": 22630393
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/pl-en/lex.50.50.plen.s2t.bin.gz",
+        "sha256": "7ad8ce0f56b7537a82e7e522a48ea440395a909c547621934cf70daa1c543c36",
+        "sizeBytes": 2489764
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/pl-en/vocab.plen.spm.gz",
+        "sha256": "90f3d5a707eb8b221ab4139de6146e4741ab3196fbadf4562b03d727a0f8b822",
+        "sizeBytes": 413194
+      }
+    },
+    {
+      "source": "en",
+      "target": "pt",
+      "tier": "tiny",
+      "sizeBytes": 25866313,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-pt/model.enpt.intgemm.alphas.bin.gz",
+        "sha256": "afb5ae08a2e40b622cd191584cca1df00721fea43de85cec74191fc180370f08",
+        "sizeBytes": 23340019
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-pt/lex.50.50.enpt.s2t.bin.gz",
+        "sha256": "265cff4ca31d3fc95628181de98cf668868b44903d69680284dc456aa4191545",
+        "sizeBytes": 2117608
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-pt/vocab.enpt.spm.gz",
+        "sha256": "c2fbaf26f10563c77fa95cca465ad3666f61dd08bfaef5bb170abd582901f389",
+        "sizeBytes": 408686
+      }
+    },
+    {
+      "source": "pt",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 25596942,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/pt-en/model.pten.intgemm.alphas.bin.gz",
+        "sha256": "f2d2bb46d452cef561d35504bd198fa6c6ffc47187ee987406a2ac05d9c3935f",
+        "sizeBytes": 22700409
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/pt-en/lex.50.50.pten.s2t.bin.gz",
+        "sha256": "b31185389533a97177cbf68ea756b78bfbaa24d31a865d72c6ed203fa414b2f6",
+        "sizeBytes": 2487847
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/pt-en/vocab.pten.spm.gz",
+        "sha256": "28c9eb4fb13f8eb661f6bb098560a1bf368d25ff890275028ea9d4f3f97b0416",
+        "sizeBytes": 408686
+      }
+    },
+    {
+      "source": "en",
+      "target": "ro",
+      "tier": "tiny",
+      "sizeBytes": 14450698,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ro/model.enro.intgemm.alphas.bin.gz",
+        "sha256": "3596ee3bc1461c96f28edf200f4235fdfd4e0cb8434fa86ad04762d4a10d7a66",
+        "sizeBytes": 12207487
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ro/lex.50.50.enro.s2t.bin.gz",
+        "sha256": "a64099f219a6e4eee89085283ace66e8f0171d43b168ba155dffc2fa4dcdc9b1",
+        "sizeBytes": 1846074
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ro/vocab.enro.spm.gz",
+        "sha256": "61a75f040f035844ec5d54edf5f80831cd8ad58bfa539a7e707a7f6a5bd25c63",
+        "sizeBytes": 397137
+      }
+    },
+    {
+      "source": "ro",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15278473,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ro-en/model.roen.intgemm.alphas.bin.gz",
+        "sha256": "217b5a3bf0aed1a2c9c47259159a4ec09fa673bf10049d23fe15902147e66785",
+        "sizeBytes": 12722200
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ro-en/lex.50.50.roen.s2t.bin.gz",
+        "sha256": "3b3fdee9bb65fe9053c4a1a5ae2bdfe6a4c251a329bd49b45ea9af8864baf7ea",
+        "sizeBytes": 2159556
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ro-en/vocab.roen.spm.gz",
+        "sha256": "0f7ce73533f0c8549d8498c67e2db7502654a462ed81de687ba666dc4cf64706",
+        "sizeBytes": 396717
+      }
+    },
+    {
+      "source": "en",
+      "target": "ru",
+      "tier": "tiny",
+      "sizeBytes": 32465951,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ru/model.enru.intgemm.alphas.bin.gz",
+        "sha256": "3c6e3ffd275c96a220ae28ddb55b8c2b86b44ffecc1eeb6c8195c1536de4ac74",
+        "sizeBytes": 30698731
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ru/lex.50.50.enru.s2t.bin.gz",
+        "sha256": "6f00f5d955b8b259cb4a78e5badf0958e5fef3ce153fd77a6dea0324518bb1b8",
+        "sizeBytes": 1348215
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ru/vocab.enru.spm.gz",
+        "sha256": "07ed9055319f2adc50a16bc7e636fe1547ab745eb986e40b6384956dc1fc6cfd",
+        "sizeBytes": 419005
+      }
+    },
+    {
+      "source": "ru",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 14995467,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ru-en/model.ruen.intgemm.alphas.bin.gz",
+        "sha256": "4a8a7b9b07c9e06a167ec5bf2542528817321516db4edf614fda45011fa8e5d1",
+        "sizeBytes": 12613599
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ru-en/lex.50.50.ruen.s2t.bin.gz",
+        "sha256": "6524f5c898f1fef52992bd2565a6d4acfafb6a4e8dcd6aef237bd888239418a0",
+        "sizeBytes": 1962008
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ru-en/vocab.ruen.spm.gz",
+        "sha256": "cd70b828e99e4d0c79d48cd56d8579d656c87c1db20bf88883da3085dcbfef75",
+        "sizeBytes": 419860
+      }
+    },
+    {
+      "source": "en",
+      "target": "sk",
+      "tier": "tiny",
+      "sizeBytes": 25017423,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sk/model.ensk.intgemm.alphas.bin.gz",
+        "sha256": "71cec9a790bb24e673d47f41f2778491f5a84d00663fc739f94f50bcf0f49940",
+        "sizeBytes": 22902983
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sk/lex.50.50.ensk.s2t.bin.gz",
+        "sha256": "a772fa9a45d574bfedeeb6d92c7e7f8b0a8e765d5f7517cc62f8a847517a29b9",
+        "sizeBytes": 1708788
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sk/vocab.ensk.spm.gz",
+        "sha256": "8fe4f76b56a8fa4aa48c60433306f536d19805116e104fc8230b3681ee99a8ed",
+        "sizeBytes": 405652
+      }
+    },
+    {
+      "source": "sk",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15574825,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sk-en/model.sken.intgemm.alphas.bin.gz",
+        "sha256": "5825c97bfc80435071da744ef05444119cac81f6bf80eeecd80098c741a04a4b",
+        "sizeBytes": 12821519
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sk-en/lex.50.50.sken.s2t.bin.gz",
+        "sha256": "08fceba612fbf6f833ab188e1f7125c091656cdca2c886c84fca29e3960ddb16",
+        "sizeBytes": 2348184
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sk-en/vocab.sken.spm.gz",
+        "sha256": "3954450491e4470532267c6af9ae05fc9dfc1a739c7fbea0dc0ea83cc3e1eba4",
+        "sizeBytes": 405122
+      }
+    },
+    {
+      "source": "en",
+      "target": "sl",
+      "tier": "tiny",
+      "sizeBytes": 24809638,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sl/model.ensl.intgemm.alphas.bin.gz",
+        "sha256": "851c720e75803a92dae757086345cf5a3cd25740cc9990d08c42b234533d7601",
+        "sizeBytes": 22669559
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sl/lex.50.50.ensl.s2t.bin.gz",
+        "sha256": "c7b803feb615b1442e1caf4c3a4d34fd7660dc31ac1088146ad410e338a5391a",
+        "sizeBytes": 1741316
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sl/vocab.ensl.spm.gz",
+        "sha256": "07d9137c7e54457325d6b5220382b5f184d34903fa99cabc10f7b98869220124",
+        "sizeBytes": 398763
+      }
+    },
+    {
+      "source": "sl",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 26267497,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sl-en/model.slen.intgemm.alphas.bin.gz",
+        "sha256": "ea4929781045086ea37e689fda03dfb75e77e5abaa10a43ae0f8ea252c248040",
+        "sizeBytes": 23730414
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sl-en/lex.50.50.slen.s2t.bin.gz",
+        "sha256": "09724499bd2a9abf5e2869642438adfc4a6e300069d0e0ec8ef18320441b58e6",
+        "sizeBytes": 2138548
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sl-en/vocab.slen.spm.gz",
+        "sha256": "2887bddbbd49efc3a26b1e787cb3fe2d343db05ec9f209413bd735e505144105",
+        "sizeBytes": 398535
+      }
+    },
+    {
+      "source": "en",
+      "target": "sv",
+      "tier": "tiny",
+      "sizeBytes": 15094740,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sv/model.ensv.intgemm.alphas.bin.gz",
+        "sha256": "f2fee438e0770428c06a4fa1e938175bf7c37f3a288313c317853b646437eb81",
+        "sizeBytes": 12775086
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sv/lex.50.50.ensv.s2t.bin.gz",
+        "sha256": "0480c83e15f1d2dcee68873eee5fb66c2912884ab2757ff201e6b6ab9be38ed7",
+        "sizeBytes": 1921270
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-sv/vocab.ensv.spm.gz",
+        "sha256": "534e7f952f6bb97903301332836bab5d76cbc965592a9f1af77ace05e84e2edf",
+        "sizeBytes": 398384
+      }
+    },
+    {
+      "source": "sv",
+      "target": "en",
+      "tier": "tiny",
+      "sizeBytes": 15410099,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sv-en/model.sven.intgemm.alphas.bin.gz",
+        "sha256": "5a5351596bc22c517908628924ac63bec5f81e7225c62bf6e42bb7c66cb41987",
+        "sizeBytes": 12847259
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sv-en/lex.50.50.sven.s2t.bin.gz",
+        "sha256": "aedabe4633446cf85b3e2ecc4139b88efed4c5a39b41d2f0d0bb99494c6b950c",
+        "sizeBytes": 2165215
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/sv-en/vocab.sven.spm.gz",
+        "sha256": "75c1784afa8d4b94d2f6ce064fb2facc2044c3cedfc0fbe25acd85f32b06589e",
+        "sizeBytes": 397625
+      }
+    },
+    {
+      "source": "en",
+      "target": "ja",
+      "tier": "base",
+      "sizeBytes": 47998925,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ja/model.enja.intgemm.alphas.bin.gz",
+        "sha256": "73d0096cbb60f59ad87d91506ee8d618407bae4a52253396cea8759095310773",
+        "sizeBytes": 44089580
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ja/lex.50.50.enja.s2t.bin.gz",
+        "sha256": "ff82cc7c26a318cd44c9d14baa1faaa4e983fb8d6d2248484510c05d6d0984fa",
+        "sizeBytes": 3504993
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-ja/srcvocab.enja.spm.gz",
+        "sha256": "2886b3cf3efeb383215f8a4638dbf4f7cdfb24146721c337cc1e84a15d560401",
+        "sizeBytes": 404352
+      }
+    },
+    {
+      "source": "ja",
+      "target": "en",
+      "tier": "base",
+      "sizeBytes": 48650784,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ja-en/model.jaen.intgemm.alphas.bin.gz",
+        "sha256": "483c9ad18e85fd0a8ccb15b305daf7929ee939abd606fdb55a4cacfa89a5be1f",
+        "sizeBytes": 43084737
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ja-en/lex.50.50.jaen.s2t.bin.gz",
+        "sha256": "266617374a94add490a115f0594c0df18bbb696c94a056b396ddc53e5393dc7b",
+        "sizeBytes": 4819431
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/ja-en/vocab.jaen.spm.gz",
+        "sha256": "339c8df4205f81e6a192ef2f7d1bbea928c183a2b07878723df895cf23daedac",
+        "sizeBytes": 746616
+      }
+    },
+    {
+      "source": "en",
+      "target": "zh",
+      "tier": "base",
+      "sizeBytes": 34445194,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-zh/model.enzh.intgemm.alphas.bin.gz",
+        "sha256": "927de8ae55e97d9ebc29a051dfef37dd4310a1ee065b205f8e9cccfccb636a59",
+        "sizeBytes": 30500315
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-zh/lex.50.50.enzh.s2t.bin.gz",
+        "sha256": "a6a86815587ea3920b9e61f19b6b69d8507944ed4a15d277639619ce0a709bc8",
+        "sizeBytes": 3537095
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/en-zh/srcvocab.enzh.spm.gz",
+        "sha256": "06a2e7c235ab702ab9018588048316e81546b5f24c02d293dab0b338549cfd01",
+        "sizeBytes": 407784
+      }
+    },
+    {
+      "source": "zh",
+      "target": "en",
+      "tier": "base",
+      "sizeBytes": 49932172,
+      "model": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/zh-en/model.zhen.intgemm.alphas.bin.gz",
+        "sha256": "820f50dc36b1e25c97208fff0470bae7fda62bd6f371c4c4bf94947a9de58497",
+        "sizeBytes": 44369188
+      },
+      "lex": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/zh-en/lex.50.50.zhen.s2t.bin.gz",
+        "sha256": "b1bef5f75f5068877afdb2db0eeb670129165976bfa2af4889928f59c264b7b9",
+        "sizeBytes": 4824122
+      },
+      "vocab": {
+        "url": "https://huggingface.co/mukowaty/firefox-translations/resolve/main/zh-en/vocab.zhen.spm.gz",
+        "sha256": "fd0cc08ddcbe480e3be06e6a86cb8aaf75f946263a5d9fc7d2773a197990cfb2",
+        "sizeBytes": 738862
+      }
+    }
+  ]
+}

@@ -45,7 +45,6 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                     is UiEvent.UpdateUndoPostTimerSeconds -> handleUndoPostTimerSeconds(it)
                     is UiEvent.UpdateUndoPostTimerForReplies -> handleUndoPostTimerForReplies(it)
                     is UiEvent.UpdateTranslateNotesEnabled -> handleTranslateNotesEnabledUpdate(it)
-                    is UiEvent.UpdateTranslateServerUrl -> handleTranslateServerUrlUpdate(it)
                 }
             }
         }
@@ -67,7 +66,6 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                         ),
                         undoPostTimerForReplies = it.contentDisplaySettings.undoPostTimerForReplies,
                         translateNotesEnabled = it.contentDisplaySettings.translateNotesEnabled,
-                        translateServerUrl = it.contentDisplaySettings.translateServerUrl,
                     )
                 }
             }
@@ -149,12 +147,4 @@ class ContentDisplaySettingsViewModel @Inject constructor(
         }
     }
 
-    private fun handleTranslateServerUrlUpdate(event: UiEvent.UpdateTranslateServerUrl) {
-        setState { copy(translateServerUrl = event.url) }
-        viewModelScope.launch {
-            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
-                copy(translateServerUrl = event.url)
-            }
-        }
-    }
 }

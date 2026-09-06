@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">Beidh Vótálaithe a thaispeáint suas anseo.</string>
     <string name="poll_votes_sats_suffix">cineál gas: in airde</string>
     <string name="poll_votes_see_votes">féach ar vótaí</string>
+    <string name="settings_content_display_translate_notes">Nótaí Translate</string>
+    <string name="settings_content_display_translate_notes_hint">Taispeánann sé gníomh aistriúcháin ar nótaí, ag baint úsáide as inneall aistriúcháin atá go hiomlán ar an ngléas. Ní fhágann aon rud do ghléas — an chéad uair a aistríonn tú go teanga nó uaithi, íoslódáiltear paca beag teanga (cúpla MB) le húsáid as líne.</string>
+    <string name="note_translate_button">Aistriú</string>
+    <string name="note_translate_loading">Aistriú...</string>
+    <string name="note_translate_error">Níorbh fhéidir a aistriú an nóta seo</string>
+    <string name="note_translate_not_configured">Socraigh freastalaí aistriúcháin i Socruithe ar dtús</string>
+    <string name="note_translated_footer">Aistrithe</string>
+    <string name="note_see_original">Féach bunaidh</string>
+    <string name="note_translate_not_available">Níl aistriúchán ar fáil don teanga seo</string>
+    <string name="note_translate_downloading">Á íoslódáil…</string>
+    <string name="note_translate_download_title">An íoslódáil paca aistriúcháin?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nTarlaíonn an t-aistriúchán go hiomlán ar an ngléas seo, fiú as líne.</string>
+    <string name="note_translate_download_confirm">Íoslódáil</string>
+    <string name="note_translate_download_cancel">Cealaigh</string>
 </resources>

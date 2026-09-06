@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">Valijad ilmuvad siia.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">hääletusi</string>
+    <string name="settings_content_display_translate_notes">Tõlki märkmeid</string>
+    <string name="settings_content_display_translate_notes_hint">Kuvab märkmetel tõlkimisvõimaluse, kasutades täielikult seadmesisest tõlkemootorit. Miski ei lahku sinu seadmest — kui tõlgid esimest korda mingisse keelde või sellest, laaditakse alla väike keelepakett (paar MB) võrguühenduseta kasutamiseks.</string>
+    <string name="note_translate_button">Tõlki</string>
+    <string name="note_translate_loading">Tõlkimine..</string>
+    <string name="note_translate_error">Ma ei suutnud seda kirja tõlkida</string>
+    <string name="note_translate_not_configured">Tõlkeserveri seadistamine Seadistustes</string>
+    <string name="note_translated_footer">Tõlkinud</string>
+    <string name="note_see_original">Vaata originaali</string>
+    <string name="note_translate_not_available">Selle keele jaoks pole tõlge saadaval</string>
+    <string name="note_translate_downloading">Allalaadimine…</string>
+    <string name="note_translate_download_title">Kas laadida alla tõlkepakett?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nTõlkimine toimub täielikult selles seadmes, ka võrguühenduseta.</string>
+    <string name="note_translate_download_confirm">Laadi alla</string>
+    <string name="note_translate_download_cancel">Tühista</string>
 </resources>

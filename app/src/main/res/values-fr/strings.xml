@@ -1483,4 +1483,18 @@
     <string name="poll_votes_no_voters">Les électeurs viendront ici.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">voir votes</string>
+    <string name="settings_content_display_translate_notes">Traduire des notes</string>
+    <string name="settings_content_display_translate_notes_hint">Affiche une action de traduction sur les notes, à l\'aide d\'un moteur de traduction entièrement embarqué sur l\'appareil. Rien ne quitte votre appareil — la première fois que vous traduisez vers ou depuis une langue, un petit pack linguistique (quelques Mo) est téléchargé pour une utilisation hors ligne.</string>
+    <string name="note_translate_button">Traduire</string>
+    <string name="note_translate_loading">Traduire..</string>
+    <string name="note_translate_error">Je ne pouvais pas traduire cette note</string>
+    <string name="note_translate_not_configured">Définir d\'abord un serveur de traduction dans Paramètres</string>
+    <string name="note_translated_footer">Traduit</string>
+    <string name="note_see_original">Voir l\'original</string>
+    <string name="note_translate_not_available">Traduction non disponible pour cette langue</string>
+    <string name="note_translate_downloading">Téléchargement…</string>
+    <string name="note_translate_download_title">Télécharger le pack de traduction ?</string>
+    <string name="note_translate_download_message">%1$s → %2$s · %3$s Mo\n\nLa traduction se fait entièrement sur cet appareil, même hors ligne.</string>
+    <string name="note_translate_download_confirm">Télécharger</string>
+    <string name="note_translate_download_cancel">Annuler</string>
 </resources>

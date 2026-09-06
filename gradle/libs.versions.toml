@@ -9,9 +9,10 @@ acinq-secp256k1-kmp = "0.23.0"
 agp = "9.2.1"
 android-compileSdk = "37"
 android-targetSdk = "36"
-android-minSdk = "26"
+android-minSdk = "28"
 appcompat = "1.7.1"
 bignum = "0.3.10"
+lingua = "1.2.2"
 bitcoinj-core = "0.17.1"
 biometric = "1.4.0-alpha07"
 camera = "1.5.2"
@@ -88,6 +89,7 @@ benchmark-macro-junit4 = "1.4.1"
 # Core libs
 androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "jetpack-webkit" }
 bignum = { module = "com.ionspin.kotlin:bignum", version.ref = "bignum" }
+lingua = { module = "com.github.pemistahl:lingua", version.ref = "lingua" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 korlibs-crypto = { module = "com.soywiz:korlibs-crypto", version.ref = "korlibs-crypto" }
@@ -294,6 +296,7 @@ hilt-compiler = ["hilt-compiler", "hilt-compiler-dagger", "hilt-compiler-android
 
 [plugins]
 com-android-application = { id = "com.android.application", version.ref = "agp" }
+com-android-library = { id = "com.android.library", version.ref = "agp" }
 org-jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 org-jetbrains-kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

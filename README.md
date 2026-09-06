@@ -107,8 +107,7 @@ Signing properties are optional and use the `alternative` signing block. Then ru
 
 ## Releases
 
-Signed release APKs (`altRelease`, split per ABI: `armeabi-v7a`,
-`arm64-v8a`, `x86_64`) are published on the
+Signed release APKs (`altRelease`, `arm64-v8a` only) are published on the
 [GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page,
 starting with `v0.1.0`. Verify the APK signature before installing:
 

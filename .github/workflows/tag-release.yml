@@ -73,7 +73,7 @@ jobs:
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           mkdir -p release
-          for abi in arm64-v8a armeabi-v7a x86_64; do
+          for abi in arm64-v8a; do
             cp "app/build/outputs/apk/altRelease/app-${abi}-altRelease.apk" \
                "release/librenostr-${version}-${abi}.apk"
           done
