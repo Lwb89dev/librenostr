@@ -44,6 +44,17 @@ android {
         }
     }
 
+    // :app builds a custom "altRelease" build type (its actual release build); Gradle's variant
+    // matching needs a same-named build type here too; a plain matchingFallbacks on the consumer
+    // side isn't enough for a non-KMP Android library like this one. initWith(release) keeps it
+    // identical to the default release variant — this module has no debug-only behavior to vary.
+    buildTypes {
+        release {}
+        create("altRelease") {
+            initWith(getByName("release"))
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
