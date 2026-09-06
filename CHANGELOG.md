@@ -7,6 +7,37 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.3.3] - 2026-09-06
+
+### Added
+
+- **Four new themes**: Dark Pixel, Light Pixel, Fire, and Fire Light join
+  Midnight and Ice — six in total, shown in a grid with each theme's own
+  name and color swatch instead of a plain "Dark"/"Light" pair. The two
+  Pixel themes also use a different typeface (Fira Mono) and sharper
+  corners, the first themes here to vary anything beyond color.
+
+### Fixed
+
+- The feed could show only your own notes after a cold start, sometimes
+  needing the app force-closed and reopened to recover. A relay query
+  racing ahead of the app's own relay connections on startup returned an
+  empty follow list, and that empty result got cached for 5 minutes —
+  turning a one-off timing issue into a long-lived one. A fresh feed load
+  now retries instead of trusting a remembered "you follow nobody" answer.
+- Scrolling a feed to load more notes could still make it visibly jump —
+  the 0.3.0 fix for this addressed one of two places that were forcing a
+  reload on every page, not both.
+- The zap comment field could end up hidden behind the on-screen keyboard,
+  with no way to see what you were typing. The zap sheet's amount-preset
+  grid is also a bit more compact now.
+- Switching between Home, Messages, Notifications, and Settings used
+  inconsistent, sometimes directionless animations — tabs now consistently
+  slide toward whichever side they actually sit on.
+- Several Italian strings translated in 0.3.0 didn't make sense in context
+  ("account" as "conto" — a bank account, "muted" as "morto" — dead,
+  "note" as "biglietto" — a ticket, among others).
+
 ## [0.3.2] - 2026-09-06
 
 Note translation is now fully on-device — no server, no configuration,
