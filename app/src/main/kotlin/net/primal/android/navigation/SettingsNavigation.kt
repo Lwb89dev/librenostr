@@ -282,10 +282,30 @@ private fun NavGraphBuilder.home(
     onDeveloperToolsClick: () -> Unit,
 ) = composable(
     route = route,
-    enterTransition = { primalSlideInHorizontallyFromEnd },
-    exitTransition = { primalScaleOut },
-    popEnterTransition = { primalScaleIn },
-    popExitTransition = { primalSlideOutHorizontallyToEnd },
+    enterTransition = {
+        enterTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalSlideInHorizontallyFromEnd,
+        )
+    },
+    exitTransition = {
+        exitTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalScaleOut,
+        )
+    },
+    popEnterTransition = {
+        enterTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalScaleIn,
+        )
+    },
+    popExitTransition = {
+        exitTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalSlideOutHorizontallyToEnd,
+        )
+    },
 ) {
     val viewModel = hiltViewModel<SettingsHomeViewModel>(it)
     LockToOrientationPortrait()

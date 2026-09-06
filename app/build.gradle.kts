@@ -97,7 +97,6 @@ android {
                 "false"
             },
         )
-
     }
 
     splits {

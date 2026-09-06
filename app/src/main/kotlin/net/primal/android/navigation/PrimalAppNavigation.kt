@@ -1164,12 +1164,18 @@ private fun NavGraphBuilder.main(
     route = route,
     deepLinks = deepLinks,
     arguments = arguments,
-    enterTransition = { null },
+    // Home and Notifications both live under this one route (MainScreen switches between them
+    // with internal state, not a nav-graph destination) — see slidesRightToLeft's doc for why
+    // that needs its own persisted "which one is showing" key rather than the route alone.
+    enterTransition = { enterTransitionFor(slidesRightToLeft(from = initialState, to = targetState)) },
     exitTransition = {
         if (targetState.destination.route.isMainScreenRoute()) {
             null
         } else {
-            primalScaleOut
+            exitTransitionFor(
+                rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+                fallback = primalScaleOut,
+            )
         }
     },
     popEnterTransition = {
@@ -1179,14 +1185,20 @@ private fun NavGraphBuilder.main(
         if (initialState.destination.route.isMainScreenRoute() || initialState.destination.route == "messages") {
             null
         } else {
-            primalScaleIn
+            enterTransitionFor(
+                rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+                fallback = primalScaleIn,
+            )
         }
     },
     popExitTransition = {
         if (targetState.destination.route.isMainScreenRoute()) {
             null
         } else {
-            primalScaleOut
+            exitTransitionFor(
+                rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+                fallback = primalScaleOut,
+            )
         }
     },
 ) { navBackEntry ->
@@ -1484,13 +1496,30 @@ private fun NavGraphBuilder.messages(
 ) = composable(
     route = route,
     deepLinks = deepLinks,
-    enterTransition = { primalSlideInHorizontallyFromEnd },
-    exitTransition = { primalScaleOut },
-    popEnterTransition = { primalScaleIn },
+    enterTransition = {
+        enterTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalSlideInHorizontallyFromEnd,
+        )
+    },
+    exitTransition = {
+        exitTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalScaleOut,
+        )
+    },
+    popEnterTransition = {
+        enterTransitionFor(
+            rightToLeft = slidesRightToLeft(from = initialState, to = targetState),
+            fallback = primalScaleIn,
+        )
+    },
     // Popped both by the top bar's back arrow and, more often, by tapping another bottom-nav
-    // tab while on Messages — the latter is a tab switch, not a screen dismissal, so it should
-    // be instant rather than sliding out.
-    popExitTransition = { null },
+    // tab while on Messages — the latter is a tab switch, not a screen dismissal, so those still
+    // get a direction-aware slide (via slidesRightToLeft) instead of the old flat "always null".
+    popExitTransition = {
+        exitTransitionFor(slidesRightToLeft(from = initialState, to = targetState))
+    },
 ) { navBackEntry ->
     val viewModel = hiltViewModel<MessageConversationListViewModel>(navBackEntry)
     ApplyEdgeToEdge()

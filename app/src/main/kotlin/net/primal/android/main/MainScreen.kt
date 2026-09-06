@@ -1,9 +1,15 @@
 package net.primal.android.main
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -109,7 +115,12 @@ import net.primal.android.main.reads.ReadsScreenContract
 import net.primal.android.main.reads.ReadsViewModel
 import net.primal.android.main.wallet.WalletDashboardContent
 import net.primal.android.main.wallet.WalletDashboardTopAppBar
+import net.primal.android.navigation.CURRENT_MAIN_TAB_KEY
 import net.primal.android.navigation.accountSwitcherCallbacksHandler
+import net.primal.android.navigation.primalSlideInHorizontallyFromEnd
+import net.primal.android.navigation.primalSlideInHorizontallyFromStart
+import net.primal.android.navigation.primalSlideOutHorizontallyToEnd
+import net.primal.android.navigation.primalSlideOutHorizontallyToStart
 import net.primal.android.navigation.navigateToAdvancedSearch
 import net.primal.android.navigation.navigateToArticleDetails
 import net.primal.android.navigation.navigateToExploreFeed
@@ -161,6 +172,13 @@ fun MainScreen(
             activeTab = destination
         }
         navBackStackEntry.savedStateHandle[REQUESTED_TAB_KEY] = null
+    }
+
+    // Unlike requestedTab above (a one-shot request, cleared right after being read), this
+    // always reflects what's currently on screen — PrimalAppNavigation's transitions read it to
+    // pick a slide direction when leaving/returning to "main" (see CURRENT_MAIN_TAB_KEY's doc).
+    LaunchedEffect(activeTab) {
+        navBackStackEntry.savedStateHandle[CURRENT_MAIN_TAB_KEY] = activeTab.name
     }
 
     // Shared callbacks
@@ -451,6 +469,24 @@ private fun ScaffoldTopAppBar(
     )
 }
 
+// Every other tab pair switches instantly (existing behavior, untouched) — Home and Notifications
+// are the one pair reachable from the bottom bar with no navigation-graph transition of their own
+// (MainScreen switches them via internal state), so they used to have no animation at all.
+// Pulled out of MainScreenContent to keep this `when`'s complexity off of that already-large
+// function rather than adding to it.
+private val mainScreenTabTransitionSpec:
+    AnimatedContentTransitionScope<PrimalTopLevelDestination>.() -> ContentTransform = {
+    when {
+        initialState == PrimalTopLevelDestination.Feeds && targetState == PrimalTopLevelDestination.Alerts ->
+            primalSlideInHorizontallyFromEnd togetherWith primalSlideOutHorizontallyToStart
+
+        initialState == PrimalTopLevelDestination.Alerts && targetState == PrimalTopLevelDestination.Feeds ->
+            primalSlideInHorizontallyFromStart togetherWith primalSlideOutHorizontallyToEnd
+
+        else -> EnterTransition.None togetherWith ExitTransition.None
+    }
+}
+
 @Suppress("LongMethod")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -475,79 +511,89 @@ private fun MainScreenContent(
 ) {
     val onGoToWallet = {}
     Box {
-        saveableStateHolder.SaveableStateProvider(activeTab.name) {
-            when (activeTab) {
-                PrimalTopLevelDestination.Feeds -> NoteFeedsContent(
-                    state = homeState,
-                    pagerState = sharedState.homePagerState,
-                    noteCallbacks = noteCallbacks,
-                    eventPublisher = homeEventPublisher,
-                    onActiveFeedChanged = { sharedState.homeActiveFeed.value = it },
-                    selectedFeed = sharedState.homeActiveFeed.value,
-                    topAppBarCollapsedFraction = homeTopAppBarState.collapsedFraction,
-                    shouldAnimateScrollToTop = sharedState.homeShouldAnimateScrollToTop,
-                    scrollToFeed = sharedState.homeScrollToFeed,
-                    snackbarHostState = sharedState.snackbarHostState,
-                    paddingValues = paddingValues,
-                    onGoToWallet = onGoToWallet,
-                    onNewNotesStateChanged = onHomeNewNotesChanged,
-                )
+        // Every other tab pair here switches instantly (existing behavior, untouched) — Home and
+        // Notifications are the one pair reachable from the bottom bar with no navigation-graph
+        // transition of their own (MainScreen switches them via this internal state), so they
+        // used to have literally no animation at all switching between them directly.
+        AnimatedContent(
+            targetState = activeTab,
+            transitionSpec = mainScreenTabTransitionSpec,
+            label = "MainScreenContent",
+        ) { tab ->
+            saveableStateHolder.SaveableStateProvider(tab.name) {
+                when (tab) {
+                    PrimalTopLevelDestination.Feeds -> NoteFeedsContent(
+                        state = homeState,
+                        pagerState = sharedState.homePagerState,
+                        noteCallbacks = noteCallbacks,
+                        eventPublisher = homeEventPublisher,
+                        onActiveFeedChanged = { sharedState.homeActiveFeed.value = it },
+                        selectedFeed = sharedState.homeActiveFeed.value,
+                        topAppBarCollapsedFraction = homeTopAppBarState.collapsedFraction,
+                        shouldAnimateScrollToTop = sharedState.homeShouldAnimateScrollToTop,
+                        scrollToFeed = sharedState.homeScrollToFeed,
+                        snackbarHostState = sharedState.snackbarHostState,
+                        paddingValues = paddingValues,
+                        onGoToWallet = onGoToWallet,
+                        onNewNotesStateChanged = onHomeNewNotesChanged,
+                    )
 
-                PrimalTopLevelDestination.Reads -> ReadsContent(
-                    state = readsState,
-                    pagerState = sharedState.readsPagerState,
-                    eventPublisher = readsEventPublisher,
-                    onActiveFeedChanged = { sharedState.readsActiveFeed.value = it },
-                    shouldAnimateScrollToTop = sharedState.readsShouldAnimateScrollToTop,
-                    scrollToFeed = sharedState.readsScrollToFeed,
-                    snackbarHostState = sharedState.snackbarHostState,
-                    paddingValues = paddingValues,
-                    navController = navController,
-                )
+                    PrimalTopLevelDestination.Reads -> ReadsContent(
+                        state = readsState,
+                        pagerState = sharedState.readsPagerState,
+                        eventPublisher = readsEventPublisher,
+                        onActiveFeedChanged = { sharedState.readsActiveFeed.value = it },
+                        shouldAnimateScrollToTop = sharedState.readsShouldAnimateScrollToTop,
+                        scrollToFeed = sharedState.readsScrollToFeed,
+                        snackbarHostState = sharedState.snackbarHostState,
+                        paddingValues = paddingValues,
+                        navController = navController,
+                    )
 
-                PrimalTopLevelDestination.Explore -> {
-                    val active = sharedState.homeActiveFeed.value ?: homeState.feeds.firstOrNull()
-                    if (active != null) {
-                        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                            FeedListOverlayContent(
-                                activeFeed = active,
-                                feedSpecKind = FeedSpecKind.Notes,
-                                inlineActions = true,
-                                onFeedClick = { feed ->
-                                    sharedState.homeActiveFeed.value = feed
-                                    onTabChanged(PrimalTopLevelDestination.Feeds)
-                                },
-                                onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
-                                onGoToWallet = onGoToWallet,
-                            )
+                    PrimalTopLevelDestination.Explore -> {
+                        val active = sharedState.homeActiveFeed.value ?: homeState.feeds.firstOrNull()
+                        if (active != null) {
+                            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                                FeedListOverlayContent(
+                                    activeFeed = active,
+                                    feedSpecKind = FeedSpecKind.Notes,
+                                    inlineActions = true,
+                                    onFeedClick = { feed ->
+                                        sharedState.homeActiveFeed.value = feed
+                                        onTabChanged(PrimalTopLevelDestination.Feeds)
+                                    },
+                                    onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
+                                    onGoToWallet = onGoToWallet,
+                                )
+                            }
                         }
                     }
+
+                    PrimalTopLevelDestination.Messages -> Unit
+
+                    PrimalTopLevelDestination.Alerts -> NotificationsContent(
+                        pagerState = sharedState.notificationsPagerState,
+                        badges = notificationsState.badges,
+                        seenNotificationsProvider = notificationsSeenProvider,
+                        unseenNotificationsProvider = notificationsUnseenProvider,
+                        onNotificationsSeen = onNotificationsSeen,
+                        paddingValues = paddingValues,
+                        noteCallbacks = noteCallbacks,
+                        onGoToWallet = onGoToWallet,
+                        shouldAnimateScrollToTop = sharedState.notificationsShouldAnimateScrollToTop,
+                    )
+
+                    PrimalTopLevelDestination.Settings -> Unit
+
+                    PrimalTopLevelDestination.Wallet -> WalletDashboardContent(
+                        currencyMode = sharedState.walletCurrencyMode.value,
+                        onCurrencyModeToggle = { sharedState.walletCurrencyMode.value = it },
+                        onScrolledToTopChanged = { sharedState.walletIsScrolledToTop.value = it },
+                        shouldAnimateScrollToTop = sharedState.walletShouldAnimateScrollToTop,
+                        paddingValues = paddingValues,
+                        navController = navController,
+                    )
                 }
-
-                PrimalTopLevelDestination.Messages -> Unit
-
-                PrimalTopLevelDestination.Alerts -> NotificationsContent(
-                    pagerState = sharedState.notificationsPagerState,
-                    badges = notificationsState.badges,
-                    seenNotificationsProvider = notificationsSeenProvider,
-                    unseenNotificationsProvider = notificationsUnseenProvider,
-                    onNotificationsSeen = onNotificationsSeen,
-                    paddingValues = paddingValues,
-                    noteCallbacks = noteCallbacks,
-                    onGoToWallet = onGoToWallet,
-                    shouldAnimateScrollToTop = sharedState.notificationsShouldAnimateScrollToTop,
-                )
-
-                PrimalTopLevelDestination.Settings -> Unit
-
-                PrimalTopLevelDestination.Wallet -> WalletDashboardContent(
-                    currencyMode = sharedState.walletCurrencyMode.value,
-                    onCurrencyModeToggle = { sharedState.walletCurrencyMode.value = it },
-                    onScrolledToTopChanged = { sharedState.walletIsScrolledToTop.value = it },
-                    shouldAnimateScrollToTop = sharedState.walletShouldAnimateScrollToTop,
-                    paddingValues = paddingValues,
-                    navController = navController,
-                )
             }
         }
     }
