@@ -7,6 +7,52 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.3.2] - 2026-09-06
+
+Note translation is now fully on-device — no server, no configuration,
+nothing ever leaves your phone.
+
+### Changed
+
+- **Note translation no longer uses a remote LibreTranslate server.** The
+  "Translate" action introduced in 0.3.0 now runs entirely on-device via
+  Bergamot Translator (Mozilla's own production NMT engine — the same one
+  built into Firefox) with real neural translation models, covering every
+  EU official language plus Chinese, Japanese, and Maltese in both
+  directions (Irish has no published model anywhere, so it isn't
+  supported). Models are small (mostly 14-18MB per language pair) and
+  download on demand, with an explicit confirmation showing the real size
+  and an on-device/offline disclosure before anything is fetched — never
+  bundled into the app itself. "Translate notes" is on by default now that
+  there's no server address or API key to configure; the now-pointless
+  server URL and API key fields have been removed from Settings > Content
+  Display.
+- Raised the minimum supported Android version from 9.0 to Pie (API 28,
+  Android 9) — the on-device translation engine's `iconv` usage requires it.
+- Release APKs are now built for `arm64-v8a` only (previously also
+  `armeabi-v7a` and `x86_64`). A real 32-bit-only phone isn't a realistic
+  target any more, and native x86_64 Android phones are effectively
+  nonexistent today — the rare x86 devices (Chromebooks) already run arm64
+  apps through their own translation layer.
+
+### Fixed
+
+- Translating several notes in a scrolling session could grow the app's
+  memory use without bound until it ran out of memory and crashed —
+  language detection was loading its full offline model independently for
+  every note instead of once, shared.
+- Scrolling a note out of view while it was translating (or downloading a
+  language pack) silently abandoned the operation — the spinner just kept
+  spinning forever, with no error and no result even if you scrolled back.
+  Translation now runs independently of what's on screen, so it keeps
+  going, and finishes, regardless.
+- Translation could take upwards of 15-20 seconds per note due to two
+  compounding issues: the debug build of the native engine ran unoptimized
+  (a side effect of how Android normally compiles debug builds), and the
+  one-time language-detection setup was doing several times more work than
+  it needed to. Both are fixed — a typical translation now takes about two
+  seconds.
+
 ## [0.3.1] - 2026-09-05
 
 A privacy/security pass across the codebase, prompted by an audit looking
