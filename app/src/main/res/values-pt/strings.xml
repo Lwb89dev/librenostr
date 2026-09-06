@@ -126,6 +126,7 @@
         <item quantity="other">Enviando sua nota em %d segundos</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Não envies</string>
+    <string name="editor_publish_countdown_confirm">Lido, enviar agora</string>
     <string name="editor_publish_countdown_attachments_notice">Os anexos foram enviados quando os escolheu, pelo que cancelar isto não os remove do servidor de mídia.</string>
     <string name="settings_content_display_undo_post_timer">Desfazer o temporizador de envio</string>
     <string name="settings_content_display_undo_post_timer_hint">Segure uma nota para trás por alguns segundos depois de tocar post, para que você ainda pode cancelar. A publicação à Nostr não pode ser desfeita depois.</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Mostra uma ação de tradução nas notas, usando um mecanismo de tradução totalmente no dispositivo. Nada sai do seu dispositivo — na primeira vez que traduzir para ou de um idioma, é feito o download de um pequeno pacote de idioma (alguns MB) para uso offline.</string>
     <string name="note_translate_button">Traduza</string>
     <string name="note_translate_loading">Traduzindo..</string>
-    <string name="note_translate_error">Não consegui traduzir esta nota</string>
-    <string name="note_translate_not_configured">Defina um servidor de tradução em Configurações primeiro</string>
-    <string name="note_translated_footer">Traduzido</string>
+    <string name="note_translate_error">Não consegui traduzir esta nota</string>    <string name="note_translated_footer">Traduzido</string>
     <string name="note_see_original">Ver original</string>
     <string name="note_translate_not_available">Tradução não disponível para este idioma</string>
     <string name="note_translate_downloading">A transferir…</string>

@@ -126,6 +126,7 @@
         <item quantity="other">Στέλνω το σημείωμά σου σε %d δευτερόλεπτα.</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Μην στέλνεις.</string>
+    <string name="editor_publish_countdown_confirm">Το διάβασα, αποστολή τώρα</string>
     <string name="editor_publish_countdown_attachments_notice">Τα συνημμένα αναρτήθηκαν όταν τα επιλέξατε, οπότε το να το ακυρώσετε δεν τους αφαιρεί από το διακομιστή πολυμέσων.</string>
     <string name="settings_content_display_undo_post_timer">Αναίρεση χρονομέτρου αποστολής</string>
     <string name="settings_content_display_undo_post_timer_hint">Κρατήστε ένα σημείωμα για λίγα δευτερόλεπτα μετά το πάτημα, ώστε να μπορείτε ακόμα να το ακυρώσετε. Η έκδοση στη Nostr δεν μπορεί να αναιρεθεί μετά.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Σύνδεση σε οποιαδήποτε εφαρμογή Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Χρησιμοποιήστε το λογαριασμό σας LibreNostr για να συνδεθείτε σε οποιαδήποτε εφαρμογή \n Nostr που υποστηρίζει απομακρυσμένη σύνδεση.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Χρησιμοποιήστε το λογαριασμό σας LibreNostr για να συνδεθείτε σε οποιαδήποτε εφαρμογή Nostr που υποστηρίζει απομακρυσμένη σύνδεση. Επικόλληση της συμβολοσειράς σύνδεσης παρακάτω:</string>
-    <string name="logout_title">Υπογραφή</string>
+    <string name="logout_title">Αποσύνδεση</string>
     <string name="logout_description">Αν δεν έσωσες το ιδιωτικό σου κλειδί, θα χαθεί ανεπανόρθωτα. Θέλεις πραγματικά να υπογράψεις;</string>
     <string name="logout_cancel_button">Ακύρωση</string>
-    <string name="logout_button">Υπογραφή</string>
+    <string name="logout_button">Αποσύνδεση</string>
     <string name="primary_destination_feed_label">Αρχική</string>
     <string name="primary_destination_reads_label">Αναγνώσεις</string>
     <string name="primary_destination_wallet_label">Πορτοφόλι</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">ή</string>
     <string name="feed_context_unmute_thread">Μη μετρήσιμο νήμα</string>
     <string name="feed_context_share_note">Σημείωση μετοχής</string>
-    <string name="feed_context_share_poll">Μερίδιο poll</string>
+    <string name="feed_context_share_poll">Κοινοποίηση δημοσκόπησης</string>
     <string name="feed_context_share_note_as_image">Κοινή χρήση ως εικόνα</string>
     <string name="feed_context_copy_note_link">Αντιγραφή δεσμού σημείωσης</string>
     <string name="feed_context_copy_poll_link">Αντιγραφή δεσμού δημοσκόπησης</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Στείλτε ένα σχόλιο…</string>
     <string name="live_stream_send_button_title">αποστολή</string>
     <string name="live_stream_menu_quote_stream">Ροή προσφοράς</string>
-    <string name="live_stream_menu_share_stream">Μετοχή ροής</string>
+    <string name="live_stream_menu_share_stream">Κοινοποίηση ροής</string>
     <string name="live_stream_menu_copy_stream_link">Αντιγραφή δεσμού ροής</string>
     <string name="live_stream_menu_copy_stream_id">Αντιγραφή ID ροής</string>
     <string name="live_stream_menu_copy_raw_data">Αντιγραφή ακατέργαστων δεδομένων</string>
@@ -1416,7 +1417,7 @@
     <string name="signer_notification_summary_title">Απομακρυσμένη υπογραφή LibreNostr</string>
     <string name="signer_notification_end_session">Τέλος συνεδρίας</string>
     <string name="signer_notification_unknown_app">Άγνωστη εφαρμογή</string>
-    <string name="signer_notification_logged_in_as">Καταχωρίστηκε στο %s</string>
+    <string name="signer_notification_logged_in_as">Συνδεθήκατε ως %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Έχετε %d νέα αίτηση υπογραφέα.</item>
         <item quantity="other">Έχετε %d νέες αιτήσεις υπογραφέων.</item>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Εμφανίζει μια ενέργεια μετάφρασης στις σημειώσεις, χρησιμοποιώντας μια μηχανή μετάφρασης εξ ολοκλήρου εντός της συσκευής. Τίποτα δεν φεύγει από τη συσκευή σας — την πρώτη φορά που μεταφράζετε από ή προς μια γλώσσα, κατεβαίνει ένα μικρό γλωσσικό πακέτο (λίγα MB) για εκτός σύνδεσης χρήση.</string>
     <string name="note_translate_button">Μετάφρασε</string>
     <string name="note_translate_loading">Μεταφράζει..</string>
-    <string name="note_translate_error">Δεν μπορούσα να μεταφράσω αυτό το σημείωμα</string>
-    <string name="note_translate_not_configured">Ορισμός ενός εξυπηρετητή μεταφράσεων στις Settings πρώτα</string>
-    <string name="note_translated_footer">Μεταφρασμένο</string>
+    <string name="note_translate_error">Δεν μπορούσα να μεταφράσω αυτό το σημείωμα</string>    <string name="note_translated_footer">Μεταφρασμένο</string>
     <string name="note_see_original">Δείτε το πρωτότυπο</string>
     <string name="note_translate_not_available">Δεν υπάρχει διαθέσιμη μετάφραση για αυτή τη γλώσσα</string>
     <string name="note_translate_downloading">Λήψη…</string>

@@ -228,6 +228,7 @@ fun NoteEditorScreen(
             hasUploadedAttachments = state.attachments.isNotEmpty(),
             notePreview = state.toPreviewNoteContentUi(),
             onCancel = { eventPublisher(UiEvent.CancelScheduledPublish) },
+            onConfirmNow = { eventPublisher(UiEvent.ConfirmScheduledPublish) },
         )
         return
     }

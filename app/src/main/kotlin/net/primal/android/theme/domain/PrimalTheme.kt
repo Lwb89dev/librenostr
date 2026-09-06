@@ -15,6 +15,10 @@ import net.primal.android.theme.colors.fireColorScheme
 import net.primal.android.theme.colors.fireExtraColorScheme
 import net.primal.android.theme.colors.fireLightColorScheme
 import net.primal.android.theme.colors.fireLightExtraColorScheme
+import net.primal.android.theme.colors.darkGreenPixelColorScheme
+import net.primal.android.theme.colors.darkGreenPixelExtraColorScheme
+import net.primal.android.theme.colors.greenPixelColorScheme
+import net.primal.android.theme.colors.greenPixelExtraColorScheme
 import net.primal.android.theme.colors.iceColorScheme
 import net.primal.android.theme.colors.iceExtraColorScheme
 import net.primal.android.theme.colors.lightPixelColorScheme
@@ -31,6 +35,7 @@ enum class PrimalTheme(
     val displayName: String,
     val typography: Typography = PrimalTypography,
     val shapes: Shapes = PrimalShapes,
+    val isPixelTheme: Boolean = false,
 ) {
     Midnight(
         themeName = "midnight",
@@ -59,6 +64,7 @@ enum class PrimalTheme(
         displayName = "Dark Pixel",
         typography = PixelTypography,
         shapes = PixelShapes,
+        isPixelTheme = true,
     ),
 
     LightPixel(
@@ -70,6 +76,31 @@ enum class PrimalTheme(
         displayName = "Light Pixel",
         typography = PixelTypography,
         shapes = PixelShapes,
+        isPixelTheme = true,
+    ),
+
+    GreenPixel(
+        themeName = "green-pixel",
+        colorScheme = greenPixelColorScheme,
+        extraColorScheme = greenPixelExtraColorScheme,
+        isDarkTheme = false,
+        logoId = R.drawable.primal_icon,
+        displayName = "Green Pixel",
+        typography = PixelTypography,
+        shapes = PixelShapes,
+        isPixelTheme = true,
+    ),
+
+    DarkGreenPixel(
+        themeName = "dark-green-pixel",
+        colorScheme = darkGreenPixelColorScheme,
+        extraColorScheme = darkGreenPixelExtraColorScheme,
+        isDarkTheme = true,
+        logoId = R.drawable.primal_icon,
+        displayName = "Dark Green Pixel",
+        typography = PixelTypography,
+        shapes = PixelShapes,
+        isPixelTheme = true,
     ),
 
     Fire(
@@ -97,6 +128,8 @@ enum class PrimalTheme(
             Ice -> Midnight
             DarkPixel -> LightPixel
             LightPixel -> DarkPixel
+            GreenPixel -> DarkGreenPixel
+            DarkGreenPixel -> GreenPixel
             Fire -> FireLight
             FireLight -> Fire
         }

@@ -1,6 +1,7 @@
 package net.primal.android.notes.feed.list
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -31,7 +31,6 @@ import net.primal.android.core.compose.ListLoadingError
 import net.primal.android.core.compose.ListNoContent
 import net.primal.android.core.compose.LibreNostrLoadingSpinner
 import net.primal.android.core.compose.PremiumFeedPaywall
-import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.heightAdjustableLoadingLazyListPlaceholder
 import net.primal.android.core.compose.isEmpty
 import net.primal.android.core.compose.isNotEmpty
@@ -44,6 +43,7 @@ import net.primal.android.notes.feed.note.FeedNoteCard
 import net.primal.android.notes.feed.note.MediaFeedCard
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.stream.player.LocalStreamState
+import net.primal.android.theme.AppTheme
 import net.primal.domain.nostr.ReactionType
 
 internal const val FEED_NESTED_NOTES_CUT_OFF_LIMIT = 2
@@ -151,8 +151,9 @@ fun NoteFeedLazyColumn(
                     } else {
                         FeedNoteCard(
                             data = item,
-                            shape = RectangleShape,
-                            cardPadding = PaddingValues(all = 0.dp),
+                            shape = AppTheme.shapes.large,
+                            border = BorderStroke(1.dp, AppTheme.libreNostrTokens.softOutline),
+                            cardPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
                             fullWidthContent = true,
                             forceContentIndent = true,
                             nestingCutOffLimit = FEED_NESTED_NOTES_CUT_OFF_LIMIT,
@@ -183,7 +184,6 @@ fun NoteFeedLazyColumn(
                         )
                     }
 
-                    PrimalDivider()
                 }
 
                 else -> {}
@@ -273,7 +273,7 @@ fun NoteFeedLazyColumn(
 
         if (pagingItems.isNotEmpty()) {
             item(contentType = "Footer") {
-                Spacer(modifier = Modifier.height(64.dp))
+                Spacer(modifier = Modifier.height(104.dp))
             }
         }
     }

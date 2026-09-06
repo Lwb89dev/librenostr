@@ -255,6 +255,7 @@ class NoteEditorViewModel @AssistedInject constructor(
                     is UiEvent.PasteContent -> handlePasteContent(content = event.content)
                     is UiEvent.PublishNote -> schedulePublish()
                     is UiEvent.CancelScheduledPublish -> cancelScheduledPublish()
+                    is UiEvent.ConfirmScheduledPublish -> confirmScheduledPublish()
                     is UiEvent.ImportLocalFiles -> importPhotos(event.uris)
                     is UiEvent.DiscardNoteAttachment -> discardAttachment(event.attachmentId)
                     is UiEvent.RetryUpload -> retryAttachmentUpload(event.attachmentId)
@@ -778,6 +779,14 @@ class NoteEditorViewModel @AssistedInject constructor(
         countdownJob?.cancel()
         countdownJob = null
         setState { copy(undoCountdownSeconds = null) }
+    }
+
+    /** Skips the rest of the wait and publishes right away — the user already reviewed the note. */
+    private fun confirmScheduledPublish() {
+        countdownJob?.cancel()
+        countdownJob = null
+        setState { copy(undoCountdownSeconds = null) }
+        publishPost()
     }
 
     private fun publishPost() =

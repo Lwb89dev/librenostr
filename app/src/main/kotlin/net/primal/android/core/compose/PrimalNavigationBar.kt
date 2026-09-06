@@ -1,61 +1,56 @@
 package net.primal.android.core.compose
 
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import net.primal.android.R
 import net.primal.android.core.compose.bubble.AnchorHandle
-import net.primal.android.core.compose.bubble.anchor
 import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
+import net.primal.android.theme.LibreNostrTokens
 import net.primal.android.user.domain.Badges
-import net.primal.domain.links.CdnImage
 
-val NavigationBarFullHeightDp = 64.dp
+// Callers that need to reserve space for the dock (e.g. PrimalMainScaffold's height-stability
+// check, WalletDashboardContent's footer spacer) need this to match what's actually composed
+// below: 8dp top padding + the dock's own height. Keep in sync if either changes.
+val NavigationBarFullHeightDp = 8.dp + LibreNostrTokens.DEFAULT_DOCK_HEIGHT_DP.dp
 
+/** A detached, accent-aware navigation dock that preserves the existing navigation callbacks. */
+@Suppress("UnusedParameter")
 @Composable
-@Suppress("LongMethod")
 fun PrimalNavigationBar(
     modifier: Modifier = Modifier,
     activeDestination: PrimalTopLevelDestination,
@@ -63,227 +58,136 @@ fun PrimalNavigationBar(
     onActiveDestinationClick: (() -> Unit)? = null,
     onMessagesClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {},
-    profileAvatarCdnImage: CdnImage? = null,
-    profileLabel: String = "Profile",
-    profileSelected: Boolean = false,
     settingsSelected: Boolean = false,
     badges: Badges = Badges(),
+    // Kept for API compatibility with callers still passing one, but currently inert: this dock
+    // no longer has a slot for PrimalTopLevelDestination.Explore to attach a bubble/tutorial to.
     exploreAnchorHandle: AnchorHandle? = null,
+    composeAction: (@Composable () -> Unit)? = null,
 ) {
-    val badgesMap = mapOf(
-        Pair(PrimalTopLevelDestination.Feeds, badges.unreadFeedCount),
-        Pair(PrimalTopLevelDestination.Messages, badges.unreadMessagesCount),
-        Pair(PrimalTopLevelDestination.Alerts, badges.unreadNotificationsCount),
-    )
+    val tokens = AppTheme.libreNostrTokens
+    val visualSelected = if (settingsSelected) PrimalTopLevelDestination.Settings else activeDestination
+    val navigationInset = with(LocalDensity.current) { WindowInsets.navigationBars.getBottom(this).toDp() }
 
-    Surface(color = Color.Transparent) {
-        Column(modifier = modifier) {
-            PrimalDivider()
-
-            BoxWithConstraints(
+    Surface(color = AppTheme.colorScheme.background) {
+        Column(modifier = modifier.fillMaxWidth()) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = AppTheme.colorScheme.surface)
-                    .height(NavigationBarFullHeightDp),
+                    .padding(horizontal = 12.dp)
+                    .padding(top = 8.dp)
+                    .height(tokens.dockHeight),
+                contentAlignment = Alignment.Center,
             ) {
-                val horizontalPadding = 12.dp
-                val topPadding = 4.dp
-                val pillWidth = 72.dp
-                // Keep the profile button centered while using the former algorithm
-                // slot for the direct-message inbox.
-                val destinations = listOf(
-                    PrimalTopLevelDestination.Feeds,
-                    PrimalTopLevelDestination.Messages,
-                    PrimalTopLevelDestination.Alerts,
-                    PrimalTopLevelDestination.Settings,
-                )
-                val visualSelected = if (settingsSelected) {
-                    PrimalTopLevelDestination.Settings
-                } else {
-                    activeDestination
-                }
-                val itemCount = destinations.size + 1
-                val itemWidth = (maxWidth - horizontalPadding * 2) / itemCount
-                val selectedIndex = if (profileSelected) {
-                    // The profile item is inserted between messages and alerts.
-                    2
-                } else {
-                    (destinations.indexOf(visualSelected) +
-                        if (destinations.indexOf(visualSelected) >= 2) 1 else 0).coerceAtLeast(0)
-                }
-
-                val pillOffset by animateDpAsState(
-                    targetValue = horizontalPadding + itemWidth * selectedIndex + (itemWidth - pillWidth) / 2,
-                    animationSpec = spring(
-                        dampingRatio = 0.75f,
-                        stiffness = Spring.StiffnessMedium,
-                    ),
-                    label = "pillOffset",
-                )
-
-                Box(
-                    modifier = Modifier
-                        .offset(x = pillOffset, y = topPadding)
-                        .fillMaxHeight(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .height(52.dp)
-                            .width(pillWidth)
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        AppTheme.colorScheme.primary.copy(alpha = 0.24f),
-                                        AppTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                    ),
-                                ),
-                                shape = CircleShape,
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = AppTheme.colorScheme.primary.copy(alpha = 0.28f),
-                                shape = CircleShape,
-                            ),
-                    )
-                }
-
                 Row(
                     modifier = Modifier
-                        .padding(top = topPadding)
-                        .padding(horizontal = horizontalPadding)
-                        .fillMaxSize(),
+                        .fillMaxWidth()
+                        .height(tokens.dockHeight)
+                        .shadow(elevation = 14.dp, shape = RoundedCornerShape(28.dp), clip = false)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(tokens.dockSurface)
+                        .border(1.dp, tokens.softOutline, RoundedCornerShape(28.dp))
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    destinations.forEachIndexed { index, destination ->
-                        if (index == 2) {
-                            PrimalProfileNavigationBarItem(
-                                modifier = Modifier.weight(1f),
-                                label = profileLabel,
-                                selected = profileSelected,
-                                avatarCdnImage = profileAvatarCdnImage,
-                                onClick = onProfileClick,
-                            )
-                        }
-                        PrimalNavigationBarItem(
-                            modifier = Modifier
-                                .weight(1f)
-                                .anchorIfExplore(destination, exploreAnchorHandle),
-                            destination = destination,
-                            selected = destination != PrimalTopLevelDestination.Messages &&
-                                destination == visualSelected,
-                            badge = badgesMap.getOrDefault(destination, 0),
-                            onClick = {
-                                if (destination == PrimalTopLevelDestination.Messages) {
-                                    onMessagesClick()
-                                } else if (destination == PrimalTopLevelDestination.Settings) {
-                                    onSettingsClick()
-                                } else if (activeDestination != destination) {
-                                    onTopLevelDestinationChanged(destination)
-                                } else {
-                                    onActiveDestinationClick?.invoke()
-                                }
-                            },
-                        )
+                    DockDestinationItem(
+                        modifier = Modifier.weight(1f),
+                        destination = PrimalTopLevelDestination.Feeds,
+                        selected = visualSelected == PrimalTopLevelDestination.Feeds,
+                        badge = badges.unreadFeedCount,
+                        onClick = {
+                            if (activeDestination == PrimalTopLevelDestination.Feeds) {
+                                onActiveDestinationClick?.invoke()
+                            } else {
+                                onTopLevelDestinationChanged(PrimalTopLevelDestination.Feeds)
+                            }
+                        },
+                    )
+                    DockDestinationItem(
+                        modifier = Modifier.weight(1f),
+                        destination = PrimalTopLevelDestination.Messages,
+                        selected = false,
+                        badge = badges.unreadMessagesCount,
+                        onClick = onMessagesClick,
+                    )
+
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        composeAction?.invoke()
                     }
+
+                    DockDestinationItem(
+                        modifier = Modifier.weight(1f),
+                        destination = PrimalTopLevelDestination.Alerts,
+                        selected = visualSelected == PrimalTopLevelDestination.Alerts,
+                        badge = badges.unreadNotificationsCount,
+                        onClick = {
+                            if (activeDestination == PrimalTopLevelDestination.Alerts) {
+                                onActiveDestinationClick?.invoke()
+                            } else {
+                                onTopLevelDestinationChanged(PrimalTopLevelDestination.Alerts)
+                            }
+                        },
+                    )
+                    DockDestinationItem(
+                        modifier = Modifier.weight(1f),
+                        destination = PrimalTopLevelDestination.Settings,
+                        selected = visualSelected == PrimalTopLevelDestination.Settings,
+                        onClick = onSettingsClick,
+                    )
                 }
             }
-
-            val navBarHeight = with(LocalDensity.current) {
-                WindowInsets.navigationBars.getBottom(this).toDp()
-            }
-            Spacer(
-                modifier = Modifier
-                    .background(color = AppTheme.colorScheme.surface)
-                    .fillMaxWidth()
-                    .height(navBarHeight),
-            )
+            Spacer(modifier = Modifier.height(navigationInset))
         }
     }
 }
 
 @Composable
-private fun PrimalProfileNavigationBarItem(
-    modifier: Modifier,
-    label: String,
-    selected: Boolean,
-    avatarCdnImage: CdnImage?,
-    onClick: () -> Unit,
-) {
-    val tint = if (selected) AppTheme.colorScheme.primary else AppTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(CircleShape)
-            .padding(top = 4.dp)
-            .clickable(indication = null, interactionSource = null, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        UniversalAvatarThumbnail(
-            avatarCdnImage = avatarCdnImage,
-            avatarSize = 24.dp,
-            hasBorder = false,
-            fallbackBorderColor = tint,
-            onClick = null,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = label, style = AppTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 10.sp), color = tint)
-    }
-}
-
-@Composable
-private fun PrimalNavigationBarItem(
+private fun DockDestinationItem(
     modifier: Modifier = Modifier,
     destination: PrimalTopLevelDestination,
     selected: Boolean,
     badge: Int = 0,
     onClick: () -> Unit,
 ) {
-    val tint = if (selected) {
-        AppTheme.colorScheme.primary
-    } else {
-        AppTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+    val tokens = AppTheme.libreNostrTokens
+    // Messages intentionally remains neutral: a direct-message inbox is not a selected tab.
+    val tint = when {
+        destination == PrimalTopLevelDestination.Messages -> AppTheme.colorScheme.onSurface
+        selected -> tokens.accent
+        else -> AppTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     }
+    val selectionOffset by animateDpAsState(
+        targetValue = if (selected) 0.dp else 3.dp,
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+        label = "DockDestinationOffset",
+    )
 
-    Column(
+    Box(
         modifier = modifier
-            .fillMaxHeight()
+            .height(52.dp)
+            .padding(horizontal = 2.dp)
             .clip(CircleShape)
-            .padding(top = 4.dp)
+            .background(if (selected) tokens.accentSoft else Color.Transparent, CircleShape)
             .clickable(indication = null, interactionSource = null, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        contentAlignment = Alignment.Center,
     ) {
         BadgedBox(
             badge = {
-                if (badge > 0) {
-                    Badge(containerColor = AppTheme.colorScheme.primary)
-                }
+                if (badge > 0) Badge(containerColor = tokens.accent, contentColor = AppTheme.colorScheme.onPrimary)
             },
         ) {
             Icon(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier
+                    .size(24.dp)
+                    .padding(bottom = selectionOffset),
                 imageVector = destination.imageVector(),
                 contentDescription = destination.label(),
                 tint = tint,
             )
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = destination.label(),
-            style = AppTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 10.sp),
-            color = tint,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
-
-private fun Modifier.anchorIfExplore(destination: PrimalTopLevelDestination, handle: AnchorHandle?): Modifier =
-    if (destination == PrimalTopLevelDestination.Explore && handle != null) anchor(handle = handle) else this
 
 enum class PrimalTopLevelDestination {
     Feeds,
@@ -295,21 +199,18 @@ enum class PrimalTopLevelDestination {
     Settings,
 }
 
-private fun PrimalTopLevelDestination.imageVector(): ImageVector {
-    return when (this) {
-        PrimalTopLevelDestination.Feeds -> LibreNavigationIcons.Home
-        PrimalTopLevelDestination.Reads -> LibreNavigationIcons.Home
-        PrimalTopLevelDestination.Wallet -> LibreNavigationIcons.Settings
+private fun PrimalTopLevelDestination.imageVector(): ImageVector =
+    when (this) {
+        PrimalTopLevelDestination.Feeds, PrimalTopLevelDestination.Reads -> LibreNavigationIcons.Home
+        PrimalTopLevelDestination.Wallet, PrimalTopLevelDestination.Settings -> LibreNavigationIcons.Settings
         PrimalTopLevelDestination.Alerts -> LibreNavigationIcons.Notifications
         PrimalTopLevelDestination.Messages -> LibreNavigationIcons.Envelope
         PrimalTopLevelDestination.Explore -> LibreNavigationIcons.Algorithm
-        PrimalTopLevelDestination.Settings -> LibreNavigationIcons.Settings
     }
-}
 
 @Composable
-private fun PrimalTopLevelDestination.label(): String {
-    return when (this) {
+private fun PrimalTopLevelDestination.label(): String =
+    when (this) {
         PrimalTopLevelDestination.Feeds -> stringResource(id = R.string.primary_destination_feed_label)
         PrimalTopLevelDestination.Reads -> stringResource(id = R.string.primary_destination_reads_label)
         PrimalTopLevelDestination.Wallet -> stringResource(id = R.string.primary_destination_wallet_label)
@@ -318,73 +219,11 @@ private fun PrimalTopLevelDestination.label(): String {
         PrimalTopLevelDestination.Explore -> stringResource(id = R.string.primary_destination_explore_label)
         PrimalTopLevelDestination.Settings -> stringResource(id = R.string.drawer_destination_settings)
     }
-}
 
 @Preview
 @Composable
-fun PreviewNavigationBar() {
+private fun PreviewNavigationBar() {
     PrimalPreview(primalTheme = net.primal.android.theme.domain.PrimalTheme.Midnight) {
-        Surface(modifier = Modifier.wrapContentSize()) {
-            PrimalNavigationBar(
-                activeDestination = PrimalTopLevelDestination.Feeds,
-                onTopLevelDestinationChanged = {},
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-fun PreviewNavigationBarReads() {
-    PrimalPreview(primalTheme = net.primal.android.theme.domain.PrimalTheme.Midnight) {
-        Surface(modifier = Modifier.wrapContentSize()) {
-            PrimalNavigationBar(
-                activeDestination = PrimalTopLevelDestination.Reads,
-                badges = Badges(unreadNotificationsCount = 1),
-                onTopLevelDestinationChanged = {},
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-fun PreviewNavigationBarWallet() {
-    PrimalPreview(primalTheme = net.primal.android.theme.domain.PrimalTheme.Midnight) {
-        Surface(modifier = Modifier.wrapContentSize()) {
-            PrimalNavigationBar(
-                activeDestination = PrimalTopLevelDestination.Wallet,
-                badges = Badges(unreadNotificationsCount = 1),
-                onTopLevelDestinationChanged = {},
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-fun PreviewNavigationBarAlerts() {
-    PrimalPreview(primalTheme = net.primal.android.theme.domain.PrimalTheme.Midnight) {
-        Surface(modifier = Modifier.wrapContentSize()) {
-            PrimalNavigationBar(
-                activeDestination = PrimalTopLevelDestination.Alerts,
-                badges = Badges(unreadNotificationsCount = 1),
-                onTopLevelDestinationChanged = {},
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-fun PreviewNavigationBarExplore() {
-    PrimalPreview(primalTheme = net.primal.android.theme.domain.PrimalTheme.Midnight) {
-        Surface(modifier = Modifier.wrapContentSize()) {
-            PrimalNavigationBar(
-                activeDestination = PrimalTopLevelDestination.Explore,
-                badges = Badges(unreadNotificationsCount = 1),
-                onTopLevelDestinationChanged = {},
-            )
-        }
+        PrimalNavigationBar(activeDestination = PrimalTopLevelDestination.Feeds, onTopLevelDestinationChanged = {})
     }
 }

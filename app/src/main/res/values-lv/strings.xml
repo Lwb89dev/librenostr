@@ -126,6 +126,7 @@
         <item quantity="other">Nosūti piezīmi %d sekundēs</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Nesūtīt</string>
+    <string name="editor_publish_countdown_confirm">Izlasīts, sūtīt tagad</string>
     <string name="editor_publish_countdown_attachments_notice">Pielikumi tika augšupielādēti, kad izvēlējāties tos, tāpēc, nosaucot to, tie netiks izņemti no multivides servera.</string>
     <string name="settings_content_display_undo_post_timer">Atsaukt nosūtīšanas taimeri</string>
     <string name="settings_content_display_undo_post_timer_hint">Turiet piezīmi atpakaļ dažas sekundes pēc pieskaroties post, lai jūs joprojām varat atsaukt to off. Izdošana Nostr nevar tikt atsaukta pēc tam.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Pieteikties uz jebkuru nr programmu</string>
     <string name="scan_code_remote_login_camera_subtitle">Izmantojiet savu LibreNostr kontu, lai pieteiktos jebkurā \n Nostr lietotnē, kas atbalsta attālinātu zīmi.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Izmantojiet savu LibreNostr kontu, lai pieteiktos uz jebkuru Nostr lietotni, kas atbalsta attālinātu zīmi. Ielīmēt savienojuma virkni zemāk:</string>
-    <string name="logout_title">Parakstīt</string>
+    <string name="logout_title">Izrakstīties</string>
     <string name="logout_description">Ja jūs nesaglabājat savu privāto atslēgu, tā tiks neatgriezeniski zaudēta. Vai tiešām vēlaties parakstīties?</string>
     <string name="logout_cancel_button">Atcelt</string>
-    <string name="logout_button">Parakstīt</string>
+    <string name="logout_button">Izrakstīties</string>
     <string name="primary_destination_feed_label">Sākums</string>
     <string name="primary_destination_reads_label">Lasījumi</string>
     <string name="primary_destination_wallet_label">Maks</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">vai</string>
     <string name="feed_context_unmute_thread">Noņemt pavedienu</string>
     <string name="feed_context_share_note">Kopīgot piezīmi</string>
-    <string name="feed_context_share_poll">Kopīgotais Poll</string>
+    <string name="feed_context_share_poll">Kopīgot aptauju</string>
     <string name="feed_context_share_note_as_image">Kopīgot kā attēlu</string>
     <string name="feed_context_copy_note_link">Kopēt piezīmju saiti</string>
     <string name="feed_context_copy_poll_link">Kopēt Poll saiti</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Neizdevās kopēt sēklas vārdus</string>
     <string name="settings_developer_tools_delete_wallet">Dzēst maku</string>
     <string name="settings_developer_tools_delete_wallet_title">Dzēst maku?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Ja jūs neesat balstījis savu sēklu frāzi, jūs varat neatgriezeniski zaudēt piekļuvi līdzekļiem šajā makā.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Ja neesat izveidojis dublējumu savai atkopšanas frāzei, varat neatgriezeniski zaudēt piekļuvi šī maka līdzekļiem.</string>
     <string name="settings_developer_tools_wallet_deleted">Dzēst maku</string>
     <string name="settings_developer_tools_wallet_delete_failed">Neizdevās dzēst maku</string>
     <string name="settings_developer_tools_data_inspector_title">Inspicēt lietotāja datus</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Parāda tulkošanas darbību piezīmēs, izmantojot pilnībā ierīcē darbojošos tulkošanas dzinēju. Nekas nepamet jūsu ierīci — pirmoreiz tulkojot uz vai no kādas valodas, tiek lejupielādēta neliela valodas pakotne (dažus MB) bezsaistes lietošanai.</string>
     <string name="note_translate_button">Tulkot</string>
     <string name="note_translate_loading">Tulkošana..</string>
-    <string name="note_translate_error">Nevarēju tulkot šo piezīmi</string>
-    <string name="note_translate_not_configured">Vispirms iestatiet tulkošanas serveri iestatījumos</string>
-    <string name="note_translated_footer">Tulkots</string>
+    <string name="note_translate_error">Nevarēju tulkot šo piezīmi</string>    <string name="note_translated_footer">Tulkots</string>
     <string name="note_see_original">Skatīt oriģinālu</string>
     <string name="note_translate_not_available">Šai valodai tulkojums nav pieejams</string>
     <string name="note_translate_downloading">Lejupielādē…</string>

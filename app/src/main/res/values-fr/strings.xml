@@ -126,6 +126,7 @@
         <item quantity="other">Envoyer votre note en %d secondes</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">N\'envoyez pas</string>
+    <string name="editor_publish_countdown_confirm">Relu, envoyer maintenant</string>
     <string name="editor_publish_countdown_attachments_notice">Les pièces jointes ont été téléchargées lorsque vous les avez sélectionnées, donc l\'annuler ne les retire pas du serveur multimédia.</string>
     <string name="settings_content_display_undo_post_timer">Annuler l\'envoi du timer</string>
     <string name="settings_content_display_undo_post_timer_hint">Maintenez une note en arrière pendant quelques secondes après avoir tapé sur le poteau, de sorte que vous pouvez toujours l\'annuler. L\'édition à Nost ne peut pas être annulée par la suite.</string>
@@ -452,7 +453,7 @@
     <string name="asearch_time_posted_month">Ce mois-ci</string>
     <string name="asearch_time_posted_year">Cette année</string>
     <string name="asearch_time_posted_custom">Personnalisé</string>
-    <string name="asearch_search_kind_notes">Annexe</string>
+    <string name="asearch_search_kind_notes">Notes</string>
     <string name="asearch_search_kind_reads">Lecture</string>
     <string name="asearch_search_kind_note_replies">Note Réponses</string>
     <string name="asearch_search_kind_reads_comments">Lire les commentaires</string>
@@ -913,7 +914,7 @@
     <string name="profile_followers_stat">suiveurs</string>
     <string name="profile_reads_stat">lit</string>
     <string name="profile_media_stat">Médias</string>
-    <string name="profile_notes_stat">Annexe</string>
+    <string name="profile_notes_stat">notes</string>
     <string name="profile_replies_stat">Réponses</string>
     <string name="profile_follow_button">Suivre</string>
     <string name="profile_unfollow_button">Ne pas suivre</string>
@@ -1416,7 +1417,7 @@
     <string name="signer_notification_summary_title">LibreNostr Remote Signer</string>
     <string name="signer_notification_end_session">Fin de la session</string>
     <string name="signer_notification_unknown_app">Application inconnue</string>
-    <string name="signer_notification_logged_in_as">Enclenché en %s</string>
+    <string name="signer_notification_logged_in_as">Connecté en tant que %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Vous avez %d nouvelle demande de signature.</item>
         <item quantity="other">Vous avez %d nouvelles demandes de signature.</item>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Affiche une action de traduction sur les notes, à l\'aide d\'un moteur de traduction entièrement embarqué sur l\'appareil. Rien ne quitte votre appareil — la première fois que vous traduisez vers ou depuis une langue, un petit pack linguistique (quelques Mo) est téléchargé pour une utilisation hors ligne.</string>
     <string name="note_translate_button">Traduire</string>
     <string name="note_translate_loading">Traduire..</string>
-    <string name="note_translate_error">Je ne pouvais pas traduire cette note</string>
-    <string name="note_translate_not_configured">Définir d\'abord un serveur de traduction dans Paramètres</string>
-    <string name="note_translated_footer">Traduit</string>
+    <string name="note_translate_error">Je ne pouvais pas traduire cette note</string>    <string name="note_translated_footer">Traduit</string>
     <string name="note_see_original">Voir l\'original</string>
     <string name="note_translate_not_available">Traduction non disponible pour cette langue</string>
     <string name="note_translate_downloading">Téléchargement…</string>

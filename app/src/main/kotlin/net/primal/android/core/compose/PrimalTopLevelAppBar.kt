@@ -53,8 +53,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -101,6 +104,7 @@ private const val SWITCH_ANIMATION_MIDPOINT = 0.5f
 private val AvatarSwipeThreshold = 24.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod")
 @Composable
 fun PrimalTopLevelAppBar(
     title: String,
@@ -126,6 +130,22 @@ fun PrimalTopLevelAppBar(
     onSearchSubmit: ((String) -> Unit)? = null,
     onSearchProfileClick: ((String) -> Unit)? = null,
 ) {
+    if (onSearchClick != null && titleOverride == null) {
+        LibreNostrHomeHeader(
+            avatarCdnImage = avatarCdnImage,
+            avatarBlossoms = avatarBlossoms,
+            onAvatarClick = onAvatarClick,
+            onAvatarSwipeDown = onAvatarSwipeDown,
+            searchPlaceholder = searchPlaceholder.orEmpty(),
+            onSearchClick = onSearchClick,
+            onSearchSubmit = onSearchSubmit,
+            onSearchProfileClick = onSearchProfileClick,
+            showAvatar = showAvatar,
+            modifier = modifier,
+        )
+        return
+    }
+
     val effectiveTitle = titleOverride ?: title
     val effectiveSubtitle = subtitleOverride ?: subtitle
     val effectiveShowChevron = if (titleOverride != null) false else showTitleChevron
@@ -149,14 +169,7 @@ fun PrimalTopLevelAppBar(
                 }
             },
             title = {
-                if (onSearchClick != null && titleOverride == null) {
-                    HomeSearchBar(
-                        placeholder = searchPlaceholder.orEmpty(),
-                        onClick = onSearchClick,
-                        onSubmit = onSearchSubmit,
-                        onProfileClick = onSearchProfileClick,
-                    )
-                } else if (titleOverride != null) {
+                if (titleOverride != null) {
                     AppBarTitle(
                         title = effectiveTitle,
                         subtitle = effectiveSubtitle,
@@ -206,6 +219,64 @@ fun PrimalTopLevelAppBar(
 }
 
 @Composable
+private fun LibreNostrHomeHeader(
+    avatarCdnImage: CdnImage?,
+    avatarBlossoms: List<String>,
+    onAvatarClick: () -> Unit,
+    onAvatarSwipeDown: (() -> Unit)?,
+    searchPlaceholder: String,
+    onSearchClick: () -> Unit,
+    onSearchSubmit: ((String) -> Unit)?,
+    onSearchProfileClick: ((String) -> Unit)?,
+    showAvatar: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = AppTheme.libreNostrTokens
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(AppTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "LibreNostr",
+                    style = AppTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        brush = Brush.linearGradient(listOf(tokens.accent, tokens.accentSecondary)),
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(id = net.primal.android.R.string.home_wordmark_subtitle),
+                    style = AppTheme.typography.labelMedium,
+                    color = AppTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                )
+            }
+            if (showAvatar) {
+                SwipeableAvatar(
+                    avatarCdnImage = avatarCdnImage,
+                    avatarBlossoms = avatarBlossoms,
+                    onAvatarClick = onAvatarClick,
+                    onAvatarSwipeDown = onAvatarSwipeDown,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+        HomeSearchBar(
+            placeholder = searchPlaceholder,
+            onClick = onSearchClick,
+            onSubmit = onSearchSubmit,
+            onProfileClick = onSearchProfileClick,
+        )
+    }
+}
+
+@Composable
 private fun HomeSearchBar(
     placeholder: String,
     onClick: () -> Unit,
@@ -225,7 +296,7 @@ private fun HomeSearchBar(
     val imeBottomPx = WindowInsets.ime.getBottom(density)
     val focusRequester = remember { FocusRequester() }
     var keyboardWasVisible by remember { mutableStateOf(false) }
-    val lavender = AppTheme.colorScheme.primary
+    val accent = AppTheme.libreNostrTokens.accent
     val onSurface = AppTheme.colorScheme.onSurface
     val panelVisible = active && suggestionsVisible
     val barShape = if (panelVisible) {
@@ -236,8 +307,8 @@ private fun HomeSearchBar(
     val panelShape = RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp)
     val glassBrush = Brush.verticalGradient(
         colors = listOf(
-            lavender.copy(alpha = 0.10f),
-            lavender.copy(alpha = 0.04f),
+            accent.copy(alpha = 0.10f),
+            accent.copy(alpha = 0.04f),
         ),
     )
 
@@ -302,7 +373,7 @@ private fun HomeSearchBar(
                 .clip(barShape)
                 .background(color = AppTheme.colorScheme.surface)
                 .background(brush = glassBrush)
-                .border(width = 1.dp, color = lavender.copy(alpha = 0.16f), shape = barShape)
+                .border(width = 1.dp, color = accent.copy(alpha = 0.16f), shape = barShape)
                 .clickable {
                     active = true
                     suggestionsVisible = true

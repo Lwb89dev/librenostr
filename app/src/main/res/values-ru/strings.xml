@@ -2,7 +2,7 @@
     <string name="app_name">LibreNostr</string>
     <string name="nsec_or_npub">nsec/npub</string>
     <string name="nsec">nsec</string>
-    <string name="npub">паб</string>
+    <string name="npub">npub</string>
     <string name="app_info">информация</string>
     <string name="app_generic_error">Что-то пошло не так. Пожалуйста, попробуйте еще раз.</string>
     <string name="app_missing_relays_config">Никаких реле не найдено. Пожалуйста, настройте свою сеть.</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Отправить записку за %d секунд</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Не посылайте</string>
+    <string name="editor_publish_countdown_confirm">Прочитано, отправить</string>
     <string name="editor_publish_countdown_attachments_notice">Прикрепления были загружены, когда вы их выбрали, поэтому отключение этого не удаляет их с медиа-сервера.</string>
     <string name="settings_content_display_undo_post_timer">Отправить Таймер</string>
     <string name="settings_content_display_undo_post_timer_hint">Держите записку обратно в течение нескольких секунд после постукивания, так что вы все равно можете отозвать ее. Публикация в Nostr не может быть отменена.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Вход в любое приложение Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Используйте свою учетную запись LibreNostr для входа в любое приложение \n Nostr, которое поддерживает удаленный вход.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Используйте свою учетную запись LibreNostr для входа в любое приложение Nostr, которое поддерживает удаленный вход. Вставьте строку соединения ниже:</string>
-    <string name="logout_title">Подпишитесь</string>
+    <string name="logout_title">Выйти</string>
     <string name="logout_description">Если вы не сохранили свой закрытый ключ, он будет безвозвратно потерян. Вы действительно хотите подписать?</string>
     <string name="logout_cancel_button">отменить</string>
-    <string name="logout_button">Подпишитесь</string>
+    <string name="logout_button">Выйти</string>
     <string name="primary_destination_feed_label">Главная</string>
     <string name="primary_destination_reads_label">Чтение</string>
     <string name="primary_destination_wallet_label">кошелек</string>
@@ -164,7 +165,7 @@
     <string name="drawer_followers_suffix">последователи</string>
     <string name="drawer_following_suffix">Следующий</string>
     <string name="overlay_action_close">Закрыть</string>
-    <string name="account_switcher_sheet_title">Счета</string>
+    <string name="account_switcher_sheet_title">Аккаунты</string>
     <string name="account_switcher_done">Сделано</string>
     <string name="account_switcher_edit">Редактировать</string>
     <string name="account_switcher_create_new_account">Создайте новый аккаунт</string>
@@ -610,7 +611,7 @@
     <string name="long_reads_no_content">Длинных постов пока нет.</string>
     <string name="accessibility_long_reads">Длинные чтения</string>
     <string name="settings_account_title">Аккаунт</string>
-    <string name="settings_accounts_title">Счета</string>
+    <string name="settings_accounts_title">Аккаунты</string>
     <string name="settings_accounts_description">Управляйте учетными записями, подписанными на этом устройстве — переключайтесь между ними, подписывайтесь или добавляйте другой с nsec, Amber или бункерным соединением.</string>
     <string name="settings_accounts_manage_button">Управление счетами</string>
     <string name="settings_account_copy_public_key">Копировать открытый ключ</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Не удалось скопировать семенные слова</string>
     <string name="settings_developer_tools_delete_wallet">Удалить кошелек</string>
     <string name="settings_developer_tools_delete_wallet_title">Удалить кошелек?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Если вы не подкрепили свою начальную фразу, вы можете навсегда потерять доступ к средствам на этом кошельке.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Если вы не сделали резервную копию секретной фразы, вы можете навсегда потерять доступ к средствам в этом кошельке.</string>
     <string name="settings_developer_tools_wallet_deleted">Кошелек удален</string>
     <string name="settings_developer_tools_wallet_delete_failed">Не удалось удалить кошелек</string>
     <string name="settings_developer_tools_data_inspector_title">Проверка пользовательских данных</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Отправить комментарий…</string>
     <string name="live_stream_send_button_title">отправлять</string>
     <string name="live_stream_menu_quote_stream">Поток цитаты</string>
-    <string name="live_stream_menu_share_stream">Share Stream</string>
+    <string name="live_stream_menu_share_stream">Поделиться трансляцией</string>
     <string name="live_stream_menu_copy_stream_link">Копировать Stream Link</string>
     <string name="live_stream_menu_copy_stream_id">Копировать Stream ID</string>
     <string name="live_stream_menu_copy_raw_data">Копирование Raw Data</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Показывает функцию перевода в заметках с использованием полностью локального (on-device) движка перевода. Ничего не покидает ваше устройство — при первом переводе на определённый язык или с него загружается небольшой языковой пакет (несколько МБ) для автономного использования.</string>
     <string name="note_translate_button">Переводи</string>
     <string name="note_translate_loading">Переводить..</string>
-    <string name="note_translate_error">Не смог перевести эту записку</string>
-    <string name="note_translate_not_configured">Сначала установите сервер перевода в настройках</string>
-    <string name="note_translated_footer">Перевод</string>
+    <string name="note_translate_error">Не смог перевести эту записку</string>    <string name="note_translated_footer">Перевод</string>
     <string name="note_see_original">См. оригинал</string>
     <string name="note_translate_not_available">Перевод для этого языка недоступен</string>
     <string name="note_translate_downloading">Загрузка…</string>

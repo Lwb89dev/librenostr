@@ -260,7 +260,6 @@ fun MainScreen(
         noteCallbacks = noteCallbacks,
         accountSwitcherCallbacks = accountSwitcherCallbacks,
         focusModeEnabled = focusModeEnabled,
-        profileAvatarCdnImage = mainState.activeAccountAvatarCdnImage,
         onActiveDestinationClick = onActiveDestinationClick,
         onMessagesClick = { navController.navigateToMessages() },
         onTabChanged = onTabChanged,
@@ -319,7 +318,7 @@ private fun MainScreenTopAppBar(
                 titleOverride = titleOverride,
                 subtitleOverride = subtitleOverride,
                 chevronExpanded = chevronExpanded,
-                showAvatar = false,
+                showAvatar = true,
                 onSearchSubmit = onExploreSearchSubmit,
                 onSearchProfileClick = onExploreSearchProfileClick,
             )
@@ -620,7 +619,6 @@ private fun MainScreenScaffold(
     noteCallbacks: NoteCallbacks,
     accountSwitcherCallbacks: AccountSwitcherCallbacks,
     focusModeEnabled: Boolean,
-    profileAvatarCdnImage: CdnImage?,
     onActiveDestinationClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
@@ -717,17 +715,11 @@ private fun MainScreenScaffold(
         onMessagesClick = onMessagesClick,
         onPrimaryDestinationChanged = onTabChanged,
         onSettingsClick = { navController.navigateToSettings() },
-        onProfileClick = {
-            if (mainState.activeAccountId.isNotEmpty()) {
-                navController.navigateToProfile(profileId = mainState.activeAccountId)
-            }
-        },
         settingsSelected = false,
         badges = mainState.badges.copy(
             unreadFeedCount = if (homeHasNewNotes) 1 else 0,
         ),
         focusModeEnabled = focusModeEnabled,
-        profileAvatarCdnImage = profileAvatarCdnImage,
         exploreAnchorHandle = exploreAnchor,
         topAppBarState = currentTopAppBarState,
         topAppBar = { scrollBehavior ->

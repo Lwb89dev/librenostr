@@ -2,7 +2,7 @@
     <string name="app_name">LibreNostr</string>
     <string name="nsec_or_npub">nsec / npub</string>
     <string name="nsec">nsec</string>
-    <string name="npub">Republica Cehă</string>
+    <string name="npub">npub</string>
     <string name="app_info">Informații</string>
     <string name="app_generic_error">Ceva a mers prost. Vă rugăm să încercați din nou.</string>
     <string name="app_missing_relays_config">Nu s-au găsit relee. Configurați rețeaua.</string>
@@ -85,7 +85,7 @@
         <item quantity="one">Utilizator %d</item>
         <item quantity="other">%d utilizatori</item>
     </plurals>
-    <string name="login_title">Semnează</string>
+    <string name="login_title">Conectare</string>
     <string name="login_with_amber_button">Conectare cu Amber</string>
     <string name="login_amber_primary_hint">Amber îţi păstrează cheia privată într-un autograf dedicat şi aprobă accesul în siguranţă.</string>
     <string name="login_nsec_unsafe">Conectare cu nsec – nesigur</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">Lipi conexiunea buncăr șir signer-ul ți-a dat:</string>
     <string name="login_amber_required">Semne LibreNostr cu Amber. Instalați Amber pentru a continua.</string>
     <string name="login_description">Introduceți tasta Nostr pentru a vă conecta la:</string>
-    <string name="login_button_sign_in">Semnează</string>
+    <string name="login_button_sign_in">Conectare</string>
     <string name="login_button_paste_your_key">Lipeşte - ţi cheia</string>
     <string name="login_button_paste_new_key">Lipește cheia nouă</string>
     <string name="login_enter_nsec_key">Introduceți tasta Nostr pentru a vă conecta la:</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Trimiterea biletului în %d secunde</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Nu trimite</string>
+    <string name="editor_publish_countdown_confirm">Citit, trimite acum</string>
     <string name="editor_publish_countdown_attachments_notice">Atașamentele au fost încărcate atunci când le-ai luat, astfel încât apelarea acest off nu le elimina de pe serverul media.</string>
     <string name="settings_content_display_undo_post_timer">Anulează trimiterea cronometrului</string>
     <string name="settings_content_display_undo_post_timer_hint">Țineți un bilet înapoi pentru câteva secunde după ce atingeți post, astfel încât să puteți apela încă off. Editura către Nostr nu poate fi anulată după aceea.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Autentificare la orice aplicație Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Utilizaţi contul dvs. LibreNostr pentru a vă conecta la orice aplicaţie \n Nostr care suportă sign-ul de la distanţă.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Utilizaţi contul dvs. LibreNostr pentru a vă conecta la orice aplicaţie Nostr care suportă conectarea la distanţă. Lipește șirul de conectare de mai jos:</string>
-    <string name="logout_title">Semnează</string>
+    <string name="logout_title">Deconectare</string>
     <string name="logout_description">Dacă nu ţi-ai salvat cheia privată, va fi pierdută iremediabil. Chiar vrei să semnezi?</string>
     <string name="logout_cancel_button">Renunță</string>
-    <string name="logout_button">Semnează</string>
+    <string name="logout_button">Deconectare</string>
     <string name="primary_destination_feed_label">Acasă</string>
     <string name="primary_destination_reads_label">Lecturi</string>
     <string name="primary_destination_wallet_label">Portofel</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">A eșuat copierea cuvintelor de sămânță</string>
     <string name="settings_developer_tools_delete_wallet">Șterge portofelul</string>
     <string name="settings_developer_tools_delete_wallet_title">Şterge portofelul?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Dacă nu ţi-ai susţinut fraza de sămânţă, ai putea pierde permanent accesul la fonduri pentru acest portofel.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Dacă nu ţi-ai salvat fraza de recuperare, ai putea pierde definitiv accesul la fondurile din acest portofel.</string>
     <string name="settings_developer_tools_wallet_deleted">Portofel șters</string>
     <string name="settings_developer_tools_wallet_delete_failed">Eroare la ștergerea portofelului</string>
     <string name="settings_developer_tools_data_inspector_title">Inspectează datele utilizatorului</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Afișează o acțiune de traducere pe notițe, folosind un motor de traducere complet local, pe dispozitiv. Nimic nu părăsește dispozitivul tău — prima dată când traduci către sau dintr-o limbă, se descarcă un pachet lingvistic mic (câțiva MB) pentru utilizare offline.</string>
     <string name="note_translate_button">Tradu</string>
     <string name="note_translate_loading">Traduc..</string>
-    <string name="note_translate_error">Nu am putut traduce acest bilet</string>
-    <string name="note_translate_not_configured">Setează un server de traducere mai întâi în Setări</string>
-    <string name="note_translated_footer">Tradus</string>
+    <string name="note_translate_error">Nu am putut traduce acest bilet</string>    <string name="note_translated_footer">Tradus</string>
     <string name="note_see_original">Vezi original</string>
     <string name="note_translate_not_available">Traducerea nu este disponibilă pentru această limbă</string>
     <string name="note_translate_downloading">Se descarcă…</string>

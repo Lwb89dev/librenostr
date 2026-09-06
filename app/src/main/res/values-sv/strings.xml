@@ -126,6 +126,7 @@
         <item quantity="other">Skicka din anteckning på %d sekunder</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Skicka inte</string>
+    <string name="editor_publish_countdown_confirm">Läst, skicka nu</string>
     <string name="editor_publish_countdown_attachments_notice">Bilagor laddades upp när du plockade dem, så att ringa detta tar inte bort dem från mediaservern.</string>
     <string name="settings_content_display_undo_post_timer">Undo skickar timer</string>
     <string name="settings_content_display_undo_post_timer_hint">Håll en anteckning tillbaka några sekunder efter att ha tryckt på posten, så du kan fortfarande ringa den. Att publicera till Nostr kan inte ångras efteråt.</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">eller</string>
     <string name="feed_context_unmute_thread">Unmute Thread</string>
     <string name="feed_context_share_note">Dela Note</string>
-    <string name="feed_context_share_poll">Share Poll</string>
+    <string name="feed_context_share_poll">Dela omröstning</string>
     <string name="feed_context_share_note_as_image">Dela som bild</string>
     <string name="feed_context_copy_note_link">Copy Note Link</string>
     <string name="feed_context_copy_poll_link">Copy Poll Link</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Skicka en kommentar…</string>
     <string name="live_stream_send_button_title">Skicka</string>
     <string name="live_stream_menu_quote_stream">Quote Stream</string>
-    <string name="live_stream_menu_share_stream">Share Stream</string>
+    <string name="live_stream_menu_share_stream">Dela sändning</string>
     <string name="live_stream_menu_copy_stream_link">Copy Stream Link</string>
     <string name="live_stream_menu_copy_stream_id">Copy Stream ID</string>
     <string name="live_stream_menu_copy_raw_data">Kopiera rådata</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Visar en översättningsåtgärd på anteckningar, med en översättningsmotor som körs helt på enheten. Inget lämnar din enhet — första gången du översätter till eller från ett språk laddas ett litet språkpaket (några MB) ner för offline-användning.</string>
     <string name="note_translate_button">Översättning</string>
     <string name="note_translate_loading">Översätta...</string>
-    <string name="note_translate_error">Kunde inte översätta denna anteckning</string>
-    <string name="note_translate_not_configured">Ange en översättningsserver i Inställningar först</string>
-    <string name="note_translated_footer">Översatt</string>
+    <string name="note_translate_error">Kunde inte översätta denna anteckning</string>    <string name="note_translated_footer">Översatt</string>
     <string name="note_see_original">Se original</string>
     <string name="note_translate_not_available">Översättning ej tillgänglig för detta språk</string>
     <string name="note_translate_downloading">Laddar ner…</string>

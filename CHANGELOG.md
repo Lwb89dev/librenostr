@@ -7,6 +7,67 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.4.0] - 2026-09-06
+
+### Added
+
+- A redesigned home header — LibreNostr wordmark and tagline, an integrated
+  search bar, a swipeable avatar — and a floating, pill-shaped navigation
+  dock, replacing the previous Primal-styled top bar and bottom navigation.
+  The biggest visual departure from Primal yet.
+- Two more themes, Green Pixel and Dark Green Pixel, joining the existing
+  six; the theme picker is now a 4×2 grid instead of 3×3 with a gap.
+- A second button next to the publish countdown's "Don't send" — "I've read
+  it, send now" — for skipping the rest of the wait once you've actually
+  reviewed the note, translated into every supported language.
+- Zap notifications now show the sat amount as its own bold, colored badge
+  instead of leaving it buried inside the sentence text.
+
+### Changed
+
+- The navigation dock no longer has a separate account button — tapping the
+  avatar already in the home header does the same thing, so this was a
+  redundant second way to reach it. The dock's five remaining buttons
+  (Feeds, Messages, compose, Notifications, Settings) are now evenly spaced
+  with compose in the middle, instead of six unevenly packed ones.
+- The home header no longer shows a hamburger icon or a feed-name chip
+  under the search bar for opening the algorithm picker. Onboarding already
+  explains that a swipe does this, so both buttons duplicated a gesture
+  that was already the primary way in.
+
+### Fixed
+
+- A handful of small regressions from the redesign above: an off-center
+  theme swatch icon, a hardcoded English "Profile" label where every other
+  string is translated, and a navigation-bar height constant that no longer
+  matched the dock's real height, which could misalign layout sitting below
+  it (e.g. the wallet dashboard footer).
+- A broad Italian mistranslation pass: "account" no longer shows as "conti"
+  (bank accounts) anywhere, and dozens of other terms across feeds, mute/
+  follow, wallet, sats, Lightning, reporting, and search are now consistent
+  with what is, at its core, a social app.
+- The same class of corruption that caused the Italian bugs above turned
+  out to affect nearly every other language: `nsec`/`npub` replaced with
+  unrelated words, login and logout both reading as "Sign", "backed up"
+  mistranslated as "supported" in the wallet's fund-loss warning, and
+  "share" mistranslated as a stock/equity term instead of the social
+  action. Fixed across Bulgarian, Czech, Danish, German, Greek, Spanish,
+  Estonian, French, Croatian, Hungarian, Lithuanian, Latvian, Maltese,
+  Dutch, Polish, Romanian, Russian, Slovak, Slovenian, Swedish, and
+  Chinese — around 140 strings in total.
+- Japanese was corrupted far beyond a few bad strings: dozens of unrelated
+  buttons and labels throughout the app had all been collapsed onto the
+  same handful of wrong phrases (every "Retry", "Close", and "Done" button
+  in the app, among others, showed the same unrelated word). Fully
+  retranslated — over 130 strings corrected.
+
+### Removed
+
+- Irish (`ga`) is no longer a supported UI language. Its translation was
+  corrupted beyond a reasonable patch — the app's own name, `nsec`/`npub`,
+  and dozens of unrelated buttons were all random, unrelated phrases. It
+  will come back once someone can redo it properly.
+
 ## [0.3.3] - 2026-09-06
 
 ### Added

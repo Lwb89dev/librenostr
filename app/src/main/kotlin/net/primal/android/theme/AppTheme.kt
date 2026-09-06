@@ -51,4 +51,8 @@ object AppTheme {
     val shapes: Shapes
         @Composable
         get() = MaterialTheme.shapes
+
+    val libreNostrTokens: LibreNostrTokens
+        @Composable
+        get() = rememberLibreNostrTokens()
 }

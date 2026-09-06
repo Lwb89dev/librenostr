@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,7 +53,8 @@ import net.primal.android.settings.appearance.AppearanceSettingsContract.UiEvent
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 
-private const val THEME_GRID_COLUMNS = 3
+// 4x2 grid for the current 8 themes, per explicit design decision.
+private const val THEME_GRID_COLUMNS = 4
 
 @Composable
 fun AppearanceSettingsScreen(
@@ -236,10 +239,9 @@ private fun ThemeBox(
                 .background(color = primalTheme.colorScheme.background)
                 .size(72.dp),
         ) {
-            Image(
-                modifier = Modifier.align(alignment = Alignment.Center),
-                painter = painterResource(id = primalTheme.logoId),
-                contentDescription = primalTheme.name,
+            ThemePaletteIcon(
+                modifier = Modifier.align(Alignment.Center),
+                primalTheme = primalTheme,
             )
 
             if (selected) {
@@ -270,6 +272,48 @@ private fun ThemeBox(
             lineHeight = 16.sp,
             textAlign = TextAlign.Center,
             color = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
+        )
+    }
+}
+
+@Composable
+private fun ThemePaletteIcon(modifier: Modifier = Modifier, primalTheme: PrimalTheme) {
+    val iconShape = if (primalTheme.isPixelTheme) {
+        RoundedCornerShape(4.dp)
+    } else {
+        CircleShape
+    }
+
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(iconShape)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        primalTheme.colorScheme.primary,
+                        primalTheme.colorScheme.secondary,
+                    ),
+                ),
+                shape = iconShape,
+            ),
+    ) {
+        Image(
+            modifier = Modifier
+                .size(32.dp)
+                .align(Alignment.Center),
+            painter = painterResource(id = primalTheme.logoId),
+            colorFilter = ColorFilter.tint(primalTheme.colorScheme.onPrimary),
+            contentDescription = primalTheme.displayName,
+        )
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .align(Alignment.TopEnd)
+                .background(
+                    color = primalTheme.colorScheme.tertiary,
+                    shape = if (primalTheme.isPixelTheme) RoundedCornerShape(1.dp) else CircleShape,
+                ),
         )
     }
 }

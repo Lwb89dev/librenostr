@@ -1,6 +1,7 @@
 package net.primal.android.notes.feed.note
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -92,6 +93,7 @@ fun FeedNoteCard(
     modifier: Modifier = Modifier,
     shape: Shape = CardDefaults.shape,
     colors: CardColors = noteCardColors(),
+    border: BorderStroke? = null,
     cardPadding: PaddingValues = PaddingValues(all = 0.dp),
     nestingCutOffLimit: Int = Int.MAX_VALUE,
     headerSingleLine: Boolean = true,
@@ -138,6 +140,7 @@ fun FeedNoteCard(
         modifier = modifier,
         shape = shape,
         colors = colors,
+        border = border,
         cardPadding = cardPadding,
         nestingCutOffLimit = nestingCutOffLimit,
         headerSingleLine = headerSingleLine,
@@ -167,6 +170,7 @@ private fun FeedNoteCard(
     modifier: Modifier = Modifier,
     shape: Shape = CardDefaults.shape,
     colors: CardColors = noteCardColors(),
+    border: BorderStroke? = null,
     cardPadding: PaddingValues = PaddingValues(all = 0.dp),
     nestingCutOffLimit: Int = Int.MAX_VALUE,
     headerSingleLine: Boolean = true,
@@ -254,6 +258,7 @@ private fun FeedNoteCard(
             ),
         shape = shape,
         colors = colors,
+        border = border,
     ) {
         Column(
             modifier = Modifier.padding(

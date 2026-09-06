@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">LibreNostr.</string>
-    <string name="nsec_or_npub">unit description in lists</string>
-    <string name="nsec">unit description in lists</string>
+    <string name="nsec_or_npub">nsec / npub</string>
+    <string name="nsec">nsec</string>
     <string name="npub">npub</string>
     <string name="app_info">Informacija</string>
     <string name="app_generic_error">Kažkas negerai. Prašau, pabandyk dar kartą.</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Jūsų laiško siuntimas po %d sekundžių</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Nesiųsti</string>
+    <string name="editor_publish_countdown_confirm">Perskaityta, siųsti dabar</string>
     <string name="editor_publish_countdown_attachments_notice">Priedai buvo įkelti, kai jūs juos pasirinkote, todėl atšaukus šį skambutį jie nebus pašalinti iš media serverio.</string>
     <string name="settings_content_display_undo_post_timer">Atšaukti siuntimo laikmatį</string>
     <string name="settings_content_display_undo_post_timer_hint">Laikykite raštelį atgal keletą sekundžių po bakstelėjimo paštu, todėl jūs vis dar galite jį išjungti. Leidyba Nostr negali būti atšaukta po to.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Prisijungti prie bet kurios Nostr programos</string>
     <string name="scan_code_remote_login_camera_subtitle">Naudodami LibreNostr paskyrą prisijunkite prie bet kurios \n Nostr programėlės, palaikančios nuotolinį prisijungimą.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Naudodami LibreNostr paskyrą prisijunkite prie bet kurios Nostr programėlės, kuri palaiko nutolusį ženklą. @ info: whatsthis</string>
-    <string name="logout_title">Pasirašyti</string>
+    <string name="logout_title">Atsijungti</string>
     <string name="logout_description">Jei neišsaugosite savo asmeninio rakto, jis bus nepataisomai prarastas. Ar tikrai nori užsiregistruoti?</string>
     <string name="logout_cancel_button">Atšaukti</string>
-    <string name="logout_button">Pasirašyti</string>
+    <string name="logout_button">Atsijungti</string>
     <string name="primary_destination_feed_label">Pradžia</string>
     <string name="primary_destination_reads_label">Skaitiniai</string>
     <string name="primary_destination_wallet_label">Piniginė</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Nepavyko nukopijuoti sėklinių žodžių</string>
     <string name="settings_developer_tools_delete_wallet">Ištrinti slaptažodinę</string>
     <string name="settings_developer_tools_delete_wallet_title">Trinti slaptažodinę?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Jei nepalaikysite pradinės frazės, galite visam laikui prarasti prieigą prie lėšų šioje piniginėje.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Jei nepasidarėte atsarginės sėklos frazės kopijos, galite visam laikui prarasti prieigą prie lėšų šioje piniginėje.</string>
     <string name="settings_developer_tools_wallet_deleted">Ištrinta slaptažodinė</string>
     <string name="settings_developer_tools_wallet_delete_failed">Nepavyko ištrinti slaptažodinės</string>
     <string name="settings_developer_tools_data_inspector_title">Patikrinti naudotojo duomenis</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Siųsti komentarą…</string>
     <string name="live_stream_send_button_title">siųsti</string>
     <string name="live_stream_menu_quote_stream">Citata srautas</string>
-    <string name="live_stream_menu_share_stream">Akcijų srautas</string>
+    <string name="live_stream_menu_share_stream">Dalintis transliacija</string>
     <string name="live_stream_menu_copy_stream_link">Kopijuoti srauto sąsają</string>
     <string name="live_stream_menu_copy_stream_id">Kopijuoti srauto ID</string>
     <string name="live_stream_menu_copy_raw_data">Kopijuoti neapdorotus duomenis</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Rodo pastabų vertimo veiksmą, naudojant visiškai įrenginyje veikiantį vertimo variklį. Niekas nepalieka jūsų įrenginio — kai pirmą kartą verčiate į kalbą ar iš jos, atsisiunčiamas nedidelis kalbos paketas (kelis MB) naudojimui neprisijungus.</string>
     <string name="note_translate_button">Išversti</string>
     <string name="note_translate_loading">Verčiama..</string>
-    <string name="note_translate_error">Negaliu išversti šios pastabos</string>
-    <string name="note_translate_not_configured">Pirmiausia nustatymuose nustatykite vertimo serverį</string>
-    <string name="note_translated_footer">Išversta</string>
+    <string name="note_translate_error">Negaliu išversti šios pastabos</string>    <string name="note_translated_footer">Išversta</string>
     <string name="note_see_original">Žr. originalą</string>
     <string name="note_translate_not_available">Šiai kalbai vertimas negalimas</string>
     <string name="note_translate_downloading">Atsisiunčiama…</string>

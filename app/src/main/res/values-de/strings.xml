@@ -126,6 +126,7 @@
         <item quantity="other">Senden Sie Ihre Notiz in %d Sekunden</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Nicht senden</string>
+    <string name="editor_publish_countdown_confirm">Gelesen, jetzt senden</string>
     <string name="editor_publish_countdown_attachments_notice">Anhänge wurden hochgeladen, als Sie sie ausgewählt haben, so dass der Abruf sie nicht vom Medienserver entfernt.</string>
     <string name="settings_content_display_undo_post_timer">Undo Send Timer</string>
     <string name="settings_content_display_undo_post_timer_hint">Halten sie eine notiz für ein paar sekunden nach dem tippen von post zurück, so dass sie sie immer noch abrufen können. Die Veröffentlichung in Nostr kann danach nicht rückgängig gemacht werden.</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">oder</string>
     <string name="feed_context_unmute_thread">Unmuted Thread</string>
     <string name="feed_context_share_note">Aktiennotierung</string>
-    <string name="feed_context_share_poll">Aktienumrechnung</string>
+    <string name="feed_context_share_poll">Umfrage teilen</string>
     <string name="feed_context_share_note_as_image">Teilen als Bild</string>
     <string name="feed_context_copy_note_link">Copy Note Link</string>
     <string name="feed_context_copy_poll_link">Copy Poll Link</string>
@@ -621,7 +622,7 @@
     <string name="settings_account_private_key_title">Dein privater Schlüssel</string>
     <string name="settings_account_show_key">Show Key</string>
     <string name="settings_account_hide_key">Hide Key</string>
-    <string name="settings_account_key_copied">Kopierschlüssel</string>
+    <string name="settings_account_key_copied">Schlüssel kopiert</string>
     <string name="settings_wallet_title">Wallet</string>
     <string name="settings_wallet_connected_title">Wallet Connected</string>
     <string name="settings_wallet_use_external_wallet">Verwenden Sie externe Wallet</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Senden Sie einen Kommentar…</string>
     <string name="live_stream_send_button_title">Senden</string>
     <string name="live_stream_menu_quote_stream">Zitat Stream</string>
-    <string name="live_stream_menu_share_stream">Aktienstrom</string>
+    <string name="live_stream_menu_share_stream">Stream teilen</string>
     <string name="live_stream_menu_copy_stream_link">Copy Stream Link</string>
     <string name="live_stream_menu_copy_stream_id">Copy Stream ID</string>
     <string name="live_stream_menu_copy_raw_data">Rohdaten kopieren</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Zeigt bei Notizen eine Übersetzungsfunktion mit einer vollständig auf dem Gerät laufenden Übersetzungs-Engine an. Es verlässt nichts dein Gerät — beim ersten Übersetzen in eine oder aus einer Sprache wird ein kleines Sprachpaket (wenige MB) für die Offline-Nutzung heruntergeladen.</string>
     <string name="note_translate_button">Übersetzen</string>
     <string name="note_translate_loading">Übersetzen..</string>
-    <string name="note_translate_error">Konnte diese Notiz nicht übersetzen</string>
-    <string name="note_translate_not_configured">Legen Sie zuerst einen Übersetzungsserver in Einstellungen fest</string>
-    <string name="note_translated_footer">Übersetzt</string>
+    <string name="note_translate_error">Konnte diese Notiz nicht übersetzen</string>    <string name="note_translated_footer">Übersetzt</string>
     <string name="note_see_original">Siehe Original</string>
     <string name="note_translate_not_available">Übersetzung für diese Sprache nicht verfügbar</string>
     <string name="note_translate_downloading">Wird heruntergeladen…</string>

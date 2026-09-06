@@ -68,6 +68,7 @@ interface NoteEditorContract {
         data object AppendUserTagAtSign : UiEvent()
         data object PublishNote : UiEvent()
         data object CancelScheduledPublish : UiEvent()
+        data object ConfirmScheduledPublish : UiEvent()
         data class ImportLocalFiles(val uris: List<Uri>) : UiEvent()
         data class DiscardNoteAttachment(val attachmentId: UUID) : UiEvent()
         data class RetryUpload(val attachmentId: UUID) : UiEvent()

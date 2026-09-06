@@ -126,6 +126,7 @@
         <item quantity="other">Sende din note i %d sekunder</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Send ikke</string>
+    <string name="editor_publish_countdown_confirm">Læst, send nu</string>
     <string name="editor_publish_countdown_attachments_notice">Vedhæftede filer blev uploadet, da du valgte dem, så det fjerner dem ikke fra medieserveren.</string>
     <string name="settings_content_display_undo_post_timer">Fortryd send timer</string>
     <string name="settings_content_display_undo_post_timer_hint">Hold en besked tilbage et par sekunder efter at trykke på indlæg, så du stadig kan aflyse det. Udgivelse til Nostr kan ikke gøres om bagefter.</string>
@@ -164,7 +165,7 @@
     <string name="drawer_followers_suffix">Followers</string>
     <string name="drawer_following_suffix">Følgende</string>
     <string name="overlay_action_close">Luk</string>
-    <string name="account_switcher_sheet_title">Regnskaber</string>
+    <string name="account_switcher_sheet_title">Konti</string>
     <string name="account_switcher_done">Færdig</string>
     <string name="account_switcher_edit">Redigér</string>
     <string name="account_switcher_create_new_account">Opret en ny konto</string>
@@ -610,7 +611,7 @@
     <string name="long_reads_no_content">Ingen lange stillinger endnu.</string>
     <string name="accessibility_long_reads">Langtidslæsning</string>
     <string name="settings_account_title">Konto</string>
-    <string name="settings_accounts_title">Regnskaber</string>
+    <string name="settings_accounts_title">Konti</string>
     <string name="settings_accounts_description">Administrer konti underskrevet på denne enhed - skifte mellem dem, logge ud, eller tilføje en anden med nsec, Amber, eller en bunker forbindelse.</string>
     <string name="settings_accounts_manage_button">Administrer konti</string>
     <string name="settings_account_copy_public_key">Kopiér offentlig nøgle</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Viser en oversætterhandling på noter ved hjælp af en fuldstændig lokal (on-device) oversættelsesmotor. Intet forlader din enhed — første gang du oversætter til/fra et sprog, downloades en lille sprogpakke (nogle få MB) til offline brug.</string>
     <string name="note_translate_button">Oversæt</string>
     <string name="note_translate_loading">Oversætter...</string>
-    <string name="note_translate_error">Jeg kunne ikke oversætte brevet</string>
-    <string name="note_translate_not_configured">Sæt en oversættelsesserver i Indstillinger først</string>
-    <string name="note_translated_footer">Oversat</string>
+    <string name="note_translate_error">Jeg kunne ikke oversætte brevet</string>    <string name="note_translated_footer">Oversat</string>
     <string name="note_see_original">Se originalen</string>
     <string name="note_translate_not_available">Oversættelse er ikke tilgængelig for dette sprog</string>
     <string name="note_translate_downloading">Downloader…</string>

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">LibreNostr</string>
     <string name="nsec_or_npub">nsec / npub</string>
-    <string name="nsec">amount in units (real)</string>
+    <string name="nsec">nsec</string>
     <string name="npub">npub</string>
     <string name="app_info">Информация</string>
     <string name="app_generic_error">Нещо се обърка. Моля опитайте отново.</string>
@@ -85,7 +85,7 @@
         <item quantity="one">%d потребител</item>
         <item quantity="other">%d потребители</item>
     </plurals>
-    <string name="login_title">Подписване</string>
+    <string name="login_title">Вход</string>
     <string name="login_with_amber_button">Вход с Amber</string>
     <string name="login_amber_primary_hint">Амбър държи личния ти ключ в специален подпис и одобрява достъпа ти.</string>
     <string name="login_nsec_unsafe">Вход с nsec – небезопасно</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">Поставяне на бункер връзка низ вашия подпис ви даде:</string>
     <string name="login_amber_required">ЛибреНостр се подписва с Амбър. Инсталирай Амбър да продължи.</string>
     <string name="login_description">Въведете вашия Nostr ключ, за да се регистрирате:</string>
-    <string name="login_button_sign_in">Подписване</string>
+    <string name="login_button_sign_in">Вход</string>
     <string name="login_button_paste_your_key">Поставяне на ключа</string>
     <string name="login_button_paste_new_key">Поставяне на нов ключ</string>
     <string name="login_enter_nsec_key">Въведете вашия Nostr ключ, за да се регистрирате:</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Изпращане на бележката след %d секунди</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Не изпращай</string>
+    <string name="editor_publish_countdown_confirm">Прочетено, изпрати</string>
     <string name="editor_publish_countdown_attachments_notice">Прикачените файлове са били качени, когато сте ги избрали, така че това не ги премахва от медийния сървър.</string>
     <string name="settings_content_display_undo_post_timer">Грешка при изпращане на таймер</string>
     <string name="settings_content_display_undo_post_timer_hint">Задръжте бележката за няколко секунди след почукването, така че все още можете да я отмените. Публикуването на Ностр не може да бъде отменено след това.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Влизане в приложение Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Използвайте своя LiberNostr акаунт, за да влезете във всяко приложение на \n Nostr, което поддържа отдалечен достъп.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Използвайте своя LiberNostr акаунт, за да влезете във всяко приложение Nostr, което поддържа отдалечен достъп. Поставяне на низа за свързване по- долу:</string>
-    <string name="logout_title">Отписване</string>
+    <string name="logout_title">Изход</string>
     <string name="logout_description">Ако не си запазиш частния ключ, ще бъде изгубен безвъзвратно. Наистина ли искаш да се подпишеш?</string>
     <string name="logout_cancel_button">Отмяна</string>
-    <string name="logout_button">Отписване</string>
+    <string name="logout_button">Изход</string>
     <string name="primary_destination_feed_label">Начало</string>
     <string name="primary_destination_reads_label">Прочетени</string>
     <string name="primary_destination_wallet_label">Портфейл</string>
@@ -164,7 +165,7 @@
     <string name="drawer_followers_suffix">Последователи</string>
     <string name="drawer_following_suffix">Следващо</string>
     <string name="overlay_action_close">Затваряне</string>
-    <string name="account_switcher_sheet_title">Сметки</string>
+    <string name="account_switcher_sheet_title">Акаунти</string>
     <string name="account_switcher_done">Готово.</string>
     <string name="account_switcher_edit">Редактиране</string>
     <string name="account_switcher_create_new_account">Създаване на нова сметка</string>
@@ -610,7 +611,7 @@
     <string name="long_reads_no_content">Все още няма дълги постове.</string>
     <string name="accessibility_long_reads">Дълги четения</string>
     <string name="settings_account_title">Акаунт</string>
-    <string name="settings_accounts_title">Сметки</string>
+    <string name="settings_accounts_title">Акаунти</string>
     <string name="settings_accounts_description">Управление на акаунтите, подписани на това устройство. Превключете между тях, подпишете или добавете друг с Nsec, Amber, или бункер връзка.</string>
     <string name="settings_accounts_manage_button">Управление на сметки</string>
     <string name="settings_account_copy_public_key">Копиране на публичен ключ</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Грешка при копиране на думи за семена</string>
     <string name="settings_developer_tools_delete_wallet">Изтриване на портфейла</string>
     <string name="settings_developer_tools_delete_wallet_title">Да изтрия портфейла?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Ако не сте подкрепили фразата за семената, може постоянно да загубите достъп до средства за този портфейл.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Ако не сте архивирали фразата за възстановяване, може завинаги да загубите достъп до средствата в този портфейл.</string>
     <string name="settings_developer_tools_wallet_deleted">Портфейлът е изтрит</string>
     <string name="settings_developer_tools_wallet_delete_failed">Грешка при изтриване на портфейла</string>
     <string name="settings_developer_tools_data_inspector_title">Преглед на потребителските данни</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Изпратете коментар…</string>
     <string name="live_stream_send_button_title">изпращане</string>
     <string name="live_stream_menu_quote_stream">Цитиран поток</string>
-    <string name="live_stream_menu_share_stream">Дялов поток</string>
+    <string name="live_stream_menu_share_stream">Споделяне на поток</string>
     <string name="live_stream_menu_copy_stream_link">Копиране на връзката на поток</string>
     <string name="live_stream_menu_copy_stream_id">Copy Stream ID</string>
     <string name="live_stream_menu_copy_raw_data">Копиране на необработени данни</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Показва действие за превод на бележките, използвайки изцяло вграден в устройството преводач. Нищо не напуска устройството ви — при първия превод от/на даден език се изтегля малък езиков пакет (няколко MB) за офлайн използване.</string>
     <string name="note_translate_button">Преведи</string>
     <string name="note_translate_loading">Превеждам..</string>
-    <string name="note_translate_error">Не можах да преведа тази бележка</string>
-    <string name="note_translate_not_configured">Задаване на превод сървър в Настройки първо</string>
-    <string name="note_translated_footer">Преведено</string>
+    <string name="note_translate_error">Не можах да преведа тази бележка</string>    <string name="note_translated_footer">Преведено</string>
     <string name="note_see_original">Вижте оригинала</string>
     <string name="note_translate_not_available">Преводът не е наличен за този език</string>
     <string name="note_translate_downloading">Изтегляне…</string>

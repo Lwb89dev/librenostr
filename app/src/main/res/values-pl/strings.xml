@@ -85,7 +85,7 @@
         <item quantity="one">%d użytkownik</item>
         <item quantity="other">%d użytkowników</item>
     </plurals>
-    <string name="login_title">Wpisz</string>
+    <string name="login_title">Zaloguj się</string>
     <string name="login_with_amber_button">Zaloguj przez Amber</string>
     <string name="login_amber_primary_hint">Amber trzyma twój prywatny klucz w dedykowanym sygnale i pozwala na bezpieczny dostęp.</string>
     <string name="login_nsec_unsafe">Zaloguj przez nsec – niebezpieczne</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">Wklej łańcuch łączący bunkier, który dał ci twój signer:</string>
     <string name="login_amber_required">LibreNostr z Amber. Zainstaluj Amber.</string>
     <string name="login_description">Wpisz swój klucz Nostr, aby się zalogować:</string>
-    <string name="login_button_sign_in">Wpisz</string>
+    <string name="login_button_sign_in">Zaloguj się</string>
     <string name="login_button_paste_your_key">Wklej swój klucz</string>
     <string name="login_button_paste_new_key">Wklej nowy klucz</string>
     <string name="login_enter_nsec_key">Wpisz swój klucz Nostr, aby się zalogować:</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Wysyłanie notatki w %d sekund</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Nie wysyłaj</string>
+    <string name="editor_publish_countdown_confirm">Przeczytane, wyślij teraz</string>
     <string name="editor_publish_countdown_attachments_notice">Załączniki zostały wysłane, gdy je wybrałeś, więc odwołanie tego nie usuwa ich z serwera mediów.</string>
     <string name="settings_content_display_undo_post_timer">Cofnij wysyłanie timera</string>
     <string name="settings_content_display_undo_post_timer_hint">Wstrzymaj notkę na kilka sekund po stukaniu, więc możesz ją odwołać. Wydawnictwo dla Nostr nie może być później cofnięte.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Zaloguj się do dowolnej aplikacji Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Użyj konta LibreNostr, aby zalogować się do dowolnej aplikacji \n Nostr, która obsługuje zdalne logowanie.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Użyj konta LibreNostr, aby zalogować się do dowolnej aplikacji Nostr, która obsługuje zdalne logowanie. Wklej łańcuch połączeń poniżej:</string>
-    <string name="logout_title">Podpisz</string>
+    <string name="logout_title">Wyloguj się</string>
     <string name="logout_description">Jeśli nie ocaliłeś prywatnego klucza, będzie nieodwracalnie stracony. Naprawdę chcesz się wypisać?</string>
     <string name="logout_cancel_button">Anuluj</string>
-    <string name="logout_button">Podpisz</string>
+    <string name="logout_button">Wyloguj się</string>
     <string name="primary_destination_feed_label">Start</string>
     <string name="primary_destination_reads_label">Czytanie</string>
     <string name="primary_destination_wallet_label">Portfel</string>
@@ -164,7 +165,7 @@
     <string name="drawer_followers_suffix">Followers</string>
     <string name="drawer_following_suffix">Po</string>
     <string name="overlay_action_close">Zamknij</string>
-    <string name="account_switcher_sheet_title">Rachunki</string>
+    <string name="account_switcher_sheet_title">Konta</string>
     <string name="account_switcher_done">Gotowe</string>
     <string name="account_switcher_edit">Edycja</string>
     <string name="account_switcher_create_new_account">Utwórz nowe konto</string>
@@ -610,7 +611,7 @@
     <string name="long_reads_no_content">Nie ma jeszcze długich postów.</string>
     <string name="accessibility_long_reads">Długie czytanie</string>
     <string name="settings_account_title">Konto</string>
-    <string name="settings_accounts_title">Rachunki</string>
+    <string name="settings_accounts_title">Konta</string>
     <string name="settings_accounts_description">Zarządzaj kontami podpisanymi na tym urządzeniu - przełącz się między nimi, wypisz się lub dodaj inne z nsec, Amber, lub połączenia bunkra.</string>
     <string name="settings_accounts_manage_button">Zarządzanie rachunkami</string>
     <string name="settings_account_copy_public_key">Kopiuj klucz publiczny</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Nie można skopiować słów nasion</string>
     <string name="settings_developer_tools_delete_wallet">Usuń portfel</string>
     <string name="settings_developer_tools_delete_wallet_title">Usunąć portfel?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Jeśli nie poparłeś swojej frazy, możesz trwale stracić dostęp do funduszy na ten portfel.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Jeśli nie wykonałeś kopii zapasowej swojej frazy odzyskiwania, możesz trwale stracić dostęp do środków w tym portfelu.</string>
     <string name="settings_developer_tools_wallet_deleted">Portfel usunięty</string>
     <string name="settings_developer_tools_wallet_delete_failed">Nie udało się usunąć portfela</string>
     <string name="settings_developer_tools_data_inspector_title">Sprawdź dane użytkownika</string>
@@ -929,7 +930,7 @@
     <string name="profile_context_follow_mute_list">Podążaj za listą użytkowników</string>
     <string name="profile_user_feed_title">Pasza %1$s \'s</string>
     <string name="profile_user_is_muted">%1$s jest stłumiony.</string>
-    <string name="profile_follows_you">Follows you</string>
+    <string name="profile_follows_you">Obserwuje cię</string>
     <string name="profile_followed_by">Następnie</string>
     <string name="profile_save_user_feed_title">Nowości %1$s \'s</string>
     <string name="profile_save_user_feed_description">Najnowsze uwagi: %1$s \'s follows</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Pokazuje opcję tłumaczenia przy notatkach, korzystając z silnika tłumaczeniowego działającego całkowicie na urządzeniu. Nic nie opuszcza Twojego urządzenia — przy pierwszym tłumaczeniu na dany język lub z niego pobierany jest niewielki pakiet językowy (kilka MB) do użytku offline.</string>
     <string name="note_translate_button">Tłumacz</string>
     <string name="note_translate_loading">Tłumaczenie..</string>
-    <string name="note_translate_error">Nie mogłem przetłumaczyć tej notatki</string>
-    <string name="note_translate_not_configured">Ustaw najpierw serwer tłumaczeń w ustawieniach</string>
-    <string name="note_translated_footer">Przetłumaczone</string>
+    <string name="note_translate_error">Nie mogłem przetłumaczyć tej notatki</string>    <string name="note_translated_footer">Przetłumaczone</string>
     <string name="note_see_original">Zobacz oryginał</string>
     <string name="note_translate_not_available">Tłumaczenie niedostępne dla tego języka</string>
     <string name="note_translate_downloading">Pobieranie…</string>

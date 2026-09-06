@@ -126,6 +126,7 @@
         <item quantity="other">Posílám váš vzkaz za %d sekund.</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Neposílejte</string>
+    <string name="editor_publish_countdown_confirm">Přečteno, odeslat</string>
     <string name="editor_publish_countdown_attachments_notice">Když jste si je vybrali, byly nahrány přílohy, takže jejich zrušení je z mediálního serveru neodstraní.</string>
     <string name="settings_content_display_undo_post_timer">Odeslat časovač</string>
     <string name="settings_content_display_undo_post_timer_hint">Pár vteřin po odklepnutí podržte vzkaz, abyste to mohli odvolat. Vydavatelství pro Nostr nemůže být později zrušeno.</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">nebo</string>
     <string name="feed_context_unmute_thread">Name</string>
     <string name="feed_context_share_note">Poznámka k podílu</string>
-    <string name="feed_context_share_poll">Sdílet Polsko</string>
+    <string name="feed_context_share_poll">Sdílet anketu</string>
     <string name="feed_context_share_note_as_image">Sdílet jako obrázek</string>
     <string name="feed_context_copy_note_link">Comment</string>
     <string name="feed_context_copy_poll_link">Comment</string>
@@ -621,7 +622,7 @@
     <string name="settings_account_private_key_title">Váš osobní klíč</string>
     <string name="settings_account_show_key">Zobrazit klíč</string>
     <string name="settings_account_hide_key">Skrýt klíč</string>
-    <string name="settings_account_key_copied">Name</string>
+    <string name="settings_account_key_copied">Klíč zkopírován</string>
     <string name="settings_wallet_title">Peněženka</string>
     <string name="settings_wallet_connected_title">Peněženka připojena</string>
     <string name="settings_wallet_use_external_wallet">Použít externí peněženku</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Selhalo kopírování slov semínek</string>
     <string name="settings_developer_tools_delete_wallet">Smazat peněženku</string>
     <string name="settings_developer_tools_delete_wallet_title">Smazat peněženku?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Pokud jste nepodpořili svou frázi, můžete trvale ztratit přístup k penězům na této peněžence.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Pokud jste si nezálohovali svou obnovovací frázi, můžete trvale ztratit přístup k prostředkům v této peněžence.</string>
     <string name="settings_developer_tools_wallet_deleted">Vymazané peněženky</string>
     <string name="settings_developer_tools_wallet_delete_failed">Nepodařilo se odstranit peněženku</string>
     <string name="settings_developer_tools_data_inspector_title">Zkontrolovat uživatelská data</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Zobrazí u poznámek možnost překladu pomocí zcela lokálního (on-device) překladatelského enginu. Nic neopouští vaše zařízení — při prvním překladu do/z daného jazyka se stáhne malý jazykový balíček (několik MB) pro offline použití.</string>
     <string name="note_translate_button">Přeložit</string>
     <string name="note_translate_loading">Překládám..</string>
-    <string name="note_translate_error">Nemohl jsem to přeložit</string>
-    <string name="note_translate_not_configured">Nastavit překlad serveru v Nastavení první</string>
-    <string name="note_translated_footer">Přeloženo</string>
+    <string name="note_translate_error">Nemohl jsem to přeložit</string>    <string name="note_translated_footer">Přeloženo</string>
     <string name="note_see_original">Viz originál</string>
     <string name="note_translate_not_available">Překlad pro tento jazyk není k dispozici</string>
     <string name="note_translate_downloading">Stahování…</string>

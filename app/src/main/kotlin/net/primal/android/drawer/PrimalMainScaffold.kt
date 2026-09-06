@@ -7,10 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -48,9 +44,9 @@ import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.user.domain.Badges
-import net.primal.domain.links.CdnImage
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod")
 @Composable
 fun PrimalMainScaffold(
     modifier: Modifier = Modifier,
@@ -60,8 +56,6 @@ fun PrimalMainScaffold(
     onActiveDestinationClick: () -> Unit = {},
     onMessagesClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {},
-    profileAvatarCdnImage: CdnImage? = null,
     settingsSelected: Boolean = false,
     topAppBarState: TopAppBarState = remember {
         TopAppBarState(
@@ -121,26 +115,21 @@ fun PrimalMainScaffold(
                     onActiveDestinationClick = onActiveDestinationClick,
                     onMessagesClick = onMessagesClick,
                     onSettingsClick = onSettingsClick,
-                    onProfileClick = onProfileClick,
-                    profileAvatarCdnImage = profileAvatarCdnImage,
                     settingsSelected = settingsSelected,
                     badges = badges,
                     exploreAnchorHandle = exploreAnchorHandle,
+                    composeAction = {
+                        AnimatedVisibility(
+                            visible = !focusModeOn,
+                            enter = fadeIn() + scaleIn(),
+                            exit = fadeOut() + scaleOut(),
+                        ) {
+                            floatingActionButton()
+                        }
+                    },
                 )
             },
-            floatingActionButton = {
-                AnimatedVisibility(
-                    visible = !focusModeOn,
-                    enter = fadeIn() + scaleIn() +
-                        slideInHorizontally(initialOffsetX = { it / 2 }) +
-                        slideInVertically(initialOffsetY = { it / 2 }),
-                    exit = fadeOut() + scaleOut() +
-                        slideOutHorizontally(targetOffsetX = { it / 2 }) +
-                        slideOutVertically(targetOffsetY = { it / 2 }),
-                ) {
-                    floatingActionButton()
-                }
-            },
+            floatingActionButton = {},
             snackbarHost = snackbarHost,
         )
 
@@ -206,11 +195,10 @@ private fun ScaffoldBottomBar(
     onActiveDestinationClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    profileAvatarCdnImage: CdnImage?,
     settingsSelected: Boolean,
     badges: Badges,
     exploreAnchorHandle: AnchorHandle? = null,
+    composeAction: @Composable () -> Unit,
 ) {
     AnimatedVisibility(
         visible = isBottomBarVisible,
@@ -238,11 +226,10 @@ private fun ScaffoldBottomBar(
             onActiveDestinationClick = onActiveDestinationClick,
             onMessagesClick = onMessagesClick,
             onSettingsClick = onSettingsClick,
-            onProfileClick = onProfileClick,
-            profileAvatarCdnImage = profileAvatarCdnImage,
             settingsSelected = settingsSelected,
             badges = badges,
             exploreAnchorHandle = exploreAnchorHandle,
+            composeAction = composeAction,
         )
     }
 }

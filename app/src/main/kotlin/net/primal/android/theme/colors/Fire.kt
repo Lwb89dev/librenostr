@@ -12,9 +12,9 @@ private val fireDarkText = Color(0xFFFFF0E4)
 private val fireDarkMuted = Color(0xFFD1A793)
 private val fireDarkSubtle = Color(0xFFA06F5E)
 private val fireDarkFaint = Color(0xFF73483A)
-private val fireDarkPrimary = Color(0xFFFF7A1A)
-private val fireDarkSecondary = Color(0xFFFF3D2E)
-private val fireDarkTertiary = Color(0xFFFFB000)
+private val fireDarkPrimary = Color(0xFFFF4B16)
+private val fireDarkSecondary = Color(0xFFFF1F12)
+private val fireDarkTertiary = Color(0xFFFFC400)
 
 val fireColorScheme = darkColorScheme(
     primary = fireDarkPrimary,
@@ -63,15 +63,15 @@ val fireExtraColorScheme = extraColorScheme(
 )
 
 val fireLightColorScheme = lightColorScheme(
-    primary = Color(0xFFC94318),
+    primary = Color(0xFFB8320E),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFFFDBCB),
     onPrimaryContainer = Color(0xFF3D0B00),
-    secondary = Color(0xFFD9271C),
+    secondary = Color(0xFFE51B12),
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFFFDAD5),
     onSecondaryContainer = Color(0xFF410003),
-    tertiary = Color(0xFFC97900),
+    tertiary = Color(0xFFE58A00),
     onTertiary = Color.White,
     tertiaryContainer = Color(0xFFFFDDB2),
     onTertiaryContainer = Color(0xFF2A1700),

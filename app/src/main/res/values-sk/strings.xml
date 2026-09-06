@@ -126,6 +126,7 @@
         <item quantity="other">Posielam tvoj odkaz za %d sekúnd</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Neposielaj</string>
+    <string name="editor_publish_countdown_confirm">Prečítané, odoslať</string>
     <string name="editor_publish_countdown_attachments_notice">Prílohy boli nahrané, keď ste si ich vybrali, takže ich odvolanie neodstráni z mediálneho servera.</string>
     <string name="settings_content_display_undo_post_timer">Vrátiť časovač</string>
     <string name="settings_content_display_undo_post_timer_hint">Zadržte odkaz na pár sekúnd po odpočúvaní, takže ho stále môžete odvolať. Vydavateľstvo pre Nostru sa potom nedá zrušiť.</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">alebo</string>
     <string name="feed_context_unmute_thread">Nemenné vlákno</string>
     <string name="feed_context_share_note">Poznámka k zdieľaniu</string>
-    <string name="feed_context_share_poll">Share Poll</string>
+    <string name="feed_context_share_poll">Zdieľať anketu</string>
     <string name="feed_context_share_note_as_image">Zdieľať ako obrázok</string>
     <string name="feed_context_copy_note_link">Kopírovať odkaz na poznámku</string>
     <string name="feed_context_copy_poll_link">Kopírovať odkaz PollName</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Zobrazí pri poznámkach možnosť prekladu pomocou prekladového enginu, ktorý beží úplne v zariadení. Nič neopúšťa vaše zariadenie — pri prvom preklade do alebo z daného jazyka sa stiahne malý jazykový balík (niekoľko MB) na použitie offline.</string>
     <string name="note_translate_button">Preložiť</string>
     <string name="note_translate_loading">Preklad..</string>
-    <string name="note_translate_error">Nemohol som preložiť tento odkaz</string>
-    <string name="note_translate_not_configured">Najprv nastavte prekladateľský server v Nastaveniach</string>
-    <string name="note_translated_footer">Preložené</string>
+    <string name="note_translate_error">Nemohol som preložiť tento odkaz</string>    <string name="note_translated_footer">Preložené</string>
     <string name="note_see_original">Pozri originál</string>
     <string name="note_translate_not_available">Preklad nie je pre tento jazyk k dispozícii</string>
     <string name="note_translate_downloading">Sťahovanie…</string>

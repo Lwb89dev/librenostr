@@ -126,6 +126,7 @@
         <item quantity="other">Lähetä viestisi %d sekuntia</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Älä lähetä</string>
+    <string name="editor_publish_countdown_confirm">Luettu, lähetä nyt</string>
     <string name="editor_publish_countdown_attachments_notice">Liitteet ladattiin, kun poimit ne, joten tämän poistaminen ei poista niitä mediapalvelimelta.</string>
     <string name="settings_content_display_undo_post_timer">Peru lähetä ajastin</string>
     <string name="settings_content_display_undo_post_timer_hint">Pidä viesti takaisin muutaman sekunnin jälkeen napautuksen, joten voit vielä peruuttaa sen. Nostrille julkaisemista ei voi perua jälkikäteen.</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Näyttää muistiinpanoissa käännöstoiminnon, joka käyttää täysin laitteessa toimivaa käännösmoottoria. Mikään ei poistu laitteeltasi — kun käännät ensimmäisen kerran johonkin kieleen tai kielestä, ladataan pieni kielipaketti (muutama MB) offline-käyttöä varten.</string>
     <string name="note_translate_button">Käännä</string>
     <string name="note_translate_loading">Käännetään..</string>
-    <string name="note_translate_error">En osannut kääntää tätä viestiä</string>
-    <string name="note_translate_not_configured">Aseta käännöspalvelin Asetukset ensin</string>
-    <string name="note_translated_footer">Käännetty</string>
+    <string name="note_translate_error">En osannut kääntää tätä viestiä</string>    <string name="note_translated_footer">Käännetty</string>
     <string name="note_see_original">Katso alkuperäistä</string>
     <string name="note_translate_not_available">Käännös ei ole saatavilla tälle kielelle</string>
     <string name="note_translate_downloading">Ladataan…</string>

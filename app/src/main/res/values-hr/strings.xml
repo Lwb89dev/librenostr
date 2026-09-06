@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">LibreNostr</string>
-    <string name="nsec_or_npub">nsec / crazyub</string>
+    <string name="nsec_or_npub">nsec / npub</string>
     <string name="nsec">NSEC</string>
-    <string name="npub">Chutub</string>
+    <string name="npub">npub</string>
     <string name="app_info">Info</string>
     <string name="app_generic_error">Nešto je pošlo po zlu.</string>
     <string name="app_missing_relays_config">Nijedan relej nije pronađen. Molim podesite vašu mrežu.</string>
@@ -85,7 +85,7 @@
         <item quantity="one">%d korisnik</item>
         <item quantity="other">%d korisnici</item>
     </plurals>
-    <string name="login_title">Potpišite se</string>
+    <string name="login_title">Prijavite se</string>
     <string name="login_with_amber_button">Prijava s Amberom</string>
     <string name="login_amber_primary_hint">Amber drži tvoj privatni ključ u predanom potpisniku i odobrava pristup sigurno.</string>
     <string name="login_nsec_unsafe">Prijava s nsec – nesigurno</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">Zalijepi niz za povezivanje bunkera koji ti je potpisnik dao:</string>
     <string name="login_amber_required">LibreNostr znakovi s Amber. Instalirajte Amber nastaviti.</string>
     <string name="login_description">Unesite svoj Nostr ključ za prijavu:</string>
-    <string name="login_button_sign_in">Potpišite se</string>
+    <string name="login_button_sign_in">Prijavite se</string>
     <string name="login_button_paste_your_key">Zalijepi svoj ključ</string>
     <string name="login_button_paste_new_key">Zalijepi novi ključ</string>
     <string name="login_enter_nsec_key">Unesite svoj Nostr ključ za prijavu:</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Šaljem poruku u %d sekundi</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Ne šalji</string>
+    <string name="editor_publish_countdown_confirm">Pročitano, pošalji</string>
     <string name="editor_publish_countdown_attachments_notice">Prilozi su poslani kada ste ih odabrali, tako da ih otkazivanje ne uklanja s medijskog poslužitelja.</string>
     <string name="settings_content_display_undo_post_timer">Poništi slanje tajmera</string>
     <string name="settings_content_display_undo_post_timer_hint">Držite bilješku natrag za nekoliko sekundi nakon kucanja post, tako da ga još uvijek možete opozvati. Objavljivanje u Nostr ne može biti poništeno nakon toga.</string>
@@ -616,7 +617,7 @@
     <string name="settings_account_copy_public_key">Kopiraj javnu tipku</string>
     <string name="settings_account_public_key_hint">Svatko na Nostr može vas pronaći putem vašeg javnog ključa. Slobodno podijelite bilo gdje.</string>
     <string name="settings_account_public_key_title">Vaš javni ključ</string>
-    <string name="settings_account_copy_private_key">Primljeno privatni ključ</string>
+    <string name="settings_account_copy_private_key">Kopiraj privatni ključ</string>
     <string name="settings_account_private_key_hint">Ovaj ključ u potpunosti kontrolira vaš Nostr korisnički račun. Nemojte ga dijeliti ni s kim. Samo kopirajte ovaj ključ kako biste ga sigurno pohranili ili se prijavili na drugu Nostr aplikaciju.</string>
     <string name="settings_account_private_key_title">Vaš privatni ključ</string>
     <string name="settings_account_show_key">Pokaži ključ</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Nisam uspio kopirati riječi sjemena</string>
     <string name="settings_developer_tools_delete_wallet">Obriši novčanik</string>
     <string name="settings_developer_tools_delete_wallet_title">Izbrisati novčanik?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Ako niste podržali frazu sjemena, možda trajno izgubite pristup sredstvima na ovom novčaniku.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Ako niste sigurnosno kopirali svoju sjemensku frazu, mogli biste trajno izgubiti pristup sredstvima u ovom novčaniku.</string>
     <string name="settings_developer_tools_wallet_deleted">Novčanik izbrisan</string>
     <string name="settings_developer_tools_wallet_delete_failed">Neuspjelo brisanje novčanika</string>
     <string name="settings_developer_tools_data_inspector_title">Inspekciju korisničkih podataka</string>
@@ -1413,7 +1414,7 @@
     <string name="signer_notification_summary_title">LibreNostr daljinski potpisnik</string>
     <string name="signer_notification_end_session">Kraj sesije</string>
     <string name="signer_notification_unknown_app">Nepoznata aplikacija</string>
-    <string name="signer_notification_logged_in_as">Logged u kao %s</string>
+    <string name="signer_notification_logged_in_as">Prijavljeni kao %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Imate %d novi zahtjev potpisnika.</item>
         <item quantity="other">Imate %d nove zahtjeve za potpisivanje.</item>
@@ -1484,9 +1485,7 @@
     <string name="settings_content_display_translate_notes_hint">Prikazuje mogućnost prevođenja bilješki pomoću mehanizma za prevođenje koji radi u potpunosti na uređaju. Ništa ne napušta vaš uređaj — kada prvi put prevodite na neki jezik ili s njega, preuzima se mali jezični paket (nekoliko MB) za izvanmrežnu upotrebu.</string>
     <string name="note_translate_button">Prevedi</string>
     <string name="note_translate_loading">Prevodim..</string>
-    <string name="note_translate_error">Nisam mogao prevesti ovu poruku</string>
-    <string name="note_translate_not_configured">Prvo postavi poslužitelj za prevođenje u postavkama</string>
-    <string name="note_translated_footer">Prevedeno</string>
+    <string name="note_translate_error">Nisam mogao prevesti ovu poruku</string>    <string name="note_translated_footer">Prevedeno</string>
     <string name="note_see_original">Vidi original</string>
     <string name="note_translate_not_available">Prijevod nije dostupan za ovaj jezik</string>
     <string name="note_translate_downloading">Preuzimanje…</string>

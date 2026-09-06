@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">自由号</string>
-    <string name="nsec_or_npub">nse / npub 数据</string>
-    <string name="nsec">无</string>
-    <string name="npub">无</string>
+    <string name="nsec_or_npub">nsec / npub</string>
+    <string name="nsec">nsec</string>
+    <string name="npub">npub</string>
     <string name="app_info">资讯</string>
     <string name="app_generic_error">出了点问题 请再试一次</string>
     <string name="app_missing_relays_config">没有找到继电器 。 请配置您的网络 。</string>
@@ -85,7 +85,7 @@
         <item quantity="one">%d用户</item>
         <item quantity="other">%d用户</item>
     </plurals>
-    <string name="login_title">签名</string>
+    <string name="login_title">登录</string>
     <string name="login_with_amber_button">使用 Amber 登录</string>
     <string name="login_amber_primary_hint">Amber把你的私人钥匙放在专用的签名器里 安全地批准访问</string>
     <string name="login_nsec_unsafe">使用 nsec 登录 – 不安全</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">粘贴您的签名人给你的掩体连接字符串 :</string>
     <string name="login_amber_required">LibreNostr标志与琥珀。 安装琥珀继续。</string>
     <string name="login_description">输入要签名的鼻音键 :</string>
-    <string name="login_button_sign_in">签名</string>
+    <string name="login_button_sign_in">登录</string>
     <string name="login_button_paste_your_key">粘贴您的密钥</string>
     <string name="login_button_paste_new_key">粘贴新密钥</string>
     <string name="login_enter_nsec_key">输入要签名的鼻音键 :</string>
@@ -126,6 +126,7 @@
         <item quantity="other">以 %d 秒发送您的便条</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">别送</string>
+    <string name="editor_publish_countdown_confirm">已阅读,立即发送</string>
     <string name="editor_publish_countdown_attachments_notice">选中附件时被上传, 因此调用它不会从媒体服务器上删除 。</string>
     <string name="settings_content_display_undo_post_timer">撤消发送计时器</string>
     <string name="settings_content_display_undo_post_timer_hint">监听后留个字条回来几秒钟 这样你还可以取消 向 Nostr 发布后无法撤销 。</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">登录到任何 Nostr App</string>
     <string name="scan_code_remote_login_camera_subtitle">使用您的 LibreNostr 账户登录到任何支持远程签名的 \n  Nostr app 。</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">使用您的 LibreNostr 账户登录任何支持远程签名的 Nostr app 。 下面粘贴连接字符串 :</string>
-    <string name="logout_title">签字</string>
+    <string name="logout_title">退出登录</string>
     <string name="logout_description">如果你没有保存你的私人钥匙, 它将会是无可挽回的丢失。 你真的想签字吗?</string>
     <string name="logout_cancel_button">取消</string>
-    <string name="logout_button">签字</string>
+    <string name="logout_button">退出登录</string>
     <string name="primary_destination_feed_label">主页</string>
     <string name="primary_destination_reads_label">阅读</string>
     <string name="primary_destination_wallet_label">钱包</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">或</string>
     <string name="feed_context_unmute_thread">解密线索</string>
     <string name="feed_context_share_note">共享注释</string>
-    <string name="feed_context_share_poll">共享投球</string>
+    <string name="feed_context_share_poll">分享投票</string>
     <string name="feed_context_share_note_as_image">作为图像共享</string>
     <string name="feed_context_copy_note_link">复制注释链接</string>
     <string name="feed_context_copy_poll_link">复制 Poll 链接</string>
@@ -452,7 +453,7 @@
     <string name="asearch_time_posted_month">这个月</string>
     <string name="asearch_time_posted_year">今年</string>
     <string name="asearch_time_posted_custom">自定义</string>
-    <string name="asearch_search_kind_notes">页:1</string>
+    <string name="asearch_search_kind_notes">笔记</string>
     <string name="asearch_search_kind_reads">阅读</string>
     <string name="asearch_search_kind_note_replies">答复</string>
     <string name="asearch_search_kind_reads_comments">读取注释</string>
@@ -913,7 +914,7 @@
     <string name="profile_followers_stat">追随者</string>
     <string name="profile_reads_stat">读取</string>
     <string name="profile_media_stat">媒体</string>
-    <string name="profile_notes_stat">说明</string>
+    <string name="profile_notes_stat">笔记</string>
     <string name="profile_replies_stat">答复</string>
     <string name="profile_follow_button">跟着</string>
     <string name="profile_unfollow_button">未跟踪</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">在笔记上显示翻译操作,使用完全在设备本地运行的翻译引擎。任何内容都不会离开您的设备——首次翻译成或翻译自某种语言时,会下载一个小型语言包(几 MB)以供离线使用。</string>
     <string name="note_translate_button">翻译</string>
     <string name="note_translate_loading">翻译..</string>
-    <string name="note_translate_error">无法翻译这个字条。</string>
-    <string name="note_translate_not_configured">在设置中先设置一个翻译服务器 。</string>
-    <string name="note_translated_footer">翻译。</string>
+    <string name="note_translate_error">无法翻译这个字条。</string>    <string name="note_translated_footer">翻译。</string>
     <string name="note_see_original">见原文</string>
     <string name="note_translate_not_available">此语言暂不支持翻译</string>
     <string name="note_translate_downloading">正在下载…</string>

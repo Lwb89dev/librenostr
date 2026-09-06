@@ -126,6 +126,7 @@
         <item quantity="other">Uw briefje versturen in %d seconden</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Niet verzenden</string>
+    <string name="editor_publish_countdown_confirm">Gelezen, nu versturen</string>
     <string name="editor_publish_countdown_attachments_notice">Bijlagen werden geüpload toen u ze oppikte, dus het uitroepen van deze bijlagen verwijdert ze niet van de mediaserver.</string>
     <string name="settings_content_display_undo_post_timer">Verzendtijd ongedaan maken</string>
     <string name="settings_content_display_undo_post_timer_hint">Houd een briefje achter voor een paar seconden na het tikken post, zodat je nog steeds kunt afblazen. Publiceren naar Nostr kan achteraf niet ongedaan worden gemaakt.</string>
@@ -164,7 +165,7 @@
     <string name="drawer_followers_suffix">Volgers</string>
     <string name="drawer_following_suffix">Volgende</string>
     <string name="overlay_action_close">Sluiten</string>
-    <string name="account_switcher_sheet_title">Rekeningen</string>
+    <string name="account_switcher_sheet_title">Accounts</string>
     <string name="account_switcher_done">Klaar</string>
     <string name="account_switcher_edit">Bewerken</string>
     <string name="account_switcher_create_new_account">Een nieuw account aanmaken</string>
@@ -610,7 +611,7 @@
     <string name="long_reads_no_content">Nog geen lange posten.</string>
     <string name="accessibility_long_reads">Lange lezingen</string>
     <string name="settings_account_title">Account</string>
-    <string name="settings_accounts_title">Rekeningen</string>
+    <string name="settings_accounts_title">Accounts</string>
     <string name="settings_accounts_description">Beheer de ingelogde accounts op dit apparaat </string>
     <string name="settings_accounts_manage_button">Accounts beheren</string>
     <string name="settings_account_copy_public_key">Publieke sleutel kopiëren</string>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Toont een vertaalactie bij notities, met een volledig op het apparaat werkende vertaalengine. Er verlaat niets je apparaat — de eerste keer dat je naar of vanuit een taal vertaalt, wordt een klein taalpakket (enkele MB) gedownload voor offline gebruik.</string>
     <string name="note_translate_button">Vertaal</string>
     <string name="note_translate_loading">Vertalen..</string>
-    <string name="note_translate_error">Kon dit briefje niet vertalen</string>
-    <string name="note_translate_not_configured">Stel eerst een vertaalserver in Instellingen in</string>
-    <string name="note_translated_footer">Vertaald</string>
+    <string name="note_translate_error">Kon dit briefje niet vertalen</string>    <string name="note_translated_footer">Vertaald</string>
     <string name="note_see_original">Zie origineel</string>
     <string name="note_translate_not_available">Vertaling niet beschikbaar voor deze taal</string>
     <string name="note_translate_downloading">Downloaden…</string>

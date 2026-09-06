@@ -273,9 +273,17 @@ private fun NotificationIconAndExtraStats(icon: Painter, notifications: List<Not
 
         val extraStat = notifications.extractExtraStat()
         if (extraStat != null && extraStat > 0) {
+            // A bare number here reads as a like/repost/reply count for those notification
+            // types, but for a zap it was ambiguous — nothing said this was an amount of sats
+            // rather than, say, a count of zappers. Only the zap case needs the unit spelled out.
+            val text = if (firstNotification.notificationType == NotificationType.YOUR_POST_WAS_ZAPPED) {
+                "${extraStat.shortened()} ${stringResource(id = R.string.wallet_sats_suffix)}"
+            } else {
+                extraStat.shortened()
+            }
             Text(
                 modifier = Modifier.padding(top = 8.dp),
-                text = extraStat.shortened(),
+                text = text,
                 style = AppTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = firstNotification.extraStatColor(),

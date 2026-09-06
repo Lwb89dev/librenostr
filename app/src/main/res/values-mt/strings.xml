@@ -85,7 +85,7 @@
         <item quantity="one">%d utent</item>
         <item quantity="other">l-utenti ta\' %d</item>
     </plurals>
-    <string name="login_title">Sinjal In</string>
+    <string name="login_title">Idħol</string>
     <string name="login_with_amber_button">Idħol b’Amber</string>
     <string name="login_amber_primary_hint">Amber żżomm ċavetta privata tiegħek fil-sinjalatur dedikat u japprova l-aċċess b\'mod sikur.</string>
     <string name="login_nsec_unsafe">Idħol b’nsec – mhux sigur</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">Paste-sekwenza konnessjoni bunker sinjaler tiegħek taw inti:</string>
     <string name="login_amber_required">Sinjali LibreNostra ma Amber. Installa Amber biex tkompli.</string>
     <string name="login_description">Daħħal iċ-ċavetta Nostr tiegħek biex tiffirma fi:</string>
-    <string name="login_button_sign_in">Sinjal In</string>
+    <string name="login_button_sign_in">Idħol</string>
     <string name="login_button_paste_your_key">Għaddi ċ - Ċavetta Tiegħek</string>
     <string name="login_button_paste_new_key">Paste New Key</string>
     <string name="login_enter_nsec_key">Daħħal iċ-ċavetta Nostr tiegħek biex tiffirma fi:</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Ibgħat nota tiegħek fil %d sekondi</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Tibgħatx</string>
+    <string name="editor_publish_countdown_confirm">Iva, ibgħat issa</string>
     <string name="editor_publish_countdown_attachments_notice">Dokumenti mehmuża kienu mtellgħin meta inti picked minnhom, sabiex sejħa dan off ma tneħħihomx mill-server tal-midja.</string>
     <string name="settings_content_display_undo_post_timer">Undo tibgħat timer</string>
     <string name="settings_content_display_undo_post_timer_hint">Żomm nota lura għal ftit sekondi wara taptip post, sabiex inti xorta tista \'sejħa off. Publishing lil Nostr ma tistax tiġi żvujtata wara.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Login to any Nostr App</string>
     <string name="scan_code_remote_login_camera_subtitle">Uża kont LibreNostra tiegħek biex login għal kwalunkwe \n Nostr app li jappoġġja sinjal remot fil.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Uża kont LibreNostra tiegħek biex login għal kwalunkwe app Nostra li jappoġġja sinjal remot pulzieri Jippastaw l-sekwenza konnessjoni hawn taħt:</string>
-    <string name="logout_title">Iffirmat</string>
+    <string name="logout_title">Oħroġ</string>
     <string name="logout_description">Jekk inti ma jiffrankaw ċavetta privata tiegħek, se jkun irreparabbli mitlufa. Do you verament trid li jiffirmaw?</string>
     <string name="logout_cancel_button">Ikkanċella</string>
-    <string name="logout_button">Iffirmat</string>
+    <string name="logout_button">Oħroġ</string>
     <string name="primary_destination_feed_label">Dar</string>
     <string name="primary_destination_reads_label">Qari</string>
     <string name="primary_destination_wallet_label">Kartiera</string>
@@ -165,7 +166,7 @@
     <string name="drawer_following_suffix">Wara</string>
     <string name="overlay_action_close">Agħlaq</string>
     <string name="account_switcher_sheet_title">Kontijiet</string>
-    <string name="account_switcher_done">Dan ir-Regolament għandu jidħol fis-seħħ fl-għoxrin jum wara dak tal-pubblikazzjoni tiegħu f\'Il-Ġurnal Uffiċjali tal-Unjoni Ewropea</string>
+    <string name="account_switcher_done">Lest</string>
     <string name="account_switcher_edit">Edit</string>
     <string name="account_switcher_create_new_account">Oħloq rakkont ġdid</string>
     <string name="account_switcher_add_existing_account">Żid kont eżistenti</string>
@@ -260,7 +261,7 @@
     <string name="feed_details_disable_feed">Għalf li Jiddiżattiva</string>
     <string name="feed_list_add_feed">Żid l-għalf</string>
     <string name="feed_list_edit">Edit</string>
-    <string name="feed_list_done">Dan ir-Regolament għandu jidħol fis-seħħ fl-għoxrin jum wara dak tal-pubblikazzjoni tiegħu f\'Il-Ġurnal Uffiċjali tal-Unjoni Ewropea</string>
+    <string name="feed_list_done">Lest</string>
     <string name="feed_list_remove_feed_title">Neħħi l-għalf?</string>
     <string name="feed_list_remove_feed_text">Neħħi t-taħlil %1$s mil-lista tal-għalf tiegħek?</string>
     <string name="feed_list_dialog_confirm">Ikkonferma</string>
@@ -520,7 +521,7 @@
     <string name="wallet_picker_configure_wallets">Konfigurazzjoni</string>
     <string name="wallet_picker_configure_title">Kartieri</string>
     <string name="wallet_picker_cancel">Ikkanċella</string>
-    <string name="wallet_picker_done">Dan ir-Regolament għandu jidħol fis-seħħ fl-għoxrin jum wara dak tal-pubblikazzjoni tiegħu f\'Il-Ġurnal Uffiċjali tal-Unjoni Ewropea</string>
+    <string name="wallet_picker_done">Lest</string>
     <string name="wallet_picker_reassign_confirm_title">Riassja l-Indirizz Lightning</string>
     <string name="wallet_picker_reassign_confirm_text">Ħlasijiet Lightning se jiġu diretti lejn %s . Kompli?</string>
     <string name="wallet_picker_reassign_confirm_button">Erġa\' agħti l-isem</string>
@@ -618,7 +619,7 @@
     <string name="settings_account_public_key_title">Il - Pubbliku Tiegħek</string>
     <string name="settings_account_copy_private_key">Ikkopja ċ-ċavetta privata</string>
     <string name="settings_account_private_key_hint">Dan il-muftieħ jikkontrolla bis-sħiħ kont Nostra tiegħek. Dont jaqsmu ma \'xi ħadd. Biss kopja dan il-muftieħ biex taħżenha b\'mod sikur jew biex login għal app Nostra oħra.</string>
-    <string name="settings_account_private_key_title">Your Private Key</string>
+    <string name="settings_account_private_key_title">Iċ-Ċavetta Privata Tiegħek</string>
     <string name="settings_account_show_key">Uri Ċavetta</string>
     <string name="settings_account_hide_key">Hide Key</string>
     <string name="settings_account_key_copied">Koppji ewlenin</string>
@@ -678,7 +679,7 @@
     <string name="settings_wallet_new_nwc_connection_bottom_sheet_pick_daily_budget_save">Salv</string>
     <string name="settings_wallet_new_nwc_connection_secret_hint">Dan huwa string tiegħek Wallet konnessjoni. Tista pejst fil-app inti tixtieq li jgħaqqdu kartiera tiegħek biex.</string>
     <string name="settings_wallet_new_nwc_connection_copy_nwc_string_button">Kopja NWC String</string>
-    <string name="settings_wallet_new_nwc_connection_done_button">Dan ir-Regolament għandu jidħol fis-seħħ fl-għoxrin jum wara dak tal-pubblikazzjoni tiegħu f\'Il-Ġurnal Uffiċjali tal-Unjoni Ewropea</string>
+    <string name="settings_wallet_new_nwc_connection_done_button">Lest</string>
     <string name="settings_wallet_new_nwc_connection_connection_created_text">Konnessjoni maħluqa</string>
     <string name="settings_wallet_link_primal_wallet_title">Link LibreNost Wallet</string>
     <string name="settings_wallet_link_external_app_request">L-applikazzjoni esterna through %1$s through qed titlob aċċess għall-LibreNost Wallet tiegħek. Jekk inti tixtieq li tippermetti dan, ikklikkja Give Wallet Aċċess through hawn taħt.</string>
@@ -874,7 +875,7 @@
     <string name="session_event_title_sign_event_kind">Avveniment tas-Sinjal (Kind %1$d):</string>
     <string name="session_event_title_encrypt">Encrypt:</string>
     <string name="session_event_title_decrypt">Dekrypt:</string>
-    <string name="session_event_state_approved">Dan ir-Regolament għandu jidħol fis-seħħ fl-għoxrin jum wara dak tal-pubblikazzjoni tiegħu f\'Il-Ġurnal Uffiċjali tal-Unjoni Ewropea</string>
+    <string name="session_event_state_approved">Lest</string>
     <string name="session_event_state_rejected">Irrifjutat</string>
     <string name="settings_developer_tools_title">Għodod Dev</string>
     <string name="settings_developer_tools_logging_title">Jippermettu Logging</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Ma rnexxilux jikkopja l - kliem taż - żerriegħa</string>
     <string name="settings_developer_tools_delete_wallet">Ħassar il-Wallet</string>
     <string name="settings_developer_tools_delete_wallet_title">Ħassar il-kartiera?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Jekk ma tkunx appoġġajt il - frażi taż - żerriegħa tiegħek, tistaʼ titlef b\'mod permanenti l - aċċess għall - fondi fuq din il - kartiera.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Jekk ma tkunx għamilt kopja tal-frażi taż-żerriegħa tiegħek, tista\' titlef b\'mod permanenti l-aċċess għall-fondi f\'din il-kartiera.</string>
     <string name="settings_developer_tools_wallet_deleted">Kartiera mħassra</string>
     <string name="settings_developer_tools_wallet_delete_failed">Problema biex inneħħi l-kartiera</string>
     <string name="settings_developer_tools_data_inspector_title">Eżamina d-Dejta tal-Utent</string>
@@ -1036,7 +1037,7 @@
     <string name="wallet_upgrade_success_headline">Kartiera mtejba!</string>
     <string name="wallet_upgrade_failed_title">Wallet Upgrade</string>
     <string name="wallet_upgrade_failed_headline">Iltqajna maʼ kwistjoni waqt li konna qed intejbu l - kartiera tiegħek.</string>
-    <string name="wallet_upgrade_done_button">Dan ir-Regolament għandu jidħol fis-seħħ fl-għoxrin jum wara dak tal-pubblikazzjoni tiegħu f\'Il-Ġurnal Uffiċjali tal-Unjoni Ewropea</string>
+    <string name="wallet_upgrade_done_button">Lest</string>
     <string name="wallet_upgrade_close_button">Agħlaq</string>
     <string name="wallet_upgrade_retry_button">Retrija</string>
     <string name="wallet_upgrade_share_logs">Zkuk tal-iżball tas-sehem</string>
@@ -1413,7 +1414,7 @@
     <string name="signer_notification_summary_title">LibreNost Remote Signaker</string>
     <string name="signer_notification_end_session">Tmiem is-sessjoni</string>
     <string name="signer_notification_unknown_app">App. mhux magħruf</string>
-    <string name="signer_notification_logged_in_as">Logged in as %s</string>
+    <string name="signer_notification_logged_in_as">Illoggjat bħala %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Inti għandek %d talba ġdida syner.</item>
         <item quantity="other">Inti għandek %d talbiet ġodda signer.</item>
@@ -1484,9 +1485,7 @@
     <string name="settings_content_display_translate_notes_hint">Turi azzjoni ta\' traduzzjoni fuq in-noti, bl-użu ta\' magna tat-traduzzjoni li taħdem kompletament fuq l-apparat. Xejn ma jitlaq mill-apparat tiegħek — l-ewwel darba li tittraduċi lejn jew minn lingwa, jitniżżel pakkett żgħir tal-lingwa (ftit MB) għall-użu offline.</string>
     <string name="note_translate_button">Ittraduċi</string>
     <string name="note_translate_loading">It - traduzzjoni...</string>
-    <string name="note_translate_error">Ma nistax nittraduċu din in-nota</string>
-    <string name="note_translate_not_configured">Set server traduzzjoni fil Settings ewwel</string>
-    <string name="note_translated_footer">Tradott</string>
+    <string name="note_translate_error">Ma nistax nittraduċu din in-nota</string>    <string name="note_translated_footer">Tradott</string>
     <string name="note_see_original">Ara l-oriġinali</string>
     <string name="note_translate_not_available">It-traduzzjoni mhix disponibbli għal din il-lingwa</string>
     <string name="note_translate_downloading">Qed jitniżżel…</string>

@@ -85,7 +85,7 @@
         <item quantity="one">%d kasutaja</item>
         <item quantity="other">%d kasutajat</item>
     </plurals>
-    <string name="login_title">Kirjutage</string>
+    <string name="login_title">Logi sisse</string>
     <string name="login_with_amber_button">Logi Amberiga sisse</string>
     <string name="login_amber_primary_hint">Amber hoiab teie privaatvõtit spetsiaalses allkirjastajas ja kinnitab juurdepääsu turvaliselt.</string>
     <string name="login_nsec_unsafe">Logi nsec-iga sisse – ebaturvaline</string>
@@ -95,7 +95,7 @@
     <string name="login_enter_bunker_url">Aseta punkriühenduse string, mille signaator sulle andis:</string>
     <string name="login_amber_required">LibreNostr sõlmib Amberiga lepingu. Paigaldage Amber jätkama.</string>
     <string name="login_description">Sisesta oma Nostr võti sisselogimiseks:</string>
-    <string name="login_button_sign_in">Kirjutage</string>
+    <string name="login_button_sign_in">Logi sisse</string>
     <string name="login_button_paste_your_key">Aseta võti</string>
     <string name="login_button_paste_new_key">Aseta uus võti</string>
     <string name="login_enter_nsec_key">Sisesta oma Nostr võti sisselogimiseks:</string>
@@ -126,6 +126,7 @@
         <item quantity="other">Saatke oma kiri %d sekundiga</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Ära saada.</string>
+    <string name="editor_publish_countdown_confirm">Loetud, saada kohe</string>
     <string name="editor_publish_countdown_attachments_notice">Lisad laaditi üles, kui neid valisite, nii et selle väljalülitamine ei eemalda neid meediaserverist.</string>
     <string name="settings_content_display_undo_post_timer">Taimeri tagasivõtmine</string>
     <string name="settings_content_display_undo_post_timer_hint">Hoidke märkust paar sekundit pärast postituse puudutamist, nii et saate selle ikkagi välja lülitada. Avaldamist Nostrile ei saa hiljem tagasi võtta.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Logi sisse mis tahes Nostri rakendusesse</string>
     <string name="scan_code_remote_login_camera_subtitle">Kasutage oma LibreNostri kontot sisselogimiseks mis tahes \n Nostri rakendusse, mis toetab kaugsisselogimist.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Kasutage oma LibreNostri kontot sisselogimiseks mis tahes Nostri rakendusse, mis toetab kaugsisselogimist. Aseta allolev ühendusstring:</string>
-    <string name="logout_title">Kirjutage alla</string>
+    <string name="logout_title">Logi välja</string>
     <string name="logout_description">Kui sa ei salvestanud oma privaatvõtit, läheb see pöördumatult kaotsi. Kas sa tõesti tahad alla kirjutada?</string>
     <string name="logout_cancel_button">Tühistage</string>
-    <string name="logout_button">Kirjutage alla</string>
+    <string name="logout_button">Logi välja</string>
     <string name="primary_destination_feed_label">Avaleht</string>
     <string name="primary_destination_reads_label">Lugemised</string>
     <string name="primary_destination_wallet_label">Rahakott</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">või</string>
     <string name="feed_context_unmute_thread">Omavahel lõimeta</string>
     <string name="feed_context_share_note">Jaga märkus</string>
-    <string name="feed_context_share_poll">Küsitlus</string>
+    <string name="feed_context_share_poll">Jaga küsitlust</string>
     <string name="feed_context_share_note_as_image">Jaga pildina</string>
     <string name="feed_context_copy_note_link">Kopeeri märkus link</string>
     <string name="feed_context_copy_poll_link">Kopeeri küsitluslink</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Saada kommentaar…</string>
     <string name="live_stream_send_button_title">saata</string>
     <string name="live_stream_menu_quote_stream">Tsitaadivoog</string>
-    <string name="live_stream_menu_share_stream">Share Stream</string>
+    <string name="live_stream_menu_share_stream">Jaga voogu</string>
     <string name="live_stream_menu_copy_stream_link">Copy Stream link</string>
     <string name="live_stream_menu_copy_stream_id">Kopeeri striimi ID</string>
     <string name="live_stream_menu_copy_raw_data">Kopeeri toorandmed</string>
@@ -1416,7 +1417,7 @@
     <string name="signer_notification_summary_title">LibreNostr kaugsignerName</string>
     <string name="signer_notification_end_session">Lõpuseanss</string>
     <string name="signer_notification_unknown_app">Tundmatu rakendus</string>
-    <string name="signer_notification_logged_in_as">Registreeritud numbriga %s</string>
+    <string name="signer_notification_logged_in_as">Sisse logitud kui %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Teil on %d uut allkirjasoovi.</item>
         <item quantity="other">Teil on %d uut allkirjataotlust.</item>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Kuvab märkmetel tõlkimisvõimaluse, kasutades täielikult seadmesisest tõlkemootorit. Miski ei lahku sinu seadmest — kui tõlgid esimest korda mingisse keelde või sellest, laaditakse alla väike keelepakett (paar MB) võrguühenduseta kasutamiseks.</string>
     <string name="note_translate_button">Tõlki</string>
     <string name="note_translate_loading">Tõlkimine..</string>
-    <string name="note_translate_error">Ma ei suutnud seda kirja tõlkida</string>
-    <string name="note_translate_not_configured">Tõlkeserveri seadistamine Seadistustes</string>
-    <string name="note_translated_footer">Tõlkinud</string>
+    <string name="note_translate_error">Ma ei suutnud seda kirja tõlkida</string>    <string name="note_translated_footer">Tõlkinud</string>
     <string name="note_see_original">Vaata originaali</string>
     <string name="note_translate_not_available">Selle keele jaoks pole tõlge saadaval</string>
     <string name="note_translate_downloading">Allalaadimine…</string>

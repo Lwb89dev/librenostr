@@ -126,6 +126,7 @@
         <item quantity="other">Pošiljam sporočilo v %d sekundah.</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Ne pošiljaj.</string>
+    <string name="editor_publish_countdown_confirm">Prebrano, pošlji</string>
     <string name="editor_publish_countdown_attachments_notice">Priponke so bile naložene, ko ste jih izbrali, zato jih odpoklic ne odstrani iz medijskega strežnika.</string>
     <string name="settings_content_display_undo_post_timer">Razveljavi pošiljanje časovnika</string>
     <string name="settings_content_display_undo_post_timer_hint">Zadrži sporočilo za nekaj sekund po tappu, tako da ga lahko še vedno odpoveš. Založništva Nostru potem ni mogoče razveljaviti.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Prijava v katerikoli program Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Uporabite svoj LibreNostr račun za prijavo v katero koli aplikacijo \n Nostr, ki podpira daljinsko prijavo.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Uporabite svoj račun LibreNostr za prijavo v katero koli aplikacijo Nostr, ki podpira oddaljeni vnos. Prilepi spodnji niz povezave:</string>
-    <string name="logout_title">Izpiši</string>
+    <string name="logout_title">Odjava</string>
     <string name="logout_description">Če ne rešiš svojega privatnega ključa, bo nepovratno izgubljen. Bi se res rad odjavil?</string>
     <string name="logout_cancel_button">Prekliči</string>
-    <string name="logout_button">Izpiši</string>
+    <string name="logout_button">Odjava</string>
     <string name="primary_destination_feed_label">Domov</string>
     <string name="primary_destination_reads_label">Branje</string>
     <string name="primary_destination_wallet_label">Listnica</string>
@@ -894,7 +895,7 @@
     <string name="settings_developer_tools_seed_words_copy_failed">Kopiranje semenskih besed ni uspelo</string>
     <string name="settings_developer_tools_delete_wallet">Zbriši listnico</string>
     <string name="settings_developer_tools_delete_wallet_title">Zbriši listnico?</string>
-    <string name="settings_developer_tools_delete_wallet_text">Če še niste podprli semenske fraze, lahko za vedno izgubite dostop do sredstev na tej denarnici.</string>
+    <string name="settings_developer_tools_delete_wallet_text">Če si niste ustvarili varnostne kopije obnovitvene fraze, lahko trajno izgubite dostop do sredstev v tej denarnici.</string>
     <string name="settings_developer_tools_wallet_deleted">Denarnica izbrisana</string>
     <string name="settings_developer_tools_wallet_delete_failed">Ni uspelo zbrisati listnice</string>
     <string name="settings_developer_tools_data_inspector_title">Preverjanje uporabniških podatkov</string>
@@ -1416,7 +1417,7 @@
     <string name="signer_notification_summary_title">Oddaljeni podpisnik LibreNostr</string>
     <string name="signer_notification_end_session">Končaj sejo</string>
     <string name="signer_notification_unknown_app">Neznana aplikacija</string>
-    <string name="signer_notification_logged_in_as">Zamašen v %s</string>
+    <string name="signer_notification_logged_in_as">Prijavljen kot %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Imate %d novo prošnjo za podpis.</item>
         <item quantity="other">Imate %d novih zahtev.</item>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Prikaže možnost prevajanja pri opombah z uporabo prevajalnika, ki deluje v celoti na napravi. Nič ne zapusti vaše naprave — ko prvič prevajate v ali iz nekega jezika, se prenese majhen jezikovni paket (nekaj MB) za uporabo brez povezave.</string>
     <string name="note_translate_button">Prevedi</string>
     <string name="note_translate_loading">Prevajanje..</string>
-    <string name="note_translate_error">Nisem mogel prevesti sporočila</string>
-    <string name="note_translate_not_configured">Najprej nastavite prevajalski strežnik v Nastavitve</string>
-    <string name="note_translated_footer">Prevedeno</string>
+    <string name="note_translate_error">Nisem mogel prevesti sporočila</string>    <string name="note_translated_footer">Prevedeno</string>
     <string name="note_see_original">Glej originalno</string>
     <string name="note_translate_not_available">Prevod za ta jezik ni na voljo</string>
     <string name="note_translate_downloading">Prenašanje…</string>

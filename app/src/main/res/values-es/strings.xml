@@ -126,6 +126,7 @@
         <item quantity="other">Enviar su nota en %d segundos</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">No envíes</string>
+    <string name="editor_publish_countdown_confirm">Leído, enviar ahora</string>
     <string name="editor_publish_countdown_attachments_notice">Los adjuntos fueron subidos cuando los escogiste, por lo que el apagado no los elimina del servidor multimedia.</string>
     <string name="settings_content_display_undo_post_timer">Undo envía temporizador</string>
     <string name="settings_content_display_undo_post_timer_hint">Sostenga una nota de nuevo durante unos segundos después de golpear post, así que todavía puede apagarlo. Publicar a Nostr no puede ser deshecho después.</string>
@@ -138,10 +139,10 @@
     <string name="scan_code_remote_login_camera_title">Inicie sesión en cualquier aplicación Nostr</string>
     <string name="scan_code_remote_login_camera_subtitle">Utilice su cuenta de LibreNostr para iniciar sesión en cualquier aplicación \n Nostr que admite el registro remoto.</string>
     <string name="scan_code_remote_login_manual_entry_subtitle">Utilice su cuenta LibreNostr para iniciar sesión en cualquier aplicación Nostr que soporte el registro remoto. Pruebe la cadena de conexión a continuación:</string>
-    <string name="logout_title">Suscríbase</string>
+    <string name="logout_title">Cerrar sesión</string>
     <string name="logout_description">Si no salvaste tu llave privada, se perderá irremediablemente. ¿De verdad quieres firmar?</string>
     <string name="logout_cancel_button">Cancelar</string>
-    <string name="logout_button">Suscríbase</string>
+    <string name="logout_button">Cerrar sesión</string>
     <string name="primary_destination_feed_label">Inicio</string>
     <string name="primary_destination_reads_label">Lecturas</string>
     <string name="primary_destination_wallet_label">Wallet</string>
@@ -276,7 +277,7 @@
     <string name="feeds_or">o</string>
     <string name="feed_context_unmute_thread">Unmute Thread</string>
     <string name="feed_context_share_note">Nota de participación</string>
-    <string name="feed_context_share_poll">Share Poll</string>
+    <string name="feed_context_share_poll">Compartir encuesta</string>
     <string name="feed_context_share_note_as_image">Compartir como imagen</string>
     <string name="feed_context_copy_note_link">Enlace de nota de copia</string>
     <string name="feed_context_copy_poll_link">Copia de la encuesta Enlace</string>
@@ -621,7 +622,7 @@
     <string name="settings_account_private_key_title">Tu llave privada</string>
     <string name="settings_account_show_key">Mostrar clave</string>
     <string name="settings_account_hide_key">Ocultar la llave</string>
-    <string name="settings_account_key_copied">Copiado clave</string>
+    <string name="settings_account_key_copied">Clave copiada</string>
     <string name="settings_wallet_title">Wallet</string>
     <string name="settings_wallet_connected_title">Wallet Connected</string>
     <string name="settings_wallet_use_external_wallet">Utilice la cartera externa</string>
@@ -1326,7 +1327,7 @@
     <string name="live_stream_send_comment">Envía un comentario…</string>
     <string name="live_stream_send_button_title">Enviar</string>
     <string name="live_stream_menu_quote_stream">Quote Stream</string>
-    <string name="live_stream_menu_share_stream">Share Stream</string>
+    <string name="live_stream_menu_share_stream">Compartir transmisión</string>
     <string name="live_stream_menu_copy_stream_link">Enlace de flujo de copia</string>
     <string name="live_stream_menu_copy_stream_id">Copia ID de flujo</string>
     <string name="live_stream_menu_copy_raw_data">Copiar datos brutos</string>
@@ -1416,7 +1417,7 @@
     <string name="signer_notification_summary_title">LibreNostr Remote Signer</string>
     <string name="signer_notification_end_session">Período de sesiones final</string>
     <string name="signer_notification_unknown_app">Aplicación desconocida</string>
-    <string name="signer_notification_logged_in_as">Logged en como %s</string>
+    <string name="signer_notification_logged_in_as">Conectado como %s</string>
     <plurals name="signer_notification_new_signer_request">
         <item quantity="one">Usted tiene %d nueva solicitud de firma.</item>
         <item quantity="other">Tiene %d nuevas solicitudes de firma.</item>
@@ -1487,9 +1488,7 @@
     <string name="settings_content_display_translate_notes_hint">Muestra una acción de traducción en las notas, usando un motor de traducción completamente en el dispositivo. Nada sale de tu dispositivo — la primera vez que traduzcas hacia o desde un idioma, se descarga un pequeño paquete de idioma (unos pocos MB) para uso sin conexión.</string>
     <string name="note_translate_button">Traducir</string>
     <string name="note_translate_loading">Traduciendo..</string>
-    <string name="note_translate_error">No pude traducir esta nota</string>
-    <string name="note_translate_not_configured">Establecer un servidor de traducción en Ajustes primero</string>
-    <string name="note_translated_footer">Traducido</string>
+    <string name="note_translate_error">No pude traducir esta nota</string>    <string name="note_translated_footer">Traducido</string>
     <string name="note_see_original">Ver original</string>
     <string name="note_translate_not_available">Traducción no disponible para este idioma</string>
     <string name="note_translate_downloading">Descargando…</string>

@@ -461,13 +461,6 @@ private fun PrimalAppNavigation(
                     onSettingsClick = {
                         if (!isSettings) navController.navigateToSettings()
                     },
-                    onProfileClick = {
-                        mainState.activeAccountId.takeIf { it.isNotEmpty() }?.let { profileId ->
-                            if (!isProfile) navController.navigateToProfile(profileId = profileId)
-                        }
-                    },
-                    profileAvatarCdnImage = mainState.activeAccountAvatarCdnImage,
-                    profileSelected = isProfile,
                     settingsSelected = isSettings,
                     badges = mainState.badges,
                 )

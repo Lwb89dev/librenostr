@@ -136,6 +136,7 @@
         <item quantity="other">Sending your note in %d seconds</item>
     </plurals>
     <string name="editor_publish_countdown_cancel">Don\'t send</string>
+    <string name="editor_publish_countdown_confirm">I\'ve read it, send now</string>
     <string name="editor_publish_countdown_attachments_notice">Attachments were uploaded when you picked them, so calling this off does not remove them from the media server.</string>
     <string name="settings_content_display_undo_post_timer">Undo send timer</string>
     <string name="settings_content_display_undo_post_timer_hint">Hold a note back for a few seconds after tapping post, so you can still call it off. Publishing to Nostr cannot be undone afterwards.</string>
@@ -176,6 +177,7 @@
     <string name="algorithm_title">Your algorithms</string>
     <string name="algorithm_subtitle">You get to decide what you want to see</string>
     <string name="home_search_placeholder">Search everything</string>
+    <string name="home_wordmark_subtitle">Own your social</string>
     <string name="follow_set_picker_title">Your lists</string>
     <string name="follow_set_picker_empty">No lists yet. Create one in Listr, then add it here.</string>
     <string name="follow_set_picker_members">%1$d people</string>

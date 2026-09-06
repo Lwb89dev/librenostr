@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -39,6 +40,7 @@ import net.primal.android.theme.AppTheme
  * few seconds are the only recall the protocol offers, so the screen is deliberately in the way
  * rather than a small snackbar that is easy to miss.
  */
+@Suppress("LongMethod")
 @Composable
 fun PublishCountdownOverlay(
     secondsRemaining: Int,
@@ -46,6 +48,7 @@ fun PublishCountdownOverlay(
     hasUploadedAttachments: Boolean,
     notePreview: NoteContentUi,
     onCancel: () -> Unit,
+    onConfirmNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val progress by animateFloatAsState(
@@ -123,11 +126,26 @@ fun PublishCountdownOverlay(
                 )
             }
 
-            PrimalLoadingButton(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.editor_publish_countdown_cancel),
-                onClick = onCancel,
-            )
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                PrimalLoadingButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(id = R.string.editor_publish_countdown_cancel),
+                    onClick = onCancel,
+                )
+                // The wait is the point of this screen, so this stays visually secondary — an
+                // escape hatch for someone who has genuinely already reviewed the note above,
+                // not the path the button hierarchy nudges toward.
+                PrimalLoadingButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(id = R.string.editor_publish_countdown_confirm),
+                    containerColor = AppTheme.extraColorScheme.surfaceVariantAlt1,
+                    contentColor = AppTheme.colorScheme.onSurface,
+                    onClick = onConfirmNow,
+                )
+            }
         }
     }
 }
