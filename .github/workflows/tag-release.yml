@@ -61,6 +61,7 @@ jobs:
         run: |
           openssl base64 -d -out config.properties <<< "${{ secrets.CONFIG_PROPERTIES }}"
           openssl base64 -d -out app/librenostr-release.jks <<< "${{ secrets.CERT_ALTERNATIVE }}"
+          echo "::notice::keystore bytes=$(wc -c < app/librenostr-release.jks) sha256=$(sha256sum app/librenostr-release.jks | cut -d' ' -f1)"
 
       - name: Build signed APKs
         if: steps.signing.outputs.available == 'true'
