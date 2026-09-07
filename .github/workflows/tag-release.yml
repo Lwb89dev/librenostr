@@ -62,6 +62,7 @@ jobs:
           CONFIG_PROPERTIES_B64: ${{ secrets.CONFIG_PROPERTIES }}
           CERT_ALTERNATIVE_B64: ${{ secrets.CERT_ALTERNATIVE }}
         run: |
+          echo "::notice::raw env var lengths: config=${#CONFIG_PROPERTIES_B64} cert=${#CERT_ALTERNATIVE_B64}"
           openssl base64 -d -out config.properties <<< "$CONFIG_PROPERTIES_B64"
           openssl base64 -d -out app/librenostr-release.jks <<< "$CERT_ALTERNATIVE_B64"
           keystore_bytes=$(wc -c < app/librenostr-release.jks)
