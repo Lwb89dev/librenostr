@@ -84,8 +84,9 @@ jobs:
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           mkdir -p release
+          ls -la app/build/outputs/apk/altRelease/
           for abi in arm64-v8a; do
-            cp "app/build/outputs/apk/altRelease/app-${abi}-altRelease.apk" \
+            cp "app/build/outputs/apk/altRelease/librenostr-${version}-${abi}.apk" \
                "release/librenostr-${version}-${abi}.apk"
           done
           (cd release && sha256sum librenostr-*.apk > SHA256SUMS.txt)
