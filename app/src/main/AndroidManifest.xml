@@ -25,6 +25,7 @@
 
     <queries>
         <package android:name="com.greenart7c3.nostrsigner" />
+        <package android:name="org.torproject.android" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
 

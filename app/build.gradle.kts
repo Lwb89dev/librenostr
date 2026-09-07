@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 20
-val appVersionName = "0.4.0"
+val appVersionCode = 21
+val appVersionName = "0.5.0"
 
 tasks.register("generateReleaseProperties") {
     doLast {
@@ -279,6 +279,7 @@ dependencies {
     implementation(project(":core:utils"))
     implementation(project(":core:nips"))
     implementation(project(":core:app-config"))
+    implementation(project(":core:networking-http"))
     implementation(project(":core:networking-primal"))
     implementation(project(":core:networking-upload"))
     implementation(project(":core:networking-lightning"))
@@ -388,6 +389,7 @@ dependencies {
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.exoplayer.ui)
     implementation(libs.media3.exoplayer.ui.compose)
+    implementation(libs.media3.datasource.okhttp)
     implementation(libs.zoomimage.compose.coil3)
 
     implementation(libs.lottie.compose)

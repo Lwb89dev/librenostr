@@ -298,6 +298,7 @@ private fun PrimalSettingsSection.icon(): ImageVector {
         PrimalSettingsSection.Accounts -> PrimalIcons.AddAccount
         PrimalSettingsSection.Wallet -> PrimalIcons.NavWallet
         PrimalSettingsSection.Network -> PrimalIcons.ConnectRelay
+        PrimalSettingsSection.Tor -> PrimalIcons.Key
         PrimalSettingsSection.Appearance -> PrimalIcons.DarkMode
         PrimalSettingsSection.ConnectedApps -> PrimalIcons.NostrConnectSession
         PrimalSettingsSection.ContentDisplay -> PrimalIcons.FontSize
@@ -315,6 +316,7 @@ private fun PrimalSettingsSection.title(): String {
         PrimalSettingsSection.Account -> stringResource(id = R.string.settings_account_title)
         PrimalSettingsSection.Accounts -> stringResource(id = R.string.settings_accounts_title)
         PrimalSettingsSection.Network -> stringResource(id = R.string.settings_network_title)
+        PrimalSettingsSection.Tor -> stringResource(id = R.string.settings_tor_title)
         PrimalSettingsSection.Wallet -> stringResource(id = R.string.settings_wallet_title)
         PrimalSettingsSection.Appearance -> stringResource(id = R.string.settings_appearance_title)
         PrimalSettingsSection.ContentDisplay -> stringResource(id = R.string.settings_content_display_title)

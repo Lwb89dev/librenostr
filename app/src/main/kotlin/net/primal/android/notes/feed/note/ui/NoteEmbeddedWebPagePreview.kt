@@ -34,6 +34,7 @@ import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.primal.android.core.ext.openUriSafely
+import net.primal.android.core.webview.WebViewProxyConfigurer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
@@ -56,7 +57,10 @@ fun NoteEmbeddedWebPagePreview(
 
     val activity = LocalActivity.current
     val context = LocalContext.current
-    val webView = remember { WebView(context) }
+    val webView = remember {
+        WebViewProxyConfigurer.ensureConfigured(context)
+        WebView(context)
+    }
 
     val localView = LocalView.current
     val windowInsetsController = if (activity != null) {

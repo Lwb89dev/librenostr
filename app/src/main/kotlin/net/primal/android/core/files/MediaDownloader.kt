@@ -18,6 +18,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import net.primal.android.core.files.error.UnableToSaveContent
 import net.primal.android.core.files.error.UnsuccessfulFileDownload
+import net.primal.core.networking.tor.TorProxySettingsStore
+import net.primal.core.networking.tor.applyTorProxyIfEnabled
 import net.primal.core.utils.extractExtensionFromUrl
 import net.primal.core.utils.getOrElse
 import net.primal.core.utils.runCatching
@@ -34,6 +36,13 @@ class MediaDownloader @Inject constructor(
 ) {
     companion object {
         private const val PICTURES_PRIMAL_FOLDER = "Primal"
+    }
+
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .followRedirects(true)
+            .applyTorProxyIfEnabled(TorProxySettingsStore.readBlocking(context))
+            .build()
     }
 
     @Throws(UnsuccessfulFileDownload::class)
@@ -68,8 +77,7 @@ class MediaDownloader @Inject constructor(
     @Throws(IOException::class, IllegalArgumentException::class)
     private fun requestMediaDownload(url: String): Response {
         val request = Request.Builder().url(url).build()
-        val client = OkHttpClient.Builder().followRedirects(true).build()
-        return client.newCall(request).execute()
+        return okHttpClient.newCall(request).execute()
     }
 
     @Throws(IOException::class)

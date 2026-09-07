@@ -54,6 +54,11 @@
     <string name="onboarding_gestures_algorithms">Swipe right from the middle of Home to open the algorithm picker and choose how your feed is built.</string>
     <string name="onboarding_gestures_reads">Swipe left from the middle of Home to open the long-form reader.</string>
     <string name="onboarding_gestures_continue">Got it</string>
+    <string name="onboarding_orbot_title">Stay private with Tor</string>
+    <string name="onboarding_orbot_description">LibreNostr can route your relay, media, and zap traffic through Tor via the Orbot app, hiding your IP address from relays and servers. It\'s off by default — turn it on anytime in Settings > Tor.</string>
+    <string name="onboarding_orbot_restart_notice">If you do turn it on, fully close LibreNostr afterward — swiping it away isn\'t enough if a wallet or signer notification is showing; force-stop it from Android Settings, or restart your device. Connections opened before that stay outside Tor.</string>
+    <string name="onboarding_orbot_install_button">Install Orbot</string>
+    <string name="onboarding_orbot_continue">Got it</string>
     <string name="welcome_sign_in_button_title">Sign In</string>
     <string name="welcome_create_account_button_title">Create Account</string>
     <string name="welcome_tos_prefix">By proceeding you accept our</string>
@@ -837,6 +842,13 @@
     <string name="settings_content_display_auto_update_feed_hint">Refresh notes when the app opens and when you return from a note.</string>
 
     <string name="settings_network_title">Manage relays</string>
+    <string name="settings_tor_title">Tor</string>
+    <string name="settings_tor_enable_title">Route traffic through Tor</string>
+    <string name="settings_tor_enable_description">Connect to relays, media, and uploads through Orbot\'s SOCKS proxy instead of directly.</string>
+    <string name="settings_tor_port_title">Orbot SOCKS port</string>
+    <string name="settings_tor_port_error">Enter a valid port number (1–65535).</string>
+    <string name="settings_tor_orbot_not_installed">Orbot doesn\'t appear to be installed. Install and start Orbot, or connections will fail while Tor is enabled.</string>
+    <string name="settings_tor_restart_required">Fully close LibreNostr for this to take effect — force-stop it from Android Settings if a wallet or signer notification is showing, or restart your device.</string>
     <string name="settings_network_relays_section">Relays</string>
     <string name="settings_network_relays_recommendation">Tip: for most users, 5–6 relays is a good balance between reliability and speed. More relays can increase connection and battery usage.</string>
     <string name="settings_network_add_a_relay_section">Add a relay</string>

@@ -9,6 +9,7 @@ import javax.inject.Inject
 import net.primal.android.core.crash.PrimalCrashReporter
 import net.primal.android.core.images.PrimalImageLoaderFactory
 import net.primal.core.config.store.AppConfigInitializer
+import net.primal.core.networking.tor.TorProxyContextHolder
 import net.primal.data.account.repository.repository.factory.AccountRepositoryFactory
 import net.primal.data.repository.factory.PrimalRepositoryFactory
 import net.primal.wallet.data.repository.factory.WalletRepositoryFactory
@@ -26,6 +27,11 @@ class PrimalApp : Application() {
     lateinit var crashReporter: PrimalCrashReporter
 
     override fun onCreate() {
+        // Must run before super.onCreate(): the Ktor OkHttp engine factory has no Hilt scope to
+        // receive a Context from, and Hilt's field injection for this class (crashReporter,
+        // imageLoaderFactory below) happens during super.onCreate() — this needs to be ready
+        // before anything in that graph could construct an HttpClient.
+        TorProxyContextHolder.seed(this)
         super.onCreate()
         AppConfigInitializer.init(context = this@PrimalApp)
         PrimalRepositoryFactory.init(context = this@PrimalApp)

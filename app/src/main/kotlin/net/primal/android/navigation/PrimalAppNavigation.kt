@@ -53,6 +53,7 @@ import net.primal.android.auth.onboarding.account.OnboardingViewModel
 import net.primal.android.auth.onboarding.account.ui.OnboardingScreen
 import net.primal.android.auth.welcome.WelcomeContract
 import net.primal.android.auth.welcome.GesturesOnboardingScreen
+import net.primal.android.auth.welcome.OrbotOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingViewModel
 import net.primal.android.auth.welcome.WelcomeScreen
@@ -165,6 +166,8 @@ fun NavController.navigateToLogin() = navigate(route = "login")
 private fun NavController.navigateToRelayOnboarding() = navigate(route = "relayOnboarding")
 
 private fun NavController.navigateToGesturesOnboarding() = navigate(route = "gesturesOnboarding")
+
+private fun NavController.navigateToOrbotOnboarding() = navigate(route = "orbotOnboarding")
 
 fun NavController.navigateToOnboarding() = navigate(route = "onboarding")
 
@@ -493,6 +496,8 @@ private fun PrimalAppNavigation(
         relayOnboarding(route = "relayOnboarding", navController = navController)
 
         gesturesOnboarding(route = "gesturesOnboarding", navController = navController)
+
+        orbotOnboarding(route = "orbotOnboarding", navController = navController)
 
         onboarding(
             route = "onboarding",
@@ -1036,7 +1041,20 @@ private fun NavGraphBuilder.gesturesOnboarding(route: String, navController: Nav
         LockToOrientationPortrait()
         PrimalTheme(PrimalTheme.Midnight) {
             ApplyEdgeToEdge(isDarkTheme = false)
-            GesturesOnboardingScreen(onComplete = { navController.navigateToHome() })
+            GesturesOnboardingScreen(onComplete = { navController.navigateToOrbotOnboarding() })
+        }
+    }
+
+private fun NavGraphBuilder.orbotOnboarding(route: String, navController: NavController) =
+    composable(
+        route = route,
+        enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) },
+    ) {
+        LockToOrientationPortrait()
+        PrimalTheme(PrimalTheme.Midnight) {
+            ApplyEdgeToEdge(isDarkTheme = false)
+            OrbotOnboardingScreen(onComplete = { navController.navigateToHome() })
         }
     }
 
@@ -1069,7 +1087,7 @@ private fun NavGraphBuilder.onboarding(route: String, navController: NavControll
                 viewModel = viewModel,
                 callbacks = OnboardingContract.ScreenCallbacks(
                     onClose = { navController.popBackStack() },
-                    onOnboarded = { navController.navigateToHome() },
+                    onOnboarded = { navController.navigateToOrbotOnboarding() },
                 ),
             )
         }

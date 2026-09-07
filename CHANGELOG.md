@@ -7,6 +7,33 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.0] - 2026-09-07
+
+### Added
+
+- **Tor support via Orbot**: a new "Tor" entry in Settings routes relay
+  connections, zap/lightning requests, media uploads, image loading, media
+  downloads, video/audio playback, and embedded link previews through
+  Orbot's SOCKS proxy instead of connecting directly. Off by default; the
+  SOCKS port is configurable (defaults to Orbot's own default, 9050). If
+  Orbot isn't detected as installed, the settings screen says so plainly.
+  There is no fallback to a direct connection if the proxy isn't reachable
+  — connections fail instead of silently leaking outside Tor. The setting
+  takes effect on the next full restart, not immediately, since every
+  network client in the app is a long-lived singleton built once at
+  startup; the app is explicit about this rather than pretending otherwise.
+  A new onboarding step (shown once, for both new and existing accounts)
+  explains the feature and links to Orbot on Zapstore.
+
+### Fixed
+
+- Tapping the zap button could crash the app outright. The zap sheet's
+  amount-preset grid was a `LazyVerticalGrid` sitting inside a `Column`
+  that scrolls to make room for the keyboard — a lazy grid inside a
+  scrollable container with no bounded height is disallowed and threw
+  immediately. Replaced with a plain, non-lazy grid; the preset count is
+  small and fixed, so there was never anything to virtualize.
+
 ## [0.4.0] - 2026-09-06
 
 ### Added

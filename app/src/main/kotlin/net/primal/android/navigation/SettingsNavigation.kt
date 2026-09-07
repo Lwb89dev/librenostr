@@ -74,6 +74,8 @@ import net.primal.android.settings.muted.MutedSettingsViewModel
 import net.primal.android.settings.language.LanguageSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsViewModel
+import net.primal.android.settings.tor.TorSettingsScreen
+import net.primal.android.settings.tor.TorSettingsViewModel
 import net.primal.android.settings.notifications.NotificationsSettingsScreen
 import net.primal.android.settings.notifications.NotificationsSettingsViewModel
 import net.primal.android.settings.wallet.domain.parseAsPrimalWalletNwc
@@ -92,6 +94,7 @@ import net.primal.android.wallet.restore.RestoreWalletViewModel
 
 private fun NavController.navigateToAccountSettings() = navigate(route = "account_settings")
 private fun NavController.navigateToNetworkSettings() = navigate(route = "network")
+private fun NavController.navigateToTorSettings() = navigate(route = "tor_settings")
 fun NavController.navigateToWalletSettings() = navigate(route = "wallet_settings")
 private fun NavController.navigateToWalletScanNwcUrl() = navigate(route = "wallet_settings/scan_nwc_url")
 
@@ -154,6 +157,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
                     PrimalSettingsSection.Account -> navController.navigateToAccountSettings()
                     PrimalSettingsSection.Accounts -> navController.navigateToLogin()
                     PrimalSettingsSection.Network -> navController.navigateToNetworkSettings()
+                    PrimalSettingsSection.Tor -> navController.navigateToTorSettings()
                     PrimalSettingsSection.Wallet -> navController.navigateToWalletSettings()
                     PrimalSettingsSection.Appearance -> navController.navigateToAppearanceSettings()
                     PrimalSettingsSection.ContentDisplay -> navController.navigateToContentDisplaySettings()
@@ -194,6 +198,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
         scanNwcUrl(route = "wallet_settings/scan_nwc_url", navController = navController)
         createNewWalletConnection(route = "wallet_settings/create_new_nwc", navController = navController)
         network(route = "network", navController = navController)
+        tor(route = "tor_settings", navController = navController)
         appearance(route = "appearance_settings", navController = navController)
         contentDisplay(route = "content_display", navController = navController)
         mutedAccounts(route = "muted_accounts_settings", navController = navController)
@@ -340,6 +345,11 @@ private fun EmbeddedSettingsSection(
             onClose = {},
             embedded = true,
         )
+        PrimalSettingsSection.Tor -> TorSettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
         PrimalSettingsSection.Appearance -> AppearanceSettingsScreen(
             viewModel = appearanceSettingsViewModel(primalTheme = LocalPrimalTheme.current),
             onClose = {},
@@ -457,6 +467,22 @@ private fun NavGraphBuilder.network(route: String, navController: NavController)
         val viewModel = hiltViewModel<NetworkSettingsViewModel>(it)
         LockToOrientationPortrait()
         NetworkSettingsScreen(
+            viewModel = viewModel,
+            onClose = { navController.navigateUp() },
+        )
+    }
+
+private fun NavGraphBuilder.tor(route: String, navController: NavController) =
+    composable(
+        route = route,
+        enterTransition = { primalSlideInHorizontallyFromEnd },
+        exitTransition = { primalScaleOut },
+        popEnterTransition = { primalScaleIn },
+        popExitTransition = { primalSlideOutHorizontallyToEnd },
+    ) {
+        val viewModel = hiltViewModel<TorSettingsViewModel>(it)
+        LockToOrientationPortrait()
+        TorSettingsScreen(
             viewModel = viewModel,
             onClose = { navController.navigateUp() },
         )

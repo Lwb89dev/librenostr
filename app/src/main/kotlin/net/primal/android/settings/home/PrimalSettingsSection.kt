@@ -5,6 +5,7 @@ enum class PrimalSettingsSection {
     Accounts,
     Wallet,
     Network,
+    Tor,
     Appearance,
     ConnectedApps,
     ContentDisplay,

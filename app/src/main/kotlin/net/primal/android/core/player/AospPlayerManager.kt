@@ -9,6 +9,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -17,6 +18,7 @@ import javax.inject.Inject
 import net.primal.android.core.di.StreamVideoCache
 import net.primal.android.core.service.PlayerManager
 import net.primal.android.core.service.PrimalCacheKeyFactory
+import net.primal.android.core.video.MediaOkHttpClientProvider
 import net.primal.android.stream.player.LIVE_STREAM_MANIFEST_MIN_RETRY_COUNT
 import net.primal.android.stream.player.SEEK_BACK_MS
 import net.primal.android.stream.player.SEEK_FORWARD_MS
@@ -37,7 +39,10 @@ class AospPlayerManager @Inject constructor(
         val loadErrorHandlingPolicy =
             DefaultLoadErrorHandlingPolicy(LIVE_STREAM_MANIFEST_MIN_RETRY_COUNT)
 
-        val upstreamDataSourceFactory = DefaultDataSource.Factory(context)
+        val upstreamDataSourceFactory = DefaultDataSource.Factory(
+            context,
+            OkHttpDataSource.Factory(MediaOkHttpClientProvider.get(context)),
+        )
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(simpleCache)
             .setCacheKeyFactory(PrimalCacheKeyFactory)

@@ -7,7 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -248,17 +245,31 @@ private fun ZapOptions(
     selectedZapIndex: Int,
     onSelectedZapAmountChange: (Long, String, Int) -> Unit,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(ZAP_OPTIONS_COLUMNS_COUNT),
-        contentPadding = PaddingValues(8.dp),
+    // A plain chunked Column/Row instead of LazyVerticalGrid: this sheet's content Column
+    // already scrolls (see ZapBottomSheetContent), and a lazy grid nested inside a scrollable
+    // container with no bounded height crashes with "measured with an infinity maximum height
+    // constraints". zapConfig is always PRESETS_COUNT items, so there's nothing to virtualize.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalArrangement = Arrangement.Center,
     ) {
-        itemsIndexed(zapConfig) { index, config ->
-            ZapOption(
-                defaultAmount = config.amount,
-                defaultEmoji = config.emoji,
-                selected = index == selectedZapIndex,
-                onClick = { onSelectedZapAmountChange(config.amount, config.message, index) },
-            )
+        zapConfig.chunked(ZAP_OPTIONS_COLUMNS_COUNT).forEachIndexed { rowIndex, rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                rowItems.forEachIndexed { columnIndex, config ->
+                    val index = rowIndex * ZAP_OPTIONS_COLUMNS_COUNT + columnIndex
+                    ZapOption(
+                        defaultAmount = config.amount,
+                        defaultEmoji = config.emoji,
+                        selected = index == selectedZapIndex,
+                        onClick = { onSelectedZapAmountChange(config.amount, config.message, index) },
+                    )
+                }
+            }
         }
     }
 }

@@ -45,6 +45,10 @@ kotlin {
 
                 // Networking
                 api(libs.ktor.client.okhttp)
+
+                // Data Store (Tor proxy settings persistence)
+                implementation(libs.datastore)
+                implementation(libs.okio)
             }
         }
 
@@ -52,6 +56,18 @@ kotlin {
         desktopMain.dependencies {
             // Ktor
             api(libs.ktor.client.cio)
+        }
+
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(project(":core:testing"))
+                implementation(libs.junit)
+                implementation(libs.androidx.test.core)
+                implementation(libs.androidx.test.runner)
+                implementation(libs.androidx.test.ext.junit)
+                implementation(libs.androidx.test.ext.junit.ktx)
+                implementation(libs.kotest.assertions.core)
+            }
         }
 
         commonTest {
