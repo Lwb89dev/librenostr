@@ -7,7 +7,7 @@ import net.primal.data.local.dao.messages.DirectMessageData
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.findFirstProfileId
 import net.primal.domain.nostr.utils.parseHashtags
-import net.primal.domain.nostr.utils.parseNostrUris
+import net.primal.domain.nostr.utils.parseNostrUriCandidates
 import net.primal.shared.data.local.encryption.asEncryptable
 
 fun List<NostrEvent>.mapAsMessageDataPO(
@@ -43,7 +43,7 @@ fun NostrEvent.mapAsMessageDataPO(
         participantId = participantId,
         createdAt = this.createdAt,
         content = decryptedMessage.asEncryptable(),
-        uris = (decryptedMessage.detectUrls() + decryptedMessage.parseNostrUris()).asEncryptable(),
+        uris = (decryptedMessage.detectUrls() + decryptedMessage.parseNostrUriCandidates()).asEncryptable(),
         hashtags = decryptedMessage.parseHashtags().asEncryptable(),
     )
 }

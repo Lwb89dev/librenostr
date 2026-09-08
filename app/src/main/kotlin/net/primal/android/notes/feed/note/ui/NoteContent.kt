@@ -1,7 +1,6 @@
 package net.primal.android.notes.feed.note.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,18 +11,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -31,18 +25,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import java.time.Instant
-import java.util.Locale
 import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
-import net.primal.android.core.activity.LocalNoteTranslationCoordinator
 import net.primal.android.core.activity.LocalPrimalTheme
-import net.primal.android.notes.translate.LanguagePack
-import net.primal.android.notes.translate.NoteTranslationState
 import net.primal.android.core.compose.PrimalClickableText
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.Document
@@ -109,12 +98,6 @@ fun NoteContent(
             )
     }
 
-    // Owned by an app-wide coordinator, not local state — see NoteTranslationCoordinator for why
-    // (in short: a per-note rememberCoroutineScope() doesn't survive the note scrolling out of
-    // the feed, which used to silently abandon in-flight translations/downloads).
-    val translationCoordinator = LocalNoteTranslationCoordinator.current
-    val translationState by translationCoordinator.stateFor(data.noteId).collectAsState()
-
     Column(modifier = modifier) {
         if (contentText.isNotEmpty()) {
             val clickHandler = remember(contentText, noteCallbacks, onUrlClick, onClick) {
@@ -134,47 +117,19 @@ fun NoteContent(
                 }
             }
 
-            val currentTranslationState = translationState
-            if (currentTranslationState is NoteTranslationState.Translated) {
-                Text(
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    text = currentTranslationState.text,
-                    style = AppTheme.typography.bodyMedium.copy(
-                        color = contentColor,
-                        fontSize = displaySettings.contentAppearance.noteBodyFontSize,
-                        lineHeight = displaySettings.contentAppearance.noteBodyLineHeight,
-                    ),
-                )
-            } else {
-                PrimalClickableText(
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    style = AppTheme.typography.bodyMedium.copy(
-                        color = contentColor,
-                        fontSize = displaySettings.contentAppearance.noteBodyFontSize,
-                        lineHeight = displaySettings.contentAppearance.noteBodyLineHeight,
-                    ),
-                    text = contentText,
-                    maxLines = maxLines,
-                    overflow = overflow,
-                    textSelectable = textSelectable,
-                    onClick = clickHandler,
-                )
-            }
-
-            // Shown whenever the feature is on. Which of the follow-up states (translating,
-            // needs a download, not available for this language) a tap lands on is only known
-            // once language detection runs, so unlike the note text itself there's no way to
-            // decide up front whether this action will actually be useful for this note.
-            if (displaySettings.translateNotesEnabled) {
-                NoteTranslateAction(
-                    state = currentTranslationState,
-                    onTranslateClick = { translationCoordinator.translate(data.noteId, data.content) },
-                    onDownloadConfirmed = { pack ->
-                        translationCoordinator.confirmDownload(data.noteId, data.content, pack)
-                    },
-                    onSeeOriginalClick = { translationCoordinator.reset(data.noteId) },
-                )
-            }
+            PrimalClickableText(
+                modifier = Modifier.padding(bottom = 4.dp),
+                style = AppTheme.typography.bodyMedium.copy(
+                    color = contentColor,
+                    fontSize = displaySettings.contentAppearance.noteBodyFontSize,
+                    lineHeight = displaySettings.contentAppearance.noteBodyLineHeight,
+                ),
+                text = contentText,
+                maxLines = maxLines,
+                overflow = overflow,
+                textSelectable = textSelectable,
+                onClick = clickHandler,
+            )
         }
 
         val referencedStreams = data.partitions.referencedStreams
@@ -300,12 +255,14 @@ fun NoteContent(
 
         val genericEvents = data.partitions.unsupportedEvents
         if (genericEvents.isNotEmpty() && (nestingLevel < NOT_FOUND_NOTICE_CUT_OFF_LEVEL)) {
+            val retryViewModel: NoteUnknownEventRetryViewModel = hiltViewModel()
             genericEvents.forEachIndexed { index, nostrUriUi ->
                 NoteUnknownEvent(
                     modifier = Modifier.fillMaxWidth(),
                     icon = nostrUriUi.uri.nostrUriToMissingEventIcon(),
                     altDescription = nostrUriUi.referencedEventAlt
                         ?: nostrUriUi.uri.nostrUriToMissingEventAltDescription(),
+                    onRetryClick = { retryViewModel.retry(nostrUriUi.uri) },
                 )
 
                 if (index < genericEvents.size - 1) {
@@ -325,141 +282,6 @@ fun NoteContent(
                     { callback(data.noteId) }
                 },
             )
-        }
-    }
-}
-
-/**
- * A small, muted, system-styled affordance distinct from the reply/zap/like/repost row below it,
- * so it reads as the app offering a translation rather than something the note's author wrote.
- */
-@Composable
-private fun NoteTranslateAction(
-    state: NoteTranslationState,
-    onTranslateClick: () -> Unit,
-    onDownloadConfirmed: (LanguagePack) -> Unit,
-    onSeeOriginalClick: () -> Unit,
-) {
-    val mutedColor = AppTheme.extraColorScheme.onSurfaceVariantAlt1
-
-    Row(
-        modifier = Modifier.padding(bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        when (state) {
-            is NoteTranslationState.Original -> {
-                Icon(
-                    modifier = Modifier.size(14.dp),
-                    imageVector = Icons.Filled.Translate,
-                    contentDescription = null,
-                    tint = mutedColor,
-                )
-                Text(
-                    modifier = Modifier.clickable(onClick = onTranslateClick),
-                    text = stringResource(id = R.string.note_translate_button),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                )
-            }
-
-            is NoteTranslationState.Loading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
-                    color = mutedColor,
-                    strokeWidth = 2.dp,
-                )
-                Text(
-                    text = stringResource(id = R.string.note_translate_loading),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                )
-            }
-
-            is NoteTranslationState.Translated -> {
-                Icon(
-                    modifier = Modifier.size(14.dp),
-                    imageVector = Icons.Filled.Translate,
-                    contentDescription = null,
-                    tint = mutedColor,
-                )
-                Text(
-                    text = stringResource(id = R.string.note_translated_footer),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                )
-                Text(
-                    modifier = Modifier.clickable(onClick = onSeeOriginalClick),
-                    text = stringResource(id = R.string.note_see_original),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                    textDecoration = TextDecoration.Underline,
-                )
-            }
-
-            is NoteTranslationState.Error -> {
-                Text(
-                    modifier = Modifier.clickable(onClick = onTranslateClick),
-                    text = stringResource(id = R.string.note_translate_error),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                )
-            }
-
-            is NoteTranslationState.NotAvailable -> {
-                // Not clickable: tapping "Translate" again would detect the same unsupported
-                // language and land right back here. A tappable dead end reads as a broken
-                // button, so this is a plain status line instead.
-                Text(
-                    text = stringResource(id = R.string.note_translate_not_available),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                )
-            }
-
-            is NoteTranslationState.Downloading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
-                    progress = { state.progress },
-                    color = mutedColor,
-                    strokeWidth = 2.dp,
-                )
-                Text(
-                    text = stringResource(id = R.string.note_translate_downloading),
-                    style = AppTheme.typography.bodySmall,
-                    color = mutedColor,
-                )
-            }
-
-            is NoteTranslationState.NeedsDownload -> {
-                val pack = state.pack
-                val sizeMb = pack.sizeBytes / 1_000_000
-                AlertDialog(
-                    containerColor = AppTheme.colorScheme.surfaceVariant,
-                    onDismissRequest = onSeeOriginalClick,
-                    title = { Text(text = stringResource(id = R.string.note_translate_download_title)) },
-                    text = {
-                        Text(
-                            text = stringResource(
-                                id = R.string.note_translate_download_message,
-                                Locale.forLanguageTag(pack.source).displayLanguage,
-                                Locale.forLanguageTag(pack.target).displayLanguage,
-                                sizeMb,
-                            ),
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { onDownloadConfirmed(pack) }) {
-                            Text(text = stringResource(id = R.string.note_translate_download_confirm))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = onSeeOriginalClick) {
-                            Text(text = stringResource(id = R.string.note_translate_download_cancel))
-                        }
-                    },
-                )
-            }
         }
     }
 }

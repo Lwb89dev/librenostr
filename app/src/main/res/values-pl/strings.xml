@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Wyborcy się tu zjawią.</string>
     <string name="poll_votes_sats_suffix">sat</string>
     <string name="poll_votes_see_votes">Patrz: głosy</string>
-    <string name="settings_content_display_translate_notes">Przetłumacz notatki</string>
-    <string name="settings_content_display_translate_notes_hint">Pokazuje opcję tłumaczenia przy notatkach, korzystając z silnika tłumaczeniowego działającego całkowicie na urządzeniu. Nic nie opuszcza Twojego urządzenia — przy pierwszym tłumaczeniu na dany język lub z niego pobierany jest niewielki pakiet językowy (kilka MB) do użytku offline.</string>
-    <string name="note_translate_button">Tłumacz</string>
-    <string name="note_translate_loading">Tłumaczenie..</string>
-    <string name="note_translate_error">Nie mogłem przetłumaczyć tej notatki</string>    <string name="note_translated_footer">Przetłumaczone</string>
     <string name="note_see_original">Zobacz oryginał</string>
-    <string name="note_translate_not_available">Tłumaczenie niedostępne dla tego języka</string>
-    <string name="note_translate_downloading">Pobieranie…</string>
-    <string name="note_translate_download_title">Pobrać pakiet tłumaczenia?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nTłumaczenie odbywa się całkowicie na tym urządzeniu, nawet offline.</string>
-    <string name="note_translate_download_confirm">Pobierz</string>
-    <string name="note_translate_download_cancel">Anuluj</string>
 </resources>

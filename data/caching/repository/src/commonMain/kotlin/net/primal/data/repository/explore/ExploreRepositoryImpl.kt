@@ -8,6 +8,8 @@ import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.github.aakira.napier.Napier
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -222,22 +224,33 @@ class ExploreRepositoryImpl(
             search = normalizedQuery,
             limit = metadataLimit,
         )
-        val nip50Events = runCatching {
-            relayEventQuerier.query(relayQuery)
-        }.getOrDefault(emptyList())
-        val events = nip50Events.ifEmpty {
-            // Some older relays do not implement NIP-50. Keep the relay-only
-            // fallback, then apply the same local predicate below. A larger
-            // page is important here: matching a profile in the first 50
-            // arbitrary metadata events is effectively random.
+        // NIP-50 is rare enough on the relays this app talks to that the fallback below almost
+        // always ends up running too — sequencing it strictly after the NIP-50 attempt used to
+        // mean paying both queries' full relay timeouts back to back (as long as ~8s) before a
+        // single result showed up. Starting both at once caps the common (NIP-50-unsupported)
+        // case at the slower of the two instead of their sum; the fallback is cancelled — not
+        // awaited — the moment NIP-50 alone comes back with something, so a relay that does honor
+        // NIP-50 still returns as fast as it did before.
+        val (nip50Events, events) = coroutineScope {
+            val fallback = async {
+                // A larger page is important here: matching a profile in the first 50 arbitrary
+                // metadata events is effectively random.
                 runCatching {
-                relayEventQuerier.query(
-                    RelayFilter(
-                        kinds = listOf(NostrEventKind.Metadata.value),
-                        limit = FALLBACK_METADATA_LIMIT,
-                    ),
-                )
-            }.getOrDefault(emptyList()).orEmpty()
+                    relayEventQuerier.query(
+                        RelayFilter(
+                            kinds = listOf(NostrEventKind.Metadata.value),
+                            limit = FALLBACK_METADATA_LIMIT,
+                        ),
+                    )
+                }.getOrDefault(emptyList())
+            }
+            val nip50Result = runCatching { relayEventQuerier.query(relayQuery) }.getOrDefault(emptyList())
+            if (nip50Result.isNotEmpty()) {
+                fallback.cancel()
+                nip50Result to nip50Result
+            } else {
+                nip50Result to fallback.await()
+            }
         }
 
         val profiles = events

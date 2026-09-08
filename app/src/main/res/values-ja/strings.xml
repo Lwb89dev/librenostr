@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">ここにVotersが表示されます。</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">投票を見る</string>
-    <string name="settings_content_display_translate_notes">メモを翻訳します。</string>
-    <string name="settings_content_display_translate_notes_hint">ノートに翻訳機能を表示します。完全にデバイス内で動作する翻訳エンジンを使用し、データが端末外に送信されることはありません。ある言語との翻訳を初めて行う際に、小さな言語パック(数MB)がオフライン利用のためにダウンロードされます。</string>
-    <string name="note_translate_button">翻訳。</string>
-    <string name="note_translate_loading">翻訳。..</string>
-    <string name="note_translate_error">このメモを翻訳できません。</string>    <string name="note_translated_footer">翻訳済み。</string>
     <string name="note_see_original">オリジナルを見る</string>
-    <string name="note_translate_not_available">この言語の翻訳は利用できません</string>
-    <string name="note_translate_downloading">ダウンロード中…</string>
-    <string name="note_translate_download_title">翻訳パックをダウンロードしますか?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\n翻訳はこの端末上で完結します。オフラインでも動作します。</string>
-    <string name="note_translate_download_confirm">ダウンロード</string>
-    <string name="note_translate_download_cancel">キャンセル</string>
 </resources>

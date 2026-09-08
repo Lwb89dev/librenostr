@@ -8,6 +8,8 @@ import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.notifications.NotificationData
 import net.primal.data.repository.cache.LocalEventCache
+import net.primal.data.repository.feed.asReferencedPrimalEvent
+import net.primal.data.repository.feed.referencedNoteIds
 import net.primal.data.repository.feed.toFeedResponse
 import net.primal.data.repository.mappers.remote.extractZapRequestOrNull
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
@@ -112,9 +114,22 @@ internal class RelayNotificationsFetcher(
         val contentEvents = (events + referencedEvents)
             .filter { it.kind in CONTENT_KINDS || it.kind == NostrEventKind.Zap.value }
 
+        // A mention/reply notification's target note can itself quote or mention a further note
+        // (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in its content) — one level deeper than
+        // actionPostId reaches, so without this that nested reference showed "Mentioned event not
+        // found" here even when it rendered fine in the note feed/thread.
+        val knownIds = contentEvents.map { it.id }.toSet()
+        val missingQuotedIds = contentEvents.referencedNoteIds().filterNot { it in knownIds }
+        val quotedNotes = if (missingQuotedIds.isEmpty()) {
+            emptyList()
+        } else {
+            query(RelayFilter(ids = missingQuotedIds, kinds = CONTENT_KINDS, limit = missingQuotedIds.size))
+        }
+
         return RelayNotificationsResult(
             notifications = notifications,
-            feedResponse = (contentEvents + metadata).distinctBy { it.id }.toFeedResponse(metadata),
+            feedResponse = (contentEvents + metadata).distinctBy { it.id }
+                .toFeedResponse(metadata, referencedEvents = quotedNotes.map { it.asReferencedPrimalEvent() }),
             // Pagination must key off what the relays returned, not off the group-filtered rows.
             // Judging by the filtered count declared the end of the list as soon as a tab was
             // sparse — the Zaps tab stopped after its first page even with older zaps available.

@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Voliči sa tu ukážu.</string>
     <string name="poll_votes_sats_suffix">saturácie</string>
     <string name="poll_votes_see_votes">pozri hlasy</string>
-    <string name="settings_content_display_translate_notes">Preložiť poznámky</string>
-    <string name="settings_content_display_translate_notes_hint">Zobrazí pri poznámkach možnosť prekladu pomocou prekladového enginu, ktorý beží úplne v zariadení. Nič neopúšťa vaše zariadenie — pri prvom preklade do alebo z daného jazyka sa stiahne malý jazykový balík (niekoľko MB) na použitie offline.</string>
-    <string name="note_translate_button">Preložiť</string>
-    <string name="note_translate_loading">Preklad..</string>
-    <string name="note_translate_error">Nemohol som preložiť tento odkaz</string>    <string name="note_translated_footer">Preložené</string>
     <string name="note_see_original">Pozri originál</string>
-    <string name="note_translate_not_available">Preklad nie je pre tento jazyk k dispozícii</string>
-    <string name="note_translate_downloading">Sťahovanie…</string>
-    <string name="note_translate_download_title">Stiahnuť balík na preklad?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nPreklad prebieha úplne v tomto zariadení, aj offline.</string>
-    <string name="note_translate_download_confirm">Stiahnuť</string>
-    <string name="note_translate_download_cancel">Zrušiť</string>
 </resources>

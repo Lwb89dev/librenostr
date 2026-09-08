@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 21
-val appVersionName = "0.5.0"
+val appVersionCode = 22
+val appVersionName = "0.5.1"
 
 tasks.register("generateReleaseProperties") {
     doLast {
@@ -204,31 +204,6 @@ android {
             // JUnit
             excludes += "META-INF/LICENSE.md"
             excludes += "META-INF/LICENSE-notice.md"
-
-            // Lingua (language detection for note translation) ships a plain JAR bundling
-            // n-gram model data for every one of its ~70 supported languages, with no build
-            // variant to package only a subset — left unfiltered, this alone added ~200MB to
-            // the APK, dwarfing everything else including the actual translation engine (~9MB).
-            // Scoping LanguageDetectorBuilder.fromLanguages(...) at runtime (see
-            // NoteLanguageDetector) does not affect what gets packaged. Excludes here must be
-            // kept in sync with the language codes actually used in
-            // app/src/main/assets/translation_language_packs.json — currently: bg, cs, da, de,
-            // el, en, es, et, fi, fr, hr, hu, it, ja, lt, lv, nl, pl, pt, ro, ru, sk, sl, sv, zh.
-            listOf(
-                "af", "ar", "az", "be", "bn", "bs", "ca", "cy", "eo", "eu", "fa", "ga", "gu", "he",
-                "hi", "hy", "id", "is", "ka", "kk", "ko", "la", "lg", "mi", "mk", "mn", "mr", "ms",
-                "nb", "nn", "pa", "sn", "so", "sq", "sr", "st", "sw", "ta", "te", "th", "tl", "tn",
-                "tr", "ts", "uk", "ur", "vi", "xh", "yo", "zu",
-            ).forEach { unsupportedLanguageCode ->
-                excludes += "language-models/$unsupportedLanguageCode/**"
-            }
-
-            // NoteLanguageDetector also requests withLowAccuracyMode(), which only ever loads
-            // each language's unigrams/bigrams at runtime — trigrams/quadrigrams/fivegrams are
-            // ~99% of a language's file size (e.g. English: ~25KB vs. ~3.4MB) and never read.
-            excludes += "language-models/*/trigrams.json"
-            excludes += "language-models/*/quadrigrams.json"
-            excludes += "language-models/*/fivegrams.json"
         }
     }
 
@@ -283,8 +258,6 @@ dependencies {
     implementation(project(":core:networking-primal"))
     implementation(project(":core:networking-upload"))
     implementation(project(":core:networking-lightning"))
-    implementation(project(":core:translation-engine"))
-    implementation(libs.lingua)
     implementation(project(":core:caching"))
 
     implementation(project(":domain:nostr"))

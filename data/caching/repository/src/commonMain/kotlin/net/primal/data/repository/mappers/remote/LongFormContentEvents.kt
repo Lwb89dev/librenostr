@@ -19,7 +19,7 @@ import net.primal.domain.nostr.findFirstSummary
 import net.primal.domain.nostr.findFirstTitle
 import net.primal.domain.nostr.serialization.toNostrJsonObject
 import net.primal.domain.nostr.utils.parseHashtags
-import net.primal.domain.nostr.utils.parseNostrUris
+import net.primal.domain.nostr.utils.parseNostrUriCandidates
 
 fun List<NostrEvent>.mapNotNullAsArticleDataPO(
     wordsCountMap: Map<String, Int> = emptyMap(),
@@ -71,7 +71,7 @@ private fun NostrEvent.asArticleData(wordsCount: Int?, cdnResources: Map<String,
         createdAt = this.createdAt,
         publishedAt = tags.findFirstPublishedAt()?.toLongOrNull() ?: this.createdAt,
         content = this.content,
-        uris = this.content.detectUrls() + this.content.parseNostrUris(),
+        uris = this.content.detectUrls() + this.content.parseNostrUriCandidates(),
         hashtags = this.parseHashtags(),
         raw = raw,
         imageCdnImage = tags.findFirstImage()?.let { imageUrl ->

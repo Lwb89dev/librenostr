@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Šeit uzradīsies vēlētāji.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">skat.</string>
-    <string name="settings_content_display_translate_notes">Tulkot piezīmes</string>
-    <string name="settings_content_display_translate_notes_hint">Parāda tulkošanas darbību piezīmēs, izmantojot pilnībā ierīcē darbojošos tulkošanas dzinēju. Nekas nepamet jūsu ierīci — pirmoreiz tulkojot uz vai no kādas valodas, tiek lejupielādēta neliela valodas pakotne (dažus MB) bezsaistes lietošanai.</string>
-    <string name="note_translate_button">Tulkot</string>
-    <string name="note_translate_loading">Tulkošana..</string>
-    <string name="note_translate_error">Nevarēju tulkot šo piezīmi</string>    <string name="note_translated_footer">Tulkots</string>
     <string name="note_see_original">Skatīt oriģinālu</string>
-    <string name="note_translate_not_available">Šai valodai tulkojums nav pieejams</string>
-    <string name="note_translate_downloading">Lejupielādē…</string>
-    <string name="note_translate_download_title">Lejupielādēt tulkošanas pakotni?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nTulkošana notiek pilnībā šajā ierīcē, pat bezsaistē.</string>
-    <string name="note_translate_download_confirm">Lejupielādēt</string>
-    <string name="note_translate_download_cancel">Atcelt</string>
 </resources>

@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Die Wähler werden hier erscheinen.</string>
     <string name="poll_votes_sats_suffix">Satt</string>
     <string name="poll_votes_see_votes">siehe Abstimmungen</string>
-    <string name="settings_content_display_translate_notes">Übersetzen Sie Notizen</string>
-    <string name="settings_content_display_translate_notes_hint">Zeigt bei Notizen eine Übersetzungsfunktion mit einer vollständig auf dem Gerät laufenden Übersetzungs-Engine an. Es verlässt nichts dein Gerät — beim ersten Übersetzen in eine oder aus einer Sprache wird ein kleines Sprachpaket (wenige MB) für die Offline-Nutzung heruntergeladen.</string>
-    <string name="note_translate_button">Übersetzen</string>
-    <string name="note_translate_loading">Übersetzen..</string>
-    <string name="note_translate_error">Konnte diese Notiz nicht übersetzen</string>    <string name="note_translated_footer">Übersetzt</string>
     <string name="note_see_original">Siehe Original</string>
-    <string name="note_translate_not_available">Übersetzung für diese Sprache nicht verfügbar</string>
-    <string name="note_translate_downloading">Wird heruntergeladen…</string>
-    <string name="note_translate_download_title">Übersetzungspaket herunterladen?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nDie Übersetzung erfolgt vollständig auf diesem Gerät, auch offline.</string>
-    <string name="note_translate_download_confirm">Herunterladen</string>
-    <string name="note_translate_download_cancel">Abbrechen</string>
 </resources>

@@ -17,8 +17,6 @@ data class ContentDisplaySettings(
     /** Replies are usually short and deliberate, so they go out immediately unless asked. */
     val undoPostTimerForReplies: Boolean = false,
     @SerialName("noteAppearance") val contentAppearance: ContentAppearance = ContentAppearance.Default,
-    /** Offers a translate action on notes, using the fully on-device translation engine. */
-    val translateNotesEnabled: Boolean = true,
 ) {
     companion object {
         const val AUTO_PLAY_VIDEO_NEVER = 0

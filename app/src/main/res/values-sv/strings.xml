@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Röster kommer att dyka upp här.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">se röster</string>
-    <string name="settings_content_display_translate_notes">Översätt anteckningar</string>
-    <string name="settings_content_display_translate_notes_hint">Visar en översättningsåtgärd på anteckningar, med en översättningsmotor som körs helt på enheten. Inget lämnar din enhet — första gången du översätter till eller från ett språk laddas ett litet språkpaket (några MB) ner för offline-användning.</string>
-    <string name="note_translate_button">Översättning</string>
-    <string name="note_translate_loading">Översätta...</string>
-    <string name="note_translate_error">Kunde inte översätta denna anteckning</string>    <string name="note_translated_footer">Översatt</string>
     <string name="note_see_original">Se original</string>
-    <string name="note_translate_not_available">Översättning ej tillgänglig för detta språk</string>
-    <string name="note_translate_downloading">Laddar ner…</string>
-    <string name="note_translate_download_title">Ladda ner översättningspaket?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nÖversättningen sker helt och hållet på den här enheten, även offline.</string>
-    <string name="note_translate_download_confirm">Ladda ner</string>
-    <string name="note_translate_download_cancel">Avbryt</string>
 </resources>

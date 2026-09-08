@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Os eleitores vão aparecer aqui.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">ver votos</string>
-    <string name="settings_content_display_translate_notes">Traduzir notas</string>
-    <string name="settings_content_display_translate_notes_hint">Mostra uma ação de tradução nas notas, usando um mecanismo de tradução totalmente no dispositivo. Nada sai do seu dispositivo — na primeira vez que traduzir para ou de um idioma, é feito o download de um pequeno pacote de idioma (alguns MB) para uso offline.</string>
-    <string name="note_translate_button">Traduza</string>
-    <string name="note_translate_loading">Traduzindo..</string>
-    <string name="note_translate_error">Não consegui traduzir esta nota</string>    <string name="note_translated_footer">Traduzido</string>
     <string name="note_see_original">Ver original</string>
-    <string name="note_translate_not_available">Tradução não disponível para este idioma</string>
-    <string name="note_translate_downloading">A transferir…</string>
-    <string name="note_translate_download_title">Transferir pacote de tradução?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nA tradução acontece inteiramente neste dispositivo, mesmo offline.</string>
-    <string name="note_translate_download_confirm">Transferir</string>
-    <string name="note_translate_download_cancel">Cancelar</string>
 </resources>

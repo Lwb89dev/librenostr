@@ -12,7 +12,7 @@ import net.primal.domain.nostr.hasRootMarker
 import net.primal.domain.nostr.isEventIdTag
 import net.primal.domain.nostr.serialization.toNostrJsonObject
 import net.primal.domain.nostr.utils.parseHashtags
-import net.primal.domain.nostr.utils.parseNostrUris
+import net.primal.domain.nostr.utils.parseNostrUriCandidates
 
 fun List<NostrEvent>.mapNotNullAsHighlightComments(highlights: List<HighlightData>): List<PostData> =
     this.mapNotNull { it.asHighlightComment(highlights = highlights) }
@@ -33,7 +33,7 @@ private fun NostrEvent.asHighlightComment(highlights: List<HighlightData>): Post
         kind = this.kind,
         tags = this.tags,
         content = this.content,
-        uris = this.content.detectUrls() + this.content.parseNostrUris(),
+        uris = this.content.detectUrls() + this.content.parseNostrUriCandidates(),
         hashtags = this.parseHashtags(),
         sig = this.sig,
         raw = this.toNostrJsonObject().encodeToJsonString(),

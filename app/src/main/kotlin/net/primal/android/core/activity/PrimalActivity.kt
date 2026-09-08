@@ -17,7 +17,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -34,8 +33,6 @@ import net.primal.android.user.zaps.ZappingStateStore
 import net.primal.android.wallet.repository.ExchangeRateHandler
 import net.primal.domain.zaps.ZappingState
 import net.primal.android.settings.language.AppLanguageManager
-import net.primal.android.notes.translate.NoteLanguageDetector
-import net.primal.android.notes.translate.NoteTranslationCoordinator
 
 @AndroidEntryPoint
 abstract class PrimalActivity : FragmentActivity() {
@@ -50,12 +47,6 @@ abstract class PrimalActivity : FragmentActivity() {
 
     @Inject
     lateinit var exchangeRateHandler: ExchangeRateHandler
-
-    @Inject
-    lateinit var noteLanguageDetector: NoteLanguageDetector
-
-    @Inject
-    lateinit var noteTranslationCoordinator: NoteTranslationCoordinator
 
     protected val splashViewModel: SplashViewModel by viewModels()
 
@@ -78,9 +69,6 @@ abstract class PrimalActivity : FragmentActivity() {
 
         observeThemeChanges()
         primalTheme = savedInstanceState.restoreOrDefaultPrimalTheme()
-
-        // Off the critical path of the first translate tap — see NoteLanguageDetector.warmUp().
-        lifecycleScope.launch(Dispatchers.Default) { noteLanguageDetector.warmUp() }
     }
 
     @Suppress("SpreadOperator")
@@ -120,7 +108,6 @@ abstract class PrimalActivity : FragmentActivity() {
                 LocalZappingState provides zappingState.value,
                 LocalActiveAccountId provides activeAccountId.value,
                 LocalExchangeRate provides exchangeRate.value,
-                LocalNoteTranslationCoordinator provides noteTranslationCoordinator,
             ) {
                 ApplyEdgeToEdge()
                 val isLoggedIn = splashViewModel.isLoggedIn.collectAsState()
@@ -170,7 +157,3 @@ val LocalZappingState = compositionLocalOf<ZappingState> { error("No ZappingStat
 val LocalActiveAccountId = compositionLocalOf<String> { error("No active account id provided.") }
 
 val LocalExchangeRate = compositionLocalOf<Double> { error("No exchange rate provided.") }
-
-val LocalNoteTranslationCoordinator = compositionLocalOf<NoteTranslationCoordinator> {
-    error("No NoteTranslationCoordinator provided.")
-}

@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Гласоподавателите ще се появят тук.</string>
     <string name="poll_votes_sats_suffix">Сатурация</string>
     <string name="poll_votes_see_votes">виж гласовете</string>
-    <string name="settings_content_display_translate_notes">Преведи бележките</string>
-    <string name="settings_content_display_translate_notes_hint">Показва действие за превод на бележките, използвайки изцяло вграден в устройството преводач. Нищо не напуска устройството ви — при първия превод от/на даден език се изтегля малък езиков пакет (няколко MB) за офлайн използване.</string>
-    <string name="note_translate_button">Преведи</string>
-    <string name="note_translate_loading">Превеждам..</string>
-    <string name="note_translate_error">Не можах да преведа тази бележка</string>    <string name="note_translated_footer">Преведено</string>
     <string name="note_see_original">Вижте оригинала</string>
-    <string name="note_translate_not_available">Преводът не е наличен за този език</string>
-    <string name="note_translate_downloading">Изтегляне…</string>
-    <string name="note_translate_download_title">Изтегляне на пакет за превод?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nПреводът се извършва изцяло на това устройство, дори офлайн.</string>
-    <string name="note_translate_download_confirm">Изтегли</string>
-    <string name="note_translate_download_cancel">Отказ</string>
 </resources>

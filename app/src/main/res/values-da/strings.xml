@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Vælgerne kommer her.</string>
     <string name="poll_votes_sats_suffix">sæt</string>
     <string name="poll_votes_see_votes">se afstemninger</string>
-    <string name="settings_content_display_translate_notes">Oversæt noter</string>
-    <string name="settings_content_display_translate_notes_hint">Viser en oversætterhandling på noter ved hjælp af en fuldstændig lokal (on-device) oversættelsesmotor. Intet forlader din enhed — første gang du oversætter til/fra et sprog, downloades en lille sprogpakke (nogle få MB) til offline brug.</string>
-    <string name="note_translate_button">Oversæt</string>
-    <string name="note_translate_loading">Oversætter...</string>
-    <string name="note_translate_error">Jeg kunne ikke oversætte brevet</string>    <string name="note_translated_footer">Oversat</string>
     <string name="note_see_original">Se originalen</string>
-    <string name="note_translate_not_available">Oversættelse er ikke tilgængelig for dette sprog</string>
-    <string name="note_translate_downloading">Downloader…</string>
-    <string name="note_translate_download_title">Download oversættelsespakke?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nOversættelse foregår udelukkende på denne enhed, også offline.</string>
-    <string name="note_translate_download_confirm">Download</string>
-    <string name="note_translate_download_cancel">Annuller</string>
 </resources>

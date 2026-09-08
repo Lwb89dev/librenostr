@@ -8,6 +8,7 @@ import io.github.aakira.napier.Napier
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -189,14 +190,31 @@ internal class NotificationsRemoteMediator(
             LoadType.REFRESH -> null
             LoadType.APPEND -> state.lastItemOrNull()?.data?.createdAt
         }
+        val fetcher = net.primal.data.repository.notifications.RelayNotificationsFetcher(querier, localEventCache)
         val result = try {
             withContext(dispatcherProvider.io()) {
-                net.primal.data.repository.notifications.RelayNotificationsFetcher(querier, localEventCache).fetch(
+                var attempt = fetcher.fetch(
                     userId = userId,
                     group = group,
                     limit = maxOf(state.config.pageSize, RELAY_PAGE_SIZE),
                     until = until,
                 )
+                // An empty REFRESH is far more likely the user relay pool still connecting after
+                // a cold start than a genuine "no notifications ever" account (same race as
+                // FetchCoordinator.fetchFollowList's follow-list-came-back-empty bug). APPEND
+                // legitimately ends this way once real history runs out, so only REFRESH retries.
+                var retriesLeft = COLD_START_RETRIES
+                while (loadType == LoadType.REFRESH && attempt.notifications.isEmpty() && retriesLeft > 0) {
+                    delay(COLD_START_RETRY_DELAY_MS)
+                    attempt = fetcher.fetch(
+                        userId = userId,
+                        group = group,
+                        limit = maxOf(state.config.pageSize, RELAY_PAGE_SIZE),
+                        until = until,
+                    )
+                    retriesLeft--
+                }
+                attempt
             }
         } catch (error: Exception) {
             if (error is CancellationException) throw error
@@ -224,5 +242,7 @@ internal class NotificationsRemoteMediator(
 
     private companion object {
         const val RELAY_PAGE_SIZE = 200
+        const val COLD_START_RETRIES = 3
+        const val COLD_START_RETRY_DELAY_MS = 500L
     }
 }

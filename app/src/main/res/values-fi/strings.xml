@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Äänestäjät tulevat tänne.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">äänet</string>
-    <string name="settings_content_display_translate_notes">Käännä muistiinpanoja</string>
-    <string name="settings_content_display_translate_notes_hint">Näyttää muistiinpanoissa käännöstoiminnon, joka käyttää täysin laitteessa toimivaa käännösmoottoria. Mikään ei poistu laitteeltasi — kun käännät ensimmäisen kerran johonkin kieleen tai kielestä, ladataan pieni kielipaketti (muutama MB) offline-käyttöä varten.</string>
-    <string name="note_translate_button">Käännä</string>
-    <string name="note_translate_loading">Käännetään..</string>
-    <string name="note_translate_error">En osannut kääntää tätä viestiä</string>    <string name="note_translated_footer">Käännetty</string>
     <string name="note_see_original">Katso alkuperäistä</string>
-    <string name="note_translate_not_available">Käännös ei ole saatavilla tälle kielelle</string>
-    <string name="note_translate_downloading">Ladataan…</string>
-    <string name="note_translate_download_title">Ladataanko käännöspaketti?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nKäännös tapahtuu kokonaan tällä laitteella, myös offline-tilassa.</string>
-    <string name="note_translate_download_confirm">Lataa</string>
-    <string name="note_translate_download_cancel">Peruuta</string>
 </resources>

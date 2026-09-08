@@ -1,7 +1,12 @@
 package net.primal.data.repository.articles.paging
 
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import net.primal.data.remote.api.articles.model.ArticleResponse
+import net.primal.data.repository.feed.asReferencedPrimalEvent
+import net.primal.data.repository.feed.referencedNoteIds
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.core.utils.runCatching
 import net.primal.core.utils.getOrDefault
@@ -55,7 +60,15 @@ internal class RelayArticleDetailsFetcher(private val querier: RelayEventQuerier
             .distinctBy { it.id }
             .sortedByDescending { it.createdAt }
 
-        val metadataKeys = (listOf(article) + comments).map { it.pubKey }.distinct()
+        // The article body or a comment can quote a note (a `q` tag, or a bare
+        // `nostr:note1…`/`nevent1…`) — without this, that quote showed "Mentioned event not
+        // found" here even when it rendered fine in the note feed/thread.
+        val known = listOf(article) + comments
+        val knownIds = known.map { it.id }.toSet()
+        val referencedNotes = queryByIds(known.referencedNoteIds().filterNot { it in knownIds })
+
+        val metadataSubjects = known + referencedNotes
+        val metadataKeys = metadataSubjects.map { it.pubKey }.distinct()
         val metadata = runCatching {
             querier.query(
                 RelayFilter(
@@ -74,7 +87,7 @@ internal class RelayArticleDetailsFetcher(private val querier: RelayEventQuerier
             notes = comments,
             articles = listOf(article),
             primalUserScores = emptyList(),
-            referencedEvents = emptyList(),
+            referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() },
             primalEventStats = emptyList(),
             primalEventUserStats = emptyList(),
             cdnResources = emptyList(),
@@ -86,6 +99,21 @@ internal class RelayArticleDetailsFetcher(private val querier: RelayEventQuerier
             primalPremiumInfo = null,
             blossomServers = emptyList(),
         )
+    }
+
+    private suspend fun queryByIds(ids: List<String>): List<NostrEvent> {
+        if (ids.isEmpty()) return emptyList()
+        return ids.chunked(ID_CHUNK).let { chunks ->
+            coroutineScope {
+                chunks.map { chunk ->
+                    async {
+                        runCatching {
+                            querier.query(RelayFilter(ids = chunk, limit = chunk.size))
+                        }.getOrDefault(emptyList())
+                    }
+                }.awaitAll().flatten()
+            }
+        }
     }
 
     private fun emptyResponse() = ArticleResponse(
@@ -107,4 +135,8 @@ internal class RelayArticleDetailsFetcher(private val querier: RelayEventQuerier
         primalPremiumInfo = null,
         blossomServers = emptyList(),
     )
+
+    private companion object {
+        private const val ID_CHUNK = 50
+    }
 }

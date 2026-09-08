@@ -3,6 +3,9 @@ package net.primal.data.repository.feed
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
@@ -10,6 +13,7 @@ import net.primal.domain.feeds.extractAdvancedSearchQuery
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.utils.assureValidPubKeyHex
+import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 import kotlinx.serialization.json.contentOrNull
@@ -81,23 +85,49 @@ internal class RelayAdvancedSearchFeedFetcher(
             "Advanced relay search query='$query' events=${events.size} results=${page.size} " +
                 "newest=${page.maxOfOrNull { it.createdAt }} oldest=${page.minOfOrNull { it.createdAt }}"
         }
-        val metadata = page.map { it.pubKey }.distinct().let { pubkeys ->
-            if (pubkeys.isEmpty()) emptyList() else runCatching {
-                querier.query(
-                    RelayFilter(
-                        kinds = listOf(NostrEventKind.Metadata.value),
-                        authors = pubkeys,
-                        limit = pubkeys.size,
-                    ),
-                ).latestMetadataByPubkey()
-            }.getOrDefault(emptyList())
-        }
-        return page.toFeedResponse(metadata)
+
+        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) name a
+        // specific note the content renderer needs — without this, a quote of anything not
+        // already in the page for some other reason showed "Mentioned event not found," which
+        // only ever affected search results since the feed/thread fetchers already do this.
+        val pageIds = page.map { it.id }.toSet()
+        val referencedNotes = queryByIds(page.referencedNoteIds().filterNot { it in pageIds })
+
+        val metadataSubjects = page + referencedNotes
+        val metadata = (metadataSubjects.map { it.pubKey } + metadataSubjects.flatMap { it.tags.pubkeyTagValues() })
+            .distinct()
+            .let { pubkeys ->
+                if (pubkeys.isEmpty()) emptyList() else runCatching {
+                    querier.query(
+                        RelayFilter(
+                            kinds = listOf(NostrEventKind.Metadata.value),
+                            authors = pubkeys,
+                            limit = pubkeys.size,
+                        ),
+                    ).latestMetadataByPubkey()
+                }.getOrDefault(emptyList())
+            }
+        return page.toFeedResponse(metadata, referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() })
     }
 
     private suspend fun query(filter: RelayFilter): List<NostrEvent> = runCatching {
         querier.query(filter)
     }.getOrDefault(emptyList())
+
+    private suspend fun queryByIds(ids: List<String>): List<NostrEvent> {
+        if (ids.isEmpty()) return emptyList()
+        return ids.chunked(ID_CHUNK).let { chunks ->
+            coroutineScope {
+                chunks.map { chunk ->
+                    async {
+                        runCatching {
+                            querier.query(RelayFilter(ids = chunk, limit = chunk.size))
+                        }.getOrDefault(emptyList())
+                    }
+                }.awaitAll().flatten()
+            }
+        }
+    }
 
     private suspend fun loadFollowAuthors(userId: String): List<String> = runCatching {
         // Routed through the coordinator: the note feed, article feed and profile screen already
@@ -168,5 +198,6 @@ internal class RelayAdvancedSearchFeedFetcher(
 
     private companion object {
         private const val FALLBACK_SEARCH_EVENT_LIMIT = 500
+        private const val ID_CHUNK = 50
     }
 }

@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Οι ψηφοφόροι θα εμφανιστούν εδώ.</string>
     <string name="poll_votes_sats_suffix">κορεσμένα</string>
     <string name="poll_votes_see_votes">δείτε τις ψήφους</string>
-    <string name="settings_content_display_translate_notes">Μετάφρασε σημειώσεις</string>
-    <string name="settings_content_display_translate_notes_hint">Εμφανίζει μια ενέργεια μετάφρασης στις σημειώσεις, χρησιμοποιώντας μια μηχανή μετάφρασης εξ ολοκλήρου εντός της συσκευής. Τίποτα δεν φεύγει από τη συσκευή σας — την πρώτη φορά που μεταφράζετε από ή προς μια γλώσσα, κατεβαίνει ένα μικρό γλωσσικό πακέτο (λίγα MB) για εκτός σύνδεσης χρήση.</string>
-    <string name="note_translate_button">Μετάφρασε</string>
-    <string name="note_translate_loading">Μεταφράζει..</string>
-    <string name="note_translate_error">Δεν μπορούσα να μεταφράσω αυτό το σημείωμα</string>    <string name="note_translated_footer">Μεταφρασμένο</string>
     <string name="note_see_original">Δείτε το πρωτότυπο</string>
-    <string name="note_translate_not_available">Δεν υπάρχει διαθέσιμη μετάφραση για αυτή τη γλώσσα</string>
-    <string name="note_translate_downloading">Λήψη…</string>
-    <string name="note_translate_download_title">Λήψη πακέτου μετάφρασης;</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nΗ μετάφραση γίνεται εξ ολοκλήρου σε αυτή τη συσκευή, ακόμη και εκτός σύνδεσης.</string>
-    <string name="note_translate_download_confirm">Λήψη</string>
-    <string name="note_translate_download_cancel">Ακύρωση</string>
 </resources>

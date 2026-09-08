@@ -517,3 +517,15 @@ fun JsonArray.extractDuration(): Double? {
     val raw = durationElement?.jsonPrimitive?.content?.substring("duration ".length)?.trim()
     return raw?.toDoubleOrNull()?.takeIf { it > 0.0 }
 }
+
+/** NIP-92's own preview-image field for the attachment (`thumb`, or `image` on some clients). */
+fun JsonArray.extractThumb(): String? {
+    fun extractField(key: String): String? {
+        val element = this.find { it.jsonPrimitive.content.startsWith("$key ") }
+        return element?.jsonPrimitive?.content?.substring(key.length + 1)
+            ?: this.windowed(size = 2, partialWindows = false)
+                .firstOrNull { pair -> pair[0].jsonPrimitive.content == key }
+                ?.get(1)?.jsonPrimitive?.content
+    }
+    return extractField("thumb") ?: extractField("image")
+}

@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">De kiezers zullen hier komen.</string>
     <string name="poll_votes_sats_suffix">saturatie</string>
     <string name="poll_votes_see_votes">zie stemmen</string>
-    <string name="settings_content_display_translate_notes">Vertaal notities</string>
-    <string name="settings_content_display_translate_notes_hint">Toont een vertaalactie bij notities, met een volledig op het apparaat werkende vertaalengine. Er verlaat niets je apparaat — de eerste keer dat je naar of vanuit een taal vertaalt, wordt een klein taalpakket (enkele MB) gedownload voor offline gebruik.</string>
-    <string name="note_translate_button">Vertaal</string>
-    <string name="note_translate_loading">Vertalen..</string>
-    <string name="note_translate_error">Kon dit briefje niet vertalen</string>    <string name="note_translated_footer">Vertaald</string>
     <string name="note_see_original">Zie origineel</string>
-    <string name="note_translate_not_available">Vertaling niet beschikbaar voor deze taal</string>
-    <string name="note_translate_downloading">Downloaden…</string>
-    <string name="note_translate_download_title">Vertaalpakket downloaden?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nVertalen gebeurt volledig op dit apparaat, ook offline.</string>
-    <string name="note_translate_download_confirm">Downloaden</string>
-    <string name="note_translate_download_cancel">Annuleren</string>
 </resources>

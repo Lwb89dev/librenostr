@@ -191,8 +191,13 @@ private fun ProfileButton(
         ),
         containerColor = containerColor,
         contentColor = contentColor,
+        // Fixed sp values rather than a raw copy of bodyMedium, since this button's declared
+        // width (minWidth 108.dp, no max) has to stay clear of the avatar overlapping the header
+        // above it. A tighter lineHeight == fontSize used to leave no room for monospace fonts
+        // (the Pixel theme family)'s different vertical metrics, pushing the bubble wider/taller
+        // than the default font and into the avatar.
         textStyle = AppTheme.typography.bodyMedium.copy(
-            fontSize = 18.sp,
+            fontSize = 15.sp,
             lineHeight = 18.sp,
             fontWeight = FontWeight.SemiBold,
         ),

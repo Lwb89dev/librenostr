@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">A szavazók itt fognak megjelenni.</string>
     <string name="poll_votes_sats_suffix">szat</string>
     <string name="poll_votes_see_votes">lásd a szavazatokat</string>
-    <string name="settings_content_display_translate_notes">Fordítsa le</string>
-    <string name="settings_content_display_translate_notes_hint">Fordítási lehetőséget jelenít meg a jegyzeteknél, teljesen a készüléken futó fordítómotor segítségével. Semmi sem hagyja el a készülékedet — amikor először fordítasz egy adott nyelvre vagy nyelvről, egy kis nyelvi csomag (néhány MB) töltődik le az offline használathoz.</string>
-    <string name="note_translate_button">Fordítás</string>
-    <string name="note_translate_loading">Fordítás..</string>
-    <string name="note_translate_error">Nem tudtam lefordítani</string>    <string name="note_translated_footer">Fordítva</string>
     <string name="note_see_original">Lásd az eredetit</string>
-    <string name="note_translate_not_available">Ehhez a nyelvhez nem érhető el fordítás</string>
-    <string name="note_translate_downloading">Letöltés…</string>
-    <string name="note_translate_download_title">Letölti a fordítási csomagot?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nA fordítás teljes egészében ezen a készüléken történik, akár offline is.</string>
-    <string name="note_translate_download_confirm">Letöltés</string>
-    <string name="note_translate_download_cancel">Mégse</string>
 </resources>

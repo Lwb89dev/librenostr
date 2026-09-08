@@ -14,6 +14,7 @@ import net.primal.domain.links.EventUriType
 import net.primal.domain.nostr.extractDimension
 import net.primal.domain.nostr.extractDuration
 import net.primal.domain.nostr.extractMimeType
+import net.primal.domain.nostr.extractThumb
 import net.primal.domain.nostr.findIMetaTagForUrl
 import net.primal.domain.nostr.getTagValueOrNull
 import net.primal.domain.nostr.isImageTag
@@ -78,7 +79,9 @@ private fun PostData.asEventUri(
         variants = resolveVariants(cdnResource, linkPreview, cdnResources),
         title = linkPreview?.title?.ifBlank { null },
         description = linkPreview?.description?.ifBlank { null },
-        thumbnail = linkPreview?.thumbnailUrl?.ifBlank { null } ?: videoThumbnails[url],
+        thumbnail = linkPreview?.thumbnailUrl?.ifBlank { null }
+            ?: videoThumbnails[url]
+            ?: imetaTag?.extractThumb()?.ifBlank { null },
         authorAvatarUrl = linkPreview?.authorAvatarUrl?.ifBlank { null },
         originalWidth = imetaDim?.first,
         originalHeight = imetaDim?.second,

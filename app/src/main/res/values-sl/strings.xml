@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Volivci bodo prišli sem.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">glej glasove</string>
-    <string name="settings_content_display_translate_notes">Prevajaj zapiske</string>
-    <string name="settings_content_display_translate_notes_hint">Prikaže možnost prevajanja pri opombah z uporabo prevajalnika, ki deluje v celoti na napravi. Nič ne zapusti vaše naprave — ko prvič prevajate v ali iz nekega jezika, se prenese majhen jezikovni paket (nekaj MB) za uporabo brez povezave.</string>
-    <string name="note_translate_button">Prevedi</string>
-    <string name="note_translate_loading">Prevajanje..</string>
-    <string name="note_translate_error">Nisem mogel prevesti sporočila</string>    <string name="note_translated_footer">Prevedeno</string>
     <string name="note_see_original">Glej originalno</string>
-    <string name="note_translate_not_available">Prevod za ta jezik ni na voljo</string>
-    <string name="note_translate_downloading">Prenašanje…</string>
-    <string name="note_translate_download_title">Želite prenesti prevajalski paket?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nPrevajanje poteka v celoti na tej napravi, tudi brez povezave.</string>
-    <string name="note_translate_download_confirm">Prenesi</string>
-    <string name="note_translate_download_cancel">Prekliči</string>
 </resources>

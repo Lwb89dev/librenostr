@@ -24,11 +24,34 @@ private val nostrUriRegexPattern = Regex(
 )
 
 fun String.parseNostrUris(): List<String> =
+    parseNostrUriCandidates().filter { it.nostrUriToBytes() != null }
+
+/**
+ * Same match as [parseNostrUris], but also keeps an explicitly-scoped `nostr:`-prefixed candidate
+ * that fails to decode (a truncated copy-paste, a checksum another client mangled, a TLV variant
+ * this app doesn't parse yet) instead of dropping it. That used to leave it in note/profile/
+ * message content as literal `nostr:nevent1…` text forever — nothing downstream ever got a chance
+ * to render it as an unresolved-reference card instead. Content-rendering call sites that want
+ * "never show raw `nostr:` text" should map through this and let the existing entity-type
+ * resolution (which already tolerates a non-decodable uri, resolving it to `Unsupported`) turn it
+ * into that card.
+ *
+ * A *bare* `note1…`/`npub1…` (no `nostr:` scheme) that fails to decode is still dropped here, same
+ * as [parseNostrUris]: the bech32 charset overlaps enough of the alphabet that an ordinary word
+ * ending in "note1", "npub1" etc. can match the pattern by accident, and the decode check is the
+ * only thing telling that apart from a real reference. The explicit `nostr:` scheme is not
+ * something anyone types by accident, so a candidate carrying it is trusted to be a genuine,
+ * if broken, reference.
+ *
+ * Call sites that need a strictly valid reference to act on — composing tags for a published
+ * event, deciding what a pasted string can be embedded as — keep using [parseNostrUris].
+ */
+fun String.parseNostrUriCandidates(): List<String> =
     nostrUriRegexPattern.findAll(this)
         .map { matchResult ->
             matchResult.groupValues[1] + matchResult.groupValues[2] + matchResult.groupValues[3]
         }
-        .filter { it.nostrUriToBytes() != null }
+        .filter { it.nostrUriToBytes() != null || it.startsWith(NOSTR, ignoreCase = true) }
         .toList()
 
 fun String.nostrUriToBytes(): ByteArray? {

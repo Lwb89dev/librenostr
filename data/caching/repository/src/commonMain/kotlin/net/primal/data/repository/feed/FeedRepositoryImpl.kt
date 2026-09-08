@@ -386,7 +386,13 @@ internal class FeedRepositoryImpl(
             // end of the currently loaded window.
             prefetchDistance = DEFAULT_PAGE_SIZE / 2,
             initialLoadSize = FeedRepository.INITIAL_PAGE_SIZE,
-            enablePlaceholders = true,
+            // Placeholders make Paging3 anchor a post-invalidation reload by index, and
+            // NoteFeedRemoteMediator.refreshRelayEventStats() invalidates on every APPEND once its
+            // relay stats query lands (see its comment) — often after the user has scrolled past
+            // where that index now points, which read as the feed jumping. LazyColumn already keys
+            // items by postId/repostId (NoteFeedLazyColumn.kt), so keeping placeholders off lets it
+            // re-anchor by key across a reload instead.
+            enablePlaceholders = false,
         ),
         remoteMediator = NoteFeedRemoteMediator(
             fetchCoordinator = fetchCoordinator,

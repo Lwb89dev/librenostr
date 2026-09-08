@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Rinkėjai pasirodys čia.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">žr. balsus</string>
-    <string name="settings_content_display_translate_notes">Išversti raštus</string>
-    <string name="settings_content_display_translate_notes_hint">Rodo pastabų vertimo veiksmą, naudojant visiškai įrenginyje veikiantį vertimo variklį. Niekas nepalieka jūsų įrenginio — kai pirmą kartą verčiate į kalbą ar iš jos, atsisiunčiamas nedidelis kalbos paketas (kelis MB) naudojimui neprisijungus.</string>
-    <string name="note_translate_button">Išversti</string>
-    <string name="note_translate_loading">Verčiama..</string>
-    <string name="note_translate_error">Negaliu išversti šios pastabos</string>    <string name="note_translated_footer">Išversta</string>
     <string name="note_see_original">Žr. originalą</string>
-    <string name="note_translate_not_available">Šiai kalbai vertimas negalimas</string>
-    <string name="note_translate_downloading">Atsisiunčiama…</string>
-    <string name="note_translate_download_title">Atsisiųsti vertimo paketą?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nVertimas atliekamas visiškai šiame įrenginyje, net ir neprisijungus.</string>
-    <string name="note_translate_download_confirm">Atsisiųsti</string>
-    <string name="note_translate_download_cancel">Atšaukti</string>
 </resources>

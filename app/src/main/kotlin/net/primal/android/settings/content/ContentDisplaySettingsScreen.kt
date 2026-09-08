@@ -40,8 +40,6 @@ import net.primal.android.core.compose.PrimalSliderThumb
 import androidx.compose.runtime.remember
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.ContentDisplaySettings
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Translate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -264,25 +262,6 @@ private fun ContentDisplaySettingsScreen(
                     },
                     onClick = {
                         eventPublisher(UiEvent.UpdateShowLiveStreams(enabled = !state.showLiveStreams))
-                    },
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SettingsItem(
-                    headlineText = stringResource(id = R.string.settings_content_display_translate_notes),
-                    supportText = stringResource(id = R.string.settings_content_display_translate_notes_hint),
-                    leadingIcon = Icons.Filled.Translate,
-                    trailingContent = {
-                        PrimalSwitch(
-                            checked = state.translateNotesEnabled,
-                            onCheckedChange = {
-                                eventPublisher(UiEvent.UpdateTranslateNotesEnabled(enabled = it))
-                            },
-                        )
-                    },
-                    onClick = {
-                        eventPublisher(UiEvent.UpdateTranslateNotesEnabled(enabled = !state.translateNotesEnabled))
                     },
                 )
             }

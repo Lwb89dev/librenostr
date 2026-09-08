@@ -7,6 +7,59 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.1] - 2026-09-08
+
+### Fixed
+
+- Typing `@name` to mention someone could take several seconds before any
+  result appeared. The search first tries a relay-side NIP-50 query, then
+  fell back to a second, unfiltered query only if that failed — but the two
+  ran strictly one after the other, so on a relay pool without NIP-50
+  support (the common case here) every search paid both queries' full
+  timeouts back to back. They now run at the same time; the fallback is
+  cancelled the moment the NIP-50 query alone comes back with something, so
+  a relay that does support NIP-50 is unaffected.
+- A note that quoted or mentioned another note sometimes showed "Mentioned
+  event not found" even though the referenced note existed and rendered
+  fine elsewhere (the home feed, an opened thread). Search results,
+  notifications, and article comments never fetched the notes a note
+  quoted, only the note itself — now they do, matching the feed and
+  thread screens. The "not found" card also has a working retry button
+  now, instead of being a dead end after a single failed attempt.
+- Some quoted or mentioned notes rendered as raw `nostr:nevent1…` text
+  instead of a card — a reference that matched the expected format but
+  failed to decode (a corrupted copy-paste, a checksum another client
+  mangled) used to be silently dropped with no trace, leaving the literal
+  text on screen forever. It's now shown as an unresolved-reference card
+  like any other note that can't be found, instead of leaking as text.
+- Video attachments almost never showed a preview frame, even when the
+  note carried one. The video's own metadata tag can include a preview
+  image, but it was never read — only Primal's own (now-unused) preview
+  service was checked, so it fell back to nothing.
+- The app sometimes loaded only your own notes and only your own
+  notifications for a while after a cold start — notifications now retry
+  a genuinely empty first response instead of treating it as "no
+  notifications, ever," matching a fix already in place for the note feed.
+- Zap notifications showed the sats-zapped amount only for a direct zap on
+  your own post — a zap on a post you were mentioned in, or on a post that
+  mentioned one of yours, showed the zap icon with no amount at all.
+- The feed could visibly jump mid-scroll as more notes loaded. A background
+  refresh of like/repost/zap counts for the newly-loaded page could land
+  after you'd already scrolled further, and the resulting reflow used the
+  scroll position's on-screen index rather than the note actually under
+  it — turning off index-based placeholders in favor of per-note identity
+  fixes the reflow to track the right note instead of the wrong index.
+- On the Dark Pixel theme, the follow/unfollow button on a profile could be
+  partly hidden behind the avatar once you already followed that person —
+  the button's monospace font ran wider than the space reserved for it.
+
+### Removed
+
+- On-device note translation. It added a large, always-on cost to every
+  build (native toolchain, a ~70-language detection model) for a feature
+  that saw essentially no use. The code isn't gone, just disconnected from
+  the build, in case it's worth reviving in a more selective form later.
+
 ## [0.5.0] - 2026-09-07
 
 ### Added

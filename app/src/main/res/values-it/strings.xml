@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Gli elettori si presenteranno qui.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">vedi voti</string>
-    <string name="settings_content_display_translate_notes">Traduci note</string>
-    <string name="settings_content_display_translate_notes_hint">Mostra un\'azione di traduzione sulle note, usando un motore di traduzione interamente sul dispositivo. Nulla lascia il tuo dispositivo — la prima volta che traduci da o verso una lingua, viene scaricato un piccolo pacchetto linguistico (pochi MB) per l\'uso offline.</string>
-    <string name="note_translate_button">Traduci</string>
-    <string name="note_translate_loading">Tradurre..</string>
-    <string name="note_translate_error">Non potevo tradurre questa nota</string>    <string name="note_translated_footer">Tradotto</string>
     <string name="note_see_original">Vedi originale</string>
-    <string name="note_translate_not_available">Traduzione non disponibile per questa lingua</string>
-    <string name="note_translate_downloading">Download in corso…</string>
-    <string name="note_translate_download_title">Scaricare il pacchetto di traduzione?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s MB\n\nLa traduzione avviene interamente su questo dispositivo, anche offline.</string>
-    <string name="note_translate_download_confirm">Scarica</string>
-    <string name="note_translate_download_cancel">Annulla</string>
 </resources>

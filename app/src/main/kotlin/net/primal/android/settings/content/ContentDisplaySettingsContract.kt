@@ -12,7 +12,6 @@ interface ContentDisplaySettingsContract {
         val undoPostTimerEnabled: Boolean = true,
         val undoPostTimerSeconds: Int = ContentDisplaySettings.DEFAULT_UNDO_POST_SECONDS,
         val undoPostTimerForReplies: Boolean = false,
-        val translateNotesEnabled: Boolean = true,
     )
 
     sealed class UiEvent {
@@ -23,6 +22,5 @@ interface ContentDisplaySettingsContract {
         data class UpdateUndoPostTimerEnabled(val enabled: Boolean) : UiEvent()
         data class UpdateUndoPostTimerSeconds(val seconds: Int) : UiEvent()
         data class UpdateUndoPostTimerForReplies(val enabled: Boolean) : UiEvent()
-        data class UpdateTranslateNotesEnabled(val enabled: Boolean) : UiEvent()
     }
 }

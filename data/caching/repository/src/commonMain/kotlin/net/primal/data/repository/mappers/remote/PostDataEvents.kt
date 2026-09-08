@@ -18,7 +18,7 @@ import net.primal.domain.nostr.isIMetaTag
 import net.primal.domain.nostr.isImageTag
 import net.primal.domain.nostr.serialization.toNostrJsonObject
 import net.primal.domain.nostr.utils.parseHashtags
-import net.primal.domain.nostr.utils.parseNostrUris
+import net.primal.domain.nostr.utils.parseNostrUriCandidates
 
 private val postDataKinds = setOf(
     NostrEventKind.ShortTextNote.value,
@@ -109,7 +109,7 @@ private fun NostrEvent.nostrEventAsPost(
         kind = this.kind,
         tags = this.tags,
         content = this.content,
-        uris = this.content.detectUrls() + this.content.parseNostrUris(),
+        uris = this.content.detectUrls() + this.content.parseNostrUriCandidates(),
         hashtags = this.parseHashtags(),
         sig = this.sig,
         raw = this.toNostrJsonObject().encodeToJsonString(),
@@ -143,7 +143,7 @@ private fun NostrEvent.pictureNoteAsPost(): PostData {
         kind = this.kind,
         tags = this.tags,
         content = content,
-        uris = content.detectUrls() + content.parseNostrUris(),
+        uris = content.detectUrls() + content.parseNostrUriCandidates(),
         hashtags = emptyList(),
         sig = this.sig,
         raw = this.toNostrJsonObject().encodeToJsonString(),

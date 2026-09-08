@@ -1484,16 +1484,5 @@
     <string name="poll_votes_no_voters">Здесь появятся избиратели.</string>
     <string name="poll_votes_sats_suffix">сатс</string>
     <string name="poll_votes_see_votes">Смотреть Голоса</string>
-    <string name="settings_content_display_translate_notes">Переведите заметки</string>
-    <string name="settings_content_display_translate_notes_hint">Показывает функцию перевода в заметках с использованием полностью локального (on-device) движка перевода. Ничего не покидает ваше устройство — при первом переводе на определённый язык или с него загружается небольшой языковой пакет (несколько МБ) для автономного использования.</string>
-    <string name="note_translate_button">Переводи</string>
-    <string name="note_translate_loading">Переводить..</string>
-    <string name="note_translate_error">Не смог перевести эту записку</string>    <string name="note_translated_footer">Перевод</string>
     <string name="note_see_original">См. оригинал</string>
-    <string name="note_translate_not_available">Перевод для этого языка недоступен</string>
-    <string name="note_translate_downloading">Загрузка…</string>
-    <string name="note_translate_download_title">Скачать пакет перевода?</string>
-    <string name="note_translate_download_message">%1$s → %2$s · %3$s МБ\n\nПеревод выполняется полностью на этом устройстве, даже офлайн.</string>
-    <string name="note_translate_download_confirm">Скачать</string>
-    <string name="note_translate_download_cancel">Отмена</string>
 </resources>

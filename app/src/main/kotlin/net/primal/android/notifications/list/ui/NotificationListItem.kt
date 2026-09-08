@@ -276,7 +276,7 @@ private fun NotificationIconAndExtraStats(icon: Painter, notifications: List<Not
             // A bare number here reads as a like/repost/reply count for those notification
             // types, but for a zap it was ambiguous — nothing said this was an amount of sats
             // rather than, say, a count of zappers. Only the zap case needs the unit spelled out.
-            val text = if (firstNotification.notificationType == NotificationType.YOUR_POST_WAS_ZAPPED) {
+            val text = if (firstNotification.notificationType.isZapNotification()) {
                 "${extraStat.shortened()} ${stringResource(id = R.string.wallet_sats_suffix)}"
             } else {
                 extraStat.shortened()
@@ -295,17 +295,28 @@ private fun NotificationIconAndExtraStats(icon: Painter, notifications: List<Not
 @Composable
 private fun NotificationUi.extraStatColor() =
     when (this.notificationType) {
-        NotificationType.YOUR_POST_WAS_ZAPPED -> AppTheme.extraColorScheme.zapped
+        NotificationType.YOUR_POST_WAS_ZAPPED,
+        NotificationType.POST_YOU_WERE_MENTIONED_IN_WAS_ZAPPED,
+        NotificationType.POST_YOUR_POST_WAS_MENTIONED_IN_WAS_ZAPPED,
+        -> AppTheme.extraColorScheme.zapped
         NotificationType.YOUR_POST_WAS_LIKED -> AppTheme.extraColorScheme.liked
         NotificationType.YOUR_POST_WAS_REPOSTED -> AppTheme.extraColorScheme.reposted
         NotificationType.YOUR_POST_WAS_REPLIED_TO -> AppTheme.extraColorScheme.replied
         else -> Color.Unspecified
     }
 
+private fun NotificationType.isZapNotification() =
+    this == NotificationType.YOUR_POST_WAS_ZAPPED ||
+        this == NotificationType.POST_YOU_WERE_MENTIONED_IN_WAS_ZAPPED ||
+        this == NotificationType.POST_YOUR_POST_WAS_MENTIONED_IN_WAS_ZAPPED
+
 @Composable
 private fun List<NotificationUi>.extractExtraStat() =
     when (first().notificationType) {
-        NotificationType.YOUR_POST_WAS_ZAPPED -> this.mapNotNull { it.actionUserSatsZapped }.sum()
+        NotificationType.YOUR_POST_WAS_ZAPPED,
+        NotificationType.POST_YOU_WERE_MENTIONED_IN_WAS_ZAPPED,
+        NotificationType.POST_YOUR_POST_WAS_MENTIONED_IN_WAS_ZAPPED,
+        -> this.mapNotNull { it.actionUserSatsZapped }.sum()
         NotificationType.YOUR_POST_WAS_LIKED -> first().actionPost?.stats?.likesCount
         NotificationType.YOUR_POST_WAS_REPOSTED -> first().actionPost?.stats?.repostsCount
         NotificationType.YOUR_POST_WAS_REPLIED_TO -> first().actionPost?.stats?.repliesCount
