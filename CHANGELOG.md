@@ -7,6 +7,24 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.2] - 2026-09-09
+
+### Fixed
+
+- A thread with an unusually long chain of nested replies could crash the app outright — the
+  code that lays out the reply tree walked one level at a time recursively, and a deep enough
+  chain overflowed the call stack. Rewritten to walk iteratively instead, with no protocol-level
+  depth limit.
+- Deeply nested replies no longer push the note itself further and further off the edge of the
+  screen — indentation now caps out after a handful of levels while the actual nesting is still
+  tracked correctly underneath.
+- A reply whose parent note this app doesn't have used to render at the same visual weight as a
+  confirmed direct reply to what you opened, with nothing distinguishing the two. It now draws
+  with a fainter connector instead, so it's still there — never hidden — but doesn't read as more
+  certain than it actually is.
+- Reply ordering could be unstable when two replies shared the exact same timestamp (common when
+  several relays hand back events for the same second); ties now resolve the same way every time.
+
 ## [0.5.1] - 2026-09-08
 
 ### Fixed

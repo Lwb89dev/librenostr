@@ -504,10 +504,18 @@ private fun ThreadLazyColumn(
                     }
                     .let {
                         if (isReply) {
+                            // The real depth (item.replyLevel) stays in the data untouched — only
+                            // how far this draws is capped, so a very deep thread doesn't push
+                            // the note card off the edge of the screen one bar at a time.
                             it.drawReplyLevel(
-                                level = item.replyLevel,
+                                level = item.replyLevel.coerceAtMost(MAX_VISUAL_REPLY_LEVEL),
                                 color = AppTheme.colorScheme.outline,
                                 selected = AppTheme.colorScheme.primary,
+                                // The named parent wasn't found in this fetch, so this depth is a
+                                // placeholder rather than a confirmed fact — a faint bar instead of
+                                // the normal one is the only visible difference; it still renders
+                                // in place rather than being hidden or moved.
+                                unresolved = item.hasUnresolvedParent,
                             )
                         } else {
                             it
@@ -689,16 +697,18 @@ private fun isConnectedForward(index: Int, highlightIndex: Int): Boolean {
  * to a reply is marked by an extra bar next to it rather than by connecting it to whatever
  * happens to be above it in the list. Mirrors how Amethyst marks reply depth.
  */
-private fun Modifier.drawReplyLevel(level: Int, color: Color, selected: Color): Modifier =
+private fun Modifier.drawReplyLevel(level: Int, color: Color, selected: Color, unresolved: Boolean = false): Modifier =
     this
         .drawBehind {
             val padding = REPLY_LEVEL_PADDING_DP.dp.toPx()
             val strokeWidth = REPLY_LEVEL_STROKE_WIDTH_DP.dp.toPx()
             val levelWidth = REPLY_LEVEL_WIDTH_DP.dp.toPx()
+            val alpha = if (unresolved) UNRESOLVED_REPLY_LEVEL_ALPHA else 1f
 
             repeat(level) {
+                val lineColor = if (it == level - 1) selected else color
                 drawLine(
-                    color = if (it == level - 1) selected else color,
+                    color = lineColor.copy(alpha = lineColor.alpha * alpha),
                     start = Offset(x = padding + it * levelWidth, y = 0f),
                     end = Offset(x = padding + it * levelWidth, y = size.height),
                     strokeWidth = strokeWidth,
@@ -710,6 +720,18 @@ private fun Modifier.drawReplyLevel(level: Int, color: Color, selected: Color): 
 private const val REPLY_LEVEL_PADDING_DP = 2
 private const val REPLY_LEVEL_STROKE_WIDTH_DP = 2
 private const val REPLY_LEVEL_WIDTH_DP = REPLY_LEVEL_STROKE_WIDTH_DP + 1
+
+/**
+ * A NIP-10 reply chain has no protocol-level depth limit, but indentation growing by
+ * [REPLY_LEVEL_WIDTH_DP] per level without a cap eventually leaves no room for the note itself on
+ * a phone-width screen. Past this many levels, every deeper reply still draws at this same
+ * indentation instead of going further — the real depth is untouched in the data (item.replyLevel),
+ * only how far this draws is capped.
+ */
+private const val MAX_VISUAL_REPLY_LEVEL = 8
+
+/** How faint an unresolved-parent reply's level bar draws relative to a normal one. */
+private const val UNRESOLVED_REPLY_LEVEL_ALPHA = 0.35f
 
 private fun EventStatsUi.hasAnyCount() = repliesCount > 0 || zapsCount > 0 || likesCount > 0 || repostsCount > 0
 

@@ -141,6 +141,9 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
     database.articles().upsertAll(list = allArticles)
     database.highlights().upsertAll(data = referencedHighlights)
     database.streams().upsertStreamData(data = streamData)
+    // See NoteConversationCrossRef's own doc: this is the one-hop, genuinely-structural half of
+    // the two write paths that feed it. Do not remove without also revisiting
+    // persistNoteRepliesAndArticleCommentsToDatabase below — the two exist for different reasons.
     database.threadConversations().connectNoteWithReply(
         data = allPosts.map {
             NoteConversationCrossRef(
@@ -175,6 +178,11 @@ internal suspend fun FeedResponse.persistNoteRepliesAndArticleCommentsToDatabase
 
     database.withTransaction {
         if (conversationIds.isNotEmpty()) {
+            // Deliberately flat: every post fetched for THIS thread-open is marked as belonging
+            // to noteId's conversation regardless of its actual depth. See NoteConversationCrossRef's
+            // doc — ThreadConversationDao.observeNoteConversation is a single join, not recursive,
+            // so this is what makes anything nested more than one level deep show up at all. Real
+            // depth is reconstructed separately, client-side, from each post's own tags.
             database.threadConversations().connectNoteWithReply(
                 data = conversationIds.map { eventId ->
                     NoteConversationCrossRef(

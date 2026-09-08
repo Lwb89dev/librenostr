@@ -50,6 +50,12 @@ data class FeedPostUi(
      * the same rank as every other reply in the conversation.
      */
     val replyLevel: Int = 0,
+    /**
+     * True when [replyLevel] is a placeholder, not a fact: this reply names a parent that is
+     * neither the opened note nor anywhere in this thread fetch. It still renders at [replyLevel]
+     * rather than vanish or wait — see `ReplyTree.ReplyPlacement.hasKnownParent`.
+     */
+    val hasUnresolvedParent: Boolean = false,
 )
 
 fun FeedPost.asFeedPostUi(): FeedPostUi {

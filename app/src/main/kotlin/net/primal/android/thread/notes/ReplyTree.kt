@@ -2,12 +2,8 @@ package net.primal.android.thread.notes
 
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asFeedPostUi
-import net.primal.domain.nostr.getTagValueOrNull
-import net.primal.domain.nostr.hasMentionMarker
-import net.primal.domain.nostr.hasReplyMarker
-import net.primal.domain.nostr.hasRootMarker
-import net.primal.domain.nostr.isEventIdTag
 import net.primal.domain.posts.FeedPost
+import net.primal.domain.posts.immediateParentId
 
 /**
  * Maps the ancestor chain leading to [highlightPostId] through unchanged, then rebuilds
@@ -25,69 +21,102 @@ internal fun List<FeedPost>.asDisplayOrderedFeedPostUi(highlightPostId: String):
     val ancestorsAndHighlighted = subList(0, highlightIndex + 1).map { it.asFeedPostUi() }
     val rootAuthorId = firstOrNull()?.author?.authorId
     val replies = subList(highlightIndex + 1, size)
-        .buildReplyTree(rootAuthorId = rootAuthorId)
-        .map { (post, level) -> post.asFeedPostUi().copy(replyLevel = level) }
+        .buildReplyTree(rootAuthorId = rootAuthorId, rootId = highlightPostId)
+        .map { it.post.asFeedPostUi().copy(replyLevel = it.level, hasUnresolvedParent = !it.hasKnownParent) }
 
     return ancestorsAndHighlighted + replies
 }
 
+/** One reply's place in the tree: how deep it sits, and whether that depth is trustworthy. */
+internal data class ReplyPlacement(
+    val post: FeedPost,
+    val level: Int,
+    /**
+     * False for a reply whose named parent isn't the opened note and isn't anywhere in this
+     * fetch either — its real depth is unknown, and level is a placeholder (1), not a fact. This
+     * is deliberately *not* the same thing as "no named parent at all": a genuine direct reply to
+     * the opened note has [hasKnownParent] `true` at level 1, same as always.
+     */
+    val hasKnownParent: Boolean,
+)
+
 /**
  * Orders the replies under an opened note into a proper tree instead of one flat pile.
  *
- * A NIP-10 `e` tag names a reply's parent exactly — there is no ambiguity here the way there is
- * with timestamps, which some clients get wrong. The thread screen used to ignore that and sort
- * everything after the opened note by timestamp alone, in two buckets (the thread author, then
- * everyone else). A reply to a reply looked identical to a reply to the opened note itself, both
- * rendered at the same rank, and the second one to arrive could appear ahead of the reply it was
- * actually answering.
+ * The parent/root relationship each post names for itself — NIP-10 or NIP-22 depending on kind —
+ * is pure protocol interpretation and lives separately in `net.primal.domain.posts` (see
+ * [immediateParentId]); there is no ambiguity there the way there is with timestamps, which some
+ * clients get wrong. The thread screen used to ignore that and sort everything after the opened
+ * note by timestamp alone, in two buckets (the thread author, then everyone else). A reply to a
+ * reply looked identical to a reply to the opened note itself, both rendered at the same rank, and
+ * the second one to arrive could appear ahead of the reply it was actually answering.
  *
  * The result pairs each reply with how deep it sits, for the UI to draw one vertical bar per
  * level, and orders the flat list as a depth-first walk: a reply is always immediately followed
- * by its own replies, before any sibling's. A reply whose named parent is not in [this] — because
- * it targets the opened note itself, or an ancestor, or something outside this thread fetch
- * entirely — is treated as level 1, a direct reply to what was opened.
+ * by its own replies, before any sibling's. A reply whose named parent is neither [rootId] nor
+ * anywhere in [this] — the parent exists somewhere, just not in what this fetch brought back — is
+ * placed at level 1 with [ReplyPlacement.hasKnownParent] `false`, rather than pretending it is a
+ * confirmed direct reply to what was opened. It still shows: the alternative is not "correctly
+ * nested," it is "silently missing," which is worse.
  *
  * Within one parent's replies, [rootAuthorId]'s own are shown first, oldest first — a continued
  * thought reads top to bottom — and everyone else's after that, newest first.
  */
-internal fun List<FeedPost>.buildReplyTree(rootAuthorId: String?): List<Pair<FeedPost, Int>> {
+internal fun List<FeedPost>.buildReplyTree(rootAuthorId: String?, rootId: String? = null): List<ReplyPlacement> {
     val postsById = associateBy { it.eventId }
     val childrenByParentId = mutableMapOf<String, MutableList<FeedPost>>()
     val topLevel = mutableListOf<FeedPost>()
+    val orphanIds = mutableSetOf<String>()
 
     forEach { post ->
-        val parentId = post.immediateParentId()?.takeIf { it in postsById }
-        if (parentId == null) {
-            topLevel += post
-        } else {
-            childrenByParentId.getOrPut(parentId) { mutableListOf() } += post
+        val parentId = post.immediateParentId()
+        when {
+            parentId == null || parentId == rootId -> topLevel += post
+            parentId in postsById -> childrenByParentId.getOrPut(parentId) { mutableListOf() } += post
+            else -> {
+                topLevel += post
+                orphanIds += post.eventId
+            }
         }
     }
 
     val visited = mutableSetOf<String>()
-    val ordered = mutableListOf<Pair<FeedPost, Int>>()
+    val ordered = mutableListOf<ReplyPlacement>()
 
-    fun visit(post: FeedPost, level: Int) {
-        // A cycle would mean two replies each named the other as parent — malformed input, not a
-        // real conversation. Stop descending into it rather than recursing forever.
-        if (post.eventId in visited) return
-        visited += post.eventId
+    // Iterative pre-order walk, not recursive: a long chain of replies (a NIP-10 chain has no
+    // depth limit) previously meant one JVM stack frame per level, risking a StackOverflowError
+    // on a deep-enough thread. An explicit stack of (post, level) pairs stands in for the call
+    // stack; each entry's children are pushed in reverse display order so the first one is popped
+    // — and therefore visited — next, preserving the same "a post is immediately followed by its
+    // own replies, before any sibling's" ordering the recursive walk produced.
+    fun walk(roots: List<FeedPost>) {
+        val stack = ArrayDeque<Pair<FeedPost, Int>>()
+        roots.sortedForDisplay(rootAuthorId).asReversed().forEach { stack.addLast(it to 1) }
 
-        ordered += post to level
-        childrenByParentId[post.eventId]
-            .orEmpty()
-            .sortedForDisplay(rootAuthorId)
-            .forEach { visit(it, level = level + 1) }
+        while (stack.isNotEmpty()) {
+            val (post, level) = stack.removeLast()
+            // A cycle would mean two replies each named the other as parent — malformed input,
+            // not a real conversation. Stop descending into it rather than looping forever.
+            if (post.eventId in visited) continue
+            visited += post.eventId
+
+            ordered += ReplyPlacement(post = post, level = level, hasKnownParent = post.eventId !in orphanIds)
+            childrenByParentId[post.eventId]
+                .orEmpty()
+                .sortedForDisplay(rootAuthorId)
+                .asReversed()
+                .forEach { stack.addLast(it to level + 1) }
+        }
     }
 
-    topLevel.sortedForDisplay(rootAuthorId).forEach { visit(it, level = 1) }
+    walk(topLevel)
 
     // A post can be unreachable from every top-level entry point without the graph having an
     // outright cycle: if every one of its ancestors also names an in-set parent, the walk above
     // never starts at any of them. A cycle is the narrowest case of that. Either way, dropping
     // the post would be worse than the timestamp-only sort this replaces — silently missing
     // content is a harder bug to notice than one merely out of order.
-    forEach { post -> if (post.eventId !in visited) visit(post, level = 1) }
+    forEach { post -> if (post.eventId !in visited) walk(listOf(post)) }
 
     return ordered
 }
@@ -96,21 +125,10 @@ private fun List<FeedPost>.sortedForDisplay(rootAuthorId: String?): List<FeedPos
     val (fromRootAuthor, fromEveryoneElse) = partition {
         rootAuthorId != null && it.author.authorId == rootAuthorId
     }
-    return fromRootAuthor.sortedBy { it.timestamp } + fromEveryoneElse.sortedByDescending { it.timestamp }
-}
-
-/**
- * The one post this reply answers, per NIP-10: the `e` tag marked `reply`, or — for a reply
- * directly to the thread root, which NIP-10 allows to omit the `reply` marker — the tag marked
- * `root`. Falls back to the last bare `e` tag for the deprecated positional convention some
- * clients still write.
- */
-private fun FeedPost.immediateParentId(): String? {
-    val replyTag = tags.find { it.hasReplyMarker() }
-    val rootTag = tags.find { it.hasRootMarker() }
-    (replyTag ?: rootTag)?.getTagValueOrNull()?.let { return it }
-
-    return tags.filterNot { it.hasMentionMarker() }
-        .lastOrNull { it.isEventIdTag() }
-        ?.getTagValueOrNull()
+    // Two relays can hand back events with identical `created_at` — a bare sortedBy is stable, so
+    // ties would fall back to whatever order the query happened to return them in, which is not
+    // guaranteed to be the same from one load to the next. Event id is arbitrary but fixed, so
+    // ties resolve to the same order every time.
+    return fromRootAuthor.sortedWith(compareBy({ it.timestamp }, { it.eventId })) +
+        fromEveryoneElse.sortedWith(compareByDescending<FeedPost> { it.timestamp }.thenBy { it.eventId })
 }

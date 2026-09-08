@@ -23,8 +23,7 @@ private val nostrUriRegexPattern = Regex(
     RegexOption.IGNORE_CASE,
 )
 
-fun String.parseNostrUris(): List<String> =
-    parseNostrUriCandidates().filter { it.nostrUriToBytes() != null }
+fun String.parseNostrUris(): List<String> = parseNostrUriCandidates().filter { it.nostrUriToBytes() != null }
 
 /**
  * Same match as [parseNostrUris], but also keeps an explicitly-scoped `nostr:`-prefixed candidate
