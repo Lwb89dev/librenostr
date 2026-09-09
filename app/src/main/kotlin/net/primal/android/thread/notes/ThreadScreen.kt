@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -160,7 +161,6 @@ fun ThreadScreen(
     eventPublisher: (ThreadContract.UiEvent) -> Unit,
 ) {
     val context = LocalContext.current
-    val activeAccountId = LocalActiveAccountId.current
     val uiScope = rememberCoroutineScope()
     val noteEditorViewModel = noteEditorViewModel(
         args = NoteEditorArgs(
@@ -243,16 +243,13 @@ fun ThreadScreen(
                     state = state,
                     noteCallbacks = noteCallbacks.copy(
                         onNotePrivateReplyClick = { item ->
-                            if (item.authorId != activeAccountId) {
-                                callbacks.onExpandReply(
-                                    NoteEditorArgs(
-                                        referencedNoteNevent = if (!item.isPrivate) item.asNeventString() else null,
-                                        privateReplyRecipientId = item.authorId,
-                                        privateReplyRootId = item.threadRootId ?: state.highlightPostId,
-                                        privateReplyParentId = item.postId,
-                                    ),
-                                )
-                            }
+                            callbacks.onExpandReply(
+                                NoteEditorArgs(
+                                    privateReplyRootId = item.threadRootId ?: state.highlightPostId,
+                                    privateReplyParentId = item.postId,
+                                    showPrivateReplyRecipientPicker = true,
+                                ),
+                            )
                         },
                     ),
                     onGoToWallet = callbacks.onGoToWallet,
@@ -315,7 +312,7 @@ fun ThreadScreen(
                         .navigationBarsPadding(),
                     replyState = replyState,
                     replyToPost = replyToPost,
-                    onExpandReply = { mediaUris ->
+                    onExpandReply = { mediaUris, showPrivateReplyRecipientPicker ->
                         callbacks.onExpandReply(
                             NoteEditorArgs(
                                 referencedNoteNevent = state.highlightNote?.asNeventString(),
@@ -324,6 +321,7 @@ fun ThreadScreen(
                                 contentSelectionStart = replyState.content.selection.start,
                                 contentSelectionEnd = replyState.content.selection.end,
                                 taggedUsers = replyState.taggedUsers,
+                                showPrivateReplyRecipientPicker = showPrivateReplyRecipientPicker,
                             ),
                         )
                         uiScope.launch {
@@ -755,7 +753,7 @@ private fun ReplyToBottomBar(
     modifier: Modifier,
     replyState: NoteEditorContract.UiState,
     replyToPost: FeedPostUi,
-    onExpandReply: (mediaUris: List<Uri>) -> Unit,
+    onExpandReply: (mediaUris: List<Uri>, showPrivateReplyRecipientPicker: Boolean) -> Unit,
     onPollReply: () -> Unit,
     onGifReply: () -> Unit,
     replyEventPublisher: (NoteEditorContract.UiEvent) -> Unit,
@@ -800,7 +798,7 @@ private fun ReplyToBottomBar(
                         modifier = Modifier
                             .size(16.dp)
                             .clickable {
-                                onExpandReply(emptyList())
+                                onExpandReply(emptyList(), false)
                                 keyboardController?.hide()
                             },
                         imageVector = PrimalIcons.Expand,
@@ -825,7 +823,11 @@ private fun ReplyToBottomBar(
             replying = replyState.publishing,
             replyEnabled = !replyState.publishing && replyState.content.text.isNotBlank(),
             onPublishReplyClick = { replyEventPublisher(NoteEditorContract.UiEvent.PublishNote) },
-            onPhotosImported = { uris -> onExpandReply(uris) },
+            onPhotosImported = { uris -> onExpandReply(uris, false) },
+            onPrivateReplyClick = {
+                onExpandReply(emptyList(), true)
+                keyboardController?.hide()
+            },
             onUserTagClick = {
                 replyEventPublisher(NoteEditorContract.UiEvent.AppendUserTagAtSign)
                 replyEventPublisher(NoteEditorContract.UiEvent.ToggleSearchUsers(enabled = true))
@@ -868,6 +870,7 @@ private fun ReplyToOptions(
     replyEnabled: Boolean,
     onPublishReplyClick: () -> Unit,
     onPhotosImported: (List<Uri>) -> Unit,
+    onPrivateReplyClick: () -> Unit,
     onUserTagClick: () -> Unit,
     onPollClick: () -> Unit,
     onGifClick: () -> Unit,
@@ -908,6 +911,14 @@ private fun ReplyToOptions(
                 Icon(
                     imageVector = PrimalIcons.Poll,
                     contentDescription = stringResource(id = R.string.accessibility_poll_toggle),
+                    tint = AppTheme.colorScheme.onSurface,
+                )
+            }
+
+            IconButton(onClick = onPrivateReplyClick) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = stringResource(id = R.string.accessibility_private_reply),
                     tint = AppTheme.colorScheme.onSurface,
                 )
             }

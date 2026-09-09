@@ -1640,6 +1640,12 @@
     <string name="note_editor_private_reply_title">🔒 Private reply</string>
     <string name="note_editor_private_reply_send">Send privately</string>
     <string name="note_editor_private_reply_sending">Sending…</string>
+    <string name="accessibility_private_reply">Private reply</string>
+    <string name="private_reply_recipient_title">Send a private reply</string>
+    <string name="private_reply_recipient_description">Only the selected recipient can read this reply.</string>
+    <string name="private_reply_recipient_hint">Username or npub</string>
+    <string name="private_reply_recipient_confirm">Select</string>
+    <string name="private_reply_recipient_cancel">Cancel</string>
     <string name="feed_context_private_reply">Private reply</string>
     <string name="thread_private_reply_badge">🔒 Private</string>
 </resources>

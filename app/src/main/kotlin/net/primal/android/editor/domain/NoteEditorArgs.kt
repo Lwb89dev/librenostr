@@ -22,6 +22,7 @@ data class NoteEditorArgs(
     val privateReplyRecipientId: String? = null,
     val privateReplyRootId: String? = null,
     val privateReplyParentId: String? = null,
+    val showPrivateReplyRecipientPicker: Boolean = false,
 ) {
     val isPrivateReply: Boolean
         get() = privateReplyRecipientId != null && privateReplyRootId != null && privateReplyParentId != null

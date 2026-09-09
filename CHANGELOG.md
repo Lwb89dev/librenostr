@@ -7,6 +7,18 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.4] - 2026-09-09
+
+### Fixed
+
+- Private replies are now invoked directly from a thread's reply toolbar via a lock icon, instead
+  of being hidden in a note overflow menu. The recipient picker accepts either a searched username
+  or an `npub`; only that selected account can decrypt the resulting NIP-17 reply.
+- Normal thread replies remain public by default. Private delivery is enabled only after the lock
+  action and recipient selection, and can be switched back off before publishing.
+- NIP-17 conversations now continue to refresh and send through the compatible legacy path when a
+  contact has not yet published a kind-10050 DM relay list, rather than failing the whole inbox.
+
 ## [0.5.3] - 2026-09-09
 
 ### Added

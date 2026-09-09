@@ -14,6 +14,7 @@ import kotlinx.serialization.json.buildJsonArray
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
+import net.primal.core.utils.onFailure
 import net.primal.core.utils.runCatching
 import net.primal.data.local.dao.messages.DirectMessage
 import net.primal.data.local.dao.messages.MessageConversation
@@ -37,6 +38,7 @@ import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.messages.ConversationRelation
 import net.primal.domain.messages.Nip17Message
+import net.primal.domain.messages.Nip17RelayListNotFoundException
 import net.primal.domain.messages.Nip17Transport
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -212,9 +214,14 @@ internal class ChatRepositoryImpl(
     }
 
     override suspend fun syncConversations(userId: String, backfillPages: Int) {
+        // Not exclusive with the legacy path below: NIP-17 is new enough that a conversation can
+        // easily have one side on it and the other still only reachable over the legacy encrypted
+        // DM kind, so both are always fetched and merged — same as Amethyst and Damus do. Best
+        // effort: a NIP-17 fetch failing here (relay down, this account genuinely has no NIP-17
+        // relay list of its own yet) must not stop legacy conversations from refreshing.
         nip17Transport?.let { transport ->
-            syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId))
-            return
+            runCatching { syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId)) }
+                .onFailure { error -> Napier.w(throwable = error) { "NIP-17 conversation sync failed." } }
         }
         // Accumulated independently of persistence: reclassification below must not depend on
         // whether processMessageEventsAndSave has actually written this sync's messages to disk
@@ -290,22 +297,26 @@ internal class ChatRepositoryImpl(
         filter { it.pubKey == userId }.mapNotNull { it.tags.findFirstProfileId() }.toSet()
 
     override suspend fun fetchNonFollowsConversations(userId: String) {
+        // See syncConversations: both protocols are fetched, not either/or.
         nip17Transport?.let { transport ->
-            syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId))
-            return
+            runCatching { syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId)) }
+                .onFailure { error -> Napier.w(throwable = error) { "NIP-17 conversation sync failed." } }
         }
         fetchConversations(userId = userId, relation = ConversationRelation.Other)
     }
 
     override suspend fun fetchNewConversationMessages(userId: String, conversationUserId: String) {
+        // See syncConversations: both protocols are fetched, not either/or — the person on the
+        // other end of this specific conversation may only ever reply over the legacy kind.
         nip17Transport?.let { transport ->
-            syncNip17Messages(
-                userId = userId,
-                messages = transport.fetchMessages(userId).filter {
-                    it.senderId == conversationUserId || conversationUserId in it.recipientIds
-                },
-            )
-            return
+            runCatching {
+                syncNip17Messages(
+                    userId = userId,
+                    messages = transport.fetchMessages(userId).filter {
+                        it.senderId == conversationUserId || conversationUserId in it.recipientIds
+                    },
+                )
+            }.onFailure { error -> Napier.w(throwable = error) { "NIP-17 message fetch failed." } }
         }
         withContext(dispatcherProvider.io()) {
             val latestMessage = database.messages().firstByOwnerId(ownerId = userId, participantId = conversationUserId)
@@ -375,10 +386,25 @@ internal class ChatRepositoryImpl(
         text: String,
     ) {
         nip17Transport?.let { transport ->
-            val message = transport.sendMessage(userId = userId, receiverId = receiverId, content = text)
-            syncNip17Messages(userId = userId, messages = listOf(message))
-            return
+            try {
+                val message = transport.sendMessage(userId = userId, receiverId = receiverId, content = text)
+                syncNip17Messages(userId = userId, messages = listOf(message))
+                return
+            } catch (error: Nip17RelayListNotFoundException) {
+                // NIP-17 is new enough that most accounts on the network — including, sometimes,
+                // this one — have not published a kind-10050 DM relay list yet, so sending to (or
+                // as) one always failed outright with no way to reach that person at all. Falling
+                // back to the legacy encrypted-DM kind keeps sending possible with anyone, the
+                // same way Amethyst and Damus retain both instead of requiring NIP-17 on both ends.
+                Napier.i(throwable = error) {
+                    "No NIP-17 DM relay list for ${error.recipientId}; sending as a legacy DM instead."
+                }
+            }
         }
+        sendLegacyMessage(userId = userId, receiverId = receiverId, text = text)
+    }
+
+    private suspend fun sendLegacyMessage(userId: String, receiverId: String, text: String) {
         val encryptedContent = messageCipher.encryptMessage(
             userId = userId,
             participantId = receiverId,

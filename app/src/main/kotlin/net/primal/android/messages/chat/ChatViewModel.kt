@@ -11,6 +11,7 @@ import io.github.aakira.napier.Napier
 import java.time.Instant
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -150,6 +151,15 @@ class ChatViewModel @Inject constructor(
                 setErrorState(error = UiState.ChatError.MissingRelaysConfiguration(error))
             } catch (error: MessageEncryptException) {
                 Napier.w(throwable = error) { "MessageEncryptException while sending message." }
+                setErrorState(error = UiState.ChatError.PublishError(error))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                // A catch-all on top of the specific cases above: the transports underneath this
+                // call (NIP-17's Quartz-based gift-wrap pipeline included) can fail in ways none
+                // of those types cover, and an uncaught exception here used to crash the whole
+                // screen instead of leaving the user able to just try again.
+                Napier.w(throwable = error) { "Unexpected error while sending message." }
                 setErrorState(error = UiState.ChatError.PublishError(error))
             } finally {
                 setState { copy(sending = false) }

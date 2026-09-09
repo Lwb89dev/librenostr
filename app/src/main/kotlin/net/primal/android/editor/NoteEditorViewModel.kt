@@ -127,6 +127,9 @@ class NoteEditorViewModel @AssistedInject constructor(
         UiState(
             isQuoting = args.isQuoting,
             isPrivateReply = args.isPrivateReply,
+            privateReplyRecipientId = args.privateReplyRecipientId,
+            privateReplyRecipientPickerVisible = args.showPrivateReplyRecipientPicker,
+            canSendPrivateReply = args.referencedNoteNevent != null || args.privateReplyParentId != null,
             pollState = if (args.startWithPoll) PollEditorState() else null,
         ),
     )
@@ -273,6 +276,41 @@ class NoteEditorViewModel @AssistedInject constructor(
                             )
                         }
                         userMentionHandler.markUserAsMentioned(profileId = event.taggedUser.userId)
+                    }
+
+                    UiEvent.ShowPrivateReplyRecipientPicker -> setState {
+                        copy(privateReplyRecipientPickerVisible = true)
+                    }
+
+                    UiEvent.HidePrivateReplyRecipientPicker -> {
+                        userMentionHandler.toggleSearch(enabled = false)
+                        setState { copy(privateReplyRecipientPickerVisible = false) }
+                    }
+
+                    is UiEvent.SelectPrivateReplyRecipient -> {
+                        userMentionHandler.toggleSearch(enabled = false)
+                        setState {
+                            copy(
+                                isPrivateReply = true,
+                                privateReplyRecipientId = event.userId,
+                                privateReplyRecipientName = event.userName,
+                                privateReplyRecipientPickerVisible = false,
+                                attachments = emptyList(),
+                                pendingGifUploads = emptyList(),
+                                pollState = null,
+                            )
+                        }
+                        gifUploadJobs.values.forEach { it.cancel() }
+                        gifUploadJobs.clear()
+                    }
+
+                    UiEvent.ClearPrivateReplyRecipient -> setState {
+                        copy(
+                            isPrivateReply = false,
+                            privateReplyRecipientId = null,
+                            privateReplyRecipientName = null,
+                            privateReplyRecipientPickerVisible = false,
+                        )
                     }
 
                     UiEvent.AppendUserTagAtSign -> setState {
@@ -800,15 +838,21 @@ class NoteEditorViewModel @AssistedInject constructor(
                 val userId = state.value.selectedAccount?.pubkey ?: activeAccountStore.activeUserId()
                 val content = resolveNoteContent()
 
-                if (args.isPrivateReply) {
-                    val privateContent = state.value.attachments.mapNotNull { it.remoteUrl }
-                        .fold(content) { text, url -> if (text.isBlank()) url else "$text\n$url" }
+                if (state.value.isPrivateReply) {
+                    val parentId = referencedNoteNevent?.eventId
+                        ?: requireNotNull(args.privateReplyParentId)
+                    val parentPost = feedRepository.findPostsById(parentId)?.asFeedPostUi()
+                    val rootId = parentPost?.threadRootId
+                        ?: state.value.replyToConversation.firstOrNull()?.threadRootId
+                        ?: state.value.replyToConversation.firstOrNull()?.postId
+                        ?: args.privateReplyRootId
+                        ?: parentId
                     chatRepository.sendPrivateReply(
                         userId = userId,
-                        receiverId = requireNotNull(args.privateReplyRecipientId),
-                        text = privateContent,
-                        rootId = requireNotNull(args.privateReplyRootId),
-                        parentId = requireNotNull(args.privateReplyParentId),
+                        receiverId = requireNotNull(state.value.privateReplyRecipientId),
+                        text = content,
+                        rootId = rootId,
+                        parentId = parentId,
                     )
                     resetState()
                     sendEffect(SideEffect.PostPublished)

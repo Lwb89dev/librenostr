@@ -1,6 +1,7 @@
 package net.primal.android.settings.tor
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -120,7 +121,14 @@ private fun TorSettingsContent(
     Column(
         modifier = modifier
             .background(color = AppTheme.colorScheme.surfaceVariant)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            // The port field and the "Orbot not installed" warning below only show once
+            // torEnabled/orbotInstalled settle (async DataStore reads that can land after the
+            // enclosing AnimatedVisibility's own enter animation already measured a shorter
+            // first pass) — animateContentSize keeps this column's real height in sync with
+            // whichever of those is actually showing right now, instead of leaving the
+            // surrounding accordion frozen at whatever height it first measured.
+            .animateContentSize(),
     ) {
         SettingsItem(
             headlineText = stringResource(id = R.string.settings_tor_enable_title),

@@ -55,6 +55,10 @@ interface NoteEditorContract {
         val pendingGifUploads: List<PendingGifUpload> = emptyList(),
         val pollState: PollEditorState? = null,
         val isPrivateReply: Boolean = false,
+        val privateReplyRecipientId: String? = null,
+        val privateReplyRecipientName: String? = null,
+        val privateReplyRecipientPickerVisible: Boolean = false,
+        val canSendPrivateReply: Boolean = false,
     ) {
         val isReply: Boolean get() = replyToConversation.isNotEmpty()
         val replyToNote: FeedPostUi? = replyToConversation.lastOrNull()
@@ -89,6 +93,10 @@ interface NoteEditorContract {
         data class UpdatePollType(val pollType: PollType) : UiEvent()
         data class UpdateMinZapAmount(val amountInSats: Long?) : UiEvent()
         data class UpdateMaxZapAmount(val amountInSats: Long?) : UiEvent()
+        data object ShowPrivateReplyRecipientPicker : UiEvent()
+        data object HidePrivateReplyRecipientPicker : UiEvent()
+        data class SelectPrivateReplyRecipient(val userId: String, val userName: String) : UiEvent()
+        data object ClearPrivateReplyRecipient : UiEvent()
     }
 
     sealed class SideEffect {

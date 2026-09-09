@@ -31,12 +31,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -107,6 +110,7 @@ import net.primal.android.editor.domain.NoteAttachment
 import net.primal.android.editor.ui.NoteAttachmentPreview
 import net.primal.android.editor.ui.NoteOutlinedTextField
 import net.primal.android.editor.ui.NoteTagUserLazyColumn
+import net.primal.android.explore.search.ui.UserProfileListItem
 import net.primal.android.editor.ui.poll.PollEditorSection
 import net.primal.android.nostr.mappers.toReferencedHighlight
 import net.primal.android.core.compose.attachment.model.EventUriUi
@@ -126,6 +130,8 @@ import net.primal.android.notes.feed.note.ui.ReferencedStream
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.theme.AppTheme
 import net.primal.domain.nostr.asATagValue
+import net.primal.domain.nostr.cryptography.utils.assureValidPubKeyHex
+import net.primal.domain.nostr.utils.isValidNostrPublicKey
 
 private const val KEYBOARD_SETTLE_DELAY = 300L
 
@@ -210,6 +216,17 @@ fun NoteEditorScreen(
             onDismissRequest = {
                 showAccountSwitcher = false
             },
+        )
+    }
+
+    if (state.privateReplyRecipientPickerVisible) {
+        PrivateReplyRecipientDialog(
+            state = state,
+            onDismiss = { eventPublisher(UiEvent.HidePrivateReplyRecipientPicker) },
+            onRecipientSelected = { userId, userName ->
+                eventPublisher(UiEvent.SelectPrivateReplyRecipient(userId = userId, userName = userName))
+            },
+            onSearch = { eventPublisher(UiEvent.SearchUsers(it)) },
         )
     }
 
@@ -789,7 +806,7 @@ private fun NoteEditorFooter(
     Column(modifier = modifier) {
         HorizontalDivider(color = AppTheme.extraColorScheme.surfaceVariantAlt1)
 
-        if (state.userTaggingState.isUserTaggingActive) {
+        if (state.userTaggingState.isUserTaggingActive && !state.privateReplyRecipientPickerVisible) {
             NoteTagUserLazyColumn(
                 modifier = Modifier.heightIn(min = 0.dp, max = 288.dp),
                 content = state.content,
@@ -806,7 +823,7 @@ private fun NoteEditorFooter(
                     eventPublisher(UiEvent.ToggleSearchUsers(enabled = false))
                 },
             )
-        } else if (!state.isPrivateReply) {
+        } else if (!state.isPrivateReply || state.canSendPrivateReply) {
             NoteActionRow(
                 onPhotosImported = { photoUris ->
                     eventPublisher(
@@ -816,6 +833,17 @@ private fun NoteEditorFooter(
                 onGifClick = onGifClick,
                 isPollMode = isPollMode,
                 onPollToggle = onPollToggle,
+                showPrivateReplyAction = state.canSendPrivateReply,
+                isPrivateReply = state.isPrivateReply,
+                onPrivateReplyClick = {
+                    eventPublisher(
+                        if (state.isPrivateReply) {
+                            UiEvent.ClearPrivateReplyRecipient
+                        } else {
+                            UiEvent.ShowPrivateReplyRecipientPicker
+                        },
+                    )
+                },
             )
         }
     }
@@ -1054,36 +1082,131 @@ private fun ReplyToNote(replyToNote: FeedPostUi, connectionLineColor: Color) {
 }
 
 @Composable
+private fun PrivateReplyRecipientDialog(
+    state: NoteEditorContract.UiState,
+    onDismiss: () -> Unit,
+    onRecipientSelected: (userId: String, userName: String) -> Unit,
+    onSearch: (String) -> Unit,
+) {
+    var recipientInput by remember { mutableStateOf("") }
+    val rawRecipient = recipientInput.trim().removePrefix("nostr:")
+    val directRecipientId = rawRecipient
+        .takeIf { it.isValidNostrPublicKey() }
+        ?.let { runCatching { it.assureValidPubKeyHex() }.getOrNull() }
+    val users = if (state.userTaggingState.userTaggingQuery.isNullOrBlank()) {
+        state.userTaggingState.recommendedUsers
+    } else {
+        state.userTaggingState.searchResults
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(id = R.string.private_reply_recipient_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(id = R.string.private_reply_recipient_description),
+                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
+                    style = AppTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    value = recipientInput,
+                    onValueChange = {
+                        recipientInput = it
+                        onSearch(it)
+                    },
+                    singleLine = true,
+                    label = { Text(text = stringResource(id = R.string.private_reply_recipient_hint)) },
+                )
+                if (users.isNotEmpty() && directRecipientId == null) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp),
+                    ) {
+                        items(items = users, key = { it.profileId }) { user ->
+                            UserProfileListItem(
+                                data = user,
+                                onClick = { onRecipientSelected(user.profileId, user.displayName) },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = directRecipientId != null,
+                onClick = {
+                    directRecipientId?.let {
+                        onRecipientSelected(it, rawRecipient)
+                    }
+                },
+            ) {
+                Text(text = stringResource(id = R.string.private_reply_recipient_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.private_reply_recipient_cancel))
+            }
+        },
+    )
+}
+
+@Composable
 private fun NoteActionRow(
     onPhotosImported: (List<Uri>) -> Unit,
     onGifClick: () -> Unit,
     isPollMode: Boolean,
     onPollToggle: () -> Unit,
+    showPrivateReplyAction: Boolean,
+    isPrivateReply: Boolean,
+    onPrivateReplyClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
-        MediaPickerIconButton(
-            imageVector = LibreNavigationIcons.Gallery,
-            contentDescription = stringResource(id = R.string.accessibility_import_photo_from_gallery),
-            tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-            onMediaSelected = onPhotosImported,
-        )
-
-        IconButton(onClick = onGifClick) {
-            Icon(
-                imageVector = PrimalIcons.Gif,
-                contentDescription = stringResource(id = R.string.accessibility_gif_picker),
+        if (!isPrivateReply) {
+            MediaPickerIconButton(
+                imageVector = LibreNavigationIcons.Gallery,
+                contentDescription = stringResource(id = R.string.accessibility_import_photo_from_gallery),
                 tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
+                onMediaSelected = onPhotosImported,
             )
+
+            IconButton(onClick = onGifClick) {
+                Icon(
+                    imageVector = PrimalIcons.Gif,
+                    contentDescription = stringResource(id = R.string.accessibility_gif_picker),
+                    tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
+                )
+            }
+
+            IconButton(onClick = onPollToggle) {
+                Icon(
+                    imageVector = PrimalIcons.Poll,
+                    contentDescription = stringResource(id = R.string.accessibility_poll_toggle),
+                    tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
+                )
+            }
         }
 
-        IconButton(onClick = onPollToggle) {
-            Icon(
-                imageVector = PrimalIcons.Poll,
-                contentDescription = stringResource(id = R.string.accessibility_poll_toggle),
-                tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
-            )
+        if (showPrivateReplyAction) {
+            IconButton(onClick = onPrivateReplyClick) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = stringResource(id = R.string.accessibility_private_reply),
+                    tint = if (isPrivateReply) {
+                        AppTheme.colorScheme.primary
+                    } else {
+                        AppTheme.extraColorScheme.onSurfaceVariantAlt2
+                    },
+                )
+            }
         }
 
         if (isPollMode) {

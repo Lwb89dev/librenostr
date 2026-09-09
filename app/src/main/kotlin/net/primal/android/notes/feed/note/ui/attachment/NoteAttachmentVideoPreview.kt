@@ -1,5 +1,7 @@
 package net.primal.android.notes.feed.note.ui.attachment
 
+import android.content.Context
+import android.graphics.Bitmap
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -23,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,7 +49,9 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.video.VideoFrameDecoder
 import coil3.video.videoFrameMillis
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.compose.PrimalAsyncImage
@@ -57,14 +62,19 @@ import net.primal.android.core.compose.icons.primaliconpack.Mute
 import net.primal.android.core.compose.icons.primaliconpack.Play
 import net.primal.android.core.compose.icons.primaliconpack.Unmute
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
+import net.primal.android.core.video.VideoFrameExtractor
 import net.primal.android.core.video.rememberPrimalExoPlayer
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.ContentDisplaySettings
+import net.primal.core.networking.tor.TorProxySettingsStore
 
 private const val POSITION_POLL_INTERVAL_MS = 500L
 private const val BADGE_AUTO_HIDE_DELAY_MS = 3_000L
 private const val BADGE_FADE_DURATION_MS = 200
+
+/** How far into the video a still preview frame is pulled from. */
+private const val THUMBNAIL_FRAME_TIME_MS = 1_000L
 private const val MS_PER_SECOND = 1_000.0
 
 @Composable
@@ -277,6 +287,13 @@ private fun AudioButton(
     }
 }
 
+/** [VideoFrameExtractor] runs off-thread and can take a moment; [Pending] is the wait in between. */
+private sealed interface NativeFrameResult {
+    data object Pending : NativeFrameResult
+    data class Extracted(val bitmap: Bitmap) : NativeFrameResult
+    data object Unavailable : NativeFrameResult
+}
+
 @Composable
 private fun VideoThumbnailImagePreview(
     eventUri: EventUriUi,
@@ -289,34 +306,61 @@ private fun VideoThumbnailImagePreview(
     } else {
         eventUri.thumbnailUrl
     }
+    val context = LocalContext.current
+
+    // A frame extracted natively (see VideoFrameExtractor) is one small ranged HTTP read,
+    // regardless of the file's total size — far faster and more reliable than routing the whole
+    // video through Coil's decode-what-was-already-fully-downloaded pipeline below, which is why
+    // a preview so often just sat on the gray error surface before. Only attempted when a frame
+    // actually needs to come from the video itself, since a server-provided thumbnail is cheaper
+    // still. This intentionally never runs while Tor is on — see VideoFrameExtractor's own doc.
+    val nativeFrame = if (useVideoFrame) {
+        rememberNativeVideoFrame(context = context, url = previewSource)
+    } else {
+        NativeFrameResult.Unavailable
+    }
 
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        val previewRequest = ImageRequest.Builder(LocalContext.current)
-            .data(previewSource)
-            .apply {
-                if (useVideoFrame) {
-                    // Do not rely on a .mp4 suffix: many Blossom/CDN URLs are extensionless,
-                    // so Coil otherwise routes them through the bitmap decoder and returns the
-                    // gray error surface. Force the video decoder for this fallback request.
-                    decoderFactory(VideoFrameDecoder.Factory())
-                    videoFrameMillis(1_000)
+        if (useVideoFrame && nativeFrame is NativeFrameResult.Pending) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(AppTheme.extraColorScheme.surfaceVariantAlt3),
+            )
+        } else {
+            val extractedBitmap = (nativeFrame as? NativeFrameResult.Extracted)?.bitmap
+            val previewRequest = ImageRequest.Builder(context)
+                .apply {
+                    if (extractedBitmap != null) {
+                        data(extractedBitmap)
+                    } else {
+                        data(previewSource)
+                        if (useVideoFrame) {
+                            // Tor is on, or the native extraction above failed outright. Do not
+                            // rely on a .mp4 suffix: many Blossom/CDN URLs are extensionless, so
+                            // Coil otherwise routes them through the bitmap decoder and returns
+                            // the gray error surface. Force the video decoder for this request.
+                            decoderFactory(VideoFrameDecoder.Factory())
+                            videoFrameMillis(THUMBNAIL_FRAME_TIME_MS)
+                        }
+                    }
                 }
-            }
-            .placeholderMemoryCacheKey(previewSource?.let { MemoryCache.Key(it) })
-            .build()
+                .placeholderMemoryCacheKey(previewSource?.let { MemoryCache.Key(it) })
+                .build()
 
-        PrimalAsyncImage(
-            model = previewRequest,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            errorColor = AppTheme.extraColorScheme.surfaceVariantAlt3,
-            onError = {
-                if (!useVideoFrame) useVideoFrame = true
-            },
-        )
+            PrimalAsyncImage(
+                model = previewRequest,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                errorColor = AppTheme.extraColorScheme.surfaceVariantAlt3,
+                onError = {
+                    if (!useVideoFrame) useVideoFrame = true
+                },
+            )
+        }
 
         PlayButton(onClick = onClick)
 
@@ -330,6 +374,27 @@ private fun VideoThumbnailImagePreview(
             )
         }
     }
+}
+
+@Composable
+private fun rememberNativeVideoFrame(context: Context, url: String?): NativeFrameResult {
+    val state by produceState<NativeFrameResult>(initialValue = NativeFrameResult.Pending, url) {
+        value = if (url == null) {
+            NativeFrameResult.Unavailable
+        } else {
+            val torEnabled = withContext(Dispatchers.IO) {
+                TorProxySettingsStore.readBlocking(context).enabled
+            }
+            if (torEnabled) {
+                NativeFrameResult.Unavailable
+            } else {
+                VideoFrameExtractor.extractFrame(url = url, atTimeMs = THUMBNAIL_FRAME_TIME_MS)
+                    ?.let { NativeFrameResult.Extracted(it) }
+                    ?: NativeFrameResult.Unavailable
+            }
+        }
+    }
+    return state
 }
 
 @Composable

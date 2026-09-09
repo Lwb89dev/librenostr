@@ -66,8 +66,12 @@ fun SettingsItem(
                     modifier = Modifier.padding(top = 4.dp),
                     text = supportText,
                     style = AppTheme.typography.bodySmall,
+                    // extraColorScheme.onSurfaceVariantAlt1 is tuned per theme specifically for
+                    // this kind of muted text; a flat alpha over the plain onSurface color instead
+                    // made the description unreadable on both ends of the Pixel/Fire families —
+                    // too dark to see on their dark variants, too light to see on their light ones.
                     color = if (enabled) {
-                        AppTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                        AppTheme.extraColorScheme.onSurfaceVariantAlt1
                     } else {
                         AppTheme.extraColorScheme.onSurfaceVariantAlt4
                     },

@@ -326,9 +326,6 @@ private fun FeedNoteCard(
                         onRequestDeleteClick = {
                             dialogsState.showDeleteDialog = true
                         },
-                        onPrivateReplyClick = noteCallbacks.onNotePrivateReplyClick
-                            ?.takeIf { data.authorId != LocalActiveAccountId.current }
-                            ?.let { callback -> { callback(data) } },
                         onReportContentClick = {
                             dialogsState.showReportDialog = true
                         },

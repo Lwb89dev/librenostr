@@ -253,7 +253,13 @@ private fun LibreNostrHomeHeader(
     // Unlike Material's TopAppBar, this is a custom two-row header. Measure it at its full
     // height, report that height to the scroll behavior, and reduce the space it occupies as it
     // moves up. This makes the timeline grow into the reclaimed area rather than leaving a gap.
-    SubcomposeLayout(modifier = modifier.fillMaxWidth()) { constraints ->
+    //
+    // Reporting a smaller height to layout() does not clip the child's drawing on its own — a
+    // composable that's laid out taller than the space its parent reports still paints its full
+    // extent. Without clipToBounds() here, everything below wherever the collapse has currently
+    // reached (the search bar first, since it sits lowest in the column) kept drawing on top of
+    // the feed instead of disappearing until the header fully reached its offset limit.
+    SubcomposeLayout(modifier = modifier.fillMaxWidth().clipToBounds()) { constraints ->
         val header = subcompose("LibreNostrHomeHeader") {
             HomeHeaderContent(
                 avatarCdnImage = avatarCdnImage,
