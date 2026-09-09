@@ -70,7 +70,7 @@ class FeedWritePathInvalidationTest {
         }
 
     @Test
-    fun feedProcessorPersist_forSameSpec_invalidatesItsFeedSource() =
+    fun feedProcessorAppend_forSameSpec_doesNotInvalidateItsFeedSource() =
         withDatabase { database, tracker ->
             val mainSource = armedTrackedSource(database, tracker, feedSpec = MAIN_SPEC)
 
@@ -81,7 +81,7 @@ class FeedWritePathInvalidationTest {
                     clearFeed = false,
                 )
 
-            mainSource.awaitInvalidation(reason = "own feed page persist")
+            mainSource.assertNoInvalidation(reason = "own feed append")
         }
 
     @Test

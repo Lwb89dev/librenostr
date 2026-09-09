@@ -7,14 +7,16 @@ import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.map
 import kotlin.time.Clock
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.merge
+import kotlin.time.Instant
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.withContext
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.Result
@@ -27,33 +29,35 @@ import net.primal.data.local.queries.FeedQueryBuilder
 import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
-import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
-import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
-import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.cache.LocalEventCache
+import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.paging.NoteFeedRemoteMediator
 import net.primal.data.repository.feed.processors.FeedProcessor
-import net.primal.domain.feeds.isRelayServableNotesFeedSpec
-import net.primal.domain.feeds.isUserNotesLwrFeedSpec
-import net.primal.domain.feeds.isAdvancedSearchFeedSpec
-import net.primal.domain.nostr.relay.RelayEventSubscriber
-import net.primal.domain.nostr.relay.RelayFilter
-import net.primal.domain.nostr.NostrEvent
-import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.data.repository.feed.processors.persistNoteRepliesAndArticleCommentsToDatabase
 import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.local.mapAsFeedPostDO
 import net.primal.data.repository.mappers.remote.asFeedPageSnapshot
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.data.repository.utils.performTopologicalSortOrThis
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.feeds.isAdvancedSearchFeedSpec
+import net.primal.domain.feeds.isRelayServableNotesFeedSpec
+import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.supportsNoteReposts
+import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayEventSubscriber
+import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.posts.FeedPageSnapshot
 import net.primal.domain.posts.FeedPost as FeedPostDO
+import net.primal.domain.posts.FeedPostAuthor
 import net.primal.domain.posts.FeedPostRepostInfo
 import net.primal.domain.posts.FeedRepository
 import net.primal.domain.posts.FeedRepository.Companion.DEFAULT_PAGE_SIZE
+import net.primal.domain.posts.ThreadRelation
+import net.primal.domain.posts.threadRootId
 import net.primal.shared.data.local.db.withTransaction
 
 internal class FeedRepositoryImpl(
@@ -364,12 +368,52 @@ internal class FeedRepositoryImpl(
     }
 
     override fun observeConversation(userId: String, noteId: String): Flow<List<FeedPostDO>> {
-        return database.threadConversations().observeNoteConversation(
+        val publicPosts = database.threadConversations().observeNoteConversation(
             postId = noteId,
             userId = userId,
-        ).map { list ->
-            list.map { it.mapAsFeedPostDO() }
-                .performTopologicalSortOrThis()
+        )
+        val privateReplies = database.privateThreadReplies().observeAllByOwnerId(ownerId = userId)
+        return combine(publicPosts, privateReplies) { publicList, privateList ->
+            val public = publicList.map { it.mapAsFeedPostDO() }
+            val rootId = public.find { it.eventId == noteId }?.threadRootId() ?: noteId
+            val pendingPrivate = privateList.filter { it.rootId.decrypted == rootId }.toMutableList()
+            val connectedIds = (public.map { it.eventId } + rootId).toMutableSet()
+            val matchingPrivate = mutableListOf<net.primal.data.local.dao.messages.PrivateThreadReplyData>()
+            do {
+                val connectedNow = pendingPrivate.filter { it.parentId.decrypted in connectedIds }
+                matchingPrivate += connectedNow
+                connectedIds += connectedNow.map { it.eventId }
+                pendingPrivate.removeAll(connectedNow)
+            } while (connectedNow.isNotEmpty())
+            val profiles = database.profiles()
+                .findProfileData(matchingPrivate.map { it.senderId }.distinct())
+                .associateBy { it.ownerId }
+            val private = matchingPrivate.map { reply ->
+                val profile = profiles[reply.senderId]
+                FeedPostDO(
+                    eventId = reply.eventId,
+                    author = FeedPostAuthor(
+                        authorId = reply.senderId,
+                        handle = profile?.handle ?: reply.senderId.take(8),
+                        displayName = profile?.displayName ?: profile?.handle ?: reply.senderId.take(8),
+                        internetIdentifier = profile?.internetIdentifier,
+                        avatarCdnImage = profile?.avatarCdnImage,
+                        blossomServers = profile?.blossoms.orEmpty(),
+                    ),
+                    kind = NostrEventKind.PrivateDirectMessage.value,
+                    content = reply.content.decrypted,
+                    tags = emptyList(),
+                    timestamp = Instant.fromEpochSeconds(reply.createdAt),
+                    rawNostrEvent = "",
+                    threadRelation = ThreadRelation(
+                        eventId = reply.eventId,
+                        rootId = reply.rootId.decrypted,
+                        parentId = reply.parentId.decrypted,
+                    ),
+                    isPrivate = true,
+                )
+            }
+            (public + private).performTopologicalSortOrThis()
         }
     }
 
@@ -431,9 +475,8 @@ internal class FeedRepositoryImpl(
                 feedSpec = feedSpec,
                 userPubkey = userId,
                 allowMutedThreads = allowMutedThreads,
-        )
-    }
-
+            )
+        }
 
     private companion object {
         /** One REQ per chunk; a handful is well within the pool's subscription budget. */
@@ -442,5 +485,4 @@ internal class FeedRepositoryImpl(
         /** Past this the filter gets unwieldy; the periodic refresh still covers the rest. */
         const val MAX_STREAMED_AUTHORS = 1_000
     }
-
 }

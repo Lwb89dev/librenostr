@@ -1,10 +1,12 @@
 package net.primal.android.notes.feed.note.ui.events
 
+import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.domain.nostr.ReactionType
 
 data class NoteCallbacks(
     val onNoteClick: ((noteId: String) -> Unit)? = null,
     val onNoteReplyClick: ((noteNevent: String) -> Unit)? = null,
+    val onNotePrivateReplyClick: ((note: FeedPostUi) -> Unit)? = null,
     val onNoteQuoteClick: ((noteNevent: String) -> Unit)? = null,
     val onStreamQuoteClick: ((streamNaddr: String) -> Unit)? = null,
     val onHighlightReplyClick: ((highlightNevent: String, articleNaddr: String) -> Unit)? = null,

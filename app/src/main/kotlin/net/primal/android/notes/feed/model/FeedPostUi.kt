@@ -13,6 +13,8 @@ import net.primal.domain.nostr.Nevent
 import net.primal.domain.nostr.Nip19TLV.toNeventString
 import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.domain.posts.FeedPost
+import net.primal.domain.posts.immediateParentId
+import net.primal.domain.posts.threadRootId
 
 @Immutable
 data class FeedPostUi(
@@ -56,6 +58,9 @@ data class FeedPostUi(
      * rather than vanish or wait — see `ReplyTree.ReplyPlacement.hasKnownParent`.
      */
     val hasUnresolvedParent: Boolean = false,
+    val isPrivate: Boolean = false,
+    val threadRootId: String? = null,
+    val threadParentId: String? = null,
 )
 
 fun FeedPost.asFeedPostUi(): FeedPostUi {
@@ -102,6 +107,9 @@ fun FeedPost.asFeedPostUi(): FeedPostUi {
         eventRelayHints = this.eventRelayHints?.relays ?: emptyList(),
         isAuthorLiveStreamingNow = this.author.isLiveStreamingNow,
         poll = this.pollInfo?.asPollUi(),
+        isPrivate = this.isPrivate,
+        threadRootId = this.threadRootId(),
+        threadParentId = this.immediateParentId(),
     )
     val feedContent = computeFeedContent(content = this.content, uris = uris, nostrUris = nostrUris)
     val feedNoteContent = postUi.toNoteContentUi(content = feedContent)

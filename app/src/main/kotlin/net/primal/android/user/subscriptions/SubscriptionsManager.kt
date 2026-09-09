@@ -20,6 +20,7 @@ import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.Badges
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
+import net.primal.domain.messages.ChatRepository
 import net.primal.domain.streams.StreamRepository
 
 @Singleton
@@ -27,6 +28,7 @@ class SubscriptionsManager @Inject constructor(
     dispatcherProvider: DispatcherProvider,
     private val activeAccountStore: ActiveAccountStore,
     private val streamRepository: StreamRepository,
+    private val chatRepository: ChatRepository,
 ) {
 
     private val lifecycle: Lifecycle = ProcessLifecycleOwner.get().lifecycle
@@ -34,6 +36,7 @@ class SubscriptionsManager @Inject constructor(
     private var subscriptionsActive = false
 
     private var streamsFromFollowsSubscription: Job? = null
+    private var privateMessagesSubscription: Job? = null
 
     private val _badges = MutableSharedFlow<Badges>(
         replay = 1,
@@ -103,11 +106,15 @@ class SubscriptionsManager @Inject constructor(
     private fun subscribeAll(userId: String) {
         subscriptionsActive = true
         streamsFromFollowsSubscription = launchStreamsFromFollowsSubscription(userId = userId)
+        privateMessagesSubscription = scope.launch {
+            runCatching { chatRepository.collectNewMessages(userId = userId) }
+        }
     }
 
     private suspend fun unsubscribeAll() {
         subscriptionsActive = false
         streamsFromFollowsSubscription?.cancel()
+        privateMessagesSubscription?.cancel()
     }
 
     private fun launchStreamsFromFollowsSubscription(userId: String) =

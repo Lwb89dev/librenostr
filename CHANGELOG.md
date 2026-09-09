@@ -7,6 +7,31 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.3] - 2026-09-09
+
+### Added
+
+- Modern private messages now use the NIP-17 pipeline: NIP-44 encryption, NIP-59 seals and Gift
+  Wraps, recipient kind-10050 DM relay discovery, a sender copy, and a central inbox subscription.
+  Newly sent messages no longer create legacy NIP-04 events.
+- Public threads support private replies to either a public note or an already-private reply. The
+  encrypted root and parent markers are normalized into the existing thread tree only after
+  decryption, persisted in encrypted local storage, and shown to authorized users with a small
+  private badge. Gift Wraps reveal neither the thread relationship nor the plaintext to relays.
+
+### Fixed
+
+- Scrolling the Home feed now moves the complete LibreNostr header off-screen and gives its full
+  height back to the timeline; scrolling in the opposite direction restores it.
+- The center compose (`+`) action remains attached to the bottom navigation while the Home header
+  is collapsed.
+- Zap notifications now display the amount for every supported zap-notification grouping.
+- Video attachments can decode and display an actual preview frame when no explicit thumbnail is
+  supplied, instead of leaving a flat grey placeholder.
+- Setting descriptions use readable foreground colours across the Dark Pixel, Dark Green Pixel,
+  Dark Fire, Light Pixel, Green Pixel, and Fire Light themes.
+- The expanded Tor settings section no longer leaves an oversized black area below its content.
+
 ## [0.5.2] - 2026-09-09
 
 ### Fixed

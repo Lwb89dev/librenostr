@@ -5,8 +5,6 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -118,15 +116,9 @@ fun PrimalMainScaffold(
                     settingsSelected = settingsSelected,
                     badges = badges,
                     exploreAnchorHandle = exploreAnchorHandle,
-                    composeAction = {
-                        AnimatedVisibility(
-                            visible = !focusModeOn,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                        ) {
-                            floatingActionButton()
-                        }
-                    },
+                    // Focus mode only reclaims the Home header. The compose action belongs to
+                    // the persistent bottom navigation and must never disappear with the header.
+                    composeAction = floatingActionButton,
                 )
             },
             floatingActionButton = {},

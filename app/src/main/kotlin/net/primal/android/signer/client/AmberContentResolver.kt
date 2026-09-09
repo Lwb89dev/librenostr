@@ -81,6 +81,38 @@ fun ContentResolver.encryptNip04WithAmber(
         }
     }
 
+/** Performs NIP-44 v2 decryption through an already-authorized NIP-55 signer. */
+fun ContentResolver.decryptNip44WithAmber(
+    content: String,
+    participantId: String,
+    userNpub: String,
+): String? =
+    query(
+        (AMBER_PREFIX + SignerMethod.NIP44_DECRYPT.method.uppercase()).toUri(),
+        arrayOf(content, participantId, userNpub),
+        "1",
+        null,
+        null,
+    )?.use { cursor ->
+        if (cursor.moveToFirst()) cursor.signerColumnValue() else null
+    }
+
+/** Performs NIP-44 v2 encryption through an already-authorized NIP-55 signer. */
+fun ContentResolver.encryptNip44WithAmber(
+    content: String,
+    participantId: String,
+    userNpub: String,
+): String? =
+    query(
+        (AMBER_PREFIX + SignerMethod.NIP44_ENCRYPT.method.uppercase()).toUri(),
+        arrayOf(content, participantId, userNpub),
+        "1",
+        null,
+        null,
+    )?.use { cursor ->
+        if (cursor.moveToFirst()) cursor.signerColumnValue() else null
+    }
+
 /**
  * Requests Amber to sign the specified [NostrUnsignedEvent] by invoking its `sign_event` method.
  *

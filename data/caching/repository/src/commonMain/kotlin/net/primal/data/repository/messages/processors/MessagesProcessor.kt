@@ -1,5 +1,6 @@
 package net.primal.data.repository.messages.processors
 
+import io.github.aakira.napier.Napier
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
@@ -7,21 +8,23 @@ import net.primal.data.local.dao.messages.DirectMessageData
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
 import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.remote.flatMapMessagesAsEventUriPO
 import net.primal.data.repository.mappers.remote.flatMapMessagesAsReferencedNostrUriDO
+import net.primal.data.repository.mappers.remote.hasPrivateThreadMarkers
+import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapAsMessageDataPO
 import net.primal.data.repository.mappers.remote.mapAsPostDataPO
+import net.primal.data.repository.mappers.remote.mapAsPrivateThreadReplyPO
 import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
-import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapReferencedNostrUriAsEventUriNostrPO
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalLegendProfiles
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
-import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.PrimalEvent
+import net.primal.domain.messages.Nip17Message
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
-import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
@@ -37,6 +40,21 @@ internal class MessagesProcessor(
     private val relayEventQuerier: RelayEventQuerier? = null,
     private val fetchCoordinator: FetchCoordinator,
 ) {
+
+    suspend fun processNip17MessagesAndSave(userId: String, messages: List<Nip17Message>) {
+        val (privateReplies, directMessages) = messages.partition { it.hasPrivateThreadMarkers() }
+        val privateReplyData = privateReplies.mapNotNull { message ->
+            val result = runCatching { message.mapAsPrivateThreadReplyPO(userId = userId) }
+            result.exceptionOrNull()?.let { Napier.w(it) { "Rejected malformed private thread reply." } }
+            result.getOrNull()
+        }
+        val messageDataList = directMessages.mapNotNull { it.mapAsMessageDataPO(userId = userId) }
+        processNostrUrisAndSave(userId = userId, messageDataList = messageDataList)
+        database.withTransaction {
+            database.messages().upsertAll(data = messageDataList)
+            database.privateThreadReplies().upsertAll(data = privateReplyData)
+        }
+    }
 
     suspend fun processMessageEventsAndSave(
         userId: String,

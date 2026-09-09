@@ -26,6 +26,7 @@ val SIGNABLE_EVENT_KINDS: List<NostrEventKind> = listOf(
     NostrEventKind.ShortTextNote,           // notes, replies, article comments
     NostrEventKind.FollowList,              // follow and unfollow
     NostrEventKind.EncryptedDirectMessages, // NIP-04 direct messages
+    NostrEventKind.SealedRumor,             // NIP-59 seal for NIP-17 messages
     NostrEventKind.EventDeletion,           // deleting a note or a highlight
     NostrEventKind.ShortTextNoteRepost,
     NostrEventKind.Reaction,                // likes
@@ -38,6 +39,7 @@ val SIGNABLE_EVENT_KINDS: List<NostrEventKind> = listOf(
     NostrEventKind.Highlight,               // NIP-84
     NostrEventKind.MuteList,
     NostrEventKind.RelayListMetadata,
+    NostrEventKind.PrivateDirectMessageRelayList,
     NostrEventKind.BookmarksList,
     NostrEventKind.BlossomServerList,
     NostrEventKind.StreamMuteList,

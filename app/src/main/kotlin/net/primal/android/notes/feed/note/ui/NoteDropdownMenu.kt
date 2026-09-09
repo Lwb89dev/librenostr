@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +71,7 @@ fun NoteDropdownMenuIcon(
     onUnmuteThreadClick: (() -> Unit)? = null,
     onReportContentClick: (() -> Unit)? = null,
     onRequestDeleteClick: (() -> Unit)? = null,
+    onPrivateReplyClick: (() -> Unit)? = null,
 ) {
     var menuVisible by remember { mutableStateOf(false) }
 
@@ -97,6 +100,16 @@ fun NoteDropdownMenuIcon(
             expanded = menuVisible,
             onDismissRequest = { menuVisible = false },
         ) {
+            if (onPrivateReplyClick != null) {
+                DropdownPrimalMenuItem(
+                    trailingIconVector = Icons.Default.Lock,
+                    text = stringResource(id = R.string.feed_context_private_reply),
+                    onClick = {
+                        onPrivateReplyClick()
+                        menuVisible = false
+                    },
+                )
+            }
             if (isThreadMuted) {
                 DropdownPrimalMenuItem(
                     trailingIconVector = PrimalIcons.ContextMuteConversation,

@@ -154,7 +154,7 @@ private fun SettingsHomeScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = 80.dp, max = 640.dp),
+                                    .heightIn(max = 640.dp),
                             ) {
                                 sectionContent?.invoke(it)
                             }

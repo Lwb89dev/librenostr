@@ -72,8 +72,6 @@ fun NotificationListItem(
     onDefaultZapClick: ((FeedPostUi) -> Unit)? = null,
     onZapOptionsClick: ((FeedPostUi) -> Unit)? = null,
 ) {
-    notifications.map { it.actionUserSatsZapped }
-
     val activeUsersTotalSatsZapped = notifications
         .mapNotNull { it.actionUserSatsZapped }
         .sum()
@@ -94,15 +92,10 @@ fun NotificationListItem(
         imagePainter = type.toImagePainter(),
         suffixText = type.toSuffixText(
             usersZappedCount = notifications.size,
-            totalSatsZapped = if (notifications.size == 1) {
-                if (type == NotificationType.YOUR_POST_WAS_ZAPPED) {
-                    postTotalSatsZapped?.shortened()
-                } else {
-                    activeUsersTotalSatsZapped?.shortened()
-                }
-            } else {
-                postTotalSatsZapped?.shortened()
-            },
+            // `satsZapped` belongs to the notification and is therefore the reliable value
+            // for both a single zap and a collapsed group. Post stats may still be absent or
+            // stale while the notification has already arrived.
+            totalSatsZapped = (activeUsersTotalSatsZapped ?: postTotalSatsZapped)?.shortened(),
             isLive = notifications.first().referencedStream?.status == StreamStatus.LIVE,
         ),
         noteCallbacks = noteCallbacks,
@@ -469,7 +462,12 @@ private fun HeaderContent(
         internetIdentifierBadgeAlign = PlaceholderVerticalAlign.TextCenter,
         overflow = TextOverflow.Ellipsis,
         annotatedStringSuffixBuilder = {
-            val appendText = if (notifications.collapsedCount() > 1) andOthersText else suffixText
+            val appendText = when {
+                notifications.collapsedCount() <= 1 -> suffixText
+                firstNotification.notificationType == NotificationType.YOUR_POST_WAS_ZAPPED ->
+                    "$andOthersText $suffixText"
+                else -> andOthersText
+            }
             if (firstNotification.actionUserInternetIdentifier.isNullOrEmpty()) append(' ')
             append(appendText)
         },

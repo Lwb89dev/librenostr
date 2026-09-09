@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import net.primal.android.networking.di.PrimalCacheApiClient
 import net.primal.android.nostr.notary.NostrNotary
+import net.primal.android.messages.security.Nip17TransportImpl
 import net.primal.core.caching.MediaCacher
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.data.repository.factory.PrimalRepositoryFactory
@@ -19,6 +20,7 @@ import net.primal.domain.feeds.FeedsRepository
 import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.links.EventUriRepository
 import net.primal.domain.messages.ChatRepository
+import net.primal.domain.messages.Nip17Transport
 import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
@@ -67,14 +69,19 @@ object CachingRepositoriesModule {
         return PrimalRepositoryFactory.createCachingImportRepository()
     }
 
+    @Provides
+    @Singleton
+    fun provideNip17Transport(implementation: Nip17TransportImpl): Nip17Transport = implementation
 
     @Provides
+    @Suppress("LongParameterList")
     fun provideChatRepository(
         @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         messageCipher: MessageCipher,
         primalPublisher: PrimalPublisher,
         relayEventQuerier: RelayEventQuerier,
         mediaCacher: MediaCacher?,
+        nip17Transport: Nip17Transport,
     ): ChatRepository =
         PrimalRepositoryFactory.createChatRepository(
             cachingPrimalApiClient = primalApiClient,
@@ -82,6 +89,7 @@ object CachingRepositoriesModule {
             primalPublisher = primalPublisher,
             relayEventQuerier = relayEventQuerier,
             mediaCacher = mediaCacher,
+            nip17Transport = nip17Transport,
         )
 
     @Provides

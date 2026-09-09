@@ -6,6 +6,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
+import net.primal.core.utils.toLong
 import net.primal.data.local.dao.notifications.NotificationData
 import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.asReferencedPrimalEvent
@@ -16,10 +17,12 @@ import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.eventIdTagValues
+import net.primal.domain.nostr.findFirstBolt11
 import net.primal.domain.nostr.findFirstZapAmount
 import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
+import net.primal.domain.nostr.utils.LnInvoiceUtils
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.notifications.NotificationType
 
@@ -176,15 +179,28 @@ internal class RelayNotificationsFetcher(
         // A NIP-57 receipt is signed by the recipient's LNURL server, not by the person who
         // zapped. The sender is the author of the kind 9734 request embedded in `description`;
         // reading `pubKey` here credited every zap to the payment provider.
-        val actionUserId = if (type == NotificationType.YOUR_POST_WAS_ZAPPED) {
-            extractZapRequestOrNull()?.pubKey ?: return null
+        val zapRequest = if (type == NotificationType.YOUR_POST_WAS_ZAPPED) {
+            extractZapRequestOrNull() ?: return null
         } else {
-            pubKey
+            null
         }
+        val actionUserId = zapRequest?.pubKey ?: pubKey
         if (actionUserId == userId) return null
 
         val amount = if (type == NotificationType.YOUR_POST_WAS_ZAPPED) {
-            tags.findFirstZapAmount()?.toLongOrNull()?.let { if (it >= MILLISATS_PER_SAT) it / MILLISATS_PER_SAT else it }
+            // A standard NIP-57 receipt carries the paid amount in its BOLT11 invoice. The
+            // numeric `amount` tag normally lives in the embedded kind-9734 request and is
+            // expressed in millisats. Looking only on the receipt made almost every relay-only
+            // notification lose its amount before it ever reached the UI.
+            tags.findFirstBolt11()
+                ?.let(LnInvoiceUtils::getAmountInSatsOrNull)
+                ?.toLong()
+                ?.takeIf { it > 0L }
+                ?: zapRequest?.tags
+                    ?.findFirstZapAmount()
+                    ?.toLongOrNull()
+                    ?.div(MILLISATS_PER_SAT)
+                    ?.takeIf { it > 0L }
         } else {
             null
         }

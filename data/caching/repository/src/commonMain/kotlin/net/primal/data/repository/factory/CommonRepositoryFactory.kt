@@ -39,6 +39,7 @@ import net.primal.domain.feeds.FeedsRepository
 import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.links.EventUriRepository
 import net.primal.domain.messages.ChatRepository
+import net.primal.domain.messages.Nip17Transport
 import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -120,6 +121,7 @@ abstract class CommonRepositoryFactory {
         primalPublisher: PrimalPublisher,
         relayEventQuerier: RelayEventQuerier? = null,
         mediaCacher: MediaCacher? = null,
+        nip17Transport: Nip17Transport? = null,
     ): ChatRepository {
         return ChatRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
@@ -140,6 +142,7 @@ abstract class CommonRepositoryFactory {
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
             fetchCoordinator = fetchCoordinator,
+            nip17Transport = nip17Transport,
         )
     }
 

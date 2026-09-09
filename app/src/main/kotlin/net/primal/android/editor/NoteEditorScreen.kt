@@ -236,7 +236,11 @@ fun NoteEditorScreen(
     PrimalScaffold(
         topBar = {
             PrimalTopAppBar(
-                title = "",
+                title = if (state.isPrivateReply) {
+                    stringResource(id = R.string.note_editor_private_reply_title)
+                } else {
+                    ""
+                },
                 navigationIcon = Icons.Outlined.Close,
                 onNavigationIconClick = callbacks.onClose,
                 navigationIconContentDescription = stringResource(id = R.string.accessibility_close),
@@ -296,6 +300,7 @@ fun NoteEditorScreen(
 @Composable
 private fun NoteEditorContract.UiState.resolvePublishNoteButtonText() =
     when {
+        publishing && isPrivateReply -> stringResource(id = R.string.note_editor_private_reply_sending)
         publishing -> if (isQuoting) {
             stringResource(id = R.string.note_editor_quoting_publishing_button)
         } else if (isReply) {
@@ -306,6 +311,7 @@ private fun NoteEditorContract.UiState.resolvePublishNoteButtonText() =
 
         uploadingAttachments -> stringResource(id = R.string.note_editor_uploading_attachments)
 
+        isPrivateReply -> stringResource(id = R.string.note_editor_private_reply_send)
         else -> if (isQuoting) {
             stringResource(id = R.string.note_editor_quote_publish_button)
         } else if (isReply) {
@@ -800,8 +806,8 @@ private fun NoteEditorFooter(
                     eventPublisher(UiEvent.ToggleSearchUsers(enabled = false))
                 },
             )
-        } else {
-        NoteActionRow(
+        } else if (!state.isPrivateReply) {
+            NoteActionRow(
                 onPhotosImported = { photoUris ->
                     eventPublisher(
                         UiEvent.ImportLocalFiles(uris = photoUris),

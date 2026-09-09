@@ -30,7 +30,7 @@ import net.primal.domain.nostr.isUppercaseEventIdTag
  * last bare `e` tag for the deprecated positional convention some clients still write.
  */
 fun FeedPost.immediateParentId(): String? =
-    if (kind == NostrEventKind.Comment.value) {
+    threadRelation?.parentId ?: if (kind == NostrEventKind.Comment.value) {
         tags.find { it.isEventIdTag() }?.getTagValueOrNull()
             ?: tags.find { it.isATag() }?.getTagValueOrNull()
     } else {
@@ -58,7 +58,7 @@ fun FeedPost.immediateParentId(): String? =
  * belongs to without walking the whole chain, e.g. a "jump to root" action.
  */
 fun FeedPost.threadRootId(): String? =
-    if (kind == NostrEventKind.Comment.value) {
+    threadRelation?.rootId ?: if (kind == NostrEventKind.Comment.value) {
         tags.find { it.isUppercaseEventIdTag() }?.getTagValueOrNull()
             ?: tags.find { it.isUppercaseATag() }?.getTagValueOrNull()
     } else {

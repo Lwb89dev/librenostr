@@ -44,6 +44,8 @@ import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
+import coil3.video.VideoFrameDecoder
+import coil3.video.videoFrameMillis
 import kotlinx.coroutines.delay
 import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
@@ -281,18 +283,39 @@ private fun VideoThumbnailImagePreview(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var useVideoFrame by remember(eventUri.url) { mutableStateOf(eventUri.thumbnailUrl == null) }
+    val previewSource = if (useVideoFrame) {
+        eventUri.variants?.firstOrNull()?.mediaUrl ?: eventUri.url
+    } else {
+        eventUri.thumbnailUrl
+    }
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
+        val previewRequest = ImageRequest.Builder(LocalContext.current)
+            .data(previewSource)
+            .apply {
+                if (useVideoFrame) {
+                    // Do not rely on a .mp4 suffix: many Blossom/CDN URLs are extensionless,
+                    // so Coil otherwise routes them through the bitmap decoder and returns the
+                    // gray error surface. Force the video decoder for this fallback request.
+                    decoderFactory(VideoFrameDecoder.Factory())
+                    videoFrameMillis(1_000)
+                }
+            }
+            .placeholderMemoryCacheKey(previewSource?.let { MemoryCache.Key(it) })
+            .build()
+
         PrimalAsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(eventUri.thumbnailUrl)
-                .placeholderMemoryCacheKey(eventUri.thumbnailUrl?.let { MemoryCache.Key(it) })
-                .build(),
+            model = previewRequest,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             errorColor = AppTheme.extraColorScheme.surfaceVariantAlt3,
+            onError = {
+                if (!useVideoFrame) useVideoFrame = true
+            },
         )
 
         PlayButton(onClick = onClick)

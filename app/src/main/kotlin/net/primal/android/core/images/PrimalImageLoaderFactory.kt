@@ -7,6 +7,7 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.gif.AnimatedImageDecoder
 import coil3.gif.GifDecoder
+import coil3.video.VideoFrameDecoder
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.primal.core.networking.tor.TorProxySettingsStore
@@ -56,6 +57,9 @@ class PrimalImageLoaderFactory @Inject constructor() : SingletonImageLoader.Fact
                 } else {
                     add(GifDecoder.Factory())
                 }
+                // Feed previews can fall back to a decoded video frame when a Nostr event
+                // does not provide a usable thumbnail URL.
+                add(VideoFrameDecoder.Factory())
             }
             .diskCache {
                 DiskCache.Builder()

@@ -43,12 +43,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
@@ -141,6 +145,7 @@ fun PrimalTopLevelAppBar(
             onSearchSubmit = onSearchSubmit,
             onSearchProfileClick = onSearchProfileClick,
             showAvatar = showAvatar,
+            scrollBehavior = scrollBehavior,
             modifier = modifier,
         )
         return
@@ -218,6 +223,7 @@ fun PrimalTopLevelAppBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibreNostrHomeHeader(
     avatarCdnImage: CdnImage?,
@@ -229,15 +235,68 @@ private fun LibreNostrHomeHeader(
     onSearchSubmit: ((String) -> Unit)?,
     onSearchProfileClick: ((String) -> Unit)?,
     showAvatar: Boolean,
+    scrollBehavior: TopAppBarScrollBehavior?,
     modifier: Modifier = Modifier,
+) {
+    val headerOffset = scrollBehavior?.state?.heightOffset?.toInt() ?: 0
+    var headerHeightPx by remember { mutableIntStateOf(0) }
+
+    // Configure the exact collapse range in the same frame in which the measured height enters
+    // composition. Doing this from a coroutine left one or more layouts using Material's initial
+    // sentinel limit, so the custom header could stop after only a small translation.
+    SideEffect {
+        if (headerHeightPx > 0 && scrollBehavior != null) {
+            scrollBehavior.state.heightOffsetLimit = -headerHeightPx.toFloat()
+        }
+    }
+
+    // Unlike Material's TopAppBar, this is a custom two-row header. Measure it at its full
+    // height, report that height to the scroll behavior, and reduce the space it occupies as it
+    // moves up. This makes the timeline grow into the reclaimed area rather than leaving a gap.
+    SubcomposeLayout(modifier = modifier.fillMaxWidth()) { constraints ->
+        val header = subcompose("LibreNostrHomeHeader") {
+            HomeHeaderContent(
+                avatarCdnImage = avatarCdnImage,
+                avatarBlossoms = avatarBlossoms,
+                onAvatarClick = onAvatarClick,
+                onAvatarSwipeDown = onAvatarSwipeDown,
+                searchPlaceholder = searchPlaceholder,
+                onSearchClick = onSearchClick,
+                onSearchSubmit = onSearchSubmit,
+                onSearchProfileClick = onSearchProfileClick,
+                showAvatar = showAvatar,
+                onHeightMeasured = { headerHeightPx = it },
+            )
+        }.first().measure(constraints.copy(minHeight = 0))
+
+        val visibleHeight = (header.height + headerOffset).coerceAtLeast(0)
+        layout(width = header.width, height = visibleHeight) {
+            header.placeRelative(x = 0, y = headerOffset)
+        }
+    }
+}
+
+@Composable
+private fun HomeHeaderContent(
+    avatarCdnImage: CdnImage?,
+    avatarBlossoms: List<String>,
+    onAvatarClick: () -> Unit,
+    onAvatarSwipeDown: (() -> Unit)?,
+    searchPlaceholder: String,
+    onSearchClick: () -> Unit,
+    onSearchSubmit: ((String) -> Unit)?,
+    onSearchProfileClick: ((String) -> Unit)?,
+    showAvatar: Boolean,
+    onHeightMeasured: (Int) -> Unit,
 ) {
     val tokens = AppTheme.libreNostrTokens
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .background(AppTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .padding(horizontal = 18.dp, vertical = 10.dp)
+            .onSizeChanged { onHeightMeasured(it.height) },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {

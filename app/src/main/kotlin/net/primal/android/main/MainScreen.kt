@@ -230,8 +230,8 @@ fun MainScreen(
         }
     }
 
-    // The bottom navigation is persistent, so the former full-screen feed mode is disabled.
-    val focusModeEnabled = false
+    // The bottom navigation remains visible; only the Home header collapses with the feed.
+    val focusModeEnabled = activeTab == PrimalTopLevelDestination.Feeds
 
     BackHandler(enabled = activeTab != PrimalTopLevelDestination.Feeds) {
         activeTab = PrimalTopLevelDestination.Feeds

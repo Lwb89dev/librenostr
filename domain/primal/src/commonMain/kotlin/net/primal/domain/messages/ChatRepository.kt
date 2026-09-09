@@ -9,6 +9,7 @@ import net.primal.domain.nostr.cryptography.MessageEncryptException
 import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.publisher.NostrPublishException
 
+@Suppress("TooManyFunctions")
 interface ChatRepository {
 
     fun observeUnreadMessagesCount(userId: String): Flow<Int>
@@ -45,6 +46,9 @@ interface ChatRepository {
     /** Marks every locally stored conversation as read without a remote service. */
     suspend fun markAllMessagesAsReadLocally(userId: String)
 
+    /** Collects the active account's central NIP-17 inbox until the caller cancels. */
+    suspend fun collectNewMessages(userId: String)
+
     @Throws(
         MessageEncryptException::class,
         NostrPublishException::class,
@@ -55,6 +59,15 @@ interface ChatRepository {
         userId: String,
         receiverId: String,
         text: String,
+    )
+
+    /** Sends a NIP-17 message whose NIP-10 relationship remains inside the encrypted rumor. */
+    suspend fun sendPrivateReply(
+        userId: String,
+        receiverId: String,
+        text: String,
+        rootId: String,
+        parentId: String,
     )
 
     companion object {

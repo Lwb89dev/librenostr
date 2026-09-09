@@ -54,6 +54,7 @@ interface NoteEditorContract {
         val availableAccounts: List<UserAccountUi> = emptyList(),
         val pendingGifUploads: List<PendingGifUpload> = emptyList(),
         val pollState: PollEditorState? = null,
+        val isPrivateReply: Boolean = false,
     ) {
         val isReply: Boolean get() = replyToConversation.isNotEmpty()
         val replyToNote: FeedPostUi? = replyToConversation.lastOrNull()

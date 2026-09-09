@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.domain.Badges
 import net.primal.core.testing.CoroutinesTestRule
+import net.primal.domain.messages.ChatRepository
 import net.primal.domain.streams.StreamRepository
 import org.junit.Rule
 import org.junit.Test
@@ -30,11 +31,13 @@ class SubscriptionsManagerTest {
     private fun buildSubscriptionsManager(
         activeAccountStore: ActiveAccountStore = buildActiveAccountStore(),
         streamRepository: StreamRepository = mockk(relaxed = true),
+        chatRepository: ChatRepository = mockk(relaxed = true),
     ): SubscriptionsManager {
         return SubscriptionsManager(
             dispatcherProvider = coroutinesTestRule.dispatcherProvider,
             activeAccountStore = activeAccountStore,
             streamRepository = streamRepository,
+            chatRepository = chatRepository,
         )
     }
 

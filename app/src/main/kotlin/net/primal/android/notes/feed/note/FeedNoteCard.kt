@@ -292,43 +292,48 @@ private fun FeedNoteCard(
                     forceContentIndent -> 14.dp
                     else -> 18.dp
                 } - if (data.repostAuthorName != null) notePaddingDp else 0.dp
-                NoteDropdownMenuIcon(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(overflowIconSizeDp)
-                        .padding(top = dropdownTopPadding)
-                        .clip(CircleShape)
-                        .zIndex(1f),
-                    noteId = data.postId,
-                    noteContent = data.content,
-                    noteRawData = data.rawNostrEventJson,
-                    authorId = data.authorId,
-                    isBookmarked = data.isBookmarked,
-                    isThreadMuted = data.isThreadMuted,
-                    isNoteAuthor = data.authorId == LocalActiveAccountId.current,
-                    isPoll = data.poll != null,
-                    relayHints = state.relayHints,
-                    enabled = noteOptionsMenuEnabled,
-                    noteGraphicsLayer = graphicsLayer,
-                    onBookmarkClick = {
-                        eventPublisher(UiEvent.BookmarkAction(noteId = data.postId))
-                    },
-                    onMuteUserClick = {
-                        eventPublisher(UiEvent.MuteUserAction(userId = data.authorId))
-                    },
-                    onMuteThreadClick = {
-                        eventPublisher(UiEvent.MuteThreadAction(postId = data.postId))
-                    },
-                    onUnmuteThreadClick = {
-                        eventPublisher(UiEvent.UnmuteThreadAction(postId = data.postId))
-                    },
-                    onRequestDeleteClick = {
-                        dialogsState.showDeleteDialog = true
-                    },
-                    onReportContentClick = {
-                        dialogsState.showReportDialog = true
-                    },
-                )
+                if (!data.isPrivate) {
+                    NoteDropdownMenuIcon(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(overflowIconSizeDp)
+                            .padding(top = dropdownTopPadding)
+                            .clip(CircleShape)
+                            .zIndex(1f),
+                        noteId = data.postId,
+                        noteContent = data.content,
+                        noteRawData = data.rawNostrEventJson,
+                        authorId = data.authorId,
+                        isBookmarked = data.isBookmarked,
+                        isThreadMuted = data.isThreadMuted,
+                        isNoteAuthor = data.authorId == LocalActiveAccountId.current,
+                        isPoll = data.poll != null,
+                        relayHints = state.relayHints,
+                        enabled = noteOptionsMenuEnabled,
+                        noteGraphicsLayer = graphicsLayer,
+                        onBookmarkClick = {
+                            eventPublisher(UiEvent.BookmarkAction(noteId = data.postId))
+                        },
+                        onMuteUserClick = {
+                            eventPublisher(UiEvent.MuteUserAction(userId = data.authorId))
+                        },
+                        onMuteThreadClick = {
+                            eventPublisher(UiEvent.MuteThreadAction(postId = data.postId))
+                        },
+                        onUnmuteThreadClick = {
+                            eventPublisher(UiEvent.UnmuteThreadAction(postId = data.postId))
+                        },
+                        onRequestDeleteClick = {
+                            dialogsState.showDeleteDialog = true
+                        },
+                        onPrivateReplyClick = noteCallbacks.onNotePrivateReplyClick
+                            ?.takeIf { data.authorId != LocalActiveAccountId.current }
+                            ?.let { callback -> { callback(data) } },
+                        onReportContentClick = {
+                            dialogsState.showReportDialog = true
+                        },
+                    )
+                }
 
                 Column(
                     modifier = Modifier
@@ -374,34 +379,38 @@ private fun FeedNoteCard(
                         onPostAction = { postAction ->
                             when (postAction) {
                                 FeedPostAction.Reply -> {
-                                    noteCallbacks.onNoteReplyClick?.invoke(
-                                        data.asNeventString(),
-                                    )
+                                    if (data.isPrivate) {
+                                        noteCallbacks.onNotePrivateReplyClick?.invoke(data)
+                                    } else {
+                                        noteCallbacks.onNoteReplyClick?.invoke(data.asNeventString())
+                                    }
                                 }
 
                                 FeedPostAction.Zap -> {
-                                    if (zappingState.walletConnected) {
+                                    if (!data.isPrivate && zappingState.walletConnected) {
                                         dialogsState.showZapOptions = true
-                                    } else {
+                                    } else if (!data.isPrivate) {
                                         dialogsState.showCantZapWarning = true
                                     }
                                 }
 
                                 FeedPostAction.Like -> {
-                                    eventPublisher(
-                                        UiEvent.PostLikeAction(
-                                            postId = data.postId,
-                                            postAuthorId = data.authorId,
-                                        ),
-                                    )
+                                    if (!data.isPrivate) {
+                                        eventPublisher(
+                                            UiEvent.PostLikeAction(
+                                                postId = data.postId,
+                                                postAuthorId = data.authorId,
+                                            ),
+                                        )
+                                    }
                                 }
 
                                 FeedPostAction.Repost -> {
-                                    dialogsState.showRepostConfirmation = true
+                                    if (!data.isPrivate) dialogsState.showRepostConfirmation = true
                                 }
 
                                 FeedPostAction.Bookmark -> {
-                                    eventPublisher(UiEvent.BookmarkAction(noteId = data.postId))
+                                    if (!data.isPrivate) eventPublisher(UiEvent.BookmarkAction(noteId = data.postId))
                                 }
                             }
                         },
@@ -562,6 +571,18 @@ private fun FeedNote(
                         null
                     },
                 )
+
+                if (data.isPrivate) {
+                    androidx.compose.material3.Text(
+                        modifier = Modifier
+                            .padding(start = contentIndentDp + 8.dp, top = 2.dp),
+                        text = androidx.compose.ui.res.stringResource(
+                            id = net.primal.android.R.string.thread_private_reply_badge,
+                        ),
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colorScheme.primary,
+                    )
+                }
 
                 val postAuthorGuessHeight = with(LocalDensity.current) { 128.dp.toPx() }
                 val launchRippleEffect: (Offset) -> Unit = {

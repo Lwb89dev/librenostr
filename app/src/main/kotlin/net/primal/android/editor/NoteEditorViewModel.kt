@@ -66,6 +66,7 @@ import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.events.EventRelayHintsRepository
 import net.primal.domain.events.EventRepository
+import net.primal.domain.messages.ChatRepository
 import net.primal.domain.nostr.MAX_RELAY_HINTS
 import net.primal.domain.nostr.Naddr
 import net.primal.domain.nostr.Nevent
@@ -99,6 +100,7 @@ class NoteEditorViewModel @AssistedInject constructor(
     private val userAccountsStore: UserAccountsStore,
     private val feedRepository: FeedRepository,
     private val notePublishHandler: NotePublishHandler,
+    private val chatRepository: ChatRepository,
     private val primalUploadService: AndroidPrimalBlossomUploadService,
     private val highlightRepository: HighlightRepository,
     private val streamRepository: StreamRepository,
@@ -124,6 +126,7 @@ class NoteEditorViewModel @AssistedInject constructor(
     private val _state = MutableStateFlow(
         UiState(
             isQuoting = args.isQuoting,
+            isPrivateReply = args.isPrivateReply,
             pollState = if (args.startWithPoll) PollEditorState() else null,
         ),
     )
@@ -209,6 +212,7 @@ class NoteEditorViewModel @AssistedInject constructor(
         }
 
     private fun fetchReplyToEntities() {
+        if (args.isPrivateReply) return
         if (referencedNoteNevent != null) {
             fetchNoteThreadFromNetwork(replyToNoteId = referencedNoteNevent.eventId)
             observeThreadConversation(replyToNoteId = referencedNoteNevent.eventId)
@@ -796,6 +800,21 @@ class NoteEditorViewModel @AssistedInject constructor(
                 val userId = state.value.selectedAccount?.pubkey ?: activeAccountStore.activeUserId()
                 val content = resolveNoteContent()
 
+                if (args.isPrivateReply) {
+                    val privateContent = state.value.attachments.mapNotNull { it.remoteUrl }
+                        .fold(content) { text, url -> if (text.isBlank()) url else "$text\n$url" }
+                    chatRepository.sendPrivateReply(
+                        userId = userId,
+                        receiverId = requireNotNull(args.privateReplyRecipientId),
+                        text = privateContent,
+                        rootId = requireNotNull(args.privateReplyRootId),
+                        parentId = requireNotNull(args.privateReplyParentId),
+                    )
+                    resetState()
+                    sendEffect(SideEffect.PostPublished)
+                    return@launch
+                }
+
                 val replyToPost = referencedNoteNevent?.eventId?.let {
                     feedRepository.findPostsById(it)
                 }
@@ -829,6 +848,9 @@ class NoteEditorViewModel @AssistedInject constructor(
             } catch (error: MissingRelaysException) {
                 Napier.w(throwable = error) { "Failed to publish post due to missing relays." }
                 setErrorState(error = UiError.MissingRelaysConfiguration(cause = error.cause))
+            } catch (error: IllegalStateException) {
+                Napier.w(throwable = error) { "Failed to send private reply." }
+                setErrorState(error = UiError.PublishError(cause = error))
             } finally {
                 setState { copy(publishing = false) }
             }

@@ -6,8 +6,11 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.map
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
@@ -25,12 +28,16 @@ import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.fetch.FetchKey
 import net.primal.data.repository.mappers.local.asDMConversation
 import net.primal.data.repository.mappers.local.asDirectMessageDO
+import net.primal.data.repository.mappers.remote.hasPrivateThreadMarkers
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
+import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
 import net.primal.data.repository.messages.paging.MessagesRemoteMediator
 import net.primal.data.repository.messages.processors.MessagesProcessor
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.messages.ConversationRelation
+import net.primal.domain.messages.Nip17Message
+import net.primal.domain.messages.Nip17Transport
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
@@ -56,6 +63,7 @@ internal class ChatRepositoryImpl(
     private val mediaCacher: MediaCacher? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
     private val fetchCoordinator: FetchCoordinator,
+    private val nip17Transport: Nip17Transport? = null,
 ) : ChatRepository {
 
     override fun newestConversations(userId: String, relation: ConversationRelation) =
@@ -204,6 +212,10 @@ internal class ChatRepositoryImpl(
     }
 
     override suspend fun syncConversations(userId: String, backfillPages: Int) {
+        nip17Transport?.let { transport ->
+            syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId))
+            return
+        }
         // Accumulated independently of persistence: reclassification below must not depend on
         // whether processMessageEventsAndSave has actually written this sync's messages to disk
         // by the time it runs, only on what this sync itself has seen.
@@ -278,10 +290,23 @@ internal class ChatRepositoryImpl(
         filter { it.pubKey == userId }.mapNotNull { it.tags.findFirstProfileId() }.toSet()
 
     override suspend fun fetchNonFollowsConversations(userId: String) {
+        nip17Transport?.let { transport ->
+            syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId))
+            return
+        }
         fetchConversations(userId = userId, relation = ConversationRelation.Other)
     }
 
     override suspend fun fetchNewConversationMessages(userId: String, conversationUserId: String) {
+        nip17Transport?.let { transport ->
+            syncNip17Messages(
+                userId = userId,
+                messages = transport.fetchMessages(userId).filter {
+                    it.senderId == conversationUserId || conversationUserId in it.recipientIds
+                },
+            )
+            return
+        }
         withContext(dispatcherProvider.io()) {
             val latestMessage = database.messages().firstByOwnerId(ownerId = userId, participantId = conversationUserId)
             val response = messagesApi.getMessages(
@@ -307,12 +332,14 @@ internal class ChatRepositoryImpl(
 
     override suspend fun markConversationAsRead(authorization: NostrEvent, conversationUserId: String) {
         withContext(dispatcherProvider.io()) {
-            messagesApi.markConversationAsRead(
-                body = MarkMessagesReadRequestBody(
-                    authorization = authorization,
-                    conversationUserId = conversationUserId,
-                ),
-            )
+            if (nip17Transport == null) {
+                messagesApi.markConversationAsRead(
+                    body = MarkMessagesReadRequestBody(
+                        authorization = authorization,
+                        conversationUserId = conversationUserId,
+                    ),
+                )
+            }
             database.messageConversations().markConversationAsRead(
                 ownerId = authorization.pubKey,
                 participantId = conversationUserId,
@@ -322,7 +349,9 @@ internal class ChatRepositoryImpl(
 
     override suspend fun markAllMessagesAsRead(authorization: NostrEvent) {
         withContext(dispatcherProvider.io()) {
-            messagesApi.markAllMessagesAsRead(authorization = authorization)
+            if (nip17Transport == null) {
+                messagesApi.markAllMessagesAsRead(authorization = authorization)
+            }
             database.messageConversations().markAllConversationAsRead(ownerId = authorization.pubKey)
         }
     }
@@ -333,11 +362,23 @@ internal class ChatRepositoryImpl(
         }
     }
 
+    override suspend fun collectNewMessages(userId: String) {
+        val transport = nip17Transport ?: return
+        transport.subscribeMessages(userId).collect { message ->
+            syncNip17Messages(userId = userId, messages = listOf(message))
+        }
+    }
+
     override suspend fun sendMessage(
         userId: String,
         receiverId: String,
         text: String,
     ) {
+        nip17Transport?.let { transport ->
+            val message = transport.sendMessage(userId = userId, receiverId = receiverId, content = text)
+            syncNip17Messages(userId = userId, messages = listOf(message))
+            return
+        }
         val encryptedContent = messageCipher.encryptMessage(
             userId = userId,
             participantId = receiverId,
@@ -366,6 +407,70 @@ internal class ChatRepositoryImpl(
         }
     }
 
+    override suspend fun sendPrivateReply(
+        userId: String,
+        receiverId: String,
+        text: String,
+        rootId: String,
+        parentId: String,
+    ) {
+        require(rootId.isNostrEventId() && parentId.isNostrEventId())
+        val transport = checkNotNull(nip17Transport) { "NIP-17 transport is unavailable." }
+        val message = transport.sendMessage(
+            userId = userId,
+            receiverId = receiverId,
+            content = text,
+            extraTags = listOf(
+                threadEventTag(eventId = rootId, marker = "root"),
+                threadEventTag(eventId = parentId, marker = "reply"),
+            ),
+        )
+        withContext(dispatcherProvider.io()) {
+            messagesProcessor.processNip17MessagesAndSave(userId = userId, messages = listOf(message))
+        }
+    }
+
+    private suspend fun syncNip17Messages(userId: String, messages: List<Nip17Message>) {
+        if (messages.isEmpty()) return
+        withContext(dispatcherProvider.io()) {
+            messagesProcessor.processNip17MessagesAndSave(userId = userId, messages = messages)
+            val directMessages = messages.filterNot { it.hasPrivateThreadMarkers() }
+            cacheNip17ParticipantMetadata(userId = userId, messages = directMessages)
+            val accepted = acceptedParticipants(userId = userId, currentPage = emptyList())
+            database.messageConversations().persistConversationIndex(
+                userId = userId,
+                conversations = directMessages.asNip17ConversationIndex(userId = userId, accepted = accepted),
+            )
+        }
+    }
+
+    private suspend fun cacheNip17ParticipantMetadata(userId: String, messages: List<Nip17Message>) {
+        val participantIds = messages.mapNotNull { message ->
+            if (message.senderId == userId) {
+                message.recipientIds.firstOrNull { it != userId }
+            } else {
+                message.senderId
+            }
+        }.distinct()
+        val cachedIds = database.profiles().findProfileData(participantIds).map { it.ownerId }.toSet()
+        val missingIds = participantIds.filterNot { it in cachedIds }
+        if (missingIds.isEmpty()) return
+
+        val metadata = relayEventQuerier?.let { querier ->
+            runCatching { fetchCoordinator.fetchMetadata(querier = querier, pubkeys = missingIds) }
+                .getOrDefault(emptyList())
+        }.orEmpty().latestMetadataByPubkey()
+        database.profiles().insertOrUpdateAll(
+            data = metadata.mapAsProfileDataPO(
+                cdnResources = emptyList(),
+                primalUserNames = emptyMap(),
+                primalPremiumInfo = emptyMap(),
+                primalLegendProfiles = emptyMap(),
+                blossomServers = emptyMap(),
+            ),
+        )
+    }
+
     private fun createConversationsPager(pagingSourceFactory: () -> PagingSource<Int, MessageConversation>) =
         Pager(
             config = PagingConfig(
@@ -388,7 +493,7 @@ internal class ChatRepositoryImpl(
             initialLoadSize = 200,
             enablePlaceholders = true,
         ),
-        remoteMediator = MessagesRemoteMediator(
+        remoteMediator = nip17Transport?.let { null } ?: MessagesRemoteMediator(
             userId = userId,
             participantId = participantId,
             dispatcherProvider = dispatcherProvider,
@@ -400,6 +505,15 @@ internal class ChatRepositoryImpl(
         pagingSourceFactory = pagingSourceFactory,
     )
 }
+
+private fun threadEventTag(eventId: String, marker: String) = buildJsonArray {
+    add(JsonPrimitive("e"))
+    add(JsonPrimitive(eventId))
+    add(JsonPrimitive(""))
+    add(JsonPrimitive(marker))
+}
+
+private fun String.isNostrEventId(): Boolean = length == 64 && all { it in '0'..'9' || it in 'a'..'f' }
 
 /**
  * Builds the per-participant conversation rows from a page of kind-4 events.
@@ -428,6 +542,25 @@ private fun List<NostrEvent>.asConversationIndex(userId: String, accepted: Set<S
                 } else {
                     ConversationRelation.Other
                 },
+            )
+        }
+
+private fun List<Nip17Message>.asNip17ConversationIndex(userId: String, accepted: Set<String>) =
+    mapNotNull { message ->
+        val receiverId = message.recipientIds.firstOrNull { it != message.senderId } ?: return@mapNotNull null
+        val participantId = if (message.senderId == userId) receiverId else message.senderId
+        participantId to message
+    }.groupBy(keySelector = { it.first }, valueTransform = { it.second })
+        .mapNotNull { (participantId, messages) ->
+            val latest = messages.maxByOrNull { it.createdAt } ?: return@mapNotNull null
+            MessageConversationData(
+                ownerId = userId,
+                participantId = participantId,
+                participantMetadataId = null,
+                lastMessageId = latest.eventId,
+                lastMessageAt = latest.createdAt,
+                unreadMessagesCount = 0,
+                relation = if (participantId in accepted) ConversationRelation.Follows else ConversationRelation.Other,
             )
         }
 

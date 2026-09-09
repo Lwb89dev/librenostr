@@ -28,4 +28,6 @@ data class FeedPost(
     val isThreadMuted: Boolean = false,
     val eventRelayHints: EventRelayHints? = null,
     val pollInfo: PollInfo? = null,
+    val threadRelation: ThreadRelation? = null,
+    val isPrivate: Boolean = false,
 )

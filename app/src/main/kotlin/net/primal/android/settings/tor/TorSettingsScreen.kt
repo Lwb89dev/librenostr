@@ -78,31 +78,37 @@ fun TorSettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    PrimalScaffold(
-        modifier = Modifier,
-        topBar = if (embedded) {
-            null
-        } else {
-            {
-            PrimalTopAppBar(
-                title = stringResource(id = R.string.settings_tor_title),
-                navigationIcon = PrimalIcons.ArrowBack,
-                navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
-                onNavigationIconClick = onClose,
-            )
-            }
-        },
-        content = { paddingValues ->
-            TorSettingsContent(
-                modifier = Modifier.padding(paddingValues),
-                state = state,
-                eventPublisher = eventPublisher,
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-    )
+    if (embedded) {
+        // A nested Scaffold expands to the maximum height offered by SettingsHomeScreen.
+        // Keep the embedded content measured to its real height so its background ends with
+        // the TOR controls instead of leaving a large empty block below the entry.
+        TorSettingsContent(
+            state = state,
+            eventPublisher = eventPublisher,
+        )
+    } else {
+        PrimalScaffold(
+            modifier = Modifier,
+            topBar = {
+                PrimalTopAppBar(
+                    title = stringResource(id = R.string.settings_tor_title),
+                    navigationIcon = PrimalIcons.ArrowBack,
+                    navigationIconContentDescription = stringResource(id = R.string.accessibility_back_button),
+                    onNavigationIconClick = onClose,
+                )
+            },
+            content = { paddingValues ->
+                TorSettingsContent(
+                    modifier = Modifier.padding(paddingValues),
+                    state = state,
+                    eventPublisher = eventPublisher,
+                )
+            },
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
+        )
+    }
 }
 
 @Composable

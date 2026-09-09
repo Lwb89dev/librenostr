@@ -66,9 +66,9 @@ class LocalSignerMethodResponseBuilder(
             ciphertext = method.ciphertext,
         ).fold(
             onSuccess = {
-                LocalSignerMethodResponse.Success.Nip44Encrypt(
+                LocalSignerMethodResponse.Success.Nip44Decrypt(
                     eventId = method.eventId,
-                    ciphertext = it,
+                    plaintext = it,
                 )
             },
             onFailure = { it.asErrorResponse(eventId = method.eventId) },

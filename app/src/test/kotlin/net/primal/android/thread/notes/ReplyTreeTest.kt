@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import net.primal.domain.posts.FeedPost
 import net.primal.domain.posts.FeedPostAuthor
+import net.primal.domain.posts.ThreadRelation
 import net.primal.domain.posts.immediateParentId
 import net.primal.domain.posts.threadRootId
 import org.junit.Test
@@ -19,6 +20,47 @@ import org.junit.Test
  * too, not approximated by arrival time.
  */
 class ReplyTreeTest {
+
+    @Test
+    fun `a normalized private reply to the root is placed at level one`() {
+        val private = privateReply(id = "p", root = OPENED_NOTE, parent = OPENED_NOTE)
+
+        private.immediateParentId() shouldBe OPENED_NOTE
+        private.threadRootId() shouldBe OPENED_NOTE
+        listOf(private).buildReplyTree(rootAuthorId = null, rootId = OPENED_NOTE).single().level shouldBe 1
+    }
+
+    @Test
+    fun `a normalized private reply nests below a public reply`() {
+        val public = reply(id = "a", to = OPENED_NOTE)
+        val private = privateReply(id = "p", root = OPENED_NOTE, parent = "a")
+
+        val levels = listOf(private, public).buildReplyTree(rootAuthorId = null, rootId = OPENED_NOTE)
+            .associate { it.post.eventId to it.level }
+
+        levels shouldBe mapOf("a" to 1, "p" to 2)
+    }
+
+    @Test
+    fun `a private reply can parent another private reply regardless of arrival order`() {
+        val child = privateReply(id = "p2", root = OPENED_NOTE, parent = "p1")
+        val parent = privateReply(id = "p1", root = OPENED_NOTE, parent = OPENED_NOTE)
+
+        val placements = listOf(child, parent).buildReplyTree(rootAuthorId = null, rootId = OPENED_NOTE)
+
+        placements.map { it.post.eventId } shouldBe listOf("p1", "p2")
+        placements.map { it.level } shouldBe listOf(1, 2)
+    }
+
+    @Test
+    fun `normalized relation wins over any public-looking tags`() {
+        val private = privateReply(id = "p", root = OPENED_NOTE, parent = "actual-parent").copy(
+            tags = listOf(eTag("decoy", marker = "reply")),
+        )
+
+        private.immediateParentId() shouldBe "actual-parent"
+        private.threadRootId() shouldBe OPENED_NOTE
+    }
 
     @Test
     fun `a reply to a reply is one level deeper than its parent`() {
@@ -379,6 +421,19 @@ class ReplyTreeTest {
             tags = listOf(eTag(to, marker = "reply")),
             timestamp = Instant.fromEpochSeconds(at),
             rawNostrEvent = "",
+        )
+
+    private fun privateReply(id: String, root: String, parent: String) =
+        FeedPost(
+            eventId = id,
+            author = FeedPostAuthor(authorId = "private-$id", handle = "private-$id", displayName = "private-$id"),
+            kind = 14,
+            content = "secret",
+            tags = emptyList(),
+            timestamp = Instant.fromEpochSeconds(1),
+            rawNostrEvent = "",
+            threadRelation = ThreadRelation(eventId = id, rootId = root, parentId = parent),
+            isPrivate = true,
         )
 
     private fun eTag(eventId: String, marker: String): JsonArray =

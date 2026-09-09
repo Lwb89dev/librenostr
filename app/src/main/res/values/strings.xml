@@ -1637,4 +1637,9 @@
     <string name="poll_votes_no_voters">Voters will show up here.</string>
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">see votes</string>
+    <string name="note_editor_private_reply_title">🔒 Private reply</string>
+    <string name="note_editor_private_reply_send">Send privately</string>
+    <string name="note_editor_private_reply_sending">Sending…</string>
+    <string name="feed_context_private_reply">Private reply</string>
+    <string name="thread_private_reply_badge">🔒 Private</string>
 </resources>

@@ -19,7 +19,13 @@ data class NoteEditorArgs(
     val isQuoting: Boolean = false,
     val startWithPoll: Boolean = false,
     val gifUrl: String? = null,
+    val privateReplyRecipientId: String? = null,
+    val privateReplyRootId: String? = null,
+    val privateReplyParentId: String? = null,
 ) {
+    val isPrivateReply: Boolean
+        get() = privateReplyRecipientId != null && privateReplyRootId != null && privateReplyParentId != null
+
     fun toJson(): String = this.encodeToJsonString()
 
     companion object {

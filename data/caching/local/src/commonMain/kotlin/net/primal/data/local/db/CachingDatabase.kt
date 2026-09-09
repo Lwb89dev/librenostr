@@ -1,5 +1,6 @@
 package net.primal.data.local.db
 
+import androidx.room3.AutoMigration
 import androidx.room3.ColumnTypeConverters
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
@@ -39,6 +40,8 @@ import net.primal.data.local.dao.messages.DirectMessageDao
 import net.primal.data.local.dao.messages.DirectMessageData
 import net.primal.data.local.dao.messages.MessageConversationDao
 import net.primal.data.local.dao.messages.MessageConversationData
+import net.primal.data.local.dao.messages.PrivateThreadReplyDao
+import net.primal.data.local.dao.messages.PrivateThreadReplyData
 import net.primal.data.local.dao.mutes.MutedItemDao
 import net.primal.data.local.dao.mutes.MutedItemData
 import net.primal.data.local.dao.notes.FeedPostDao
@@ -113,6 +116,7 @@ import net.primal.shared.data.local.serialization.ListsTypeConverters
         MutedItemData::class,
         DirectMessageData::class,
         MessageConversationData::class,
+        PrivateThreadReplyData::class,
         PublicBookmark::class,
         ArticleData::class,
         ArticleCommentCrossRef::class,
@@ -134,7 +138,8 @@ import net.primal.shared.data.local.serialization.ListsTypeConverters
         RecommendedDvmFeedCrossRef::class,
         DvmFeedFeaturedUserCrossRef::class,
     ],
-    version = 1,
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -198,6 +203,8 @@ abstract class CachingDatabase : RoomDatabase() {
     abstract fun messages(): DirectMessageDao
 
     abstract fun messageConversations(): MessageConversationDao
+
+    abstract fun privateThreadReplies(): PrivateThreadReplyDao
 
     abstract fun publicBookmarks(): PublicBookmarkDao
 

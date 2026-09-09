@@ -7,6 +7,8 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.NostrEvent
@@ -51,7 +53,25 @@ class RelayAdvancedSearchFeedFetcherTest {
         var followListQueries = 0
 
         override suspend fun query(filter: RelayFilter): List<NostrEvent> {
-            if (filter.kinds?.contains(NostrEventKind.FollowList.value) == true) followListQueries++
+            if (filter.kinds?.contains(NostrEventKind.FollowList.value) == true) {
+                followListQueries++
+                return listOf(
+                    NostrEvent(
+                        id = "follow-list",
+                        pubKey = USER_ID,
+                        createdAt = 1_700_000_000L,
+                        kind = NostrEventKind.FollowList.value,
+                        tags = listOf(
+                            buildJsonArray {
+                                add(JsonPrimitive("p"))
+                                add(JsonPrimitive("followed-pubkey"))
+                            },
+                        ),
+                        content = "",
+                        sig = "sig",
+                    ),
+                )
+            }
             return emptyList()
         }
     }

@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 23
-val appVersionName = "0.5.2"
+val appVersionCode = 24
+val appVersionName = "0.5.3"
 
 tasks.register("generateReleaseProperties") {
     doLast {
@@ -253,6 +253,7 @@ configurations.all {
 dependencies {
     implementation(project(":core:utils"))
     implementation(project(":core:nips"))
+    implementation(libs.quartz)
     implementation(project(":core:app-config"))
     implementation(project(":core:networking-http"))
     implementation(project(":core:networking-primal"))

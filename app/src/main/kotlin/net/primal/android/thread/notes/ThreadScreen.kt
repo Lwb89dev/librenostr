@@ -152,6 +152,7 @@ fun ThreadScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("CyclomaticComplexMethod")
 fun ThreadScreen(
     state: ThreadContract.UiState,
     callbacks: ThreadContract.ScreenCallbacks,
@@ -159,6 +160,7 @@ fun ThreadScreen(
     eventPublisher: (ThreadContract.UiEvent) -> Unit,
 ) {
     val context = LocalContext.current
+    val activeAccountId = LocalActiveAccountId.current
     val uiScope = rememberCoroutineScope()
     val noteEditorViewModel = noteEditorViewModel(
         args = NoteEditorArgs(
@@ -239,7 +241,20 @@ fun ThreadScreen(
                 ThreadConversationLazyColumn(
                     paddingValues = paddingValues,
                     state = state,
-                    noteCallbacks = noteCallbacks,
+                    noteCallbacks = noteCallbacks.copy(
+                        onNotePrivateReplyClick = { item ->
+                            if (item.authorId != activeAccountId) {
+                                callbacks.onExpandReply(
+                                    NoteEditorArgs(
+                                        referencedNoteNevent = if (!item.isPrivate) item.asNeventString() else null,
+                                        privateReplyRecipientId = item.authorId,
+                                        privateReplyRootId = item.threadRootId ?: state.highlightPostId,
+                                        privateReplyParentId = item.postId,
+                                    ),
+                                )
+                            }
+                        },
+                    ),
                     onGoToWallet = callbacks.onGoToWallet,
                     eventPublisher = eventPublisher,
                     articleEventPublisher = articleViewModel::setEvent,

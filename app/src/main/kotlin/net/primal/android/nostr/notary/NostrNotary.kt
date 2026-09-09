@@ -18,6 +18,8 @@ import kotlinx.serialization.json.buildJsonArray
 import net.primal.android.core.serialization.json.NostrNotaryJson
 import net.primal.android.networking.UserAgentProvider
 import net.primal.android.signer.client.AmberSignResult
+import net.primal.android.signer.client.decryptNip44WithAmber
+import net.primal.android.signer.client.encryptNip44WithAmber
 import net.primal.android.signer.client.signEventWithAmber
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.Relay
@@ -145,6 +147,63 @@ class NostrNotary @Inject constructor(
         }
 
     private suspend fun signViaRemoteSigner(userId: String, event: NostrUnsignedEvent): NostrEvent {
+        val response = requestViaRemoteSigner(
+            userId = userId,
+            method = RemoteSignerMethodType.SignEvent,
+            params = listOf(NostrNotaryJson.encodeToString(event.withoutPubKey())),
+        )
+        return response.parseSignedEventOrThrow()
+    }
+
+    /** NIP-44 entry point shared by NIP-17 for local keys, Amber and NIP-46 bunkers. */
+    suspend fun nip44Encrypt(userId: String, participantId: String, plaintext: String): String =
+        when {
+            isExternalSigner(userId) -> contentResolver.encryptNip44WithAmber(
+                content = plaintext,
+                participantId = participantId,
+                userNpub = userId.hexToNpubHrp(),
+            ) ?: throw SigningRejectedException("The external signer did not encrypt the NIP-44 payload.")
+
+            isRemoteSigner(userId) -> requestViaRemoteSigner(
+                userId = userId,
+                method = RemoteSignerMethodType.Nip44Encrypt,
+                params = listOf(participantId, plaintext),
+            ) ?: throw SigningRejectedException("The remote signer returned no NIP-44 ciphertext.")
+
+            else -> nostrEncryptionService.nip44Encrypt(
+                privateKey = findNsecOrThrow(userId),
+                pubKey = participantId,
+                plaintext = plaintext,
+            ).getOrThrow()
+        }
+
+    /** NIP-44 entry point shared by NIP-17 for local keys, Amber and NIP-46 bunkers. */
+    suspend fun nip44Decrypt(userId: String, participantId: String, ciphertext: String): String =
+        when {
+            isExternalSigner(userId) -> contentResolver.decryptNip44WithAmber(
+                content = ciphertext,
+                participantId = participantId,
+                userNpub = userId.hexToNpubHrp(),
+            ) ?: throw SigningRejectedException("The external signer did not decrypt the NIP-44 payload.")
+
+            isRemoteSigner(userId) -> requestViaRemoteSigner(
+                userId = userId,
+                method = RemoteSignerMethodType.Nip44Decrypt,
+                params = listOf(participantId, ciphertext),
+            ) ?: throw SigningRejectedException("The remote signer returned no NIP-44 plaintext.")
+
+            else -> nostrEncryptionService.nip44Decrypt(
+                privateKey = findNsecOrThrow(userId),
+                pubKey = participantId,
+                ciphertext = ciphertext,
+            ).getOrThrow()
+        }
+
+    private suspend fun requestViaRemoteSigner(
+        userId: String,
+        method: RemoteSignerMethodType,
+        params: List<String>,
+    ): String? {
         val credential = credentialsStore.findOrThrow(npub = userId.hexToNpubHrp())
         val bunkerPubkey = credential.remoteSignerPubkey
         val clientPrivateKey = credential.remoteSignerClientPrivateKey
@@ -169,14 +228,14 @@ class NostrNotary @Inject constructor(
                 nostrEncryptionService = nostrEncryptionService,
             ) { client ->
                 client.requestAndAwait(
-                    method = RemoteSignerMethodType.SignEvent,
-                    params = listOf(NostrNotaryJson.encodeToString(event.withoutPubKey())),
+                    method = method,
+                    params = params,
                     timeout = REMOTE_SIGN_TIMEOUT,
                 )
             }
         }.getOrElse { throw SigningRejectedException(message = null, cause = it) }
 
-        return response.parseSignedEventOrThrow()
+        return response
     }
 
     private fun String?.parseSignedEventOrThrow(): NostrEvent =

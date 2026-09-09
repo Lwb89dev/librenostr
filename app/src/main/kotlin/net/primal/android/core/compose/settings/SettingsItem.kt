@@ -38,7 +38,7 @@ fun SettingsItem(
                 text = headlineText,
                 style = AppTheme.typography.bodyLarge,
                 color = if (enabled) {
-                    AppTheme.colorScheme.onPrimary
+                    AppTheme.colorScheme.onSurface
                 } else {
                     AppTheme.extraColorScheme.onSurfaceVariantAlt3
                 },
@@ -67,7 +67,7 @@ fun SettingsItem(
                     text = supportText,
                     style = AppTheme.typography.bodySmall,
                     color = if (enabled) {
-                        AppTheme.extraColorScheme.onSurfaceVariantAlt1
+                        AppTheme.colorScheme.onSurface.copy(alpha = 0.78f)
                     } else {
                         AppTheme.extraColorScheme.onSurfaceVariantAlt4
                     },

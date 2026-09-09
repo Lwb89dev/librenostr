@@ -7,6 +7,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -34,6 +36,7 @@ import net.primal.domain.nostr.cryptography.SignResult
 import net.primal.domain.nostr.relay.RelayFilter
 
 @Singleton
+@Suppress("TooManyFunctions")
 class RelaysSocketManager @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val nostrSocketClientFactory: NostrSocketClientFactory,
@@ -141,14 +144,42 @@ class RelaysSocketManager @Inject constructor(
 
     @Throws(NostrPublishException::class)
     suspend fun publishEvent(nostrEvent: NostrEvent, relays: List<Relay>) {
-        val customPool = buildRelayPool()
+        val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         try {
             customPool.changeRelays(relays = relays)
+            relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.publishEvent(nostrEvent = nostrEvent)
         } finally {
             customPool.closePool()
         }
     }
+
+    /** Queries only the supplied relays; used for NIP-17 inboxes without a public fallback. */
+    suspend fun queryEvents(filter: RelayFilter, relays: List<Relay>): RelayPoolQueryResult {
+        val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
+        return try {
+            customPool.changeRelays(relays)
+            relays.forEach { customPool.tryConnectingToRelay(it.url) }
+            customPool.query(filter.toJsonObject())
+        } finally {
+            customPool.closePool()
+        }
+    }
+
+    /** Keeps a private REQ on exactly the supplied NIP-17 relays for the collector's lifetime. */
+    fun subscribeEvents(filter: RelayFilter, relays: List<Relay>): Flow<NostrEvent> = flow {
+        val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
+        try {
+            customPool.changeRelays(relays)
+            relays.forEach { customPool.tryConnectingToRelay(it.url) }
+            emitAll(customPool.subscribe(filter.toJsonObject()))
+        } finally {
+            customPool.closePool()
+        }
+    }
+
+    fun configuredUserRelays(userId: String): List<Relay> =
+        usersDatabase.relays().findRelays(userId = userId, kind = RelayKind.UserRelay).map { it.mapToRelayDO() }
 
     @Throws(NostrPublishException::class)
     suspend fun publishNwcEvent(nostrEvent: NostrEvent) {
@@ -275,6 +306,7 @@ class RelaysSocketManager @Inject constructor(
         // mute lists reveal who the user talks to and who they block.
         val PRIVATE_SCOPE_KINDS = setOf(
             NostrEventKind.EncryptedDirectMessages.value,
+            NostrEventKind.GiftWrap.value,
             NostrEventKind.MuteList.value,
             NostrEventKind.StreamMuteList.value,
         )
