@@ -143,10 +143,12 @@ private fun NotificationListItem(
                         if (firstNotification.notificationType == NotificationType.NEW_USER_FOLLOWED_YOU) {
                             firstNotification.actionUserId?.let { noteCallbacks.onProfileClick?.invoke(it) }
                         } else {
-                            firstNotification.actionPost?.postId?.let { noteCallbacks.onNoteClick?.invoke(it) }
+                            firstNotification.actionPost?.openableNoteId()
+                                ?.let { noteCallbacks.onNoteClick?.invoke(it) }
                         }
                     } else {
-                        firstNotification.actionPost?.postId?.let { noteCallbacks.onNoteClick?.invoke(it) }
+                        firstNotification.actionPost?.openableNoteId()
+                            ?.let { noteCallbacks.onNoteClick?.invoke(it) }
                     }
                 },
             ),
@@ -222,7 +224,7 @@ private fun NotificationContent(
                 modifier = Modifier.padding(end = 16.dp),
                 data = actionPost.toNoteContentUi(),
                 expanded = false,
-                onClick = { noteCallbacks.onNoteClick?.invoke(actionPost.postId) },
+                onClick = { noteCallbacks.onNoteClick?.invoke(actionPost.openableNoteId()) },
                 onUrlClick = { localUriHandler.openUriSafely(it) },
                 noteCallbacks = noteCallbacks,
             )
@@ -489,6 +491,7 @@ private fun NotificationType.shouldDisplayIcon(): Boolean {
     return when (this) {
         NotificationType.YOUR_POST_WAS_REPLIED_TO,
         NotificationType.REPLY_TO_REPLY,
+        NotificationType.YOUR_POST_WAS_PRIVATELY_REPLIED_TO,
         -> false
         else -> true
     }
@@ -523,6 +526,10 @@ private fun NotificationType.toSuffixText(
 
         NotificationType.YOUR_POST_WAS_REPLIED_TO -> stringResource(
             id = R.string.notification_list_item_replied_to_your_post,
+        )
+
+        NotificationType.YOUR_POST_WAS_PRIVATELY_REPLIED_TO -> stringResource(
+            id = R.string.notification_list_item_privately_replied_to_your_post,
         )
 
         NotificationType.YOU_WERE_MENTIONED_IN_POST -> stringResource(
@@ -845,3 +852,14 @@ private fun PreviewSeenNotificationsListItem(
         )
     }
 }
+
+/**
+ * The note id opening this notification should navigate to.
+ *
+ * For an ordinary notification that is the note itself. A private reply has no note to open: it
+ * exists only inside gift wraps and was never written to the public note cache, so navigating to
+ * its own id lands on an empty thread. Opening the note it answers instead puts the reply on
+ * screen in the conversation it belongs to, which is where it is readable.
+ */
+private fun FeedPostUi.openableNoteId(): String =
+    if (isPrivate) threadParentId ?: threadRootId ?: postId else postId

@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Páčil sa mi tvoj odkaz.</string>
     <string name="notification_list_item_reposted_your_post">reposted váš odkaz</string>
     <string name="notification_list_item_replied_to_your_post">odpovedal na vašu poznámku</string>
+    <string name="notification_list_item_privately_replied_to_your_post">odpovedal súkromne na vašu poznámku</string>
     <string name="notification_list_item_mentioned_you_in_post">spomenul vás v poznámke</string>
     <string name="notification_list_item_mentioned_your_post">spomenul tvoj odkaz.</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Zablokoval odkaz, ktorý ste spomenuli v</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">saturácie</string>
     <string name="poll_votes_see_votes">pozri hlasy</string>
     <string name="note_see_original">Pozri originál</string>
+    <string name="thread_private_reply_badge">Súkromné</string>
 </resources>

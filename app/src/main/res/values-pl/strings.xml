@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Podobała mi się twoja notatka.</string>
     <string name="notification_list_item_reposted_your_post">przestawił twoją notatkę</string>
     <string name="notification_list_item_replied_to_your_post">odpowiedział na Twój list</string>
+    <string name="notification_list_item_privately_replied_to_your_post">odpowiedział prywatnie na Twój list</string>
     <string name="notification_list_item_mentioned_you_in_post">Wspomniałem o tobie w liście.</string>
     <string name="notification_list_item_mentioned_your_post">Wspomniała o notatce.</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Zhapped a note you were mented in</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sat</string>
     <string name="poll_votes_see_votes">Patrz: głosy</string>
     <string name="note_see_original">Zobacz oryginał</string>
+    <string name="thread_private_reply_badge">Prywatne</string>
 </resources>

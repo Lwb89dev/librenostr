@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Харесах бележката ти.</string>
     <string name="notification_list_item_reposted_your_post">Препратена бележка</string>
     <string name="notification_list_item_replied_to_your_post">Отговорих на бележката ти.</string>
+    <string name="notification_list_item_privately_replied_to_your_post">отговори лично на бележката ти</string>
     <string name="notification_list_item_mentioned_you_in_post">Споменах те в бележка.</string>
     <string name="notification_list_item_mentioned_your_post">спомена бележката ти.</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Запуших бележка, в която беше споменат.</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">Сатурация</string>
     <string name="poll_votes_see_votes">виж гласовете</string>
     <string name="note_see_original">Вижте оригинала</string>
+    <string name="thread_private_reply_badge">Лично</string>
 </resources>

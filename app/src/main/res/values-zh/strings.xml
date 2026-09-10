@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">喜欢你的纸条</string>
     <string name="notification_list_item_reposted_your_post">重新张贴你的纸条</string>
     <string name="notification_list_item_replied_to_your_post">答复您的说明</string>
+    <string name="notification_list_item_privately_replied_to_your_post">私下回复了您的说明</string>
     <string name="notification_list_item_mentioned_you_in_post">在一张纸条上提到你</string>
     <string name="notification_list_item_mentioned_your_post">提到你的笔记</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">写了个字条 上面提到你</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">坐着</string>
     <string name="poll_votes_see_votes">见表决</string>
     <string name="note_see_original">见原文</string>
+    <string name="thread_private_reply_badge">私密</string>
 </resources>

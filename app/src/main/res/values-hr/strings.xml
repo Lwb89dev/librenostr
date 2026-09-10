@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Sviđala mi se tvoja poruka</string>
     <string name="notification_list_item_reposted_your_post">Poništio sam tvoju poruku</string>
     <string name="notification_list_item_replied_to_your_post">Odgovorio je na tvoju poruku</string>
+    <string name="notification_list_item_privately_replied_to_your_post">privatno je odgovorio na tvoju poruku</string>
     <string name="notification_list_item_mentioned_you_in_post">Spomenuo sam te u poruci</string>
     <string name="notification_list_item_mentioned_your_post">Spomenuo sam tvoju poruku</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Zappeed poruku ste spomenuli u</string>
@@ -1482,4 +1483,5 @@
     <string name="poll_votes_sats_suffix">Sats</string>
     <string name="poll_votes_see_votes">Vidi glasove</string>
     <string name="note_see_original">Vidi original</string>
+    <string name="thread_private_reply_badge">Privatno</string>
 </resources>

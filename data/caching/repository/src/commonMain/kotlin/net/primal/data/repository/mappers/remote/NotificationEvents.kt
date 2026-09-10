@@ -26,6 +26,8 @@ private fun ContentPrimalNotification.parseActionUserId(type: NotificationType):
         NotificationType.YOUR_POST_WAS_BOOKMARKED -> this.whoBookmarkedIt
         NotificationType.LIVE_EVENT_HAPPENING -> this.host
         NotificationType.REPLY_TO_REPLY -> this.whoRepliedToIt
+        // Synthesized locally when a gift wrap is unsealed; a relay never sends one of these.
+        NotificationType.YOUR_POST_WAS_PRIVATELY_REPLIED_TO -> null
     }
 }
 

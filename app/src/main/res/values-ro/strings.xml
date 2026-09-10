@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Mi-a plăcut biletul tău.</string>
     <string name="notification_list_item_reposted_your_post">Repostat nota ta</string>
     <string name="notification_list_item_replied_to_your_post">a răspuns la nota dumneavoastră</string>
+    <string name="notification_list_item_privately_replied_to_your_post">a răspuns în privat la nota dumneavoastră</string>
     <string name="notification_list_item_mentioned_you_in_post">Te-am menţionat într-un bilet.</string>
     <string name="notification_list_item_mentioned_your_post">menţionat nota dvs.</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Am citit un bilet în care ai fost menţionat.</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">SAT</string>
     <string name="poll_votes_see_votes">a se vedea voturile</string>
     <string name="note_see_original">Vezi original</string>
+    <string name="thread_private_reply_badge">Privat</string>
 </resources>

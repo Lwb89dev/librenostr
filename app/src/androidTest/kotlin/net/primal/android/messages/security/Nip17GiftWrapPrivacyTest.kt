@@ -3,9 +3,9 @@ package net.primal.android.messages.security
 import com.vitorpamplona.quartz.nip01Core.crypto.KeyPair
 import com.vitorpamplona.quartz.nip01Core.signers.EventTemplate
 import com.vitorpamplona.quartz.nip01Core.signers.NostrSignerInternal
-import com.vitorpamplona.quartz.nip17Dm.NIP17Factory
-import com.vitorpamplona.quartz.nip17Dm.messages.ChatMessageEvent
+import com.vitorpamplona.quartz.nip10Notes.TextNoteEvent
 import com.vitorpamplona.quartz.nip59Giftwrap.seals.SealedRumorEvent
+import com.vitorpamplona.quartz.nip59Giftwrap.wraps.GiftWrapEvent
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -13,12 +13,11 @@ import org.junit.Test
 class Nip17GiftWrapPrivacyTest {
 
     @Test
-    fun `gift wrap exposes neither plaintext nor thread relationship`() {
+    fun giftWrap_exposesNeitherPlaintextNorThreadRelationship() {
         runBlocking {
             val sender = NostrSignerInternal(KeyPair())
             val recipient = NostrSignerInternal(KeyPair())
-            val result = NIP17Factory().createMessageNIP17(template(recipient.pubKey), sender)
-            val outer = result.wraps.single { it.recipientPubKey() == recipient.pubKey }
+            val outer = privateReplyWrap(template(recipient.pubKey), sender, recipient.pubKey)
 
             outer.kind shouldBe 1059
             outer.tags.all { it.firstOrNull() == "p" } shouldBe true
@@ -28,6 +27,7 @@ class Nip17GiftWrapPrivacyTest {
 
             val seal = outer.unwrapThrowing(recipient) as SealedRumorEvent
             val rumor = seal.unsealThrowing(recipient)
+            rumor.kind shouldBe 1
             rumor.content shouldBe PLAINTEXT
             rumor.tags.any { it.getOrNull(1) == ROOT && it.getOrNull(3) == "root" } shouldBe true
             rumor.tags.any { it.getOrNull(1) == PARENT && it.getOrNull(3) == "reply" } shouldBe true
@@ -35,21 +35,20 @@ class Nip17GiftWrapPrivacyTest {
     }
 
     @Test
-    fun `unrelated signer cannot unwrap recipient gift wrap`() {
+    fun unrelatedSigner_cannotUnwrapRecipientGiftWrap() {
         runBlocking {
             val sender = NostrSignerInternal(KeyPair())
             val recipient = NostrSignerInternal(KeyPair())
             val unrelated = NostrSignerInternal(KeyPair())
-            val outer = NIP17Factory().createMessageNIP17(template(recipient.pubKey), sender)
-                .wraps.single { it.recipientPubKey() == recipient.pubKey }
+            val outer = privateReplyWrap(template(recipient.pubKey), sender, recipient.pubKey)
 
             outer.unwrapOrNull(unrelated) shouldBe null
         }
     }
 
-    private fun template(recipient: String) = EventTemplate<ChatMessageEvent>(
+    private fun template(recipient: String) = EventTemplate<TextNoteEvent>(
         createdAt = 1_700_000_000,
-        kind = 14,
+        kind = 1,
         tags = arrayOf(
             arrayOf("p", recipient),
             arrayOf("e", ROOT, "", "root"),
@@ -57,6 +56,16 @@ class Nip17GiftWrapPrivacyTest {
         ),
         content = PLAINTEXT,
     )
+
+    private suspend fun privateReplyWrap(
+        template: EventTemplate<TextNoteEvent>,
+        sender: NostrSignerInternal,
+        recipient: String,
+    ): GiftWrapEvent {
+        val rumor = sender.sign<TextNoteEvent>(template)
+        val seal = SealedRumorEvent.create(event = rumor, encryptTo = recipient, signer = sender)
+        return GiftWrapEvent.create(event = seal, recipientPubKey = recipient)
+    }
 
     private companion object {
         const val PLAINTEXT = "private reply text"

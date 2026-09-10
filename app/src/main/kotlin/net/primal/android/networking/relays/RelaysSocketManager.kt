@@ -147,7 +147,7 @@ class RelaysSocketManager @Inject constructor(
         val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         try {
             customPool.changeRelays(relays = relays)
-            relays.forEach { customPool.tryConnectingToRelay(it.url) }
+            customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.publishEvent(nostrEvent = nostrEvent)
         } finally {
             customPool.closePool()
@@ -159,7 +159,7 @@ class RelaysSocketManager @Inject constructor(
         val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         return try {
             customPool.changeRelays(relays)
-            relays.forEach { customPool.tryConnectingToRelay(it.url) }
+            customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.query(filter.toJsonObject())
         } finally {
             customPool.closePool()
@@ -171,7 +171,7 @@ class RelaysSocketManager @Inject constructor(
         val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         try {
             customPool.changeRelays(relays)
-            relays.forEach { customPool.tryConnectingToRelay(it.url) }
+            customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             emitAll(customPool.subscribe(filter.toJsonObject()))
         } finally {
             customPool.closePool()

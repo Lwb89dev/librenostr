@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Kunne lide din note</string>
     <string name="notification_list_item_reposted_your_post">reposted din note</string>
     <string name="notification_list_item_replied_to_your_post">svarede på din note</string>
+    <string name="notification_list_item_privately_replied_to_your_post">svarede privat på din note</string>
     <string name="notification_list_item_mentioned_you_in_post">nævnte dig i en note</string>
     <string name="notification_list_item_mentioned_your_post">nævnte din note</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">zapped a note you was referred in</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sæt</string>
     <string name="poll_votes_see_votes">se afstemninger</string>
     <string name="note_see_original">Se originalen</string>
+    <string name="thread_private_reply_badge">Privat</string>
 </resources>

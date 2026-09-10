@@ -1,10 +1,11 @@
 package net.primal.android.notes.feed.note
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,7 +19,11 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +47,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -53,6 +59,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
+import net.primal.android.R
 import net.primal.android.core.activity.LocalActiveAccountId
 import net.primal.android.core.activity.LocalContentDisplaySettings
 import net.primal.android.core.activity.LocalExchangeRate
@@ -570,14 +577,8 @@ private fun FeedNote(
                 )
 
                 if (data.isPrivate) {
-                    androidx.compose.material3.Text(
-                        modifier = Modifier
-                            .padding(start = contentIndentDp + 8.dp, top = 2.dp),
-                        text = androidx.compose.ui.res.stringResource(
-                            id = net.primal.android.R.string.thread_private_reply_badge,
-                        ),
-                        style = AppTheme.typography.bodySmall,
-                        color = AppTheme.colorScheme.primary,
+                    PrivateReplyBadge(
+                        modifier = Modifier.padding(start = contentIndentDp + 8.dp, top = 2.dp),
                     )
                 }
 
@@ -1038,6 +1039,34 @@ fun PreviewFeedNoteCardWithSingleChoicePollEnded() {
             eventPublisher = {},
             headerSingleLine = true,
             fullWidthContent = false,
+        )
+    }
+}
+
+/**
+ * The lock that says this note exists only inside NIP-59 gift wraps.
+ *
+ * It is the one visible difference between a private reply and any other reply, and the sender's
+ * only confirmation that what they sent really went out encrypted rather than to the public
+ * thread — so it is drawn as a lock and a word, not a word alone.
+ */
+@Composable
+private fun PrivateReplyBadge(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(
+            modifier = Modifier.size(13.dp),
+            imageVector = Icons.Default.Lock,
+            contentDescription = stringResource(id = R.string.thread_private_reply_badge),
+            tint = AppTheme.colorScheme.primary,
+        )
+        Text(
+            text = stringResource(id = R.string.thread_private_reply_badge),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colorScheme.primary,
         )
     }
 }

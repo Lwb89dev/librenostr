@@ -29,7 +29,7 @@ import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.fetch.FetchKey
 import net.primal.data.repository.mappers.local.asDMConversation
 import net.primal.data.repository.mappers.local.asDirectMessageDO
-import net.primal.data.repository.mappers.remote.hasPrivateThreadMarkers
+import net.primal.data.repository.mappers.remote.isPrivateThreadReply
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
 import net.primal.data.repository.messages.paging.MessagesRemoteMediator
@@ -404,12 +404,24 @@ internal class ChatRepositoryImpl(
         sendLegacyMessage(userId = userId, receiverId = receiverId, text = text)
     }
 
-    private suspend fun sendLegacyMessage(userId: String, receiverId: String, text: String) {
+    private suspend fun sendLegacyMessage(
+        userId: String,
+        receiverId: String,
+        text: String,
+    ) {
         val encryptedContent = messageCipher.encryptMessage(
             userId = userId,
             participantId = receiverId,
             content = text,
         )
+
+        // Where the recipient actually reads, not just where this account writes. A kind-4 event
+        // published only to the sender's own write relays never reaches someone whose relay set
+        // does not overlap — the two sides both believe they are online and neither sees the
+        // other's messages. Best effort: an unresolvable inbox still publishes the normal way.
+        val recipientInbox = nip17Transport
+            ?.let { transport -> runCatching { transport.resolveInboxRelays(receiverId) }.getOrNull() }
+            .orEmpty()
 
         withContext(dispatcherProvider.io()) {
             val publishResult = primalPublisher.signPublishImportNostrEvent(
@@ -419,6 +431,7 @@ internal class ChatRepositoryImpl(
                     kind = NostrEventKind.EncryptedDirectMessages.value,
                     tags = listOf(receiverId.asPubkeyTag()),
                 ),
+                outboxRelays = recipientInbox,
             )
             messagesProcessor.processMessageEventsAndSave(
                 userId = userId,
@@ -442,11 +455,11 @@ internal class ChatRepositoryImpl(
     ) {
         require(rootId.isNostrEventId() && parentId.isNostrEventId())
         val transport = checkNotNull(nip17Transport) { "NIP-17 transport is unavailable." }
-        val message = transport.sendMessage(
+        val message = transport.sendPrivateReply(
             userId = userId,
             receiverId = receiverId,
             content = text,
-            extraTags = listOf(
+            threadTags = listOf(
                 threadEventTag(eventId = rootId, marker = "root"),
                 threadEventTag(eventId = parentId, marker = "reply"),
             ),
@@ -460,7 +473,7 @@ internal class ChatRepositoryImpl(
         if (messages.isEmpty()) return
         withContext(dispatcherProvider.io()) {
             messagesProcessor.processNip17MessagesAndSave(userId = userId, messages = messages)
-            val directMessages = messages.filterNot { it.hasPrivateThreadMarkers() }
+            val directMessages = messages.filterNot { it.isPrivateThreadReply() }
             cacheNip17ParticipantMetadata(userId = userId, messages = directMessages)
             val accepted = acceptedParticipants(userId = userId, currentPage = emptyList())
             database.messageConversations().persistConversationIndex(
@@ -532,12 +545,13 @@ internal class ChatRepositoryImpl(
     )
 }
 
-private fun threadEventTag(eventId: String, marker: String) = buildJsonArray {
-    add(JsonPrimitive("e"))
-    add(JsonPrimitive(eventId))
-    add(JsonPrimitive(""))
-    add(JsonPrimitive(marker))
-}
+private fun threadEventTag(eventId: String, marker: String) =
+    buildJsonArray {
+        add(JsonPrimitive("e"))
+        add(JsonPrimitive(eventId))
+        add(JsonPrimitive(""))
+        add(JsonPrimitive(marker))
+    }
 
 private fun String.isNostrEventId(): Boolean = length == 64 && all { it in '0'..'9' || it in 'a'..'f' }
 

@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Tetszett az üzeneted.</string>
     <string name="notification_list_item_reposted_your_post">átküldte az üzenetét.</string>
     <string name="notification_list_item_replied_to_your_post">válaszolt az üzenetére</string>
+    <string name="notification_list_item_privately_replied_to_your_post">privátban válaszolt az üzenetére</string>
     <string name="notification_list_item_mentioned_you_in_post">említett téged egy levélben</string>
     <string name="notification_list_item_mentioned_your_post">Említette az üzenetét.</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">zapped a note you were memored in</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">szat</string>
     <string name="poll_votes_see_votes">lásd a szavazatokat</string>
     <string name="note_see_original">Lásd az eredetit</string>
+    <string name="thread_private_reply_badge">Privát</string>
 </resources>

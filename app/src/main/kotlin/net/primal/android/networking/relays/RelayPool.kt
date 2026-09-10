@@ -40,6 +40,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.domain.Relay
+import net.primal.android.user.domain.cleanWebSocketUrl
 import net.primal.core.networking.sockets.NostrIncomingMessage
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
@@ -115,15 +116,16 @@ class RelayPool(
 
     fun changeRelays(relays: List<Relay>) {
         val sanitized = relays
-            .distinctBy { it.url }
             .filter { it.url.isValidRelayUrl() }
+            .map { it.copy(url = it.url.normalizedRelayUrl()) }
+            .distinctBy { it.url }
             .take(MAX_RELAYS)
-        val existingRelayUrls = socketClients.map { it.socketUrl }
+        val existingRelayUrls = socketClients.map { it.socketUrl.normalizedRelayUrl() }
         val newRelayUrls = sanitized.map { it.url }
 
         val toAddRelayUrls = newRelayUrls.filter { it !in existingRelayUrls }
         val toAddSocketClients = sanitized.filter { it.url in toAddRelayUrls }.mapAsNostrSocketClient()
-        val toRemoveSocketClients = socketClients.filter { it.socketUrl !in newRelayUrls }
+        val toRemoveSocketClients = socketClients.filter { it.socketUrl.normalizedRelayUrl() !in newRelayUrls }
 
         val newSocketClients = socketClients.toMutableList().apply {
             removeAll(toRemoveSocketClients)
@@ -151,7 +153,9 @@ class RelayPool(
 
     suspend fun tryConnectingToRelay(url: String) {
         runCatching {
-            socketClients.find { it.socketUrl == url }?.ensureSocketConnectionOrThrow()
+            val normalizedUrl = url.normalizedRelayUrl()
+            socketClients.find { it.socketUrl.normalizedRelayUrl() == normalizedUrl }
+                ?.ensureSocketConnectionOrThrow()
         }
     }
 
@@ -330,13 +334,20 @@ class RelayPool(
     private fun writeClients(): List<NostrSocketClient> = clientsFor { it.write }
 
     private fun clientsFor(predicate: (Relay) -> Boolean): List<NostrSocketClient> {
-        val urls = relays.filter(predicate).map { it.url }.toSet()
+        val urls = relays.filter(predicate).map { it.url.normalizedRelayUrl() }.toSet()
         return when {
             relays.isEmpty() -> socketClients
             urls.isEmpty() -> emptyList()
-            else -> socketClients.filter { it.socketUrl in urls }
+            else -> socketClients.filter { it.socketUrl.normalizedRelayUrl() in urls }
         }
     }
+
+    /**
+     * Relay identity must use the same canonical form as [NostrSocketClient.socketUrl]. The socket
+     * client removes trailing slashes, so comparing its URL with an unnormalised NIP-65/NIP-10050
+     * value made an otherwise valid write relay disappear from [writeClients].
+     */
+    private fun String.normalizedRelayUrl(): String = trim().cleanWebSocketUrl()
 
     @Suppress("LongParameterList")
     private suspend fun collectUntilEose(

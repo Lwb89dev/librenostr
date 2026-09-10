@@ -18,9 +18,13 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.Result
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.data.local.dao.messages.PrivateThreadReplyData
 import net.primal.data.local.dao.notes.FeedPost as FeedPostPO
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.local.queries.ChronologicalFeedWithRepostsQueryBuilder
@@ -376,15 +380,11 @@ internal class FeedRepositoryImpl(
         return combine(publicPosts, privateReplies) { publicList, privateList ->
             val public = publicList.map { it.mapAsFeedPostDO() }
             val rootId = public.find { it.eventId == noteId }?.threadRootId() ?: noteId
-            val pendingPrivate = privateList.filter { it.rootId.decrypted == rootId }.toMutableList()
-            val connectedIds = (public.map { it.eventId } + rootId).toMutableSet()
-            val matchingPrivate = mutableListOf<net.primal.data.local.dao.messages.PrivateThreadReplyData>()
-            do {
-                val connectedNow = pendingPrivate.filter { it.parentId.decrypted in connectedIds }
-                matchingPrivate += connectedNow
-                connectedIds += connectedNow.map { it.eventId }
-                pendingPrivate.removeAll(connectedNow)
-            } while (connectedNow.isNotEmpty())
+            // Every private reply that belongs to this conversation, whether or not the note it
+            // answers came back in this fetch. Requiring a reachable parent hid a reply whenever
+            // its parent had not loaded yet, which on a cold thread is most of the time; the tree
+            // builder already knows how to place a reply whose parent is missing.
+            val matchingPrivate = privateList.filter { it.rootId.decrypted == rootId }
             val profiles = database.profiles()
                 .findProfileData(matchingPrivate.map { it.senderId }.distinct())
                 .associateBy { it.ownerId }
@@ -400,9 +400,14 @@ internal class FeedRepositoryImpl(
                         avatarCdnImage = profile?.avatarCdnImage,
                         blossomServers = profile?.blossoms.orEmpty(),
                     ),
-                    kind = NostrEventKind.PrivateDirectMessage.value,
+                    // The kind the rumor actually carries. Calling it a direct message made the
+                    // note card fall through every kind-1 rendering path a reply goes through.
+                    kind = NostrEventKind.ShortTextNote.value,
                     content = reply.content.decrypted,
-                    tags = emptyList(),
+                    // The rumor's own NIP-10 tags, rebuilt from the stored relationship. They are
+                    // not decoration: the thread's topological sort reads tags, and a post with
+                    // none was sorted ahead of the conversation root and rendered as its ancestor.
+                    tags = reply.asThreadTags(),
                     timestamp = Instant.fromEpochSeconds(reply.createdAt),
                     rawNostrEvent = "",
                     threadRelation = ThreadRelation(
@@ -486,3 +491,30 @@ internal class FeedRepositoryImpl(
         const val MAX_STREAMED_AUTHORS = 1_000
     }
 }
+
+/**
+ * The NIP-10 tags the gift-wrapped rumor carried, rebuilt from the decrypted relationship.
+ *
+ * These never reach a relay — the reply exists only inside NIP-59 envelopes — but everything in
+ * the thread pipeline that reads a reply's position reads tags, so a private reply without them
+ * is a post the conversation cannot place.
+ */
+private fun PrivateThreadReplyData.asThreadTags(): List<JsonArray> {
+    val rootId = this.rootId.decrypted
+    val parentId = this.parentId.decrypted
+    val tags = mutableListOf(threadTag(eventId = rootId, marker = "root"))
+    if (parentId != rootId) tags += threadTag(eventId = parentId, marker = "reply")
+    tags += buildJsonArray {
+        add(JsonPrimitive("p"))
+        add(JsonPrimitive(recipientId))
+    }
+    return tags
+}
+
+private fun threadTag(eventId: String, marker: String): JsonArray =
+    buildJsonArray {
+        add(JsonPrimitive("e"))
+        add(JsonPrimitive(eventId))
+        add(JsonPrimitive(""))
+        add(JsonPrimitive(marker))
+    }

@@ -632,6 +632,7 @@
     <string name="notification_list_item_liked_your_post">liked your note</string>
     <string name="notification_list_item_reposted_your_post">reposted your note</string>
     <string name="notification_list_item_replied_to_your_post">replied to your note</string>
+    <string name="notification_list_item_privately_replied_to_your_post">replied privately to your note</string>
     <string name="notification_list_item_mentioned_you_in_post">mentioned you in a note</string>
     <string name="notification_list_item_mentioned_your_post">mentioned your note</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">zapped a note you were mentioned in</string>
@@ -1647,5 +1648,5 @@
     <string name="private_reply_recipient_confirm">Select</string>
     <string name="private_reply_recipient_cancel">Cancel</string>
     <string name="feed_context_private_reply">Private reply</string>
-    <string name="thread_private_reply_badge">🔒 Private</string>
+    <string name="thread_private_reply_badge">Private</string>
 </resources>

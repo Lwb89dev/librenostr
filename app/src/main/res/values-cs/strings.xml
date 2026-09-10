@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Líbí se mi tvůj vzkaz.</string>
     <string name="notification_list_item_reposted_your_post">@ info: tooltip</string>
     <string name="notification_list_item_replied_to_your_post">odpověděl na váš vzkaz</string>
+    <string name="notification_list_item_privately_replied_to_your_post">odpověděl soukromě na váš vzkaz</string>
     <string name="notification_list_item_mentioned_you_in_post">zmiňoval vás v dopise</string>
     <string name="notification_list_item_mentioned_your_post">zmiňoval váš vzkaz</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Zapped poznámka jste byli zmíněni v</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">saturace</string>
     <string name="poll_votes_see_votes">vidět hlasy</string>
     <string name="note_see_original">Viz originál</string>
+    <string name="thread_private_reply_badge">Soukromé</string>
 </resources>

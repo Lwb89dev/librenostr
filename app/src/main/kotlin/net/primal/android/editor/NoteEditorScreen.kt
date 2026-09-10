@@ -118,6 +118,7 @@ import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.NoteContentUi
 import net.primal.android.notes.feed.model.PollType
 import net.primal.android.notes.feed.model.toNoteContentUi
+import net.primal.core.utils.runCatching
 import net.primal.domain.links.EventUriType
 import net.primal.android.notes.feed.note.ui.FeedNoteHeader
 import net.primal.android.notes.feed.note.ui.NoteContent

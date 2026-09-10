@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">għoġobek in - nota</string>
     <string name="notification_list_item_reposted_your_post">Erġa\' daħħal in-nota tiegħek</string>
     <string name="notification_list_item_replied_to_your_post">wieġeb għan - nota tiegħek</string>
+    <string name="notification_list_item_privately_replied_to_your_post">wieġeb privatament għan-nota tiegħek</string>
     <string name="notification_list_item_mentioned_you_in_post">semmejtek f\'nota</string>
     <string name="notification_list_item_mentioned_your_post">semmejt in-nota tiegħek</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">zapped nota li inti kienu msemmija fil</string>
@@ -1482,4 +1483,5 @@
     <string name="poll_votes_sats_suffix">poġġamani</string>
     <string name="poll_votes_see_votes">ara l-voti</string>
     <string name="note_see_original">Ara l-oriġinali</string>
+    <string name="thread_private_reply_badge">Privat</string>
 </resources>

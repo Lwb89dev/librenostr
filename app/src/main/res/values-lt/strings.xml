@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">patiko jūsų raštelis</string>
     <string name="notification_list_item_reposted_your_post">iš naujo parašė savo raštelį</string>
     <string name="notification_list_item_replied_to_your_post">atsakė į Jūsų laišką</string>
+    <string name="notification_list_item_privately_replied_to_your_post">privačiai atsakė į Jūsų laišką</string>
     <string name="notification_list_item_mentioned_you_in_post">paminėjo jus pranešime</string>
     <string name="notification_list_item_mentioned_your_post">paminėjo savo raštelį</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">papuošė raštelį, kuris buvo paminėtas</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">žr. balsus</string>
     <string name="note_see_original">Žr. originalą</string>
+    <string name="thread_private_reply_badge">Privatu</string>
 </resources>

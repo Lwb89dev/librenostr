@@ -6,9 +6,11 @@ import net.primal.data.local.dao.events.EventStats
 import net.primal.data.local.dao.events.EventUri
 import net.primal.data.local.dao.events.EventUriNostr
 import net.primal.data.local.dao.events.EventUserStats
+import net.primal.data.local.dao.messages.PrivateThreadReplyData
 import net.primal.data.local.dao.notes.PostData
 import net.primal.data.local.dao.profiles.ProfileData
 import net.primal.data.local.dao.streams.StreamData
+import net.primal.domain.notifications.NotificationType
 
 data class Notification(
     @Embedded
@@ -34,6 +36,23 @@ data class Notification(
 
     @Relation(entityColumns = ["aTag"], parentColumns = ["actionPostId"])
     val liveActivity: StreamData? = null,
+
+    /**
+     * The gift-wrapped replies matching this notification's target id, across every local account.
+     *
+     * A private reply is never written to [PostData] — that table feeds public queries — so
+     * [actionPost] is always null for [NotificationType.YOUR_POST_WAS_PRIVATELY_REPLIED_TO] and
+     * the row would render as a bare header with no body. This relation gives the mapper the
+     * decrypted reply to build a post out of, without the private text ever leaving the
+     * at-rest-encrypted table it lives in.
+     *
+     * A list rather than a single row because [PrivateThreadReplyData] is keyed by
+     * (ownerId, eventId) and a `@Relation` can only join on one column: on a device with several
+     * accounts the same reply id exists once per account that received it. The mapper picks the
+     * row whose owner matches this notification's, so one account never renders another's copy.
+     */
+    @Relation(entityColumns = ["eventId"], parentColumns = ["actionPostId"])
+    val privateReplies: List<PrivateThreadReplyData> = emptyList(),
 
     /**
      * How many rows this one stands for.

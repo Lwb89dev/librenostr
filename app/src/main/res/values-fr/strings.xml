@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">J\'ai aimé votre note</string>
     <string name="notification_list_item_reposted_your_post">a posté votre note</string>
     <string name="notification_list_item_replied_to_your_post">a répondu à votre note</string>
+    <string name="notification_list_item_privately_replied_to_your_post">a répondu en privé à votre note</string>
     <string name="notification_list_item_mentioned_you_in_post">vous a mentionné dans une note</string>
     <string name="notification_list_item_mentioned_your_post">a mentionné votre note</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">J\'ai oublié une note que vous avez mentionnée dans</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">voir votes</string>
     <string name="note_see_original">Voir l\'original</string>
+    <string name="thread_private_reply_badge">Privé</string>
 </resources>

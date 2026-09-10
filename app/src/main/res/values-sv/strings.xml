@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">gillade din anteckning</string>
     <string name="notification_list_item_reposted_your_post">Reposted your note</string>
     <string name="notification_list_item_replied_to_your_post">Svarade på din anteckning</string>
+    <string name="notification_list_item_privately_replied_to_your_post">svarade privat på din anteckning</string>
     <string name="notification_list_item_mentioned_you_in_post">nämnde dig i en anteckning</string>
     <string name="notification_list_item_mentioned_your_post">nämnda din anteckning</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">zapped en anteckning som du nämndes i</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">se röster</string>
     <string name="note_see_original">Se original</string>
+    <string name="thread_private_reply_badge">Privat</string>
 </resources>

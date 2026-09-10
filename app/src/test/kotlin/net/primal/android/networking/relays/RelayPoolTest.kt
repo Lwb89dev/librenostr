@@ -31,6 +31,9 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
+// One class on purpose: every case here drives the same RelayPool through the same fake
+// socket factory, and splitting it would duplicate that harness in each new file.
+@Suppress("LargeClass")
 class RelayPoolTest {
 
     @get:Rule
@@ -271,6 +274,32 @@ class RelayPoolTest {
 
             coVerify { writeSocket.sendEVENT(any()) }
             coVerify(exactly = 0) { readSocket.sendEVENT(any()) }
+        }
+
+    @Test
+    fun publishEvent_matchesWriteRelayAfterSocketUrlNormalization() =
+        runTest {
+            val eventId = "normalized-write-relay"
+            val incoming = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 8)
+            val socket = mockk<NostrSocketClient>(relaxed = true) {
+                // NostrSocketClientImpl canonicalises the URL it receives by dropping this slash.
+                every { socketUrl } returns "wss://relay.example"
+                every { incomingMessages } returns incoming
+                every { connectionGeneration } returns MutableStateFlow(0L)
+            }
+            val relayPool = buildRelayPool()
+            relayPool.relays = listOf(
+                Relay(url = "  wss://relay.example/  ", read = true, write = true),
+            )
+            relayPool.socketClients = listOf(socket)
+
+            val job = launch { relayPool.publishEvent(buildNostrEvent(eventId)) }
+            runCurrent()
+            incoming.emit(NostrIncomingMessage.OkMessage(eventId = eventId, success = true))
+            runCurrent()
+            job.join()
+
+            coVerify { socket.sendEVENT(any()) }
         }
 
     @Test
@@ -633,6 +662,32 @@ class RelayPoolTest {
             relayPool.relays.size shouldBe RelayPool.MAX_RELAYS
             relayPool.socketClients.size shouldBe RelayPool.MAX_RELAYS
             relayPool.relays.all { it.url.isValidRelayUrl() } shouldBe true
+        }
+
+    @Test
+    fun changeRelays_storesCanonicalRelayUrls() =
+        runTest {
+            val factory = mockk<NostrSocketClientFactory>(relaxed = true)
+            every {
+                factory.create(
+                    wssUrl = any(),
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            } answers {
+                val url = firstArg<String>()
+                mockk<NostrSocketClient>(relaxed = true) {
+                    every { socketUrl } returns url
+                }
+            }
+            val relayPool = buildRelayPool(nostrSocketClientFactory = factory)
+
+            relayPool.changeRelays(
+                listOf(Relay(url = "  wss://relay.example/  ", read = true, write = true)),
+            )
+
+            relayPool.relays.single().url shouldBe "wss://relay.example"
+            relayPool.socketClients.single().socketUrl shouldBe "wss://relay.example"
         }
 
     /**

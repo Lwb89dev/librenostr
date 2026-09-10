@@ -7,6 +7,14 @@ import kotlinx.serialization.json.JsonArray
 data class Nip17Message(
     val eventId: String,
     val outerEventId: String,
+    /**
+     * The rumor's own kind, which is what says whether this is a chat message or a thread reply.
+     *
+     * Kind 14 is a NIP-17 direct message; kind 1 is a gift-wrapped text note — a private reply or
+     * private post, the same shape Amethyst's `NIP17Factory.createNoteNIP17` produces. Classifying
+     * on tag shapes instead got both wrong: a chat message that quotes a note carries `e` tags too.
+     */
+    val kind: Int,
     val senderId: String,
     val recipientIds: List<String>,
     val createdAt: Long,
@@ -25,6 +33,28 @@ interface Nip17Transport {
         content: String,
         extraTags: List<JsonArray> = emptyList(),
     ): Nip17Message
+
+    /**
+     * Sends a private thread note. Unlike a direct message (kind 14), the encrypted rumor is a
+     * normal text note (kind 1) whose thread tags are kept inside the NIP-59 envelope.
+     */
+    suspend fun sendPrivateReply(
+        userId: String,
+        receiverId: String,
+        content: String,
+        threadTags: List<JsonArray>,
+    ): Nip17Message
+
+    /**
+     * The relays a private event addressed to [userId] has to be delivered to.
+     *
+     * Exposed so the legacy kind-4 path can reach the same inboxes instead of publishing only to
+     * the sender's own write relays: two accounts with disjoint relay sets could otherwise send
+     * each other messages that neither would ever fetch, which reads from outside as "sent, never
+     * arrived". Resolution follows NIP-17's kind-10050, then NIP-65 read relays, then a bootstrap
+     * pool — the same order Amethyst's `DmActions.resolveDmRelays` uses in permissive mode.
+     */
+    suspend fun resolveInboxRelays(userId: String): List<String>
 
     suspend fun fetchMessages(userId: String, limit: Int = DEFAULT_FETCH_LIMIT): List<Nip17Message>
 

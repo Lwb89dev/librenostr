@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Ik vond je briefje mooi.</string>
     <string name="notification_list_item_reposted_your_post">Uw briefje opnieuw geplaatst</string>
     <string name="notification_list_item_replied_to_your_post">beantwoordde uw briefje</string>
+    <string name="notification_list_item_privately_replied_to_your_post">reageerde privé op uw briefje</string>
     <string name="notification_list_item_mentioned_you_in_post">noemde je in een briefje</string>
     <string name="notification_list_item_mentioned_your_post">vermeld uw briefje</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Zapped een briefje dat je werd genoemd in</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">saturatie</string>
     <string name="poll_votes_see_votes">zie stemmen</string>
     <string name="note_see_original">Zie origineel</string>
+    <string name="thread_private_reply_badge">Privé</string>
 </resources>

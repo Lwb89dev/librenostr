@@ -7,6 +7,32 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.5] - 2026-09-10
+
+### Fixed
+
+- Private replies sent over NIP-17 now appear in their own thread instead of being sorted above
+  the conversation root: the thread's topological sort reads the gift-wrapped reply's normalized
+  root/parent relationship directly, not only public NIP-10 tags, which a private reply never
+  carries.
+- The recipient of a private reply now gets a local notification for it — nothing else can, since
+  the reply exists only inside an encrypted Gift Wrap and no relay ever serves one. Tapping the
+  notification opens the thread the reply belongs to.
+- The sent-reply lock indicator on a private reply's note card is now an icon and label together,
+  matching Amethyst/Damus, instead of label text alone.
+- NIP-17 relay resolution for both direct messages and private replies now follows the recipient's
+  kind-10050 inbox, then their NIP-65 read relays, then a bootstrap pool, mirroring Amethyst's own
+  fallback policy. Previously a missing kind-10050 could make an otherwise deliverable message fail
+  outright.
+- A legacy NIP-04 direct message (the fallback used when a contact has no kind-10050) is now also
+  published to the recipient's own relays, not only the sender's write relays, so accounts with
+  disjoint relay sets can actually reach each other.
+- A private reply naming only a thread root (a NIP-10-legal shape, and the one Amethyst produces
+  most often) is no longer silently dropped; a duplicate or malformed marker no longer discards an
+  otherwise valid reply either.
+- Announcing an account's own NIP-17 DM relay list no longer runs before every send and can no
+  longer make an otherwise deliverable message fail; it is now a best-effort step after delivery.
+
 ## [0.5.4] - 2026-09-09
 
 ### Fixed

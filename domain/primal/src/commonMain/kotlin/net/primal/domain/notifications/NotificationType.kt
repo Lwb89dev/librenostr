@@ -108,6 +108,21 @@ enum class NotificationType(
         type = 601,
         collapsable = false,
     ),
+
+    /**
+     * Someone gift-wrapped a NIP-17 reply to the user (NIP-59 kind 1059 carrying a kind-1 rumor).
+     *
+     * Local-only: no relay ever serves this notification, because the reply itself is encrypted
+     * and nothing outside this device can tell it exists. It is synthesized when an incoming
+     * gift wrap is unsealed, which is the only moment the relationship becomes visible. The
+     * [type] number is therefore outside every range the Primal cache assigns, so a future
+     * server-side type can never collide with it.
+     */
+    YOUR_POST_WAS_PRIVATELY_REPLIED_TO(
+        id = "YOUR_POST_WAS_PRIVATELY_REPLIED_TO",
+        type = 901,
+        collapsable = false,
+    ),
     ;
 
     companion object {

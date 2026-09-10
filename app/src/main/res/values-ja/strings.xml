@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">あなたのノートが好き</string>
     <string name="notification_list_item_reposted_your_post">メモを再投稿</string>
     <string name="notification_list_item_replied_to_your_post">あなたのノートに返信しました</string>
+    <string name="notification_list_item_privately_replied_to_your_post">あなたのノートに非公開で返信しました</string>
     <string name="notification_list_item_mentioned_you_in_post">ノートであなたをメンションしました</string>
     <string name="notification_list_item_mentioned_your_post">注意を述べた</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">あなたが言及したノートをzapped</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">投票を見る</string>
     <string name="note_see_original">オリジナルを見る</string>
+    <string name="thread_private_reply_badge">非公開</string>
 </resources>

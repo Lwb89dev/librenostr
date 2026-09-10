@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">Gefiel mir deine Notiz</string>
     <string name="notification_list_item_reposted_your_post">Reposted Ihre Notiz</string>
     <string name="notification_list_item_replied_to_your_post">Antworten auf Ihre Notiz</string>
+    <string name="notification_list_item_privately_replied_to_your_post">hat privat auf Ihre Notiz geantwortet</string>
     <string name="notification_list_item_mentioned_you_in_post">Sie in einer Notiz erwähnt</string>
     <string name="notification_list_item_mentioned_your_post">erwähnte deine Notiz</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">Zapped eine Notiz, in der Sie erwähnt wurden</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">Satt</string>
     <string name="poll_votes_see_votes">siehe Abstimmungen</string>
     <string name="note_see_original">Siehe Original</string>
+    <string name="thread_private_reply_badge">Privat</string>
 </resources>

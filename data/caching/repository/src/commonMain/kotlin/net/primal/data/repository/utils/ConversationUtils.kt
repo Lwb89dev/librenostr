@@ -2,12 +2,9 @@ package net.primal.data.repository.utils
 
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
-import net.primal.domain.nostr.getTagValueOrNull
-import net.primal.domain.nostr.hasMentionMarker
-import net.primal.domain.nostr.hasReplyMarker
-import net.primal.domain.nostr.hasRootMarker
-import net.primal.domain.nostr.isEventIdTag
 import net.primal.domain.posts.FeedPost
+import net.primal.domain.posts.immediateParentId
+import net.primal.domain.posts.threadRootId
 
 /**
  * Tries to perform topological sort calling [performTopologicalSort].  In case the sort fails,
@@ -31,26 +28,17 @@ fun List<FeedPost>.performTopologicalSort(): List<FeedPost> {
     val finalList = mutableListOf<FeedPost>()
 
     this.forEach { post ->
-        val replyTag = post.tags.find { it.hasReplyMarker() }
-        val rootTag = post.tags.find { it.hasRootMarker() }
-
-        replyTag?.getTagValueOrNull()?.let {
-            adjacencyMap.getOrPut(key = it) { mutableSetOf() }
-                .add(post.eventId)
-        }
-        rootTag?.getTagValueOrNull()?.let {
-            adjacencyMap.getOrPut(key = it) { mutableSetOf() }
-                .add(post.eventId)
-        }
-
-        // Handle bare e tags (deprecated NIP-10 style) when no explicit markers exist
-        if (replyTag == null && rootTag == null) {
-            post.tags.filterNot { it.hasMentionMarker() }
-                .lastOrNull { it.isEventIdTag() }
-                ?.getTagValueOrNull()?.let {
-                    adjacencyMap.getOrPut(key = it) { mutableSetOf() }
-                        .add(post.eventId)
-                }
+        // A post whose relationship is already normalized — a gift-wrapped private reply, whose
+        // thread links live inside the encrypted rumor and never as public tags — states it
+        // through threadRelation and carries no tags at all. Reading only tags gave those posts
+        // no edges, so the sort put them at the very front of the thread, above its own root,
+        // where the screen renders them as ancestors of the opened note instead of replies to it.
+        val parentId = post.immediateParentId()
+        val rootId = post.threadRootId()
+        if (parentId != null || rootId != null) {
+            parentId?.let { adjacencyMap.getOrPut(key = it) { mutableSetOf() }.add(post.eventId) }
+            rootId?.takeIf { it != parentId }
+                ?.let { adjacencyMap.getOrPut(key = it) { mutableSetOf() }.add(post.eventId) }
         }
     }
 

@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">patika jūsu piezīme</string>
     <string name="notification_list_item_reposted_your_post">reposted savu piezīmi</string>
     <string name="notification_list_item_replied_to_your_post">atbildēja uz jūsu piezīmi</string>
+    <string name="notification_list_item_privately_replied_to_your_post">privāti atbildēja uz jūsu piezīmi</string>
     <string name="notification_list_item_mentioned_you_in_post">Jūs pieminējāt piezīmē</string>
     <string name="notification_list_item_mentioned_your_post">pieminējāt savu piezīmi</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">zapped piezīmi jums tika minēts</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">skat.</string>
     <string name="note_see_original">Skatīt oriģinālu</string>
+    <string name="thread_private_reply_badge">Privāts</string>
 </resources>

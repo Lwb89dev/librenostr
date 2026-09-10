@@ -556,6 +556,7 @@
     <string name="notification_list_item_liked_your_post">ha messo mi piace alla tua nota</string>
     <string name="notification_list_item_reposted_your_post">ha ripubblicato la tua nota</string>
     <string name="notification_list_item_replied_to_your_post">ha risposto alla tua nota</string>
+    <string name="notification_list_item_privately_replied_to_your_post">ha risposto in privato alla tua nota</string>
     <string name="notification_list_item_mentioned_you_in_post">ti ha menzionato in una nota</string>
     <string name="notification_list_item_mentioned_your_post">ha menzionato la tua nota</string>
     <string name="notification_list_item_post_you_were_mentioned_in_was_zapped">ha zappato una nota in cui sei stato menzionato</string>
@@ -1485,4 +1486,5 @@
     <string name="poll_votes_sats_suffix">sats</string>
     <string name="poll_votes_see_votes">vedi voti</string>
     <string name="note_see_original">Vedi originale</string>
+    <string name="thread_private_reply_badge">Privato</string>
 </resources>

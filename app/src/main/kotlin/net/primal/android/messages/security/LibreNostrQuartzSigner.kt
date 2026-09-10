@@ -2,11 +2,15 @@ package net.primal.android.messages.security
 
 import com.vitorpamplona.quartz.nip01Core.core.Event
 import com.vitorpamplona.quartz.nip01Core.signers.NostrSigner
+import com.vitorpamplona.quartz.nip10Notes.TextNoteEvent
+import com.vitorpamplona.quartz.nip17Dm.messages.ChatMessageEvent
+import com.vitorpamplona.quartz.nip59Giftwrap.seals.SealedRumorEvent
 import com.vitorpamplona.quartz.nip57Zaps.LnZapPrivateEvent
 import com.vitorpamplona.quartz.nip57Zaps.LnZapRequestEvent
-import kotlinx.serialization.encodeToString
-import net.primal.android.core.serialization.json.NostrNotaryJson
+import kotlinx.serialization.json.JsonPrimitive
 import net.primal.android.nostr.notary.NostrNotary
+import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.cryptography.utils.unwrapOrThrow
 
@@ -34,7 +38,10 @@ class LibreNostrQuartzSigner(
                 content = content,
             ),
         ).unwrapOrThrow()
-        return Event.fromJson(NostrNotaryJson.encodeToString(signed)) as T
+        // Quartz 1.04.2's generic Event deserializer has no kind-13 registration and throws an
+        // NPE for NIP-59 seals. The signer must return the concrete type requested by Quartz,
+        // especially while SealedRumorEvent.create is building a NIP-17 envelope.
+        return signed.asQuartzEvent() as T
     }
 
     override suspend fun nip44Encrypt(plaintext: String, pubKey: String): String =
@@ -58,6 +65,50 @@ class LibreNostrQuartzSigner(
 
     private fun <T> unsupported(operation: String): T =
         throw UnsupportedOperationException("$operation is not used by the NIP-17 transport.")
+}
+
+private fun NostrEvent.asQuartzEvent(): Event {
+    val quartzTags = tags.map { tag ->
+        tag.map { element -> (element as JsonPrimitive).content }.toTypedArray()
+    }.toTypedArray()
+    return when (kind) {
+        NostrEventKind.PrivateDirectMessage.value -> ChatMessageEvent(
+            id = id,
+            pubKey = pubKey,
+            createdAt = createdAt,
+            tags = quartzTags,
+            content = content,
+            sig = sig,
+        )
+
+        NostrEventKind.ShortTextNote.value -> TextNoteEvent(
+            id = id,
+            pubKey = pubKey,
+            createdAt = createdAt,
+            tags = quartzTags,
+            content = content,
+            sig = sig,
+        )
+
+        NostrEventKind.SealedRumor.value -> SealedRumorEvent(
+            id = id,
+            pubKey = pubKey,
+            createdAt = createdAt,
+            tags = quartzTags,
+            content = content,
+            sig = sig,
+        )
+
+        else -> Event(
+            id = id,
+            pubKey = pubKey,
+            createdAt = createdAt,
+            kind = kind,
+            tags = quartzTags,
+            content = content,
+            sig = sig,
+        )
+    }
 }
 
 private fun Array<String>.toJsonArray() = kotlinx.serialization.json.buildJsonArray {

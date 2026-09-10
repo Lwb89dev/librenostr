@@ -13,6 +13,7 @@ import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -839,21 +840,7 @@ class NoteEditorViewModel @AssistedInject constructor(
                 val content = resolveNoteContent()
 
                 if (state.value.isPrivateReply) {
-                    val parentId = referencedNoteNevent?.eventId
-                        ?: requireNotNull(args.privateReplyParentId)
-                    val parentPost = feedRepository.findPostsById(parentId)?.asFeedPostUi()
-                    val rootId = parentPost?.threadRootId
-                        ?: state.value.replyToConversation.firstOrNull()?.threadRootId
-                        ?: state.value.replyToConversation.firstOrNull()?.postId
-                        ?: args.privateReplyRootId
-                        ?: parentId
-                    chatRepository.sendPrivateReply(
-                        userId = userId,
-                        receiverId = requireNotNull(state.value.privateReplyRecipientId),
-                        text = content,
-                        rootId = rootId,
-                        parentId = parentId,
-                    )
+                    publishPrivateReply(userId = userId, content = content)
                     resetState()
                     sendEffect(SideEffect.PostPublished)
                     return@launch
@@ -895,10 +882,46 @@ class NoteEditorViewModel @AssistedInject constructor(
             } catch (error: IllegalStateException) {
                 Napier.w(throwable = error) { "Failed to send private reply." }
                 setErrorState(error = UiError.PublishError(cause = error))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+                // Deliberately a catch-all. Publishing reaches a signer (local key, Amber, a
+                // NIP-46 bunker) and, for a private reply, the whole NIP-44/NIP-59 pipeline —
+                // each of which can fail in ways none of the typed cases above cover. An escaping
+                // exception here used to take the composer down with the user's unsent text in it.
+                Napier.w(throwable = error) { "Unexpected error while publishing post." }
+                setErrorState(error = UiError.PublishError(cause = error))
             } finally {
                 setState { copy(publishing = false) }
             }
         }
+
+    /**
+     * Sends the composed text as a gift-wrapped private reply instead of publishing it.
+     *
+     * Resolving the root is a fallback chain because each source knows a different amount: the
+     * parent note's own NIP-10 tags are authoritative when it is cached, the loaded conversation
+     * knows it whenever the thread screen has one, the navigation argument carries what the screen
+     * that opened the composer believed, and a reply straight to a root note has no separate root
+     * at all — it is its own.
+     */
+    private suspend fun publishPrivateReply(userId: String, content: String) {
+        val parentId = referencedNoteNevent?.eventId
+            ?: requireNotNull(args.privateReplyParentId)
+        val parentPost = feedRepository.findPostsById(parentId)?.asFeedPostUi()
+        val rootId = parentPost?.threadRootId
+            ?: state.value.replyToConversation.firstOrNull()?.threadRootId
+            ?: state.value.replyToConversation.firstOrNull()?.postId
+            ?: args.privateReplyRootId
+            ?: parentId
+        chatRepository.sendPrivateReply(
+            userId = userId,
+            receiverId = requireNotNull(state.value.privateReplyRecipientId),
+            text = content,
+            rootId = rootId,
+            parentId = parentId,
+        )
+    }
 
     private suspend fun resolveNoteContent(): String {
         val noteContent = userMentionHandler.replaceUserMentionsWithUserIds(
