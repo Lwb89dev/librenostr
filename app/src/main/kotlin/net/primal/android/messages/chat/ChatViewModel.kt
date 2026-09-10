@@ -36,6 +36,8 @@ import net.primal.android.notes.feed.model.asNoteNostrUriUi
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.core.utils.onFailure
+import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.messages.DirectMessage
@@ -126,9 +128,25 @@ class ChatViewModel @Inject constructor(
                 }
         }
 
-    private fun markConversationAsRead() {
-        Napier.d { "Skipping cache mark-as-read AUTH" }
-    }
+    /**
+     * Clears this conversation's unread count as soon as its messages have been on screen.
+     *
+     * Local only: the removed cache service was the only thing that ever wanted a signed
+     * acknowledgement, and asking the user's signer to approve one every time they open a chat
+     * would be a prompt for nothing. This used to log and return, which meant the count it was
+     * supposed to clear only ever grew.
+     */
+    private fun markConversationAsRead() =
+        viewModelScope.launch {
+            runCatching {
+                chatRepository.markConversationAsReadLocally(
+                    userId = userId,
+                    conversationUserId = participantId,
+                )
+            }.onFailure { error ->
+                Napier.w(throwable = error) { "Failed to mark conversation as read." }
+            }
+        }
 
     private fun sendMessage() =
         viewModelScope.launch {

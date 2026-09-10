@@ -46,6 +46,16 @@ interface ChatRepository {
     /** Marks every locally stored conversation as read without a remote service. */
     suspend fun markAllMessagesAsReadLocally(userId: String)
 
+    /**
+     * Clears one conversation's unread count without telling anyone.
+     *
+     * Separate from [markConversationAsRead], which also acknowledges the read to a server it
+     * needs a signed event for. There is no server here, and opening a conversation is not worth
+     * a signature prompt — but it does have to clear the badge, which is what an unread count is
+     * for. Without this, opening a conversation left it counted as unread forever.
+     */
+    suspend fun markConversationAsReadLocally(userId: String, conversationUserId: String)
+
     /** Collects the active account's central NIP-17 inbox until the caller cancels. */
     suspend fun collectNewMessages(userId: String)
 

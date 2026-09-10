@@ -44,6 +44,8 @@ import net.primal.domain.notifications.Notification
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.notifications.NotificationType
+import net.primal.domain.posts.immediateParentId
+import net.primal.domain.posts.threadRootId
 import net.primal.domain.streams.mappers.asReferencedStream
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -257,6 +259,13 @@ class NotificationsViewModel @Inject constructor(
                 hashtags = actionOnPost.hashtags,
                 rawNostrEventJson = actionOnPost.rawNostrEvent,
                 poll = actionOnPost.pollInfo?.asPollUi(),
+                // A gift-wrapped private reply reaches this screen like any other notification,
+                // but it is not like any other note: it has to draw the lock, hide the public
+                // actions, and open the thread it answers rather than its own id, which is not a
+                // note any relay holds. Building the UI model by hand here dropped all three.
+                isPrivate = actionOnPost.isPrivate,
+                threadRootId = actionOnPost.threadRootId(),
+                threadParentId = actionOnPost.immediateParentId(),
             )
         }
     }

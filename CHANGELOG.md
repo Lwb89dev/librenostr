@@ -7,6 +7,25 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.6] - 2026-09-10
+
+### Fixed
+
+- The recipient of a NIP-17 direct message or private reply now actually receives it. Relay
+  resolution was asymmetric between the two sides of a send: a sender resolving a remote
+  recipient with no kind-10050 fell back to the public bootstrap pool, while that recipient
+  polling their own inbox stopped at their own configured relays and never checked the bootstrap
+  pool at all — the two sides agreed on nothing, so the wrap was delivered exactly where nobody
+  was listening. Inbox polling now reads the union of every relay a sender could plausibly have
+  used, and an account's own kind-10050 is announced on first poll rather than only after a send.
+- The Messages badge unread count is no longer hardcoded to zero. It is now derived from what
+  actually arrived past the last known message, and opening a conversation clears it locally.
+- A private reply notification now shows the lock indicator and opens the thread it answers when
+  tapped, instead of missing both because the notification screen built its note preview by hand
+  and dropped the fields that carry them.
+- Private-reply sender profiles are now cached the same way direct-message senders already were,
+  so a private-reply notification shows the sender's name instead of a raw npub.
+
 ## [0.5.5] - 2026-09-10
 
 ### Fixed

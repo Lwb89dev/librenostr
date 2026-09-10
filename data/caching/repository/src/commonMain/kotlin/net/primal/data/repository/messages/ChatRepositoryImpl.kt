@@ -174,7 +174,7 @@ internal class ChatRepositoryImpl(
                     lastMessageAt = conversation.lastMessageAt,
                     unreadMessagesCount = conversation.count,
                     relation = relation,
-                )
+                ).let { ConversationUpdate(conversation = it, absoluteUnreadCount = conversation.count) }
             }
             ?: response.messages.asConversationIndex(
                 userId = userId,
@@ -189,7 +189,7 @@ internal class ChatRepositoryImpl(
             runCatching {
                 fetchCoordinator.fetchMetadata(
                     querier = querier,
-                    pubkeys = messageConversation.map { it.participantId },
+                    pubkeys = messageConversation.map { it.conversation.participantId },
                 )
             }.getOrDefault(emptyList())
         }.orEmpty().latestMetadataByPubkey()
@@ -207,7 +207,7 @@ internal class ChatRepositoryImpl(
             )
             database.messageConversations().persistConversationIndex(
                 userId = userId,
-                conversations = messageConversation,
+                updates = messageConversation,
             )
         }
         return response.messages
@@ -367,6 +367,15 @@ internal class ChatRepositoryImpl(
         }
     }
 
+    override suspend fun markConversationAsReadLocally(userId: String, conversationUserId: String) {
+        withContext(dispatcherProvider.io()) {
+            database.messageConversations().markConversationAsRead(
+                ownerId = userId,
+                participantId = conversationUserId,
+            )
+        }
+    }
+
     override suspend fun markAllMessagesAsReadLocally(userId: String) {
         withContext(dispatcherProvider.io()) {
             database.messageConversations().markAllConversationAsRead(ownerId = userId)
@@ -474,11 +483,15 @@ internal class ChatRepositoryImpl(
         withContext(dispatcherProvider.io()) {
             messagesProcessor.processNip17MessagesAndSave(userId = userId, messages = messages)
             val directMessages = messages.filterNot { it.isPrivateThreadReply() }
-            cacheNip17ParticipantMetadata(userId = userId, messages = directMessages)
+            // Every sender, not only the ones who sent a chat message: a private reply raises a
+            // notification naming its author, and without their kind 0 that notification says
+            // "npub1abc… replied privately to your note" — which reads as spam, not as a reply
+            // from somebody you know.
+            cacheNip17ParticipantMetadata(userId = userId, messages = messages)
             val accepted = acceptedParticipants(userId = userId, currentPage = emptyList())
             database.messageConversations().persistConversationIndex(
                 userId = userId,
-                conversations = directMessages.asNip17ConversationIndex(userId = userId, accepted = accepted),
+                updates = directMessages.asNip17ConversationIndex(userId = userId, accepted = accepted),
             )
         }
     }
@@ -570,18 +583,22 @@ private fun List<NostrEvent>.asConversationIndex(userId: String, accepted: Set<S
         .groupBy(keySelector = { it.first }, valueTransform = { it.second })
         .mapNotNull { (participantId, events) ->
             val latest = events.maxByOrNull { it.createdAt } ?: return@mapNotNull null
-            MessageConversationData(
-                ownerId = userId,
-                participantId = participantId,
-                participantMetadataId = null,
-                lastMessageId = latest.id,
-                lastMessageAt = latest.createdAt,
-                unreadMessagesCount = 0,
-                relation = if (participantId in accepted) {
-                    ConversationRelation.Follows
-                } else {
-                    ConversationRelation.Other
-                },
+            ConversationUpdate(
+                conversation = MessageConversationData(
+                    ownerId = userId,
+                    participantId = participantId,
+                    participantMetadataId = null,
+                    lastMessageId = latest.id,
+                    lastMessageAt = latest.createdAt,
+                    // See asNip17ConversationIndex: the count is derived at persist time.
+                    unreadMessagesCount = 0,
+                    relation = if (participantId in accepted) {
+                        ConversationRelation.Follows
+                    } else {
+                        ConversationRelation.Other
+                    },
+                ),
+                incomingTimestamps = events.filter { it.pubKey != userId }.map { it.createdAt },
             )
         }
 
@@ -593,14 +610,23 @@ private fun List<Nip17Message>.asNip17ConversationIndex(userId: String, accepted
     }.groupBy(keySelector = { it.first }, valueTransform = { it.second })
         .mapNotNull { (participantId, messages) ->
             val latest = messages.maxByOrNull { it.createdAt } ?: return@mapNotNull null
-            MessageConversationData(
-                ownerId = userId,
-                participantId = participantId,
-                participantMetadataId = null,
-                lastMessageId = latest.eventId,
-                lastMessageAt = latest.createdAt,
-                unreadMessagesCount = 0,
-                relation = if (participantId in accepted) ConversationRelation.Follows else ConversationRelation.Other,
+            ConversationUpdate(
+                conversation = MessageConversationData(
+                    ownerId = userId,
+                    participantId = participantId,
+                    participantMetadataId = null,
+                    lastMessageId = latest.eventId,
+                    lastMessageAt = latest.createdAt,
+                    // Replaced by persistConversationIndex, which is the only place that knows
+                    // what this account has already read.
+                    unreadMessagesCount = 0,
+                    relation = if (participantId in accepted) {
+                        ConversationRelation.Follows
+                    } else {
+                        ConversationRelation.Other
+                    },
+                ),
+                incomingTimestamps = messages.filter { it.senderId != userId }.map { it.createdAt },
             )
         }
 
@@ -619,16 +645,21 @@ private const val SYNC_PAGE_SIZE = 100
  */
 private suspend fun MessageConversationDao.persistConversationIndex(
     userId: String,
-    conversations: List<MessageConversationData>,
+    updates: List<ConversationUpdate>,
 ) {
     // An unavailable/slow relay is a valid empty response. Do not invalidate the conversation
     // PagingSource when it contains no new rows: keeping the last known local snapshot avoids
     // replacing visible conversations with the empty-state placeholder during a refresh.
-    if (conversations.isEmpty()) return
+    if (updates.isEmpty()) return
 
     val existing = findAllByOwnerId(ownerId = userId).associateBy { it.participantId }
-    val newer = conversations.filter {
-        it.lastMessageAt > (existing[it.participantId]?.lastMessageAt ?: Long.MIN_VALUE)
+    val newer = updates.mapNotNull { update ->
+        val stored = existing[update.conversation.participantId]
+        val watermark = stored?.lastMessageAt ?: Long.MIN_VALUE
+        if (update.conversation.lastMessageAt <= watermark) return@mapNotNull null
+        update.conversation.copy(
+            unreadMessagesCount = update.unreadCountFrom(stored = stored, watermark = watermark),
+        )
     }
     if (newer.isNotEmpty()) {
         upsertAll(data = newer)
@@ -637,11 +668,41 @@ private suspend fun MessageConversationDao.persistConversationIndex(
     // Which tab a conversation belongs in is recomputed every time, not carried by the upsert.
     // A row whose last message has not moved still has to be able to change sides: answering a
     // stranger accepts them, and rows written before this split existed all claim to be accepted.
-    conversations.forEach { conversation ->
+    updates.forEach { update ->
         updateRelation(
             ownerId = userId,
-            participantId = conversation.participantId,
-            relation = conversation.relation,
+            participantId = update.conversation.participantId,
+            relation = update.conversation.relation,
         )
     }
+}
+
+/**
+ * One conversation row, plus what this page saw arrive for it.
+ *
+ * The row alone cannot say how many messages are unread: that answer depends on what is already
+ * stored and on what this account has already read, neither of which the code building the row
+ * knows. Every builder used to write a hardcoded zero, so the Messages badge counted nothing no
+ * matter how many messages arrived.
+ */
+private data class ConversationUpdate(
+    val conversation: MessageConversationData,
+    /** `created_at` of every message on this page that the *other* side sent. */
+    val incomingTimestamps: List<Long> = emptyList(),
+    /** Set only when a server states the count outright; then nothing is derived locally. */
+    val absoluteUnreadCount: Int? = null,
+)
+
+/**
+ * How many unread messages this conversation has once this page is folded in.
+ *
+ * Counts only what arrived strictly after the stored row's newest message, so re-processing a page
+ * — which every session start does — adds nothing the second time: by then the watermark has
+ * already moved past those messages. Reading a conversation zeroes the stored count, and a later
+ * page with nothing newer adds zero to it, so a read conversation stays read.
+ */
+private fun ConversationUpdate.unreadCountFrom(stored: MessageConversationData?, watermark: Long): Int {
+    absoluteUnreadCount?.let { return it }
+    val newlyArrived = incomingTimestamps.count { it > watermark }
+    return (stored?.unreadMessagesCount ?: 0) + newlyArrived
 }

@@ -167,8 +167,12 @@ class Nip17TransportImpl @Inject constructor(
         findDeliveryRelays(userId).map { it.url }
 
     override suspend fun fetchMessages(userId: String, limit: Int): List<Nip17Message> {
-        val dmRelays = findDeliveryRelays(userId)
+        val dmRelays = ownInboxRelays(userId)
         Napier.i { "NIP-17 inbox poll on ${dmRelays.joinToString { it.url }}" }
+        // Announcing after resolving, not before: a sender can only find this inbox once the
+        // kind-10050 exists, and until then they deliver to the bootstrap pool that
+        // ownInboxRelays already covers. Best effort — it must never fail an inbox poll.
+        announceOwnDmRelaysIfMissing(userId = userId, resolved = announceableInbox(userId))
         return relays.queryEvents(
             filter = RelayFilter(
                 kinds = listOf(NostrEventKind.GiftWrap.value),
@@ -181,7 +185,7 @@ class Nip17TransportImpl @Inject constructor(
 
     override fun subscribeMessages(userId: String): Flow<Nip17Message> =
         flow {
-            val dmRelays = findDeliveryRelays(userId)
+            val dmRelays = ownInboxRelays(userId)
             emitAll(
                 relays.subscribeEvents(
                     filter = RelayFilter(
@@ -239,7 +243,11 @@ class Nip17TransportImpl @Inject constructor(
      */
     private suspend fun announceOwnDmRelaysIfMissing(userId: String, resolved: List<Relay>) {
         if (announcedInboxes.contains(userId) || resolved.isEmpty()) return
-        if (findAnnouncedInbox(userId).isNotEmpty()) {
+        // Reads the cache rather than asking the relays again: every caller here has just resolved
+        // this account's inbox, and repeating that query would pay a second round-trip timeout on
+        // every single poll for as long as the account has no kind-10050 — which is exactly the
+        // case this function exists to end.
+        if (inboxCache.containsKey(userId)) {
             announcedInboxes.add(userId)
             return
         }
@@ -318,6 +326,48 @@ class Nip17TransportImpl @Inject constructor(
         return resolved
     }
 
+    /**
+     * Every relay a gift wrap addressed to this account could plausibly have been delivered to.
+     *
+     * Deliberately a union, and deliberately not [findDeliveryRelays]. The two sides of a send
+     * resolve the same account from different devices, and [findDeliveryRelays]'s last two
+     * fallbacks are not symmetric: `configuredUserRelays` only ever has rows for a *local*
+     * account, so a sender resolving a remote recipient skips straight past it to the bootstrap
+     * pool, while that recipient resolving themselves stops at their own configured relays and
+     * never looks at the bootstrap pool at all. Two accounts with no kind-10050 therefore agreed
+     * on nothing: the wrap was published to the public pool and polled for somewhere else
+     * entirely, which is exactly what "sent, never received" looked like from the outside.
+     *
+     * Reading from all of them costs one subscription across a handful of sockets and removes the
+     * whole class of mismatch. The bootstrap pool is only added while no inbox has been announced,
+     * because that is precisely when a sender would have fallen back to it.
+     */
+    private suspend fun ownInboxRelays(userId: String): List<Relay> {
+        val announced = findAnnouncedInbox(userId)
+        val bootstrap = when {
+            announced.isEmpty() -> FALLBACK_RELAY_URLS.map { Relay(url = it, read = true, write = true) }
+            else -> emptyList()
+        }
+        return (announced + findNip65ReadRelays(userId) + ownReadRelays(userId) + bootstrap)
+            .distinctBy { it.url }
+            .take(MAX_INBOX_POLL_RELAYS)
+            .map { it.copy(read = true, write = true) }
+    }
+
+    /**
+     * The inbox this account should tell the rest of the network about: its own read relays, which
+     * is where [ownInboxRelays] is guaranteed to be listening. Falls back to the bootstrap pool for
+     * an account that has not configured any relays of its own yet, so a brand-new account still
+     * announces somewhere reachable rather than announcing nothing.
+     */
+    private fun announceableInbox(userId: String): List<Relay> =
+        ownReadRelays(userId)
+            .ifEmpty { FALLBACK_RELAY_URLS.map { Relay(url = it, read = true, write = true) } }
+            .take(MAX_DM_RELAYS)
+
+    private fun ownReadRelays(userId: String): List<Relay> =
+        relays.configuredUserRelays(userId).filter { it.read }.distinctBy { it.url }
+
     private suspend fun findNip65ReadRelays(userId: String): List<Relay> {
         val relayList = relays.query(
             RelayFilter(
@@ -337,6 +387,13 @@ class Nip17TransportImpl @Inject constructor(
 
     private companion object {
         const val MAX_DM_RELAYS = 3
+
+        /**
+         * Polling reads from more relays than a send writes to. A send picks a small set on
+         * purpose — every extra relay is another copy of the envelope in the world — while a poll
+         * only has to find an envelope somebody else already chose where to put.
+         */
+        const val MAX_INBOX_POLL_RELAYS = 8
 
         /** Rumor kinds this transport understands: NIP-17 chat, NIP-17 file, gift-wrapped note. */
         val SUPPORTED_RUMOR_KINDS = setOf(
