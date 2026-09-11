@@ -1,34 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Adaptive icon background layer.
+  Adaptive icon background layer — deliberately fully transparent.
 
-  A vector with explicit 108dp intrinsic bounds, not a <shape> gradient drawable — a <shape> has
-  no intrinsic size of its own (getIntrinsicWidth/Height return -1), and some launchers' icon
-  caching/extraction paths (icon-pack support, shortcut/notification large-icon generation, some
-  OEM home-screen previews) size their render target from that value before drawing, which can
-  come out blank instead of stretching to whatever bounds the adaptive-icon system assigns. A
-  vector always reports real bounds, so this fills the canvas everywhere that queries it.
+  Do not "fix" this by painting the brand gradient here: that is what makes the icon come out as
+  the launcher's shape instead of ours.
 
-  Same diagonal purple gradient baked into the legacy launcher icon (assets/icons/icon.png, also
-  the source for ic_launcher_foreground) so the foreground note sits on a background that matches
-  it exactly, edge to edge, under any launcher's own mask shape.
+  On Android the launcher, not the app, decides an adaptive icon's silhouette — it masks both
+  layers to its own shape (a circle on plenty of launchers, a squircle on Pixel-family ones). An
+  opaque background therefore fills that mask edge to edge and the icon simply *becomes* a circle
+  wherever the mask is one.
+
+  A mask only ever crops, so the way to keep our own squircle is to stay inside it: the foreground
+  holds the complete squircle artwork sized so its corners sit within the mask's inscribed circle
+  (measured corner reach is 1.21x that circle's radius; see ic_launcher_foreground), and everything
+  around it is transparent. No mask then touches a single pixel of the icon, and the shape is the
+  same squircle on every launcher.
+
+  A vector rather than a colour drawable so the layer reports real 108dp bounds — see git history
+  for the launchers whose icon-caching paths size their render target from intrinsic bounds.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M0,0h108v108h-108z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="0"
-                android:startY="0"
-                android:endX="108"
-                android:endY="108"
-                android:startColor="#8B4AF2"
-                android:endColor="#341B8F" />
-        </aapt:attr>
-    </path>
+    <path
+        android:pathData="M0,0h108v108h-108z"
+        android:fillColor="#00000000" />
 </vector>
