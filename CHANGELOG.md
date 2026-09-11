@@ -7,6 +7,28 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.7] - 2026-09-11
+
+### Fixed
+
+- The launcher icon no longer gets shrunk onto a white background on launchers that enforce
+  Material You-style adaptive icons (GrapheneOS's default launcher among them). The app shipped
+  only legacy flat icon PNGs with no adaptive-icon declaration, so such a launcher synthesized its
+  own padded, white-backed version rather than rendering the icon full-bleed. A proper adaptive
+  icon is now declared: the bird glyph as its own layer on the icon's own purple gradient
+  background, sized to the standard safe zone and verified against both circle and rounded-square
+  masks, plus a monochrome layer for Android 13+ themed icons. `android:roundIcon` also pointed at
+  the square icon instead of the round one; fixed alongside it.
+- A note that quotes another note no longer gets stuck showing "Mentioned event not found"
+  forever once its target is actually available. The "not found" classification was a one-time
+  snapshot taken when the quoting note was first saved, never re-checked afterward — so the retry
+  button really did fetch the missing note, but nothing ever told the quoting note about it. Any
+  note persisted anywhere in the app now heals every other stored citation of it, not only the
+  ones in that same fetch, and does so without disturbing the citing note's other embeds.
+- The Italian "Report Content" action in note, article and live stream menus read as "Contenuto
+  della relazione" (a mistranslation of "report" as a noun) instead of the intended action;
+  corrected to "Segnala contenuto", matching "Segnala utente" right next to it.
+
 ## [0.5.6] - 2026-09-10
 
 ### Fixed

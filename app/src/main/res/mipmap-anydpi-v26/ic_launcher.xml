@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive launcher icon (API 26+).
+
+  Before this file, the app shipped only legacy flat PNGs (mipmap-*dpi/ic_launcher.png) with no
+  adaptive-icon declaration. On API 26+ a launcher that enforces its own icon shape for every app
+  (several OEM launchers, GrapheneOS's default launcher included) treats an app with no adaptive
+  icon as needing synthetic adaptation: it shrinks the flat icon and pads it onto a plain (often
+  white) background to emulate the adaptive-icon safe zone, since it cannot know the icon's real
+  safe content bounds. That shrink-in-a-white-box is exactly what got reported: the icon looked
+  fine in launchers that render legacy icons as-is (and in Zapstore, which shows the flat PNG
+  directly, not through a launcher's adaptive-icon pipeline) but wrong on GrapheneOS-style ones.
+
+  Declaring this properly removes the guesswork: background is the icon's own gradient, foreground
+  is the bird alone sized to the standard safe zone, so any launcher's mask crops OUR layers
+  instead of synthesizing its own padding.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
+</adaptive-icon>

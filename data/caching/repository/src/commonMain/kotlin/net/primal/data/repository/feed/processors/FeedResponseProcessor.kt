@@ -2,7 +2,10 @@ package net.primal.data.repository.feed.processors
 
 import net.primal.core.utils.asMapByKey
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
+import net.primal.data.local.dao.events.EventUriNostr
 import net.primal.data.local.dao.events.eventRelayHintsUpserter
+import net.primal.data.local.dao.notes.PostData
+import net.primal.data.local.dao.profiles.ProfileData
 import net.primal.data.local.dao.threads.ArticleCommentCrossRef
 import net.primal.data.local.dao.threads.NoteConversationCrossRef
 import net.primal.data.local.db.CachingDatabase
@@ -19,6 +22,7 @@ import net.primal.data.repository.mappers.remote.mapAsEventZapDO
 import net.primal.data.repository.mappers.remote.mapAsPollResponseVotes
 import net.primal.data.repository.mappers.remote.mapAsPostDataPO
 import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
+import net.primal.data.repository.mappers.remote.mapAsReferencedNostrUriDO
 import net.primal.data.repository.mappers.remote.mapAsZapPollVotes
 import net.primal.data.repository.mappers.remote.mapNotNullAsArticleDataPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsEventStatsPO
@@ -34,7 +38,11 @@ import net.primal.data.repository.mappers.remote.parseAndMapPrimalLegendProfiles
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalPollStats
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndMapPrimalUserNames
+import net.primal.domain.links.CdnResource
+import net.primal.domain.links.EventLinkPreviewData
+import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.utils.extractNoteId
 import net.primal.shared.data.local.db.withTransaction
 
 internal suspend fun FeedResponse.persistToDatabaseAsTransaction(userId: String, database: CachingDatabase) {
@@ -114,9 +122,10 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
         .filter { it.votedForOption != null }
         .associate { it.eventId to it.votedForOption }
 
+    val postIdToPostDataMap = allPosts.associateBy { it.postId }
     val noteNostrUris = allPosts.flatMapPostsAsReferencedNostrUriDO(
         eventIdToNostrEvent = refEvents.associateBy { it.id },
-        postIdToPostDataMap = allPosts.associateBy { it.postId },
+        postIdToPostDataMap = postIdToPostDataMap,
         articleIdToArticle = allArticles.associateBy { it.articleId },
         streamIdToStreamData = streamData.associateBy { it.dTag },
         profileIdToProfileDataMap = profileIdToProfileDataMap,
@@ -134,6 +143,16 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
     database.pollVotes().upsertAll(data = pollVotes)
     database.eventUris().upsertAllEventUris(data = noteAttachments)
     database.eventUris().upsertAllEventNostrUris(data = noteNostrUris)
+    // Heals every OTHER already-stored "not found" citation of the posts persisted just above,
+    // wherever it lives — not only the ones belonging to this response. See the DAO query's own
+    // doc for why that repair never happens on its own otherwise.
+    database.reclassifyResolvedNoteCitations(
+        postIdToPostDataMap = postIdToPostDataMap,
+        profileIdToProfileDataMap = profileIdToProfileDataMap,
+        cdnResources = cdnResources,
+        linkPreviews = linkPreviews,
+        videoThumbnails = videoThumbnails,
+    )
     database.reposts().upsertAll(data = reposts)
     database.eventZaps().upsertAll(data = eventZaps)
     database.eventStats().upsertAll(data = postStats)
@@ -166,6 +185,68 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
     eventRelayHintsUpserter(dao = eventHintsDao, eventIds = eventHints.map { it.eventId }) {
         copy(relays = hintsMap[this.eventId]?.relays ?: emptyList())
     }
+}
+
+/**
+ * Re-derives every stored "not found" note citation whose target is now in [postIdToPostDataMap],
+ * across the whole local database — not just whatever citing note this same batch happens to also
+ * contain.
+ *
+ * [EventUriDao.findEventUrisByType]'s own doc explains why a citation never heals on its own: the
+ * classification on an [EventUriNostr] row is a one-time snapshot, not a live join, so a quote
+ * fetched successfully here does nothing for a *different*, already-persisted note that quoted the
+ * same thing earlier and is sitting nowhere in this particular response. Retrying a single
+ * "Mentioned event not found" card was exactly that case — the retry fetched and stored the target
+ * correctly, but the citing note's own row, from whenever it was first seen, was never told.
+ *
+ * [row.copy][EventUriNostr.copy] keeps the row's original `position` untouched, so a note whose
+ * other embeds already resolved does not have this one jump to the end of its content when it
+ * catches up later.
+ */
+private suspend fun CachingDatabase.reclassifyResolvedNoteCitations(
+    postIdToPostDataMap: Map<String, PostData>,
+    profileIdToProfileDataMap: Map<String, ProfileData>,
+    cdnResources: Map<String, CdnResource>,
+    linkPreviews: Map<String, EventLinkPreviewData>,
+    videoThumbnails: Map<String, String>,
+) {
+    val pendingRows = eventUris().findEventUrisByType()
+    val toRetry = pendingRows.filter { it.uri.extractNoteId() in postIdToPostDataMap }
+    if (toRetry.isEmpty()) return
+
+    // A quoted note's author is usually already known from somewhere else entirely — this response
+    // may not carry their metadata at all, and waiting for it to happen to show up in some other
+    // fetch would leave an otherwise-resolvable quote stuck for no real reason.
+    val missingAuthorIds = toRetry
+        .mapNotNull { row -> row.uri.extractNoteId()?.let { postIdToPostDataMap[it]?.authorId } }
+        .filterNot { it in profileIdToProfileDataMap }
+        .distinct()
+    val knownProfiles = if (missingAuthorIds.isEmpty()) {
+        profileIdToProfileDataMap
+    } else {
+        profileIdToProfileDataMap + profiles().findProfileData(missingAuthorIds).associateBy { it.ownerId }
+    }
+
+    val healed = toRetry.mapNotNull { row ->
+        val reference = listOf(row.uri).mapAsReferencedNostrUriDO(
+            eventId = row.eventId,
+            eventIdToNostrEvent = emptyMap(),
+            postIdToPostDataMap = postIdToPostDataMap,
+            articleIdToArticle = emptyMap(),
+            streamIdToStreamData = emptyMap(),
+            profileIdToProfileDataMap = knownProfiles,
+            cdnResources = cdnResources,
+            linkPreviews = linkPreviews,
+            videoThumbnails = videoThumbnails,
+        ).singleOrNull() ?: return@mapNotNull null
+        if (reference.type == EventUriNostrType.Unsupported) return@mapNotNull null
+        row.copy(
+            type = reference.type,
+            referencedEventAlt = reference.referencedEventAlt,
+            referencedNote = reference.referencedNote,
+        )
+    }
+    if (healed.isNotEmpty()) eventUris().upsertAllEventNostrUris(data = healed)
 }
 
 internal suspend fun FeedResponse.persistNoteRepliesAndArticleCommentsToDatabase(

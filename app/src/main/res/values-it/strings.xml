@@ -968,7 +968,7 @@
     <string name="context_menu_mute_user">Silenzia utente</string>
     <string name="context_menu_unmute_user">Riattiva utente</string>
     <string name="context_menu_report_user">Segnala utente</string>
-    <string name="context_menu_report_content">Contenuto della relazione</string>
+    <string name="context_menu_report_content">Segnala contenuto</string>
     <string name="context_confirm_bookmark_title">Salvare il primo segnalibro</string>
     <string name="context_confirm_bookmark_text">Stai per salvare il tuo primo segnalibro pubblico. Questi segnalibri possono essere visti da altri utenti nostr. Vuoi continuare?</string>
     <string name="context_confirm_bookmark_positive">Salva Segnalibro</string>
@@ -1334,7 +1334,7 @@
     <string name="live_stream_menu_copy_raw_data">Copiare i dati</string>
     <string name="live_stream_menu_mute_user">Silenzia utente</string>
     <string name="live_stream_menu_unmute_user">Riattiva utente</string>
-    <string name="live_stream_menu_report_content">Contenuto della relazione</string>
+    <string name="live_stream_menu_report_content">Segnala contenuto</string>
     <string name="live_stream_menu_request_delete">Richiedi eliminazione</string>
     <string name="live_stream_menu_delete_dialog_confirm">Cancella</string>
     <string name="live_stream_menu_delete_dialog_cancel">Annulla</string>

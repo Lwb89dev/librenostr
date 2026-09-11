@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon background layer.
+
+  Fills the entire 108dp adaptive-icon canvas with the same diagonal purple gradient baked into
+  the legacy launcher icon (see assets/icons/icon.png, used to derive ic_launcher_foreground and
+  this gradient's two colors) so the foreground bird sits on a background that matches it exactly,
+  edge to edge, under any launcher's own mask shape (circle, squircle, rounded square, teardrop…).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="135"
+        android:startColor="#341B8F"
+        android:endColor="#8B4AF2" />
+</shape>

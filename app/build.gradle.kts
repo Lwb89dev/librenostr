@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 27
-val appVersionName = "0.5.6"
+val appVersionCode = 28
+val appVersionName = "0.5.7"
 
 tasks.register("generateReleaseProperties") {
     doLast {
