@@ -2,16 +2,33 @@
 <!--
   Adaptive icon background layer.
 
-  Fills the entire 108dp adaptive-icon canvas with the same diagonal purple gradient baked into
-  the legacy launcher icon (see assets/icons/icon.png, used to derive ic_launcher_foreground and
-  this gradient's two colors) so the foreground bird sits on a background that matches it exactly,
-  edge to edge, under any launcher's own mask shape (circle, squircle, rounded square, teardrop…).
+  A vector with explicit 108dp intrinsic bounds, not a <shape> gradient drawable — a <shape> has
+  no intrinsic size of its own (getIntrinsicWidth/Height return -1), and some launchers' icon
+  caching/extraction paths (icon-pack support, shortcut/notification large-icon generation, some
+  OEM home-screen previews) size their render target from that value before drawing, which can
+  come out blank instead of stretching to whatever bounds the adaptive-icon system assigns. A
+  vector always reports real bounds, so this fills the canvas everywhere that queries it.
+
+  Same diagonal purple gradient baked into the legacy launcher icon (assets/icons/icon.png, also
+  the source for ic_launcher_foreground) so the foreground note sits on a background that matches
+  it exactly, edge to edge, under any launcher's own mask shape.
 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <gradient
-        android:type="linear"
-        android:angle="135"
-        android:startColor="#341B8F"
-        android:endColor="#8B4AF2" />
-</shape>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108"
+                android:startColor="#8B4AF2"
+                android:endColor="#341B8F" />
+        </aapt:attr>
+    </path>
+</vector>
