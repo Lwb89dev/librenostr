@@ -7,6 +7,17 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.9] - 2026-09-11
+
+### Changed
+
+- The launcher icon's foreground layer now fills almost the entire adaptive-icon canvas instead
+  of being shrunk into the conservative safe zone, so on a squircle-masked launcher (the common
+  case on Pixel-family and Material You launchers) it renders as a proper edge-to-edge squircle —
+  the icon's own artwork, not a smaller icon floating inside a larger padded background. Checked
+  under a squircle, a circle and a rounded-square mask; the bird stays fully intact under all
+  three.
+
 ## [0.5.8] - 2026-09-11
 
 ### Fixed
