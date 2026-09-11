@@ -7,6 +7,17 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.11] - 2026-09-11
+
+### Fixed
+
+- The welcome screen no longer crashes on Android 8 and later while loading the app logo. It
+  previously passed the API-specific adaptive launcher icon to Compose's `painterResource`, which
+  only accepts raster images and VectorDrawables; the screen now uses the dedicated raster logo.
+- The launcher icon is restored to the original LibreNostr squircle used through 0.5.6. The
+  adaptive-icon experiment is removed because launchers supplied a black circular backing behind
+  its transparent background, producing a black circle with a smaller squircle inside it.
+
 ## [0.5.10] - 2026-09-11
 
 ### Fixed

@@ -59,7 +59,7 @@ fun WelcomeScreen(callbacks: WelcomeContract.ScreenCallbacks) {
                 modifier = Modifier
                     .widthIn(max = 220.dp)
                     .fillMaxWidth(0.55f),
-                painter = painterResource(id = R.mipmap.ic_launcher),
+                painter = painterResource(id = R.drawable.primal_icon),
                 contentDescription = stringResource(id = R.string.app_name),
             )
 
