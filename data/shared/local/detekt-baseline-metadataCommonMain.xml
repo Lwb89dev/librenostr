@@ -5,5 +5,6 @@
     <ID>SpreadOperator:LocalDatabaseFactory.kt$(*migrations.toTypedArray())</ID>
     <ID>TooManyFunctions:Encryptable.kt$net.primal.shared.data.local.encryption.Encryptable.kt</ID>
     <ID>TooManyFunctions:EncryptableTypeConverters.kt$EncryptableTypeConverters</ID>
+    <ID>TooManyFunctions:AlwaysEncryptedTypeConverters.kt$AlwaysEncryptedTypeConverters</ID>
   </CurrentIssues>
 </SmellBaseline>

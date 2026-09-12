@@ -1,5 +1,6 @@
 package net.primal.android.security
 
+import android.content.Context
 import android.security.keystore.KeyProperties
 import java.io.InputStream
 import java.io.OutputStream
@@ -9,12 +10,14 @@ import javax.crypto.spec.GCMParameterSpec
 
 class AESEncryption(
     private val keyAlias: String,
+    context: Context? = null,
 ) : Encryption {
 
     private val encryptionManager = EncryptionManager(
         algorithm = KeyProperties.KEY_ALGORITHM_AES,
         blockMode = KeyProperties.BLOCK_MODE_GCM,
         padding = KeyProperties.ENCRYPTION_PADDING_NONE,
+        context = context,
     )
 
     /**

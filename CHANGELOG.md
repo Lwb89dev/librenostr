@@ -7,6 +7,44 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.12] - 2026-09-12
+
+### Security
+
+- Direct messages and private-thread replies could end up stored unencrypted on debug builds
+  installed on real devices. The caching database shared its encryption on/off switch with the
+  wallet and account databases, and those two turn it off on debug builds purely for easier local
+  inspection; because the switch was a single flag shared by all three databases instead of being
+  scoped per database, that debug convenience silently carried over to DM/private-reply content
+  too. The caching database now uses its own always-on encryption path that nothing else can
+  disable, structurally, regardless of what any other database's debug build does.
+- The key that encrypts the local nsec/account store now requests hardware-backed StrongBox
+  storage on devices that support it, matching the protection already used for the database
+  encryption key. Falls back automatically on devices/algorithm combinations that advertise
+  StrongBox but can't actually back it, as recommended by Android's own key-generation guidance.
+
+### Fixed
+
+- Pull-to-refresh on the feed occasionally reloaded only your own notes instead of your full
+  following list, when the follow list hadn't finished loading yet from relays at the moment of
+  refresh.
+- Pull-to-refresh on notifications occasionally reloaded 15-day-old notifications instead of
+  today's; tapping "mark all as read" then showed today's notifications again, but not fully
+  updated.
+- Mentioning a user, quoting a note, or attaching an image initially rendered as a raw
+  `@npub1...`/`nevent1...` reference instead of the chosen display name or a proper embed, until
+  the note was reloaded. Newly-published notes now resolve and render these immediately.
+- A "failed to load more" banner on feeds and article lists existed in the code but was gated
+  behind a developer flag that is permanently off in every real build, so pagination failures were
+  silently invisible to every user. The banner (with its retry-relevant error message) now always
+  shows when a page genuinely fails to load.
+
+### Removed
+
+- The crash reporter was a non-functional stub: it built a full crash report on every uncaught
+  exception but only ever logged "upload is disabled" and discarded it. Removed rather than left
+  as dead code that looked functional but wasn't.
+
 ## [0.5.11] - 2026-09-11
 
 ### Fixed

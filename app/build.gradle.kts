@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 32
-val appVersionName = "0.5.11"
+val appVersionCode = 33
+val appVersionName = "0.5.12"
 
 tasks.register("generateReleaseProperties") {
     doLast {
@@ -86,16 +86,6 @@ android {
             type = "String",
             name = "LOCAL_STORAGE_KEY_ALIAS",
             value = "\"${configProperties?.getProperty("localStorage.keyAlias", "")}\"",
-        )
-
-        buildConfigField(
-            type = "boolean",
-            name = "FEATURE_PRIMAL_CRASH_REPORTER",
-            value = if (project.hasProperty("enablePrimalCrashReporter")) {
-                project.properties["enablePrimalCrashReporter"] as String
-            } else {
-                "false"
-            },
         )
     }
 

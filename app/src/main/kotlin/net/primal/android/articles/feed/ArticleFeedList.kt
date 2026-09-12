@@ -45,7 +45,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
-import net.primal.android.BuildConfig
 import net.primal.android.R
 import net.primal.android.articles.feed.ui.FeedArticleListItem
 import net.primal.android.articles.feed.ui.FeedArticleUi
@@ -378,7 +377,7 @@ private fun LazyListScope.handleMediatorAppendState(pagingItems: LazyPagingItems
                 repeat = 1,
             )
 
-        is LoadState.Error -> if (BuildConfig.FEATURE_PRIMAL_CRASH_REPORTER) {
+        is LoadState.Error -> {
             item(contentType = "AppendError") {
                 val error = appendMediatorLoadState.error
                 Napier.w(throwable = error) { "Failed to append article feed." }

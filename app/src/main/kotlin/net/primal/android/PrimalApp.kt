@@ -6,7 +6,6 @@ import dagger.hilt.android.HiltAndroidApp
 import io.github.aakira.napier.Antilog
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
-import net.primal.android.core.crash.PrimalCrashReporter
 import net.primal.android.core.images.PrimalImageLoaderFactory
 import net.primal.core.config.store.AppConfigInitializer
 import net.primal.core.networking.tor.TorProxyContextHolder
@@ -22,9 +21,6 @@ class PrimalApp : Application() {
 
     @Inject
     lateinit var imageLoaderFactory: PrimalImageLoaderFactory
-
-    @Inject
-    lateinit var crashReporter: PrimalCrashReporter
 
     override fun onCreate() {
         // Must run before super.onCreate(): the Ktor OkHttp engine factory has no Hilt scope to
@@ -46,9 +42,5 @@ class PrimalApp : Application() {
 
         SingletonImageLoader.setSafe(imageLoaderFactory)
         antilog.forEach { Napier.base(it) }
-
-        if (BuildConfig.FEATURE_PRIMAL_CRASH_REPORTER) {
-            crashReporter.init()
-        }
     }
 }

@@ -42,15 +42,9 @@ class ExploreFeedQueryBuilder(
         """
     }
 
-    private val orderByClause = when {
-        else -> "ORDER BY FeedPostDataCrossRef.position"
-    }
+    private val orderByClause = "ORDER BY FeedPostDataCrossRef.position"
 
     override fun feedQuery(): RoomRawQuery {
-//        return SimpleSQLiteQuery(
-//            query = "$EXPLORE_BASIC_QUERY $orderByClause ASC",
-//            bindArgs = arrayOf(userPubkey, feedSpec, userPubkey),
-//        )
         return RoomRawQuery(
             sql = "$EXPLORE_BASIC_QUERY $orderByClause ASC",
             onBindStatement = { query ->
@@ -65,10 +59,6 @@ class ExploreFeedQueryBuilder(
     }
 
     override fun newestFeedPostsQuery(limit: Int): RoomRawQuery {
-//        return SimpleSQLiteQuery(
-//            query = "$EXPLORE_BASIC_QUERY $orderByClause ASC LIMIT ?",
-//            bindArgs = arrayOf(userPubkey, feedSpec, userPubkey, limit),
-//        )
         return RoomRawQuery(
             sql = "$EXPLORE_BASIC_QUERY $orderByClause ASC LIMIT ?",
             onBindStatement = { query ->
@@ -84,10 +74,6 @@ class ExploreFeedQueryBuilder(
     }
 
     override fun oldestFeedPostsQuery(limit: Int): RoomRawQuery {
-//        return SimpleSQLiteQuery(
-//            query = "$EXPLORE_BASIC_QUERY $orderByClause DESC LIMIT ?",
-//            bindArgs = arrayOf(userPubkey, feedSpec, userPubkey, limit),
-//        )
         return RoomRawQuery(
             sql = "$EXPLORE_BASIC_QUERY $orderByClause DESC LIMIT ?",
             onBindStatement = { query ->

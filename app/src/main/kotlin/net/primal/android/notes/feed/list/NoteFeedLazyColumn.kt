@@ -25,7 +25,6 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import io.github.aakira.napier.Napier
-import net.primal.android.BuildConfig
 import net.primal.android.R
 import net.primal.android.core.compose.ListLoadingError
 import net.primal.android.core.compose.ListNoContent
@@ -112,20 +111,18 @@ fun NoteFeedLazyColumn(
             }
         }
 
-        if (BuildConfig.FEATURE_PRIMAL_CRASH_REPORTER) {
-            when (val prependMediatorLoadState = pagingItems.loadState.mediator?.prepend) {
-                is LoadState.Error -> {
-                    item(contentType = "PrependError") {
-                        val error = prependMediatorLoadState.error
-                        Napier.w(throwable = error) { "Error loading prev page" }
-                        ListLoadingError(
-                            text = stringResource(R.string.app_error_loading_prev_page) + "\n${error.message}",
-                        )
-                    }
+        when (val prependMediatorLoadState = pagingItems.loadState.mediator?.prepend) {
+            is LoadState.Error -> {
+                item(contentType = "PrependError") {
+                    val error = prependMediatorLoadState.error
+                    Napier.w(throwable = error) { "Error loading prev page" }
+                    ListLoadingError(
+                        text = stringResource(R.string.app_error_loading_prev_page) + "\n${error.message}",
+                    )
                 }
-
-                else -> Unit
             }
+
+            else -> Unit
         }
 
         items(
@@ -248,7 +245,7 @@ fun NoteFeedLazyColumn(
                 )
             }
 
-            is LoadState.Error -> if (BuildConfig.FEATURE_PRIMAL_CRASH_REPORTER) {
+            is LoadState.Error -> {
                 item(contentType = "AppendError") {
                     val error = appendMediatorLoadState.error
                     Napier.w(throwable = error) { "Error loading next page" }

@@ -22,9 +22,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object ReleaseSecurityModule {
 
     @Provides
-    fun provideEncryption(): Encryption =
+    fun provideEncryption(@ApplicationContext context: Context): Encryption =
         AESEncryption(
             keyAlias = BuildConfig.LOCAL_STORAGE_KEY_ALIAS,
+            context = context,
         )
 
     @Provides

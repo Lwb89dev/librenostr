@@ -90,7 +90,7 @@ import net.primal.data.local.serialization.NostrReferenceTypeConverters
 import net.primal.data.local.serialization.PollTypeConverters
 import net.primal.data.local.serialization.ProfileTypeConverters
 import net.primal.data.local.serialization.StreamTypeConverters
-import net.primal.shared.data.local.serialization.EncryptableTypeConverters
+import net.primal.shared.data.local.serialization.AlwaysEncryptedTypeConverters
 import net.primal.shared.data.local.serialization.JsonTypeConverters
 import net.primal.shared.data.local.serialization.ListsTypeConverters
 
@@ -152,7 +152,11 @@ import net.primal.shared.data.local.serialization.ListsTypeConverters
     StreamTypeConverters::class,
     PollTypeConverters::class,
     Nip05TypeConverters::class,
-    EncryptableTypeConverters::class,
+    // Deliberately AlwaysEncryptedTypeConverters, not EncryptableTypeConverters: the latter's
+    // `enableEncryption` is one flag shared with the wallet and account databases, and a debug
+    // build turning it off for THEIR convenience silently turned it off here too — see that
+    // object's own doc for the DM/private-reply plaintext exposure this was actually causing.
+    AlwaysEncryptedTypeConverters::class,
 )
 // PagingSource return-type converters are registered per-DAO because of
 // FeedPostDao's narrowed-observation FeedPagingSourceDaoReturnTypeConverter
