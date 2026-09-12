@@ -1,6 +1,7 @@
 package net.primal.data.repository.feed
 
 import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.test.Test
@@ -10,6 +11,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.data.local.dao.notes.PostDao
+import net.primal.data.local.db.CachingDatabase
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -114,8 +118,85 @@ class RelayNotesFeedFetcherTest {
             response.referencedEvents.map { it.id } shouldBe listOf(quotedId)
         }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun fetch_skipsMetadataForAPubkeyAlreadyClaimedInTheCache() =
+        runTest {
+            val page = event(id = "n1", pubkey = "alice", kind = NostrEventKind.ShortTextNote.value, createdAt = 20)
+            val querier = FakeQuerier(listOf(page))
+            val dispatcher = UnconfinedTestDispatcher(testScheduler)
+            val coordinator = FetchCoordinator(
+                dispatcherProvider = mockk<DispatcherProvider> {
+                    every { io() } returns dispatcher
+                    every { main() } returns dispatcher
+                },
+            )
+            val cache = LocalEventCache(database = emptyPostsDatabase())
+            // As if an earlier page in the same session already fetched alice's profile.
+            cache.claimMetadataPubkeys(listOf("alice"))
+
+            RelayNotesFeedFetcher(querier = querier, coordinator = coordinator, cache = cache).fetch(
+                userId = "alice",
+                feedSpec = """{"id":"feed","kind":"notes","notes":"authored","pubkey":"alice"}""",
+                includeReplies = false,
+                limit = 20,
+            )
+
+            querier.requestedMetadataAuthors() shouldBe emptySet()
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun fetch_stillFetchesMetadataForAQuotedNotesAuthorNotOnThePage() =
+        runTest {
+            val quotedId = "b".repeat(64)
+            val quoted = event(quotedId, "carol", NostrEventKind.ShortTextNote.value, 5)
+            val page = event(
+                id = "n1",
+                pubkey = "alice",
+                kind = NostrEventKind.ShortTextNote.value,
+                createdAt = 20,
+            ).copy(content = "check this out nostr:${quotedId.hexToNoteHrp()}")
+
+            val querier = FakeQuerier(listOf(page, quoted))
+            val dispatcher = UnconfinedTestDispatcher(testScheduler)
+            val coordinator = FetchCoordinator(
+                dispatcherProvider = mockk<DispatcherProvider> {
+                    every { io() } returns dispatcher
+                    every { main() } returns dispatcher
+                },
+            )
+            val cache = LocalEventCache(database = emptyPostsDatabase())
+
+            RelayNotesFeedFetcher(querier = querier, coordinator = coordinator, cache = cache).fetch(
+                userId = "alice",
+                feedSpec = """{"id":"feed","kind":"notes","notes":"authored","pubkey":"alice"}""",
+                includeReplies = false,
+                limit = 20,
+            )
+
+            // alice comes from the page itself, carol only from the quoted note — both must be
+            // covered even though they are resolved by two separate (parallel + top-up) queries.
+            querier.requestedMetadataAuthors() shouldBe setOf("alice", "carol")
+        }
+
+    /** A database whose posts table is empty, for [LocalEventCache]'s cold-lookup fallback. */
+    private fun emptyPostsDatabase(): CachingDatabase {
+        val postDao = mockk<PostDao> { coEvery { findPosts(any()) } returns emptyList() }
+        return mockk<CachingDatabase> { every { posts() } returns postDao }
+    }
+
     private class FakeQuerier(private val events: List<NostrEvent>) : RelayEventQuerier {
+        val requestedFilters = mutableListOf<RelayFilter>()
+
+        fun requestedMetadataAuthors(): Set<String> =
+            requestedFilters
+                .filter { it.kinds == listOf(NostrEventKind.Metadata.value) }
+                .flatMap { it.authors.orEmpty() }
+                .toSet()
+
         override suspend fun query(filter: RelayFilter): List<NostrEvent> {
+            requestedFilters += filter
             val matched = events.filter { event -> matches(event, filter) }
             return filter.limit?.let { matched.take(it) } ?: matched
         }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.withPermit
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.common.ContentPrimalPaging
 import net.primal.domain.common.PrimalEvent
@@ -28,6 +29,7 @@ import net.primal.domain.nostr.relay.RelayFilter
 internal class RelayNotesFeedFetcher(
     private val querier: RelayEventQuerier,
     private val coordinator: FetchCoordinator,
+    private val cache: LocalEventCache? = null,
 ) {
 
     suspend fun fetch(
@@ -57,30 +59,69 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
-
-        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) name a
-        // specific note the content renderer needs — without this, a quote of anything not
-        // already in the page for some other reason showed "Mentioned event not found."
         val pageIds = page.map { it.id }.toSet()
-        val referencedNotes = queryByIds(page.referencedNoteIds().filterNot { it in pageIds })
+        val pageAuthorCandidates = page.metadataAuthorCandidates()
 
-        // Authors plus everyone mentioned inside the notes. Without the mentioned profiles the
-        // renderer has no kind 0 to resolve a `nostr:` mention against and falls back to an
-        // ellipsized npub, so a tagged user showed up as @npub1abc…xyz instead of their name.
-        val metadataSubjects = page + referencedNotes
-        val metadataAuthors = (metadataSubjects.map { it.pubKey } + metadataSubjects.flatMap { it.tags.pubkeyTagValues() })
-            .distinct()
-            .take(MAX_METADATA_AUTHORS)
-        val metadata = if (metadataAuthors.isEmpty()) {
-            emptyList()
-        } else {
-            queryInChunks(
-                authors = metadataAuthors,
-                kinds = listOf(NostrEventKind.Metadata.value),
-                limit = metadataAuthors.size,
-            )
+        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) and the
+        // page's own authors/mentions both depend only on `page`, not on each other, so both
+        // round trips run at once instead of the mention metadata waiting behind the quotes —
+        // the same pattern RelayNotificationsFetcher already uses for the same reason.
+        val (referencedNotes, pageMetadata) = coroutineScope {
+            val referenced = async {
+                fetchReferencedNotes(referencedIds = page.referencedNoteIds().filterNot { it in pageIds })
+            }
+            val metadata = async { fetchMetadataFor(pubkeys = pageAuthorCandidates) }
+            referenced.await() to metadata.await()
         }
-        return page.toFeedResponse(metadata, referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() })
+
+        // A quoted note can introduce an author the page itself never mentioned. Everyone else
+        // was already covered by the query above, so this is a small, often-empty top-up rather
+        // than a third full round trip.
+        val extraAuthorCandidates = referencedNotes.metadataAuthorCandidates() - pageAuthorCandidates.toSet()
+        val extraMetadata = fetchMetadataFor(pubkeys = extraAuthorCandidates)
+
+        return page.toFeedResponse(
+            metadata = pageMetadata + extraMetadata,
+            referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() },
+        )
+    }
+
+    /** Everyone the content renderer might need a kind 0 for: an author, or an `nostr:` mention. */
+    private fun List<NostrEvent>.metadataAuthorCandidates(): List<String> =
+        (map { it.pubKey } + flatMap { it.tags.pubkeyTagValues() }).distinct()
+
+    /**
+     * The notes a page's own quotes/mentions point at are usually already stored locally,
+     * because either the feed or a previous page put them there. [cache] answers that without a
+     * relay round trip; only ids it doesn't recognize are actually requested.
+     */
+    private suspend fun fetchReferencedNotes(referencedIds: List<String>): List<NostrEvent> {
+        if (referencedIds.isEmpty()) return emptyList()
+        val cached = cache?.partitionKnownEventIds(referencedIds)
+        val missing = cached?.missing ?: referencedIds
+        val known = cached?.known.orEmpty()
+        return if (missing.isEmpty()) known else known + queryByIds(missing)
+    }
+
+    /**
+     * Without the mentioned profiles the renderer has no kind 0 to resolve a `nostr:` mention
+     * against and falls back to an ellipsized npub, so a tagged user showed up as @npub1abc…xyz
+     * instead of their name. [cache] claims each pubkey for the session so a profile already
+     * fetched by an earlier page (an active poster recurs across pages far more often than not)
+     * is never asked for twice; a claim that comes back empty-handed is released so it can be
+     * retried later instead of staying a raw npub for the rest of the session.
+     */
+    private suspend fun fetchMetadataFor(pubkeys: List<String>): List<NostrEvent> {
+        val distinct = pubkeys.distinct().take(MAX_METADATA_AUTHORS)
+        val wanted = cache?.claimMetadataPubkeys(distinct) ?: distinct
+        if (wanted.isEmpty()) return emptyList()
+        val metadata = queryInChunks(
+            authors = wanted,
+            kinds = listOf(NostrEventKind.Metadata.value),
+            limit = wanted.size,
+        )
+        cache?.releaseMetadataPubkeys(wanted - metadata.map { it.pubKey }.toSet())
+        return metadata
     }
 
     private suspend fun queryByIds(ids: List<String>): List<NostrEvent> {

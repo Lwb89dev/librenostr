@@ -77,7 +77,7 @@ internal class FeedRepositoryImpl(
 ) : FeedRepository {
 
     private val notesFeedFetcher = relayEventQuerier?.let {
-        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator)
+        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator, cache = localEventCache)
     }
 
     override fun feedBySpec(
@@ -338,7 +338,9 @@ internal class FeedRepositoryImpl(
                     since = since,
                 )
             } else if (querier != null && feedSpec.isRelayServableNotesFeedSpec()) {
-                (notesFeedFetcher ?: RelayNotesFeedFetcher(querier = querier, coordinator = fetchCoordinator)).fetch(
+                val fetcher = notesFeedFetcher
+                    ?: RelayNotesFeedFetcher(querier = querier, coordinator = fetchCoordinator, cache = localEventCache)
+                fetcher.fetch(
                     userId = userId,
                     feedSpec = feedSpec,
                     includeReplies = feedSpec.isUserNotesLwrFeedSpec(),
@@ -454,6 +456,7 @@ internal class FeedRepositoryImpl(
             mediaCacher = mediaCacher,
             kinds = kinds,
             relayEventQuerier = relayEventQuerier,
+            localEventCache = localEventCache,
         ),
         pagingSourceFactory = {
             invalidationTracker.track(

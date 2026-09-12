@@ -22,6 +22,7 @@ import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
+import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.RelayEventStatsFetcher
 import net.primal.data.repository.feed.RelayNotesFeedFetcher
@@ -52,10 +53,11 @@ internal class NoteFeedRemoteMediator(
     private val kinds: List<Int> = FeedRepository.DEFAULT_FEED_KINDS,
     private val relayEventQuerier: RelayEventQuerier? = null,
     private val fetchCoordinator: FetchCoordinator,
+    private val localEventCache: LocalEventCache,
 ) : RemoteMediator<Int, FeedPost>() {
 
     private val relayFeedFetcher = relayEventQuerier?.let {
-        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator)
+        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator, cache = localEventCache)
     }
     private val relayAdvancedSearchFetcher = relayEventQuerier?.let {
         RelayAdvancedSearchFeedFetcher(querier = it, coordinator = fetchCoordinator)

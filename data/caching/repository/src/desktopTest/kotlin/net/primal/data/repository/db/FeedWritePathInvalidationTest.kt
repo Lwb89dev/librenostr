@@ -240,6 +240,7 @@ class FeedWritePathInvalidationTest {
         feedApi = mockk<FeedApi>(),
         database = database,
         invalidationTracker = tracker,
+        localEventCache = LocalEventCache(database = database),
     )
 
     private fun testDispatcherProvider(): DispatcherProvider {

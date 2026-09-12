@@ -7,6 +7,18 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.13] - 2026-09-12
+
+### Changed
+
+- Loading a page of the following feed used to make three relay round trips one after another:
+  the notes themselves, then any quoted notes, then everyone's profile metadata. Quoted notes and
+  profile metadata for the page's own authors now fetch at the same time instead of waiting on
+  each other, and both skip anything already known from an earlier page in the same session
+  (already-fetched profiles, already-stored quoted notes) instead of asking the relays again —
+  the same request-avoiding pattern the notifications tab already used. Feed pages should now
+  paint noticeably sooner, especially a following list with active posters who recur across pages.
+
 ## [0.5.12] - 2026-09-12
 
 ### Security
