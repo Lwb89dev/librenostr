@@ -16,6 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.Alignment
@@ -85,6 +87,19 @@ fun NoteContent(
     onVideoSoundToggle: ((soundOn: Boolean) -> Unit)? = null,
     onPollOptionSelected: ((optionId: String) -> Unit)? = null,
 ) {
+    val retryViewModel: NoteUnknownEventRetryViewModel = hiltViewModel()
+    val resolvedUris by retryViewModel.resolvedUris.collectAsState()
+    // Overlays anything this screen's retry button has since resolved. The citing note's own
+    // PagingSource deliberately does not observe that write (see the ViewModel's own doc), so
+    // without this the card would only catch up on the next unrelated structural reload.
+    val data = if (resolvedUris.isEmpty()) {
+        data
+    } else {
+        remember(data, resolvedUris) {
+            data.copy(nostrUris = data.nostrUris.map { resolvedUris[it.uri] ?: it })
+        }
+    }
+
     val isDarkTheme = LocalPrimalTheme.current.isDarkTheme
     val displaySettings = LocalContentDisplaySettings.current
     val seeMoreText = stringResource(id = R.string.feed_see_more)
@@ -255,14 +270,13 @@ fun NoteContent(
 
         val genericEvents = data.partitions.unsupportedEvents
         if (genericEvents.isNotEmpty() && (nestingLevel < NOT_FOUND_NOTICE_CUT_OFF_LEVEL)) {
-            val retryViewModel: NoteUnknownEventRetryViewModel = hiltViewModel()
             genericEvents.forEachIndexed { index, nostrUriUi ->
                 NoteUnknownEvent(
                     modifier = Modifier.fillMaxWidth(),
                     icon = nostrUriUi.uri.nostrUriToMissingEventIcon(),
                     altDescription = nostrUriUi.referencedEventAlt
                         ?: nostrUriUi.uri.nostrUriToMissingEventAltDescription(),
-                    onRetryClick = { retryViewModel.retry(nostrUriUi.uri) },
+                    onRetryClick = { retryViewModel.retry(eventId = data.noteId, uri = nostrUriUi.uri) },
                 )
 
                 if (index < genericEvents.size - 1) {

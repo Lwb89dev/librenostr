@@ -1,15 +1,24 @@
 package net.primal.data.repository.db
 
+import io.mockk.every
+import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.data.local.dao.profiles.ProfileData
 import net.primal.data.local.db.CachingDatabase
+import net.primal.data.remote.api.feed.FeedApi
 import net.primal.data.remote.api.feed.model.FeedResponse
+import net.primal.data.repository.cache.LocalEventCache
+import net.primal.data.repository.feed.FeedRepositoryImpl
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.cryptography.utils.hexToNoteHrp
@@ -123,9 +132,57 @@ class ReferencedNoteCitationHealingTest {
             )
         }
 
+    @Test
+    fun `findResolvedNostrUri reflects the same healing the retry button relies on`() =
+        withDatabase { database, tracker ->
+            val citingContent = "look at this nostr:${QUOTED_NOTE_ID.hexToNoteHrp()}"
+            val uri = "nostr:${QUOTED_NOTE_ID.hexToNoteHrp()}"
+            processor(database, tracker).processAndPersistToDatabase(
+                userId = USER_ID,
+                response = noteResponse(id = CITING_NOTE_ID, author = CITING_AUTHOR_ID, content = citingContent),
+                clearFeed = false,
+            )
+
+            assertNull(
+                feedRepository(database, tracker).findResolvedNostrUri(eventId = CITING_NOTE_ID, uri = uri),
+                "must not report a citation as resolved before its target ever arrives",
+            )
+
+            processor(database, tracker).processAndPersistToDatabase(
+                userId = USER_ID,
+                response = noteResponse(id = QUOTED_NOTE_ID, author = QUOTED_AUTHOR_ID, content = "the original note"),
+                clearFeed = false,
+            )
+
+            val resolved = assertNotNull(
+                feedRepository(database, tracker).findResolvedNostrUri(eventId = CITING_NOTE_ID, uri = uri),
+                "must report the citation as resolved once its target has been persisted",
+            )
+            assertEquals(EventUriNostrType.Note, resolved.type)
+            assertEquals(QUOTED_NOTE_ID, resolved.referencedNote?.postId)
+        }
+
     // ---------------------------------------------------------------------------------------------
     // harness
     // ---------------------------------------------------------------------------------------------
+
+    private fun feedRepository(database: CachingDatabase, tracker: FeedSpecInvalidationTracker) =
+        FeedRepositoryImpl(
+            feedApi = mockk<FeedApi>(),
+            database = database,
+            dispatcherProvider = testDispatcherProvider(),
+            invalidationTracker = tracker,
+            localEventCache = LocalEventCache(database = database),
+            fetchCoordinator = FetchCoordinator(dispatcherProvider = testDispatcherProvider()),
+        )
+
+    private fun testDispatcherProvider(): DispatcherProvider {
+        val testDispatcher = UnconfinedTestDispatcher()
+        return mockk<DispatcherProvider> {
+            every { io() } returns testDispatcher
+            every { main() } returns testDispatcher
+        }
+    }
 
     private fun processor(database: CachingDatabase, tracker: FeedSpecInvalidationTracker) =
         FeedProcessor(feedSpec = MAIN_SPEC, database = database, invalidationTracker = tracker)

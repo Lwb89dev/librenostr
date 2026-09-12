@@ -117,7 +117,7 @@ private fun ReactionsScreen(state: ReactionsContract.UiState, callbacks: Reactio
                                 .padding(paddingValues),
                             reactions = state.likes,
                             reactionIcon = PrimalIcons.FeedLikes,
-                            loading = state.loading,
+                            loading = state.likesLoading,
                             noContentText = stringResource(R.string.reactions_likes_no_content),
                             onProfileClick = callbacks.onProfileClick,
                         )
@@ -130,7 +130,7 @@ private fun ReactionsScreen(state: ReactionsContract.UiState, callbacks: Reactio
                                 .padding(paddingValues),
                             reactions = state.reposts,
                             reactionIcon = PrimalIcons.FeedReposts,
-                            loading = state.loading,
+                            loading = state.repostsLoading,
                             noContentText = stringResource(R.string.reactions_reposts_no_content),
                             onProfileClick = callbacks.onProfileClick,
                         )

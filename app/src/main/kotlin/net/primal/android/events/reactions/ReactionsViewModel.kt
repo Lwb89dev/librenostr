@@ -61,7 +61,7 @@ class ReactionsViewModel @Inject constructor(
     private fun fetchLikes() =
         viewModelScope.launch {
             try {
-                setState { copy(loading = true) }
+                setState { copy(likesLoading = true) }
                 val likes = eventRepository.fetchEventActions(
                     eventId = eventId,
                     kind = NostrEventKind.Reaction.value,
@@ -70,14 +70,14 @@ class ReactionsViewModel @Inject constructor(
             } catch (error: NetworkException) {
                 Napier.e(throwable = error) { "Failed to fetch likes for eventId=$eventId" }
             } finally {
-                setState { copy(loading = false) }
+                setState { copy(likesLoading = false) }
             }
         }
 
     private fun fetchReposts() =
         viewModelScope.launch {
             try {
-                setState { copy(loading = true) }
+                setState { copy(repostsLoading = true) }
                 val reposts = eventRepository.fetchEventActions(
                     eventId = eventId,
                     kind = NostrEventKind.ShortTextNoteRepost.value,
@@ -86,7 +86,7 @@ class ReactionsViewModel @Inject constructor(
             } catch (error: NetworkException) {
                 Napier.e(throwable = error) { "Failed to fetch reposts for eventId=$eventId" }
             } finally {
-                setState { copy(loading = false) }
+                setState { copy(repostsLoading = false) }
             }
         }
 

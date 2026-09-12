@@ -5,6 +5,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import net.primal.core.utils.Result
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.links.EventUriNostrReference
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 
@@ -69,6 +70,21 @@ interface FeedRepository {
     )
 
     suspend fun findConversation(userId: String, noteId: String): List<FeedPost>
+
+    /**
+     * The current classification of a single citation (a `nostr:` URI) inside [eventId]'s
+     * content, straight from local storage. Null while it is still `Unsupported`
+     * — i.e. still "not found" — or not stored at all.
+     *
+     * A citation's classification is a one-time snapshot taken when [eventId] was persisted, not
+     * a live join, so it only ever changes when something explicitly re-derives it (a later fetch
+     * of the cited note re-persisting it does this automatically). This lets a caller — the
+     * "not found" card's manual retry, specifically — check the outcome right after asking for
+     * that re-derivation, without needing the citing note's own PagingSource to observe the
+     * write (it deliberately does not, to avoid invalidating every open feed on every unrelated
+     * note fetch — see `FeedPagingSourceDaoReturnTypeConverter`'s own doc).
+     */
+    suspend fun findResolvedNostrUri(eventId: String, uri: String): EventUriNostrReference?
 
     /**
      * Emits notes published on the user's feed scope from now on, as the relays deliver them.

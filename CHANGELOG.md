@@ -7,6 +7,21 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.14] - 2026-09-12
+
+### Fixed
+
+- Opening "who liked this" briefly showed "no likes yet" before the real list appeared. Likes and
+  reposts were fetched at the same time but shared one loading flag; reposts (usually the shorter
+  list) finishing first flipped it off for both tabs while the likes fetch was still in flight,
+  making the still-empty list render as a genuine empty state until the real fetch caught up.
+  Likes and reposts now each track their own loading state.
+- The retry button on a "mentioned event not found" card looked like it did nothing: it did fetch
+  and store the missing note, but the citing note's own feed row never got told to redraw (its
+  live query deliberately does not watch that table, to avoid invalidating every open feed on
+  every unrelated note fetch elsewhere in the app). The retry now updates the card directly once
+  its target resolves, the same approach already used by the note editor's own retry.
+
 ## [0.5.13] - 2026-09-12
 
 ### Changed

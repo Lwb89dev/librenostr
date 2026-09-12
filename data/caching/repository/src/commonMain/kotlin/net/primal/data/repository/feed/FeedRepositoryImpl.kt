@@ -24,6 +24,7 @@ import kotlinx.serialization.json.buildJsonArray
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.Result
 import net.primal.core.utils.coroutines.DispatcherProvider
+import net.primal.data.local.dao.events.EventUriNostr
 import net.primal.data.local.dao.messages.PrivateThreadReplyData
 import net.primal.data.local.dao.notes.FeedPost as FeedPostPO
 import net.primal.data.local.db.CachingDatabase
@@ -49,6 +50,8 @@ import net.primal.domain.feeds.isAdvancedSearchFeedSpec
 import net.primal.domain.feeds.isRelayServableNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.supportsNoteReposts
+import net.primal.domain.links.EventUriNostrReference
+import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.relay.RelayEventQuerier
@@ -373,6 +376,14 @@ internal class FeedRepositoryImpl(
         return observeConversation(userId = userId, noteId = noteId).firstOrNull() ?: emptyList()
     }
 
+    override suspend fun findResolvedNostrUri(eventId: String, uri: String): EventUriNostrReference? =
+        withContext(dispatcherProvider.io()) {
+            database.eventUris().findEventNostrUrisByEventId(eventId = eventId)
+                .firstOrNull { it.uri == uri }
+                ?.takeIf { it.type != EventUriNostrType.Unsupported }
+                ?.asDO()
+        }
+
     override fun observeConversation(userId: String, noteId: String): Flow<List<FeedPostDO>> {
         val publicPosts = database.threadConversations().observeNoteConversation(
             postId = noteId,
@@ -521,3 +532,18 @@ private fun threadTag(eventId: String, marker: String): JsonArray =
         add(JsonPrimitive(""))
         add(JsonPrimitive(marker))
     }
+
+private fun EventUriNostr.asDO() =
+    EventUriNostrReference(
+        eventId = eventId,
+        uri = uri,
+        type = type,
+        position = position,
+        referencedEventAlt = referencedEventAlt,
+        referencedHighlight = referencedHighlight,
+        referencedNote = referencedNote,
+        referencedArticle = referencedArticle,
+        referencedUser = referencedUser,
+        referencedZap = referencedZap,
+        referencedStream = referencedStream,
+    )

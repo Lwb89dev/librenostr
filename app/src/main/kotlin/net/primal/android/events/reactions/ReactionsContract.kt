@@ -8,7 +8,8 @@ import net.primal.domain.nostr.ReactionType
 interface ReactionsContract {
     data class UiState(
         val zaps: Flow<PagingData<EventZapUiModel>>,
-        val loading: Boolean = true,
+        val likesLoading: Boolean = true,
+        val repostsLoading: Boolean = true,
         val likes: List<EventActionUi> = emptyList(),
         val reposts: List<EventActionUi> = emptyList(),
         val initialReactionType: ReactionType = ReactionType.ZAPS,
