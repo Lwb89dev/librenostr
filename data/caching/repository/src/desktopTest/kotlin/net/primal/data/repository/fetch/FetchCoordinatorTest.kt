@@ -180,7 +180,9 @@ class FetchCoordinatorTest {
             // An empty result is far more likely a transient race (e.g. this fires before the
             // user's relay pool has finished loading) than a genuine "follows nobody" account.
             // Caching it turned a one-off race into a several-minute-long "feed shows only my
-            // own notes" bug that nothing but a process restart cleared.
+            // own notes" bug that nothing but a process restart cleared. Relays that are simply
+            // never going to answer (this test's case) still end up empty and uncached — the
+            // in-call retries below only shorten the race, they cannot out-wait a dead relay.
             val querier = GatedQuerier()
             val coordinator = coordinator()
 
@@ -190,8 +192,38 @@ class FetchCoordinatorTest {
 
             assertTrue(first.isEmpty())
             assertTrue(second.isEmpty())
-            assertEquals(2, querier.queryCount)
             assertEquals(0, coordinator.stats().servedFromCache)
+        }
+
+    @Test
+    fun `an empty answer is retried within the same call, before the caller ever sees it`() =
+        runTest {
+            // The race this guards: a pull-to-refresh lands the instant the relay pool reconnects
+            // and the very first follow-list query loses by a beat. Before this retry, that single
+            // bad answer was final — RelayNotesFeedFetcher fell back to the user's own pubkey only,
+            // and because a refresh clears and replaces the whole feed, a feed that already had
+            // every following's notes on screen visibly regressed to "just my own notes" from one
+            // unlucky query. The fix has to live inside this one call: the feed is already waiting
+            // on it and has no reason of its own to call a second time.
+            val querier = SequencedQuerier(emptyList(), emptyList(), listOf(followListEvent()))
+            val coordinator = coordinator()
+
+            val result = coordinator.fetchFollowList(querier, USER)
+
+            assertEquals(listOf("f1"), result.map { it.id }, "must recover without the caller retrying")
+            assertEquals(3, querier.queryCount, "two empty answers, then the one that worked")
+        }
+
+    @Test
+    fun `a relay that never has an answer is not retried forever`() =
+        runTest {
+            val querier = GatedQuerier()
+            val coordinator = coordinator()
+            querier.answerWith(emptyList())
+
+            coordinator.fetchFollowList(querier, USER)
+
+            assertEquals(4, querier.queryCount, "the first attempt plus a bounded number of retries")
         }
 
     @Test
@@ -247,6 +279,18 @@ class FetchCoordinatorTest {
         fun answerWith(events: List<NostrEvent>) = gate.complete(events).let { }
 
         fun failWith(error: Throwable) = gate.completeExceptionally(error).let { }
+    }
+
+    /** Answers each successive query with the next canned response, for testing retry-then-recover. */
+    private class SequencedQuerier(private vararg val answers: List<NostrEvent>) : RelayEventQuerier {
+        var queryCount = 0
+            private set
+
+        override suspend fun query(filter: RelayFilter): List<NostrEvent> {
+            val answer = answers.getOrElse(queryCount) { answers.last() }
+            queryCount += 1
+            return answer
+        }
     }
 
     private fun TestScope.coordinator(nowSeconds: () -> Long = { 1_000L }): FetchCoordinator {

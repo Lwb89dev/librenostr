@@ -9,6 +9,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -139,22 +140,33 @@ internal class FetchCoordinator(
     suspend fun fetchFollowList(querier: RelayEventQuerier, pubkey: String): List<NostrEvent> {
         cachedFollowList(pubkey)?.let { return it }
 
-        val events = fetch(
-            querier = querier,
-            key = FetchKey.FollowList(pubkey),
-            filter = RelayFilter(
-                kinds = listOf(NostrEventKind.FollowList.value),
-                authors = listOf(pubkey),
-                limit = FOLLOW_LIST_QUERY_LIMIT,
-            ),
+        val filter = RelayFilter(
+            kinds = listOf(NostrEventKind.FollowList.value),
+            authors = listOf(pubkey),
+            limit = FOLLOW_LIST_QUERY_LIMIT,
         )
+        var events = fetch(querier = querier, key = FetchKey.FollowList(pubkey), filter = filter)
+
         // An empty result is far more likely a transient race (most commonly: this fires before
-        // the user's relay pool has finished loading, right after app start) than a genuine
-        // "follows nobody" account — caching it for the full TTL turned a one-off race into a
-        // 5-minute-long "feed shows only my own notes" bug that nothing but a process restart
-        // cleared, since RelayNotesFeedFetcher falls back to just the user's own pubkey when
-        // this comes back empty. Only remembering real data lets the very next feed
-        // refresh/resync retry and self-heal instead.
+        // the user's relay pool has finished loading, right after app start, or a pull-to-refresh
+        // lands mid-reconnect) than a genuine "follows nobody" account. Not caching it (below) was
+        // the first half of the fix — it stopped a one-off race from becoming a 5-minute-long
+        // "feed shows only my own notes" bug that nothing but a process restart cleared. It did
+        // not stop the *first* symptom: whichever single call hit the race still fell straight
+        // through to RelayNotesFeedFetcher's own-pubkey-only fallback, and on a pull-to-refresh —
+        // which clears and replaces the whole page — that one bad answer visibly regressed a feed
+        // that already had every following's notes on screen. A few retries a beat apart, still
+        // inside the one call the feed is already waiting on, catches the race before it ever
+        // reaches the feed at all.
+        var retriesLeft = FOLLOW_LIST_EMPTY_RETRIES
+        while (events.isEmpty() && retriesLeft > 0) {
+            delay(FOLLOW_LIST_EMPTY_RETRY_DELAY_MS)
+            events = fetch(querier = querier, key = FetchKey.FollowList(pubkey), filter = filter)
+            retriesLeft--
+        }
+
+        // Only remembering real data lets the very next feed refresh/resync retry and self-heal
+        // if every attempt above still came back empty (relays genuinely unreachable, say).
         if (events.isNotEmpty()) {
             mutex.withLock {
                 followListCache[pubkey] = CachedFollowList(events = events, fetchedAtSeconds = nowSeconds())
@@ -387,6 +399,13 @@ internal class FetchCoordinator(
 
         /** A follow list is replaceable; only the newest one means anything. */
         private const val FOLLOW_LIST_QUERY_LIMIT = 1
+
+        // Matches NotificationsRemoteMediator's own cold-start retry for the same class of race
+        // (a relay pool not connected yet reads identically to "no data"). Three tries a third of
+        // a second apart is long enough to cover a pool that is still connecting without turning
+        // a real "relays are down" case into a multi-second stall on every affected call.
+        private const val FOLLOW_LIST_EMPTY_RETRIES = 3
+        private const val FOLLOW_LIST_EMPTY_RETRY_DELAY_MS = 350L
 
         private val INTERACTION_KINDS = listOf(
             NostrEventKind.Reaction.value,

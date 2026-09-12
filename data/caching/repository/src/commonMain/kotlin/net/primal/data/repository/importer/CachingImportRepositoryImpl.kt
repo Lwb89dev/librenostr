@@ -13,9 +13,12 @@ import net.primal.data.remote.api.importing.PrimalImportApi
 import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
 import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
+import net.primal.data.repository.mappers.remote.flatMapPostsAsEventUriPO
+import net.primal.data.repository.mappers.remote.flatMapPostsAsReferencedNostrUriDO
 import net.primal.data.repository.mappers.remote.mapAsPostDataPO
 import net.primal.data.repository.mappers.remote.mapAsProfileDataPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsRepostDataPO
+import net.primal.data.repository.mappers.remote.mapReferencedNostrUriAsEventUriNostrPO
 import net.primal.data.repository.mappers.remote.parseAndFoldPrimalLegendProfiles
 import net.primal.data.repository.mappers.remote.parseAndFoldPrimalPremiumInfo
 import net.primal.data.repository.mappers.remote.parseAndFoldPrimalUserNames
@@ -25,6 +28,10 @@ import net.primal.domain.global.BroadcastEventResponse
 import net.primal.domain.global.CachingImportRepository
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
+import net.primal.domain.nostr.pubkeyTagValues
+import net.primal.domain.nostr.utils.extractNoteId
+import net.primal.domain.nostr.utils.extractProfileId
+import net.primal.domain.nostr.utils.isNostrUri
 import net.primal.shared.data.local.db.withTransaction
 
 internal class CachingImportRepositoryImpl(
@@ -67,6 +74,7 @@ internal class CachingImportRepositoryImpl(
                 if (notes.isNotEmpty()) {
                     database.posts().upsertAll(data = notes)
                     persistThreadLinks(notes)
+                    persistOwnNoteEmbeds(notes)
                 }
                 if (reposts.isNotEmpty()) {
                     database.reposts().upsertAll(data = reposts)
@@ -114,6 +122,71 @@ internal class CachingImportRepositoryImpl(
             NoteConversationCrossRef(noteId = parentId, replyNoteId = note.postId)
         }
         database.threadConversations().connectNoteWithReply(data = selfLinks + parentLinks)
+    }
+
+    /**
+     * Renders the mention, quote and media embeds of a note the moment it is optimistically
+     * cached, i.e. right after this device signs and publishes it.
+     *
+     * [mapAsPostDataPO] already put `nostr:npub…`/`nostr:nevent…`/plain URL candidates into the
+     * note's own [PostData.uris] — that half of the pipeline was never the gap. What was missing
+     * is the classification step [net.primal.data.repository.feed.processors.persistToDatabase]
+     * runs for a relay-fetched page: turning a raw candidate into a stored attachment row (media/
+     * link, with its type detected) or a stored mention/quote row (with the target's own name or
+     * content attached). Nothing here ever ran that step for a note this device just wrote itself,
+     * so the raw `nostr:npub1…`/`nostr:nevent1…` text sat on screen exactly as typed until some
+     * unrelated relay fetch happened to reprocess the same note later and silently fixed it.
+     *
+     * Unlike a relay page, this does not need a network round trip: everything a freshly-typed
+     * mention or quote could possibly need is already local. A person can only be tagged from the
+     * mention search, which means their profile is already in [database]; a quoted note was
+     * already loaded to be quoted; an attachment was uploaded by this device seconds ago and
+     * classifies by file extension alone (see [flatMapPostsAsEventUriPO]'s own fallback for that).
+     */
+    private suspend fun persistOwnNoteEmbeds(notes: List<PostData>) {
+        val candidateUris = notes.flatMap { it.uris }.filter { it.isNostrUri() }
+        val referencedNoteIds = candidateUris.mapNotNull { it.extractNoteId() }.distinct()
+
+        val postIdToPostDataMap = if (referencedNoteIds.isEmpty()) {
+            emptyMap()
+        } else {
+            database.posts().findPosts(referencedNoteIds).associateBy { it.postId }
+        }
+
+        // A quote classifies as a resolvable Note only once its author's profile is known too
+        // (see takeAsReferencedNoteOrNull) — a quoted note's author is exactly as "already known
+        // locally" as an explicitly @-mentioned one, since quoting it required loading it first,
+        // but nothing tags that author's pubkey anywhere on *this* note, so it has to be pulled
+        // from the resolved quote itself rather than from this note's own mention/pubkey tags.
+        val referencedProfileIds = (
+            candidateUris.mapNotNull { it.extractProfileId() } +
+                notes.flatMap { it.tags.pubkeyTagValues() } +
+                postIdToPostDataMap.values.map { it.authorId }
+            ).distinct()
+        val profileIdToProfileDataMap = if (referencedProfileIds.isEmpty()) {
+            emptyMap()
+        } else {
+            database.profiles().findProfileData(referencedProfileIds).associateBy { it.ownerId }
+        }
+
+        val attachments = notes.flatMapPostsAsEventUriPO(
+            cdnResources = emptyMap(),
+            linkPreviews = emptyMap(),
+            videoThumbnails = emptyMap(),
+        )
+        val nostrReferences = notes.flatMapPostsAsReferencedNostrUriDO(
+            eventIdToNostrEvent = emptyMap(),
+            postIdToPostDataMap = postIdToPostDataMap,
+            articleIdToArticle = emptyMap(),
+            streamIdToStreamData = emptyMap(),
+            profileIdToProfileDataMap = profileIdToProfileDataMap,
+            cdnResources = emptyMap(),
+            linkPreviews = emptyMap(),
+            videoThumbnails = emptyMap(),
+        ).mapReferencedNostrUriAsEventUriNostrPO()
+
+        if (attachments.isNotEmpty()) database.eventUris().upsertAllEventUris(data = attachments)
+        if (nostrReferences.isNotEmpty()) database.eventUris().upsertAllEventNostrUris(data = nostrReferences)
     }
 
     private suspend fun persistFeedMembership(

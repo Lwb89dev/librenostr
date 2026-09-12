@@ -145,12 +145,19 @@ private fun NotificationPage(
     var isAutoScrolling by remember { mutableStateOf(false) }
     var previousUnseenIds by remember { mutableStateOf<List<String>>(emptyList()) }
 
+    // Deliberately keyed on the list's *resting position*, not on isScrollInProgress: a
+    // pull-to-refresh drag starts on this same list (the pull-to-refresh box wraps it, it does
+    // not own a separate scrollable surface) and briefly marks isScrollInProgress true too, even
+    // though the list springs straight back to position zero once released. Reading that as "the
+    // user has scrolled" latched hasUserEverScrolled permanently true on the very first pull to
+    // refresh, and from then on new notifications never auto-scrolled into view again for the
+    // rest of the screen's lifetime — the fix below only counts an actual move away from the top.
     LaunchedEffect(listState) {
         snapshotFlow {
-            listState.isScrollInProgress to listState.interactionSource.interactions
-        }.first { (isScrolling, _) ->
-            isScrolling && !isAutoScrolling
-        }
+            val movedAwayFromTop = listState.firstVisibleItemIndex > 0 ||
+                listState.firstVisibleItemScrollOffset > 0
+            movedAwayFromTop to isAutoScrolling
+        }.first { (movedAwayFromTop, autoScrolling) -> movedAwayFromTop && !autoScrolling }
         hasUserEverScrolled = true
     }
 
