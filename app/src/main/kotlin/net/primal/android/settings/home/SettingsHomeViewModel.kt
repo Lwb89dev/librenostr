@@ -13,15 +13,10 @@ import net.primal.android.BuildConfig
 import net.primal.android.core.logging.AppLogPreferences
 import net.primal.android.settings.home.SettingsHomeContract.UiEvent
 import net.primal.android.settings.home.SettingsHomeContract.UiState
-import net.primal.android.user.accounts.active.ActiveAccountStore
-import net.primal.android.wallet.utils.shouldShowBackup
-import net.primal.domain.account.WalletAccountRepository
 
 @HiltViewModel
 class SettingsHomeViewModel @Inject constructor(
     private val appLogPreferences: AppLogPreferences,
-    private val activeAccountStore: ActiveAccountStore,
-    private val walletAccountRepository: WalletAccountRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -41,14 +36,7 @@ class SettingsHomeViewModel @Inject constructor(
 
     init {
         observeEvents()
-        observeActiveWalletData()
     }
-
-    private fun observeActiveWalletData() =
-        viewModelScope.launch {
-            walletAccountRepository.observeActiveWallet(userId = activeAccountStore.activeUserId())
-                .collect { userWallet -> setState { copy(walletNeedsBackup = userWallet?.wallet.shouldShowBackup) } }
-        }
 
     private fun observeEvents() =
         viewModelScope.launch {

@@ -5,10 +5,8 @@ import androidx.navigation.NavBackStackEntry
 import net.primal.android.explore.asearch.AdvancedSearchContract
 import net.primal.android.explore.search.ui.SearchScope
 import net.primal.android.scan.ScanCodeContract
-import net.primal.android.wallet.transactions.send.prepare.tabs.SendPaymentTab
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.domain.nostr.ReactionType
-import net.primal.domain.wallet.DraftTx
 
 const val NOTE_ID = "noteId"
 inline val SavedStateHandle.noteIdOrThrow: String
@@ -16,9 +14,6 @@ inline val SavedStateHandle.noteIdOrThrow: String
 
 const val PRIMAL_NAME = "primalName"
 inline val SavedStateHandle.primalName: String? get() = get(PRIMAL_NAME)
-
-const val PROMO_CODE = "promoCode"
-inline val SavedStateHandle.promoCode: String? get() = get(PROMO_CODE)
 
 const val PROFILE_NPUB = "profileNpub"
 inline val SavedStateHandle.npub: String? get() = get(PROFILE_NPUB)
@@ -58,17 +53,6 @@ inline val SavedStateHandle.followsType: String? get() = get(FOLLOWS_TYPE)
 const val RENDER_TYPE = "renderType"
 inline val SavedStateHandle.renderType: String
     get() = get<String>(RENDER_TYPE) ?: throw IllegalArgumentException("Missing required renderType argument.")
-
-const val EXTEND_EXISTING_PREMIUM_NAME = "extendExistingPremiumName"
-inline val SavedStateHandle.extendExistingPremiumName: String? get() = get(EXTEND_EXISTING_PREMIUM_NAME)
-
-const val UPGRADE_TO_PRIMAL_PRO = "upgradeToPrimalPro"
-inline val SavedStateHandle.upgradeToPrimalPro: Boolean get() = get<String?>(UPGRADE_TO_PRIMAL_PRO) == "true"
-
-const val FROM_ORIGIN_PREMIUM_BADGE = "OriginPremiumBadge"
-const val FROM_ORIGIN = "buyingPremiumFromOrigin"
-inline val SavedStateHandle.buyingPremiumFromOrigin: String? get() = get(FROM_ORIGIN)
-inline val NavBackStackEntry.buyingPremiumFromOrigin: String? get() = arguments?.getString(FROM_ORIGIN)
 
 const val INITIAL_QUERY = "initialQuery"
 inline val SavedStateHandle.initialQuery: String? get() = get(INITIAL_QUERY)
@@ -143,29 +127,6 @@ inline val SavedStateHandle.mediaUrlOrThrow: String
 
 const val MEDIA_POSITION_MS = "mediaPositionMs"
 inline val SavedStateHandle.mediaPositionMs: Long get() = get(MEDIA_POSITION_MS) ?: 0L
-
-const val SEND_PAYMENT_TAB = "sendPaymentTab"
-inline val SavedStateHandle.sendPaymentTab: SendPaymentTab?
-    get() = get<String?>(SEND_PAYMENT_TAB)?.let {
-        SendPaymentTab.valueOf(it)
-    }
-
-const val DRAFT_TRANSACTION = "draftTransaction"
-inline val SavedStateHandle.draftTransaction: DraftTx
-    get() = get<String>(DRAFT_TRANSACTION)
-        ?.asBase64Decoded()?.decodeFromJsonStringOrNull()
-        ?: throw IllegalArgumentException("Missing draft transaction.")
-
-const val LNBC = "lnbc"
-inline val SavedStateHandle.lnbc: String? get() = get<String>(LNBC)
-
-const val WALLET_ID = "walletId"
-inline val SavedStateHandle.walletIdOrThrow: String
-    get() = get(WALLET_ID) ?: throw IllegalArgumentException("Missing required walletId argument.")
-
-const val TRANSACTION_ID = "transactionId"
-inline val SavedStateHandle.transactionIdOrThrow: String
-    get() = get(TRANSACTION_ID) ?: throw IllegalArgumentException("Missing required transactionId argument.")
 
 const val INITIAL_REACTION_TYPE = "initialReactionType"
 inline val SavedStateHandle.reactionTypeOrThrow: ReactionType

@@ -44,7 +44,6 @@ fun FeedListOverlayContent(
     feedSpecKind: FeedSpecKind,
     onFeedClick: (FeedUi) -> Unit,
     onDismiss: () -> Unit,
-    onGoToWallet: (() -> Unit)? = null,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
     inlineActions: Boolean = false,
 ) {
@@ -60,7 +59,6 @@ fun FeedListOverlayContent(
         onFeedClick = onFeedClick,
         onDismiss = onDismiss,
         eventPublisher = viewModel::setEvent,
-        onGoToWallet = onGoToWallet,
         onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
         inlineActions = inlineActions,
     )
@@ -73,7 +71,6 @@ private fun FeedListOverlayContent(
     onFeedClick: (FeedUi) -> Unit,
     onDismiss: () -> Unit,
     eventPublisher: (FeedListContract.UiEvent) -> Unit,
-    onGoToWallet: (() -> Unit)? = null,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
     inlineActions: Boolean = false,
 ) {
@@ -118,7 +115,6 @@ private fun FeedListOverlayContent(
             FeedMarketplaceStage.FeedDetails -> FeedDetailsStage(
                 state = state,
                 eventPublisher = eventPublisher,
-                onGoToWallet = onGoToWallet,
             )
         }
     }
@@ -228,7 +224,6 @@ private fun FollowSetPicker(
 private fun FeedDetailsStage(
     state: FeedListContract.UiState,
     eventPublisher: (FeedListContract.UiEvent) -> Unit,
-    onGoToWallet: (() -> Unit)?,
 ) {
     val localSelectedFeed by remember(state.selectedDvmFeed) {
         val spec = state.selectedDvmFeed?.data?.buildSpec(specKind = state.specKind)
@@ -239,7 +234,6 @@ private fun FeedDetailsStage(
         modifier = Modifier.fillMaxSize(),
         dvmFeed = state.selectedDvmFeed,
         localFeed = localSelectedFeed,
-        onGoToWallet = onGoToWallet,
         onClose = { eventPublisher(FeedListContract.UiEvent.CloseFeedDetails) },
         onAddOrRemoveFeed = {
             if (state.selectedDvmFeed != null) {

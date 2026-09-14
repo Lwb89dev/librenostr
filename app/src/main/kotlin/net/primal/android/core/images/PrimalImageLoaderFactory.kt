@@ -7,6 +7,7 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.gif.AnimatedImageDecoder
 import coil3.gif.GifDecoder
+import coil3.memory.MemoryCache
 import coil3.video.VideoFrameDecoder
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,6 +18,11 @@ import okhttp3.OkHttpClient
 
 @Singleton
 class PrimalImageLoaderFactory @Inject constructor() : SingletonImageLoader.Factory {
+
+    companion object {
+        private const val MIN_DISK_CACHE_BYTES = 100L * 1024 * 1024
+        private const val MAX_DISK_CACHE_BYTES = 500L * 1024 * 1024
+    }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val defaultBuilder = ImageLoader.Builder(context)
@@ -64,7 +70,19 @@ class PrimalImageLoaderFactory @Inject constructor() : SingletonImageLoader.Fact
             .diskCache {
                 DiskCache.Builder()
                     .directory(imageCacheDir)
-                    .maxSizePercent(percent = 0.02)
+                    .maxSizePercent(percent = 0.03)
+                    // Bounds around the percentage: a storage-constrained device shouldn't be
+                    // squeezed below a cache that can hold a session's worth of feed media, and a
+                    // device with lots of free space shouldn't have Coil claim an unbounded share.
+                    .minimumMaxSizeBytes(size = MIN_DISK_CACHE_BYTES)
+                    .maximumMaxSizeBytes(size = MAX_DISK_CACHE_BYTES)
+                    .build()
+            }
+            .memoryCache {
+                // Explicit rather than relying on Coil's implicit default, so this stays a
+                // deliberate, documented choice for a media-heavy scrolling feed.
+                MemoryCache.Builder()
+                    .maxSizePercent(context = context, percent = 0.25)
                     .build()
             }
             .build()

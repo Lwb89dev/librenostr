@@ -54,7 +54,6 @@ import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.launch
 import net.primal.android.R
 import net.primal.android.articles.feed.ArticleFeedList
-import net.primal.android.core.activity.LocalZappingState
 import net.primal.android.core.compose.ListNoContent
 import net.primal.android.core.compose.PrimalLoadingSpinner
 import net.primal.android.core.compose.PrimalScaffold
@@ -74,7 +73,6 @@ import net.primal.android.notes.feed.grid.MediaFeedGrid
 import net.primal.android.notes.feed.list.NoteFeedList
 import net.primal.android.notes.feed.list.StreamPillsRow
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.notes.feed.zaps.UnableToZapBottomSheet
 import net.primal.android.profile.details.ui.PROFILE_TAB_COUNT
 import net.primal.android.profile.details.ui.ProfileHeaderDetails
 import net.primal.android.profile.details.ui.ProfileTabs
@@ -293,16 +291,6 @@ private fun ProfileDetailsContent(
     screenHeight: Dp,
     snackbarHostState: SnackbarHostState,
 ) {
-    val zappingState = LocalZappingState.current
-    var showCantZapWarning by remember { mutableStateOf(false) }
-    if (showCantZapWarning) {
-        UnableToZapBottomSheet(
-            zappingState = zappingState,
-            onDismissRequest = { showCantZapWarning = false },
-            onGoToWallet = { callbacks.onGoToWallet() },
-        )
-    }
-
     val context = LocalContext.current
     SnackbarErrorHandler(
         error = state.error,
@@ -335,7 +323,6 @@ private fun ProfileDetailsContent(
                     eventPublisher = eventPublisher,
                     callbacks = callbacks,
                     noteCallbacks = noteCallbacks,
-                    showCantZapWarning = { showCantZapWarning = true },
                     snackbarHostState = snackbarHostState,
                 )
             }
@@ -346,7 +333,6 @@ private fun ProfileDetailsContent(
                     eventPublisher = eventPublisher,
                     snackbarHostState = snackbarHostState,
                     noteCallbacks = noteCallbacks,
-                    callbacks = callbacks,
                 )
             }
         }
@@ -360,7 +346,6 @@ private fun ProfileDetailsFeeds(
     eventPublisher: (ProfileDetailsContract.UiEvent) -> Unit,
     snackbarHostState: SnackbarHostState,
     noteCallbacks: NoteCallbacks,
-    callbacks: ProfileDetailsContract.ScreenCallbacks,
 ) {
     val streamState = LocalStreamState.current
     val uiScope = rememberCoroutineScope()
@@ -393,7 +378,6 @@ private fun ProfileDetailsFeeds(
             state = state,
             eventPublisher = eventPublisher,
             noteCallbacks = noteCallbacks,
-            callbacks = callbacks,
             snackbarHostState = snackbarHostState,
         )
     }
@@ -405,7 +389,6 @@ private fun ProfileDetailsHorizontalPager(
     state: ProfileDetailsContract.UiState,
     eventPublisher: (ProfileDetailsContract.UiEvent) -> Unit,
     noteCallbacks: NoteCallbacks,
-    callbacks: ProfileDetailsContract.ScreenCallbacks,
     snackbarHostState: SnackbarHostState,
 ) {
     val context = LocalContext.current
@@ -428,7 +411,6 @@ private fun ProfileDetailsHorizontalPager(
                 NoteFeedList(
                     feedSpec = state.profileFeedSpecs[pageIndex].buildSpec(profileId = state.profileId),
                     noteCallbacks = noteCallbacks,
-                    onGoToWallet = callbacks.onGoToWallet,
                     pollingEnabled = pageIndex == NOTES_TAB_INDEX,
                     pullToRefreshEnabled = false,
                     showTopZaps = true,
@@ -531,11 +513,9 @@ private fun PreviewProfileScreen() {
                 onMediaItemClick = {},
                 onEditProfileClick = {},
                 onMessageClick = {},
-                onSendWalletTx = {},
                 onDrawerQrCodeClick = {},
                 onLiveStreamClick = {},
                 onFollowsClick = { _, _ -> },
-                onGoToWallet = {},
                 onNewPostClick = {},
             ),
             snackbarHostState = SnackbarHostState(),

@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -19,19 +18,15 @@ import net.primal.android.navigation.profileId
 import net.primal.android.profile.qr.ProfileQrCodeContract.SideEffect
 import net.primal.android.profile.qr.ProfileQrCodeContract.UiEvent
 import net.primal.android.profile.qr.ProfileQrCodeContract.UiState
-import net.primal.android.scan.utils.getPromoCodeFromUrl
 import net.primal.android.scanner.domain.QrCodeDataType
 import net.primal.android.scanner.domain.QrCodeResult
 import net.primal.android.user.accounts.active.ActiveAccountStore
-import net.primal.core.utils.onFailure
-import net.primal.core.utils.onSuccess
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.utils.bech32ToHexOrNull
 import net.primal.domain.nostr.utils.extractNoteId
 import net.primal.domain.nostr.utils.extractProfileId
 import net.primal.domain.nostr.utils.takeAsNaddrOrNull
 import net.primal.domain.nostr.utils.takeAsNaddrStringOrNull
-import net.primal.domain.parser.WalletTextParser
 import net.primal.domain.profile.ProfileRepository
 
 @HiltViewModel
@@ -39,7 +34,6 @@ class ProfileQrCodeViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val activeAccountStore: ActiveAccountStore,
     private val profileRepository: ProfileRepository,
-    private val walletTextParser: WalletTextParser,
 ) : ViewModel() {
 
     private val profileId: String = savedStateHandle.profileId ?: activeAccountStore.activeUserId()
@@ -97,30 +91,14 @@ class ProfileQrCodeViewModel @Inject constructor(
                 QrCodeDataType.NOTE -> result.value.bech32ToHexOrNull()?.let { processNoteId(noteId = it) }
                 QrCodeDataType.NOTE_URI -> result.value.extractNoteId()?.let { processNoteId(noteId = it) }
 
-                QrCodeDataType.LNBC,
-                QrCodeDataType.LNURL,
-                QrCodeDataType.LIGHTNING_URI,
-                QrCodeDataType.BITCOIN_URI,
-                QrCodeDataType.BITCOIN_ADDRESS,
-                -> processWalletText(text = result.value)
-
-                QrCodeDataType.PROMO_CODE ->
-                    setEffect(SideEffect.PromoCodeDetected(result.value.getPromoCodeFromUrl()))
+                // A bolt11 invoice can be paid directly through the system's Lightning app. LNURL,
+                // a bare lightning: uri and an on-chain bitcoin address/uri have no such fallback
+                // without a wallet of our own.
+                QrCodeDataType.LNBC -> setEffect(SideEffect.PayLightningInvoice(invoice = result.value))
 
                 else -> Unit
             }
         }
-
-    private suspend fun processWalletText(text: String) {
-        walletTextParser.parseAndQueryText(
-            userId = activeAccountStore.activeUserId(),
-            text = text,
-        ).onFailure { error ->
-            Napier.w(throwable = error) { "Unable to parse text. [text = $text]" }
-        }.onSuccess { draftTx ->
-            setEffect(SideEffect.WalletTxDetected(draftTx = draftTx))
-        }
-    }
 
     private fun processProfileId(profileId: String) {
         setEffect(SideEffect.NostrProfileDetected(profileId = profileId))

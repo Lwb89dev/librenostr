@@ -177,7 +177,6 @@ fun ExploreFeedScreen(
                     renderType = state.renderType,
                     noteCallbacks = noteCallbacks,
                     contentPadding = paddingValues,
-                    onGoToWallet = callbacks.onGoToWallet,
                     onUiError = { uiError ->
                         uiScope.launch {
                             snackbarHostState.showSnackbar(
@@ -231,7 +230,6 @@ private fun ExploreNoteFeed(
     renderType: ExploreFeedContract.RenderType,
     contentPadding: PaddingValues,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     when (renderType) {
@@ -239,7 +237,6 @@ private fun ExploreNoteFeed(
             NoteFeedList(
                 feedSpec = feedSpec,
                 noteCallbacks = noteCallbacks,
-                onGoToWallet = onGoToWallet,
                 contentPadding = contentPadding,
                 onUiError = onUiError,
                 showTopZaps = true,

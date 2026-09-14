@@ -58,3 +58,8 @@ object CurrencyConversionUtils {
 
     fun String.toBigDecimal() = BigDecimal.parseString(this)
 }
+
+fun String.parseSatsToUsd(currentExchangeRate: Double?): String =
+    with(CurrencyConversionUtils) {
+        toBigDecimal().fromSatsToUsd(currentExchangeRate).toPlainString()
+    }

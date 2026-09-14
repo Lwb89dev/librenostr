@@ -30,7 +30,6 @@ fun DvmFeedDetails(
     localFeed: FeedUi?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    onGoToWallet: (() -> Unit)? = null,
     onAddOrRemoveFeed: (() -> Unit)? = null,
 ) {
     Scaffold(
@@ -57,7 +56,6 @@ fun DvmFeedDetails(
                 DvmHeaderAndFeedList(
                     modifier = Modifier.padding(paddingValues),
                     dvmFeed = dvmFeed,
-                    onGoToWallet = onGoToWallet,
                 )
             }
         },

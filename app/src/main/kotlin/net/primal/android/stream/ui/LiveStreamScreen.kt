@@ -140,14 +140,13 @@ import net.primal.android.stream.player.VIDEO_ASPECT_RATIO_HEIGHT
 import net.primal.android.stream.player.VIDEO_ASPECT_RATIO_WIDTH
 import net.primal.android.theme.AppTheme
 import net.primal.core.utils.detectUrls
+import net.primal.core.utils.isLightningAddress
 import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.links.ReferencedUser
 import net.primal.domain.nostr.utils.clearAtSignFromNostrUris
 import net.primal.domain.nostr.utils.parseNostrUris
 import net.primal.domain.streams.StreamContentModerationMode
 import net.primal.domain.streams.StreamStatus
-import net.primal.domain.utils.isLightningAddress
-import net.primal.domain.wallet.DraftTx
 
 private const val URL_ANNOTATION_TAG = "url"
 private const val COLLAPSED_MODE_CHAT_ITEMS_THRESHOLD = 20
@@ -197,7 +196,6 @@ fun LiveStreamScreen(
                 ),
             )
         },
-        onGoToWallet = callbacks.onGoToWallet,
     )
 
     if (state.shouldApproveProfileAction != null) {
@@ -359,7 +357,7 @@ private fun LiveStreamBottomSheet(
         onZapClick = { profileDetails ->
             handleZapProfile(
                 profileDetails = profileDetails,
-                callbacks = callbacks,
+                eventPublisher = eventPublisher,
                 coroutineScope = coroutineScope,
                 snackbarHostState = snackbarHostState,
                 context = context,
@@ -1392,18 +1390,19 @@ private fun isPlaybackAtLiveEdge(mediaController: MediaController): Boolean {
 
 private fun handleZapProfile(
     profileDetails: ProfileDetailsUi,
-    callbacks: LiveStreamContract.ScreenCallbacks,
+    eventPublisher: (LiveStreamContract.UiEvent) -> Unit,
     coroutineScope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
     context: Context,
 ) {
     val profileLud16 = profileDetails.internetIdentifier
+    val profileLnUrlDecoded = profileDetails.lnUrlDecoded
 
-    if (profileLud16?.isLightningAddress() == true) {
-        callbacks.onSendWalletTx(
-            DraftTx(
-                targetUserId = profileDetails.pubkey,
-                targetLud16 = profileLud16,
+    if (profileLud16?.isLightningAddress() == true && profileLnUrlDecoded != null) {
+        eventPublisher(
+            LiveStreamContract.UiEvent.ZapProfile(
+                profileId = profileDetails.pubkey,
+                profileLnUrlDecoded = profileLnUrlDecoded,
             ),
         )
     } else {

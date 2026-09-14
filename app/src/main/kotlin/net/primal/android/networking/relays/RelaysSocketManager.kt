@@ -58,10 +58,9 @@ class RelaysSocketManager @Inject constructor(
         )
 
     // Only the account's own relays are worth authenticating to. The fallback pool is relays the
-    // user did not choose, and the NWC pool speaks for a wallet connection, not the user's own
-    // identity — proving who is asking on either would leak more than either relationship calls for.
+    // user did not choose — proving who is asking there would leak more than that relationship
+    // calls for.
     private val userRelaysPool: RelayPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
-    private val nwcRelaysPool: RelayPool = buildRelayPool()
     private val fallbackRelaysPool: RelayPool = buildRelayPool()
 
     val userRelayPoolStatus = userRelaysPool.relayPoolStatus
@@ -105,12 +104,11 @@ class RelaysSocketManager @Inject constructor(
         scope.launch {
             usersDatabase.relays().observeRelays(userId = userId).collect { relays ->
                 val userRelays = relays.filter { it.kind == RelayKind.UserRelay }.map { it.mapToRelayDO() }
-                val nwcRelays = relays.filter { it.kind == RelayKind.NwcRelay }.map { it.mapToRelayDO() }
-                updateRelayPools(regularRelays = userRelays, walletRelays = nwcRelays)
+                updateRelayPools(regularRelays = userRelays)
             }
         }
 
-    private suspend fun updateRelayPools(regularRelays: List<Relay>?, walletRelays: List<Relay>?) {
+    private suspend fun updateRelayPools(regularRelays: List<Relay>?) {
         relayPoolsMutex.withLock {
             val sanitizedUserRelays = regularRelays.orEmpty()
             val userRelaysChanged = userRelaysPool.relays != sanitizedUserRelays
@@ -118,19 +116,12 @@ class RelaysSocketManager @Inject constructor(
                 userRelaysPool.changeRelays(relays = sanitizedUserRelays)
                 connectPool(userRelaysPool)
             }
-
-            val sanitizedWalletRelays = walletRelays.orEmpty()
-            val nwcRelaysChanged = nwcRelaysPool.relays != sanitizedWalletRelays
-            if (nwcRelaysChanged) {
-                nwcRelaysPool.changeRelays(relays = sanitizedWalletRelays)
-            }
         }
     }
 
     private suspend fun clearRelayPools() =
         relayPoolsMutex.withLock {
             userRelaysPool.closePool()
-            nwcRelaysPool.closePool()
         }
 
     @Throws(NostrPublishException::class)
@@ -150,7 +141,7 @@ class RelaysSocketManager @Inject constructor(
             customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.publishEvent(nostrEvent = nostrEvent)
         } finally {
-            customPool.closePool()
+            customPool.destroy()
         }
     }
 
@@ -162,7 +153,7 @@ class RelaysSocketManager @Inject constructor(
             customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.query(filter.toJsonObject())
         } finally {
-            customPool.closePool()
+            customPool.destroy()
         }
     }
 
@@ -174,21 +165,12 @@ class RelaysSocketManager @Inject constructor(
             customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             emitAll(customPool.subscribe(filter.toJsonObject()))
         } finally {
-            customPool.closePool()
+            customPool.destroy()
         }
     }
 
     fun configuredUserRelays(userId: String): List<Relay> =
         usersDatabase.relays().findRelays(userId = userId, kind = RelayKind.UserRelay).map { it.mapToRelayDO() }
-
-    @Throws(NostrPublishException::class)
-    suspend fun publishNwcEvent(nostrEvent: NostrEvent) {
-        if (!nwcRelaysPool.hasRelays()) {
-            throw NostrPublishException(cause = IllegalStateException("nwc relay not found"))
-        }
-
-        nwcRelaysPool.publishEvent(nostrEvent = nostrEvent)
-    }
 
     fun tryConnectingToAllUserRelays() {
         userRelaysPool.relays.forEach {
@@ -253,7 +235,6 @@ class RelaysSocketManager @Inject constructor(
 
     fun activeSubscriptionCount(): Int =
         userRelaysPool.activeSubscriptionCount() +
-            nwcRelaysPool.activeSubscriptionCount() +
             fallbackRelaysPool.activeSubscriptionCount()
 
     /**

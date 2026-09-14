@@ -61,6 +61,7 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.fetchAndGet
 import net.primal.core.utils.fetchAndGetResult
 import net.primal.core.utils.fold
+import net.primal.core.utils.isLnInvoice
 import net.primal.core.utils.map
 import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
@@ -90,7 +91,6 @@ import net.primal.domain.reads.ArticleRepository
 import net.primal.domain.reads.HighlightRepository
 import net.primal.domain.streams.StreamRepository
 import net.primal.domain.streams.mappers.asReferencedStream
-import net.primal.domain.utils.isLnInvoice
 
 @Suppress("LongParameterList")
 class NoteEditorViewModel @AssistedInject constructor(

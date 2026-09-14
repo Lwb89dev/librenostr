@@ -31,7 +31,7 @@ import net.primal.android.profile.details.ProfileDetailsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.handler.ProfileFollowsHandler
 import net.primal.android.user.repository.UserRepository
-import net.primal.android.wallet.zaps.ZapHandler
+import net.primal.android.zaps.ZapHandler
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess

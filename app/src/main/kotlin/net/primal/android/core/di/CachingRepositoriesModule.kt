@@ -26,7 +26,6 @@ import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayEventSubscriber
-import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
 import net.primal.domain.posts.FeedRepository
@@ -125,14 +124,8 @@ object CachingRepositoriesModule {
         PrimalRepositoryFactory.createEventUriRepository()
 
     @Provides
-    fun provideEventInteractionRepository(
-        primalPublisher: PrimalPublisher,
-        nostrZapperFactory: NostrZapperFactory,
-    ): EventInteractionRepository =
-        PrimalRepositoryFactory.createEventInteractionRepository(
-            primalPublisher = primalPublisher,
-            nostrZapperFactory = nostrZapperFactory,
-        )
+    fun provideEventInteractionRepository(primalPublisher: PrimalPublisher): EventInteractionRepository =
+        PrimalRepositoryFactory.createEventInteractionRepository(primalPublisher = primalPublisher)
 
     @Provides
     fun provideExploreRepository(

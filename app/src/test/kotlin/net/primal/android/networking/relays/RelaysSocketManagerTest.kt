@@ -146,24 +146,6 @@ class RelaysSocketManagerTest {
         }
 
     @Test
-    fun `publishNwcEvent throws when no NWC relays configured`() =
-        runTest {
-            val manager = buildRelaysSocketManager(
-                usersDatabase = buildUsersDatabase(relays = emptyList()),
-            )
-            advanceUntilIdle()
-
-            val nostrEvent = mockk<NostrEvent>(relaxed = true)
-
-            try {
-                manager.publishNwcEvent(nostrEvent)
-                throw AssertionError("Expected NostrPublishException")
-            } catch (_: NostrPublishException) {
-                // Expected - no NWC relays configured
-            }
-        }
-
-    @Test
     fun `userRelayPoolStatus is initially empty`() =
         runTest {
             val manager = buildRelaysSocketManager(

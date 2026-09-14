@@ -10,7 +10,6 @@ import net.primal.android.profile.domain.ProfileFollowsType
 import net.primal.android.user.handler.ProfileFollowsHandler
 import net.primal.domain.nostr.ReportType
 import net.primal.domain.nostr.utils.asEllipsizedNpub
-import net.primal.domain.wallet.DraftTx
 
 interface ProfileDetailsContract {
     data class UiState(
@@ -86,11 +85,9 @@ interface ProfileDetailsContract {
         val onMediaItemClick: (String) -> Unit,
         val onEditProfileClick: () -> Unit,
         val onMessageClick: (String) -> Unit,
-        val onSendWalletTx: (DraftTx) -> Unit,
         val onDrawerQrCodeClick: (String) -> Unit,
         val onLiveStreamClick: (naddr: String) -> Unit,
         val onFollowsClick: (String, ProfileFollowsType) -> Unit,
-        val onGoToWallet: () -> Unit,
         val onNewPostClick: () -> Unit,
     )
 }

@@ -78,27 +78,12 @@ import net.primal.android.settings.tor.TorSettingsScreen
 import net.primal.android.settings.tor.TorSettingsViewModel
 import net.primal.android.settings.notifications.NotificationsSettingsScreen
 import net.primal.android.settings.notifications.NotificationsSettingsViewModel
-import net.primal.android.settings.wallet.domain.parseAsPrimalWalletNwc
-import net.primal.android.settings.wallet.nwc.primal.create.CreateNewWalletConnectionScreen
-import net.primal.android.settings.wallet.nwc.primal.create.CreateNewWalletConnectionViewModel
-import net.primal.android.settings.wallet.nwc.primal.link.LinkPrimalWalletScreen
-import net.primal.android.settings.wallet.nwc.primal.link.LinkPrimalWalletViewModel
-import net.primal.android.settings.wallet.nwc.scan.NwcQrCodeScannerScreen
-import net.primal.android.settings.wallet.nwc.scan.NwcQrCodeScannerViewModel
-import net.primal.android.settings.wallet.settings.WalletSettingsScreen
-import net.primal.android.settings.wallet.settings.WalletSettingsViewModel
 import net.primal.android.settings.zaps.ZapSettingsScreen
 import net.primal.android.settings.zaps.ZapSettingsViewModel
-import net.primal.android.wallet.restore.RestoreWalletScreen
-import net.primal.android.wallet.restore.RestoreWalletViewModel
 
 private fun NavController.navigateToAccountSettings() = navigate(route = "account_settings")
 private fun NavController.navigateToNetworkSettings() = navigate(route = "network")
 private fun NavController.navigateToTorSettings() = navigate(route = "tor_settings")
-fun NavController.navigateToWalletSettings() = navigate(route = "wallet_settings")
-private fun NavController.navigateToWalletScanNwcUrl() = navigate(route = "wallet_settings/scan_nwc_url")
-
-private fun NavController.navigateToCreateNewWalletConnection() = navigate(route = "wallet_settings/create_new_nwc")
 private fun NavController.navigateToAppearanceSettings() = navigate(route = "appearance_settings")
 private fun NavController.navigateToContentDisplaySettings() = navigate(route = "content_display")
 fun NavController.navigateToNotificationsSettings() = navigate(route = "notifications_settings")
@@ -132,16 +117,6 @@ private fun NavController.navigateToRemoteAppPermissions(clientPubKey: String) =
 private fun NavController.navigateToLocalAppPermissions(identifier: String) =
     navigate(route = "connected_apps/local/$identifier/permissions")
 
-fun NavController.navigateToWalletRestore() = navigate(route = "wallet_settings/restore")
-
-fun NavController.navigateToLinkPrimalWallet(
-    appName: String? = null,
-    appIcon: String? = null,
-    callback: String,
-) = navigate(
-    route = "wallet_settings/link_primal_wallet?appName=$appName&appIcon=$appIcon&callback=$callback",
-)
-
 @Suppress("LongMethod")
 fun NavGraphBuilder.settingsNavigation(route: String, navController: NavController) =
     navigation(
@@ -158,7 +133,6 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
                     PrimalSettingsSection.Accounts -> navController.navigateToLogin()
                     PrimalSettingsSection.Network -> navController.navigateToNetworkSettings()
                     PrimalSettingsSection.Tor -> navController.navigateToTorSettings()
-                    PrimalSettingsSection.Wallet -> navController.navigateToWalletSettings()
                     PrimalSettingsSection.Appearance -> navController.navigateToAppearanceSettings()
                     PrimalSettingsSection.ContentDisplay -> navController.navigateToContentDisplaySettings()
                     PrimalSettingsSection.Notifications -> navController.navigateToNotificationsSettings()
@@ -173,30 +147,6 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
         )
 
         account(route = "account_settings", navController = navController)
-        wallet(
-            route = "wallet_settings",
-            deepLinks = listOf(
-                navDeepLink {
-                    uriPattern = "nostr+walletconnect://.*"
-                },
-                navDeepLink {
-                    uriPattern = "nostrwalletconnect://.*"
-                },
-            ),
-            navController = navController,
-        )
-        walletRestore(route = "wallet_settings/restore", navController = navController)
-        linkPrimalWallet(
-            route = "wallet_settings/link_primal_wallet",
-            deepLinks = listOf(
-                navDeepLink {
-                    uriPattern = "nostrnwc://.*"
-                },
-            ),
-            navController = navController,
-        )
-        scanNwcUrl(route = "wallet_settings/scan_nwc_url", navController = navController)
-        createNewWalletConnection(route = "wallet_settings/create_new_nwc", navController = navController)
         network(route = "network", navController = navController)
         tor(route = "tor_settings", navController = navController)
         appearance(route = "appearance_settings", navController = navController)
@@ -365,7 +315,6 @@ private fun EmbeddedSettingsSection(
             noteCallbacks = noteCallbacksHandler(navController),
             onProfileClick = { profileId -> navController.navigateToProfile(profileId) },
             onClose = {},
-            onGoToWallet = { navController.navigateToWallet() },
             embedded = true,
         )
         PrimalSettingsSection.MediaUploads -> MediaUploadsSettingsScreen(
@@ -488,119 +437,6 @@ private fun NavGraphBuilder.tor(route: String, navController: NavController) =
         )
     }
 
-private fun NavGraphBuilder.wallet(
-    route: String,
-    deepLinks: List<NavDeepLink>,
-    navController: NavController,
-) = composable(
-    route = route,
-    deepLinks = deepLinks,
-    enterTransition = { primalSlideInHorizontallyFromEnd },
-    exitTransition = { primalScaleOut },
-    popEnterTransition = { primalScaleIn },
-    popExitTransition = { primalSlideOutHorizontallyToEnd },
-) { navBackEntry ->
-    val nwcUrl = LocalActivity.current?.intent?.data?.toString()
-    val viewModel = hiltViewModel<WalletSettingsViewModel, WalletSettingsViewModel.Factory> { factory ->
-        factory.create(nwcConnectionUrl = nwcUrl)
-    }
-    LockToOrientationPortrait()
-    WalletSettingsScreen(
-        viewModel = viewModel,
-        onClose = { navController.navigateUp() },
-        onEditProfileClick = { navController.navigateToProfileEditor() },
-        onScanNwcClick = { navController.navigateToWalletScanNwcUrl() },
-        onCreateNewWalletConnection = { navController.navigateToCreateNewWalletConnection() },
-        onRestoreWalletClick = { navController.navigateToWalletRestore() },
-        onBackupWalletClick = { walletId -> navController.navigateToWalletBackup(walletId) },
-    )
-}
-
-private fun NavGraphBuilder.walletRestore(route: String, navController: NavController) =
-    composable(
-        route = route,
-        enterTransition = { primalSlideInHorizontallyFromEnd },
-        exitTransition = { primalScaleOut },
-        popEnterTransition = { primalScaleIn },
-        popExitTransition = { primalSlideOutHorizontallyToEnd },
-    ) {
-        val viewModel = hiltViewModel<RestoreWalletViewModel>()
-        ApplyEdgeToEdge()
-        LockToOrientationPortrait()
-        RestoreWalletScreen(
-            viewModel = viewModel,
-            onClose = { navController.popBackStack() },
-        )
-    }
-
-private fun NavGraphBuilder.scanNwcUrl(route: String, navController: NavController) =
-    composable(
-        route = route,
-        enterTransition = { primalSlideInHorizontallyFromEnd },
-        exitTransition = { primalScaleOut },
-        popEnterTransition = { primalScaleIn },
-        popExitTransition = { primalSlideOutHorizontallyToEnd },
-    ) {
-        val viewModel = hiltViewModel<NwcQrCodeScannerViewModel>()
-        ApplyEdgeToEdge(isDarkTheme = false)
-        LockToOrientationPortrait()
-        NwcQrCodeScannerScreen(
-            viewModel = viewModel,
-            onClose = { navController.popBackStack() },
-        )
-    }
-
-private fun NavGraphBuilder.linkPrimalWallet(
-    route: String,
-    deepLinks: List<NavDeepLink>,
-    navController: NavController,
-) = composable(
-    route = route,
-    deepLinks = deepLinks,
-    enterTransition = { primalSlideInHorizontallyFromEnd },
-    exitTransition = { primalScaleOut },
-    popEnterTransition = { primalScaleIn },
-    popExitTransition = { primalSlideOutHorizontallyToEnd },
-) {
-    val activity = LocalActivity.current
-    fun dismissLinkPrimalWallet() {
-        if (!navController.popBackStack()) {
-            activity?.finishAfterTransition()
-        }
-    }
-
-    val nwcPrimalUrl = activity?.intent?.data?.toString()
-    if (nwcPrimalUrl == null) {
-        dismissLinkPrimalWallet()
-        return@composable
-    }
-
-    val viewModel = hiltViewModel<LinkPrimalWalletViewModel, LinkPrimalWalletViewModel.Factory> { factory ->
-        factory.create(nwcRequest = nwcPrimalUrl.parseAsPrimalWalletNwc())
-    }
-    LockToOrientationPortrait()
-    LinkPrimalWalletScreen(
-        viewModel = viewModel,
-        onDismiss = { dismissLinkPrimalWallet() },
-    )
-}
-
-private fun NavGraphBuilder.createNewWalletConnection(route: String, navController: NavController) =
-    composable(
-        route = route,
-        enterTransition = { primalSlideInHorizontallyFromEnd },
-        exitTransition = { primalScaleOut },
-        popEnterTransition = { primalScaleIn },
-        popExitTransition = { primalSlideOutHorizontallyToEnd },
-    ) {
-        val viewModel = hiltViewModel<CreateNewWalletConnectionViewModel>()
-        LockToOrientationPortrait()
-        CreateNewWalletConnectionScreen(
-            viewModel = viewModel,
-            onClose = { navController.popBackStack() },
-        )
-    }
-
 private fun NavGraphBuilder.notifications(route: String, navController: NavController) =
     composable(
         route = route,
@@ -677,7 +513,6 @@ private fun NavGraphBuilder.mutedAccounts(route: String, navController: NavContr
             noteCallbacks = noteCallbacksHandler(navController),
             onClose = { navController.navigateUp() },
             onProfileClick = { profileId -> navController.navigateToProfile(profileId) },
-            onGoToWallet = { navController.navigateToWallet() },
         )
     }
 

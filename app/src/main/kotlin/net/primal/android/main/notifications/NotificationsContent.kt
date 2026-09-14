@@ -60,7 +60,6 @@ import net.primal.android.notes.feed.model.asNeventString
 import net.primal.android.notes.feed.note.NoteContract
 import net.primal.android.notes.feed.note.NoteViewModel
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.notes.feed.zaps.UnableToZapBottomSheet
 import net.primal.android.notes.feed.zaps.ZapBottomSheet
 import net.primal.android.notifications.list.ui.NotificationListItem
 import net.primal.android.notifications.list.ui.NotificationUi
@@ -68,7 +67,6 @@ import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.Badges
 import net.primal.domain.links.CdnImage
 import net.primal.domain.notifications.NotificationGroup
-import net.primal.domain.utils.canZap
 
 @Suppress("LongParameterList")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +79,6 @@ internal fun NotificationsContent(
     onNotificationsSeen: (NotificationGroup) -> Unit,
     paddingValues: PaddingValues,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     shouldAnimateScrollToTop: MutableState<Boolean>,
 ) {
     val noteViewModel = hiltViewModel<NoteViewModel, NoteViewModel.Factory> { it.create() }
@@ -108,7 +105,6 @@ internal fun NotificationsContent(
         noteEventPublisher = noteViewModel::setEvent,
         paddingValues = paddingValues,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         shouldAnimateScrollToTop = shouldAnimateScrollToTop,
         onMarkAllRead = { onNotificationsSeen(currentGroup) },
     )
@@ -126,7 +122,6 @@ private fun NotificationPage(
     noteEventPublisher: (NoteContract.UiEvent) -> Unit,
     paddingValues: PaddingValues,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     shouldAnimateScrollToTop: MutableState<Boolean>,
     onMarkAllRead: () -> Unit,
 ) {
@@ -193,7 +188,6 @@ private fun NotificationPage(
         listState = listState,
         paddingValues = paddingValues,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         onMarkAllRead = onMarkAllRead,
         onPostLikeClick = {
             noteEventPublisher(
@@ -246,7 +240,6 @@ private fun NotificationsList(
     seenPagingItems: LazyPagingItems<NotificationUi>,
     paddingValues: PaddingValues,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     onPostLikeClick: (FeedPostUi) -> Unit,
     onRepostClick: (FeedPostUi) -> Unit,
     onDeleteRepostClick: (FeedPostUi) -> Unit,
@@ -269,15 +262,6 @@ private fun NotificationsList(
         }
     }
 
-    var showCantZapWarning by remember { mutableStateOf(false) }
-    if (showCantZapWarning) {
-        UnableToZapBottomSheet(
-            zappingState = zappingState,
-            onDismissRequest = { showCantZapWarning = false },
-            onGoToWallet = onGoToWallet,
-        )
-    }
-
     var zapOptionsPostConfirmation by remember { mutableStateOf<FeedPostUi?>(null) }
     if (zapOptionsPostConfirmation != null) {
         zapOptionsPostConfirmation?.let { post ->
@@ -286,11 +270,7 @@ private fun NotificationsList(
                 receiverName = post.authorName,
                 zappingState = zappingState,
                 onZap = { zapAmount, zapDescription ->
-                    if (zappingState.canZap(zapAmount)) {
-                        onZapClick(post, zapAmount.toULong(), zapDescription)
-                    } else {
-                        showCantZapWarning = true
-                    }
+                    onZapClick(post, zapAmount.toULong(), zapDescription)
                 },
             )
         }
@@ -345,20 +325,8 @@ private fun NotificationsList(
                 isSeen = false,
                 onReplyClick = noteCallbacks.onNoteClick,
                 onPostLikeClick = onPostLikeClick,
-                onDefaultZapClick = { postData ->
-                    if (zappingState.canZap()) {
-                        onZapClick(postData, null, null)
-                    } else {
-                        showCantZapWarning = true
-                    }
-                },
-                onZapOptionsClick = { postData ->
-                    if (zappingState.walletConnected) {
-                        zapOptionsPostConfirmation = postData
-                    } else {
-                        showCantZapWarning = true
-                    }
-                },
+                onDefaultZapClick = { postData -> onZapClick(postData, null, null) },
+                onZapOptionsClick = { postData -> zapOptionsPostConfirmation = postData },
                 onRepostClick = { postData -> repostQuotePostConfirmation = postData },
                 onBookmarkClick = onBookmarkClick,
                 noteCallbacks = noteCallbacks,
@@ -385,20 +353,8 @@ private fun NotificationsList(
                         noteCallbacks = noteCallbacks,
                         onReplyClick = noteCallbacks.onNoteReplyClick,
                         onPostLikeClick = onPostLikeClick,
-                        onDefaultZapClick = { postData ->
-                            if (zappingState.canZap()) {
-                                onZapClick(postData, null, null)
-                            } else {
-                                showCantZapWarning = true
-                            }
-                        },
-                        onZapOptionsClick = { postData ->
-                            if (zappingState.walletConnected) {
-                                zapOptionsPostConfirmation = postData
-                            } else {
-                                showCantZapWarning = true
-                            }
-                        },
+                        onDefaultZapClick = { postData -> onZapClick(postData, null, null) },
+                        onZapOptionsClick = { postData -> zapOptionsPostConfirmation = postData },
                         onRepostClick = { postData -> repostQuotePostConfirmation = postData },
                         onBookmarkClick = onBookmarkClick,
                     )

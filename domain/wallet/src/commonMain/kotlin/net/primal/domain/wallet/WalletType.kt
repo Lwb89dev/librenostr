@@ -1,7 +1,0 @@
-package net.primal.domain.wallet
-
-enum class WalletType {
-    PRIMAL,
-    NWC,
-    SPARK,
-}

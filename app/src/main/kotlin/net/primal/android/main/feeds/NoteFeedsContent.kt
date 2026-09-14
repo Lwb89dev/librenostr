@@ -47,7 +47,6 @@ internal fun NoteFeedsContent(
     scrollToFeed: MutableState<FeedUi?> = remember { mutableStateOf(null) },
     snackbarHostState: SnackbarHostState,
     paddingValues: PaddingValues,
-    onGoToWallet: () -> Unit,
     onNewNotesStateChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -100,7 +99,6 @@ internal fun NoteFeedsContent(
             showTopZaps = true,
             bigPillStreams = if (state.showLiveStreams) state.streams else emptyList(),
             showStreamsInNewPill = state.showLiveStreams,
-            onGoToWallet = onGoToWallet,
             contentPadding = paddingValues,
             shouldAnimateScrollToTop = shouldAnimateScrollToTop.value,
             onNewNotesStateChanged = onNewNotesStateChanged,

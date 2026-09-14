@@ -94,7 +94,7 @@ private fun AndroidConnectScreen(
             appDescription = state.appPackageName,
             accounts = state.accounts,
             connecting = state.connecting,
-            onConnectClick = { account, trustLevel, _ ->
+            onConnectClick = { account, trustLevel ->
                 eventPublisher(
                     AndroidConnectContract.UiEvent.ConnectUser(
                         userId = account.pubkey,

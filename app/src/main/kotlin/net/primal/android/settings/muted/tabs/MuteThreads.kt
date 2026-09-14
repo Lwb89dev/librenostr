@@ -10,13 +10,11 @@ import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 fun MuteThreads(
     defaultMuteThreadsFeedSpec: String,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     paddingValues: PaddingValues = PaddingValues(all = 0.dp),
 ) {
     NoteFeedList(
         feedSpec = defaultMuteThreadsFeedSpec,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         contentPadding = paddingValues,
         pollingEnabled = false,
         allowMutedThreads = true,

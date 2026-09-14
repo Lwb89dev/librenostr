@@ -48,7 +48,7 @@ import net.primal.android.user.domain.UserAccount
 import net.primal.android.user.handler.ProfileFollowsHandler
 import net.primal.android.user.handler.ProfileFollowsHandler.Companion.foldActions
 import net.primal.android.user.repository.UserRepository
-import net.primal.android.wallet.zaps.ZapHandler
+import net.primal.android.zaps.ZapHandler
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
@@ -279,6 +279,10 @@ class LiveStreamViewModel @AssistedInject constructor(
                     }
 
                     is UiEvent.ZapStream -> zapStream(zapAction = it)
+                    is UiEvent.ZapProfile -> zapProfile(
+                        profileId = it.profileId,
+                        profileLnUrlDecoded = it.profileLnUrlDecoded,
+                    )
                     is UiEvent.OnCommentValueChanged -> setState { copy(comment = it.value) }
                     is UiEvent.SendMessage -> sendMessage(text = it.text)
                     is UiEvent.MuteAction -> mute(it.profileId)
@@ -666,6 +670,36 @@ class LiveStreamViewModel @AssistedInject constructor(
             if (result is ZapResult.Failure) {
                 zaps = zaps?.filterNot { it.uniqueId == tempZapId }
                 updateChatItems()
+                when (result.error) {
+                    is ZapError.InvalidZap, is ZapError.FailedToFetchZapPayRequest,
+                    is ZapError.FailedToFetchZapInvoice,
+                    -> setState { copy(error = UiError.InvalidZapRequest()) }
+
+                    is ZapError.FailedToPayZap, ZapError.FailedToPublishEvent, ZapError.FailedToSignEvent,
+                    is ZapError.Timeout,
+                    -> {
+                        setState { copy(error = UiError.FailedToPublishZapEvent()) }
+                    }
+
+                    is ZapError.Unknown -> {
+                        setState { copy(error = UiError.GenericError()) }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun zapProfile(profileId: String, profileLnUrlDecoded: String) {
+        viewModelScope.launch {
+            val result = zapHandler.zap(
+                userId = activeAccountStore.activeUserId(),
+                target = ZapTarget.Profile(
+                    recipientUserId = profileId,
+                    recipientLnUrlDecoded = profileLnUrlDecoded,
+                ),
+            )
+
+            if (result is ZapResult.Failure) {
                 when (result.error) {
                     is ZapError.InvalidZap, is ZapError.FailedToFetchZapPayRequest,
                     is ZapError.FailedToFetchZapInvoice,

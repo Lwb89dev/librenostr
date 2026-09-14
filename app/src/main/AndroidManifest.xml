@@ -64,10 +64,6 @@
             android:name=".core.receiver.EndSessionReceiver"
             android:exported="false" />
 
-        <receiver
-            android:name=".core.receiver.StopNwcServiceReceiver"
-            android:exported="false" />
-
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|layoutDirection|screenLayout|smallestScreenSize"
@@ -258,16 +254,6 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Run a foreground service to keep remote signer operational." />
-        </service>
-
-        <service
-            android:name=".core.service.PrimalNwcService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Run a foreground service for NWC wallet connections." />
         </service>
 
         <provider

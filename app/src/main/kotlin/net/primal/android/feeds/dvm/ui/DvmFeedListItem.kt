@@ -54,11 +54,9 @@ import net.primal.android.core.errors.UiError
 import net.primal.android.feeds.dvm.DvmFeedListItemContract
 import net.primal.android.feeds.dvm.DvmFeedListItemViewModel
 import net.primal.android.notes.feed.note.ui.SingleEventStat
-import net.primal.android.notes.feed.zaps.UnableToZapBottomSheet
 import net.primal.android.notes.feed.zaps.ZapBottomSheet
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.CdnImage
-import net.primal.domain.utils.canZap
 
 private val PaidBackground = Color(0xFFFC6337)
 
@@ -73,7 +71,6 @@ fun DvmFeedListItem(
     clipShape: Shape? = AppTheme.shapes.small,
     onFeedClick: ((dvmFeed: DvmFeedUi) -> Unit)? = null,
     onProfileClick: ((profileId: String) -> Unit)? = null,
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     val viewModel = hiltViewModel<DvmFeedListItemViewModel>()
@@ -95,7 +92,6 @@ fun DvmFeedListItem(
         showFollowsActionsAvatarRow = showFollowsActionsAvatarRow,
         dvmFeed = data,
         clipShape = clipShape,
-        onGoToWallet = onGoToWallet,
     )
 }
 
@@ -105,7 +101,6 @@ private fun DvmFeedListItem(
     dvmFeed: DvmFeedUi,
     onFeedClick: ((dvmFeed: DvmFeedUi) -> Unit)? = null,
     onProfileClick: ((profileId: String) -> Unit)? = null,
-    onGoToWallet: (() -> Unit)? = null,
     eventPublisher: (DvmFeedListItemContract.UiEvent) -> Unit,
     listItemContainerColor: Color = AppTheme.extraColorScheme.surfaceVariantAlt2,
     clipShape: Shape? = AppTheme.shapes.small,
@@ -114,15 +109,6 @@ private fun DvmFeedListItem(
     showFollowsActionsAvatarRow: Boolean = false,
 ) {
     val zappingState = LocalZappingState.current
-    var showCantZapWarning by remember { mutableStateOf(false) }
-    if (showCantZapWarning) {
-        UnableToZapBottomSheet(
-            zappingState = zappingState,
-            onDismissRequest = { showCantZapWarning = false },
-            onGoToWallet = { onGoToWallet?.invoke() },
-        )
-    }
-
     var showZapOptions by remember { mutableStateOf(false) }
     if (showZapOptions) {
         ZapBottomSheet(
@@ -130,17 +116,13 @@ private fun DvmFeedListItem(
             receiverName = dvmFeed.data.title,
             zappingState = zappingState,
             onZap = { zapAmount, zapDescription ->
-                if (zappingState.canZap(zapAmount)) {
-                    eventPublisher(
-                        DvmFeedListItemContract.UiEvent.OnZapClick(
-                            dvmFeed = dvmFeed,
-                            zapDescription = zapDescription,
-                            zapAmount = zapAmount.toULong(),
-                        ),
-                    )
-                } else {
-                    showCantZapWarning = true
-                }
+                eventPublisher(
+                    DvmFeedListItemContract.UiEvent.OnZapClick(
+                        dvmFeed = dvmFeed,
+                        zapDescription = zapDescription,
+                        zapAmount = zapAmount.toULong(),
+                    ),
+                )
             },
         )
     }
@@ -230,13 +212,7 @@ private fun DvmFeedListItem(
                                     DvmFeedListItemContract.UiEvent.OnLikeClick(dvmFeed = dvmFeed),
                                 )
                             },
-                            onZapClick = {
-                                if (zappingState.walletConnected) {
-                                    showZapOptions = true
-                                } else {
-                                    showCantZapWarning = true
-                                }
-                            },
+                            onZapClick = { showZapOptions = true },
                         )
                         if (showFollowsActionsAvatarRow) {
                             val profileAvatarSize = 28.dp

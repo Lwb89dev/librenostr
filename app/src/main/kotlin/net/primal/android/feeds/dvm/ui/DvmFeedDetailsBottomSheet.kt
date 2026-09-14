@@ -40,7 +40,6 @@ fun DvmFeedDetailsBottomSheet(
     addToUserFeeds: (DvmFeedUi) -> Unit,
     removeFromUserFeeds: (DvmFeedUi) -> Unit,
     noteCallbacks: NoteCallbacks = NoteCallbacks(),
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -98,7 +97,6 @@ fun DvmFeedDetailsBottomSheet(
                 modifier = Modifier.padding(paddingValues),
                 dvmFeed = dvmFeed,
                 noteCallbacks = noteCallbacks,
-                onGoToWallet = onGoToWallet,
                 extended = true,
                 showFollowsActionsAvatarRow = true,
                 clipShape = null,

@@ -16,7 +16,6 @@ import net.primal.domain.nostr.ReactionType
 import net.primal.domain.nostr.ReportType
 import net.primal.domain.streams.StreamContentModerationMode
 import net.primal.domain.streams.StreamStatus
-import net.primal.domain.wallet.DraftTx
 
 interface LiveStreamContract {
     data class UiState(
@@ -100,6 +99,7 @@ interface LiveStreamContract {
         data object DismissConfirmFollowUnfollowAlertDialog : UiEvent()
         data class ApproveFollowsActions(val actions: List<ProfileFollowsHandler.Action>) : UiEvent()
         data class ZapStream(val zapAmount: ULong? = null, val zapDescription: String? = null) : UiEvent()
+        data class ZapProfile(val profileId: String, val profileLnUrlDecoded: String) : UiEvent()
         data class ChangeContentModeration(val moderationMode: StreamContentModerationMode) : UiEvent()
         data class ChangeStreamMuted(val isMuted: Boolean) : UiEvent()
         data class OnCommentValueChanged(val value: TextFieldValue) : UiEvent()
@@ -131,7 +131,6 @@ interface LiveStreamContract {
 
     data class ScreenCallbacks(
         val onClose: () -> Unit,
-        val onGoToWallet: () -> Unit,
         val onEditProfileClick: () -> Unit,
         val onMessageClick: (profileId: String) -> Unit,
         val onDrawerQrCodeClick: (profileId: String) -> Unit,
@@ -139,7 +138,6 @@ interface LiveStreamContract {
         val onProfileClick: (profileId: String) -> Unit,
         val onHashtagClick: (hashtag: String) -> Unit,
         val onEventReactionsClick: (eventId: String, initialTab: ReactionType, articleATag: String?) -> Unit,
-        val onSendWalletTx: (DraftTx) -> Unit,
         val onNostrUriClick: (uri: String) -> Unit,
     )
 }

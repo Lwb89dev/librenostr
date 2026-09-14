@@ -69,6 +69,7 @@ interface ArticleDao {
     )
     fun observeArticleByEventId(eventId: String, authorId: String): Flow<Article?>
 
+    @Transaction
     @Query("SELECT * FROM ArticleData WHERE aTag = :articleATag")
     suspend fun findArticleByATag(articleATag: String): Article?
 

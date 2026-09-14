@@ -29,6 +29,11 @@ class Nip05VerificationServiceImpl(
         val VERIFIED_TTL = 7.days
         val FAILED_TTL = 30.minutes
         val ERROR_TTL = 5.minutes
+
+        // The durable copy lives in Nip05VerificationDataDao — this is purely a hot-path shortcut,
+        // so it's safe to cap and evict; a miss just falls back to the DB tier in getStatus/etc.
+        private const val MAX_CACHE_ENTRIES = 2_000
+
         private val VALID_DOMAIN = Regex(
             "^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$",
         )
@@ -266,11 +271,18 @@ class Nip05VerificationServiceImpl(
     }
 
     private fun updateCache(pubkey: String, entry: CacheEntry) {
-        statusCache.update { it + (pubkey to entry) }
+        statusCache.update { (it + (pubkey to entry)).trimToMaxSize() }
     }
 
     private fun updateCacheBatch(entries: Map<String, CacheEntry>) {
-        statusCache.update { it + entries }
+        statusCache.update { (it + entries).trimToMaxSize() }
+    }
+
+    /** Evicts the oldest entries (by insertion order) once the cache exceeds its cap. */
+    private fun Map<String, CacheEntry>.trimToMaxSize(): Map<String, CacheEntry> {
+        val overflow = size - MAX_CACHE_ENTRIES
+        if (overflow <= 0) return this
+        return entries.drop(overflow).associate { it.key to it.value }
     }
 
     private fun isExpired(entry: CacheEntry): Boolean {

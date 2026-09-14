@@ -62,11 +62,28 @@ internal class NotificationsRemoteMediator(
     }
 
     override suspend fun initialize(): InitializeAction {
-        // Always refresh once when the screen is opened. Existing caches can contain only the
-        // newest notification (especially after migrating away from Primal's cache server), and
-        // skipping here leaves the user with an apparently non-scrollable one-item list.
-        return InitializeAction.LAUNCH_INITIAL_REFRESH
+        return if (shouldResetLocalCache()) {
+            InitializeAction.LAUNCH_INITIAL_REFRESH
+        } else {
+            InitializeAction.SKIP_INITIAL_REFRESH
+        }
     }
+
+    /**
+     * A refresh used to run unconditionally on every open — this group's local cache can contain
+     * only its single newest notification (especially right after migrating away from Primal's
+     * cache server), and skipping the refresh in that case left the user with an apparently
+     * non-scrollable one-item list. That is a real risk worth guarding against, but staleness
+     * was never actually the concern its own comment described, so a cache with a healthy amount
+     * of history did not need paying a full relay round trip on every single visit — the exact
+     * cost this was adding to "open notifications" being slow. Gating on the group's cached count
+     * instead keeps the original safety net for a thin cache while letting a well-populated one
+     * (the common case after this tab has been opened even a few times) show instantly.
+     */
+    private suspend fun shouldResetLocalCache(): Boolean =
+        withContext(dispatcherProvider.io()) {
+            database.notifications().countByGroup(ownerId = userId, groupKey = group.name) < MIN_CACHED_NOTIFICATIONS
+        }
 
     override suspend fun load(loadType: LoadType, state: PagingState<Int, Notification>): MediatorResult {
         relayEventQuerier?.let { return loadFromRelays(loadType = loadType, state = state, querier = it) }
@@ -244,5 +261,8 @@ internal class NotificationsRemoteMediator(
         const val RELAY_PAGE_SIZE = 200
         const val COLD_START_RETRIES = 3
         const val COLD_START_RETRY_DELAY_MS = 500L
+
+        /** Comfortably more than one item, so a thin post-migration cache still forces a refresh. */
+        const val MIN_CACHED_NOTIFICATIONS = 20
     }
 }

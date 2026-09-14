@@ -68,7 +68,6 @@ import net.primal.domain.links.EventUriType
 fun NoteFeedList(
     feedSpec: String,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     allowMutedThreads: Boolean = false,
     showTopZaps: Boolean = false,
@@ -130,7 +129,6 @@ fun NoteFeedList(
     NoteFeedList(
         state = uiState.value,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         useMediaCards = feedSpec.isImageSpec() || feedSpec.isVideoSpec(),
         bigPillStreams = bigPillStreams,
         showTopZaps = showTopZaps,
@@ -152,7 +150,6 @@ fun NoteFeedList(
 private fun NoteFeedList(
     state: NoteFeedContract.UiState,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     showCentralLoadingSpinner: Boolean = false,
@@ -205,7 +202,6 @@ private fun NoteFeedList(
             showTopZaps = showTopZaps,
             showCentralLoadingSpinner = showCentralLoadingSpinner,
             noteCallbacks = noteCallbacks,
-            onGoToWallet = onGoToWallet,
             paddingValues = contentPadding,
             onScrolledToTop = { eventPublisher(UiEvent.FeedScrolledToTop) },
             onUiError = onUiError,
@@ -271,7 +267,6 @@ fun NoteFeedList(
     streamPills: List<StreamPillUi>,
     showPaywall: Boolean,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     showCentralLoadingSpinner: Boolean = false,
@@ -346,7 +341,6 @@ fun NoteFeedList(
             showPaywall = showPaywall,
             showCentralLoadingSpinner = showCentralLoadingSpinner,
             noteCallbacks = noteCallbacks,
-            onGoToWallet = onGoToWallet,
             useMediaCards = useMediaCards,
             showTopZaps = showTopZaps,
             noContentText = noContentText,

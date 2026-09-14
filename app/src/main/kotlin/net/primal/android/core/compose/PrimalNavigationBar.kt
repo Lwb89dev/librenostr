@@ -44,8 +44,8 @@ import net.primal.android.theme.LibreNostrTokens
 import net.primal.android.user.domain.Badges
 
 // Callers that need to reserve space for the dock (e.g. PrimalMainScaffold's height-stability
-// check, WalletDashboardContent's footer spacer) need this to match what's actually composed
-// below: 8dp top padding + the dock's own height. Keep in sync if either changes.
+// check) need this to match what's actually composed below: 8dp top padding + the dock's own
+// height. Keep in sync if either changes.
 val NavigationBarFullHeightDp = 8.dp + LibreNostrTokens.DEFAULT_DOCK_HEIGHT_DP.dp
 
 /** A detached, accent-aware navigation dock that preserves the existing navigation callbacks. */
@@ -192,7 +192,6 @@ private fun DockDestinationItem(
 enum class PrimalTopLevelDestination {
     Feeds,
     Reads,
-    Wallet,
     Messages,
     Alerts,
     Explore,
@@ -202,7 +201,7 @@ enum class PrimalTopLevelDestination {
 private fun PrimalTopLevelDestination.imageVector(): ImageVector =
     when (this) {
         PrimalTopLevelDestination.Feeds, PrimalTopLevelDestination.Reads -> LibreNavigationIcons.Home
-        PrimalTopLevelDestination.Wallet, PrimalTopLevelDestination.Settings -> LibreNavigationIcons.Settings
+        PrimalTopLevelDestination.Settings -> LibreNavigationIcons.Settings
         PrimalTopLevelDestination.Alerts -> LibreNavigationIcons.Notifications
         PrimalTopLevelDestination.Messages -> LibreNavigationIcons.Envelope
         PrimalTopLevelDestination.Explore -> LibreNavigationIcons.Algorithm
@@ -213,7 +212,6 @@ private fun PrimalTopLevelDestination.label(): String =
     when (this) {
         PrimalTopLevelDestination.Feeds -> stringResource(id = R.string.primary_destination_feed_label)
         PrimalTopLevelDestination.Reads -> stringResource(id = R.string.primary_destination_reads_label)
-        PrimalTopLevelDestination.Wallet -> stringResource(id = R.string.primary_destination_wallet_label)
         PrimalTopLevelDestination.Alerts -> stringResource(id = R.string.primary_destination_notifications_label)
         PrimalTopLevelDestination.Messages -> stringResource(id = R.string.primary_destination_messages_label)
         PrimalTopLevelDestination.Explore -> stringResource(id = R.string.primary_destination_explore_label)

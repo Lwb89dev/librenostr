@@ -32,7 +32,6 @@ import net.primal.domain.feeds.buildSpec
 fun ExploreFeeds(
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(all = 0.dp),
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     val viewModel: ExploreFeedsViewModel = hiltViewModel<ExploreFeedsViewModel>()
@@ -43,7 +42,6 @@ fun ExploreFeeds(
         state = uiState.value,
         paddingValues = paddingValues,
         eventPublisher = viewModel::setEvent,
-        onGoToWallet = onGoToWallet,
         onUiError = onUiError,
     )
 }
@@ -54,7 +52,6 @@ fun ExploreFeeds(
     state: ExploreFeedsContract.UiState,
     paddingValues: PaddingValues = PaddingValues(all = 0.dp),
     eventPublisher: (ExploreFeedsContract.UiEvent) -> Unit,
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     var dvmFeedToShow by remember { mutableStateOf<DvmFeedUi?>(null) }
@@ -75,7 +72,6 @@ fun ExploreFeeds(
             addedToFeed = addedToFeed,
             addToUserFeeds = { eventPublisher(ExploreFeedsContract.UiEvent.AddToUserFeeds(it)) },
             removeFromUserFeeds = { eventPublisher(ExploreFeedsContract.UiEvent.RemoveFromUserFeeds(it)) },
-            onGoToWallet = onGoToWallet,
             onUiError = onUiError,
         )
     }
@@ -112,7 +108,6 @@ fun ExploreFeeds(
                     listItemContainerColor = AppTheme.extraColorScheme.surfaceVariantAlt3,
                     onFeedClick = { dvmFeedToShow = it },
                     showFollowsActionsAvatarRow = true,
-                    onGoToWallet = onGoToWallet,
                     onUiError = onUiError,
                 )
             }

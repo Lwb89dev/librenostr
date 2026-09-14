@@ -113,8 +113,6 @@ import net.primal.android.main.reads.ArticleFeedTopAppBar
 import net.primal.android.main.reads.ReadsContent
 import net.primal.android.main.reads.ReadsScreenContract
 import net.primal.android.main.reads.ReadsViewModel
-import net.primal.android.main.wallet.WalletDashboardContent
-import net.primal.android.main.wallet.WalletDashboardTopAppBar
 import net.primal.android.navigation.CURRENT_MAIN_TAB_KEY
 import net.primal.android.navigation.accountSwitcherCallbacksHandler
 import net.primal.android.navigation.primalSlideInHorizontallyFromEnd
@@ -133,11 +131,10 @@ import net.primal.android.navigation.navigateToProfileQrCodeViewer
 import net.primal.android.navigation.navigateToSearch
 import net.primal.android.navigation.navigateToSettings
 import net.primal.android.navigation.noteCallbacksHandler
-import net.primal.android.wallet.zaps.AndroidLightningWallet
+import net.primal.android.zaps.AndroidLightningWallet
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.notifications.list.ui.NotificationUi
 import net.primal.android.stream.player.LocalStreamState
-import net.primal.android.wallet.picker.WalletPickerOverlayContent
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.buildAdvancedSearchNotesFeedSpec
 import net.primal.domain.feeds.buildAdvancedSearchReadsFeedSpec
@@ -225,7 +222,7 @@ fun MainScreen(
     }
 
     val onTabChanged: (PrimalTopLevelDestination) -> Unit = { destination ->
-        if (destination != PrimalTopLevelDestination.Wallet && destination != activeTab) {
+        if (destination != activeTab) {
             activeTab = destination
         }
     }
@@ -279,7 +276,6 @@ private fun MainScreenTopAppBar(
     onAlgorithmMenuClick: (() -> Unit)? = null,
     onFeedPickerRequest: () -> Unit,
     onReadPickerRequest: () -> Unit,
-    onWalletPickerRequest: () -> Unit,
     titleOverride: String? = null,
     subtitleOverride: String? = null,
     chevronExpanded: Boolean = false,
@@ -380,16 +376,6 @@ private fun MainScreenTopAppBar(
         }
 
         PrimalTopLevelDestination.Settings -> {}
-
-        PrimalTopLevelDestination.Wallet -> WalletDashboardTopAppBar(
-            scrollBehavior = scrollBehavior,
-            onAvatarClick = onAvatarClick,
-            onAvatarSwipeDown = onAvatarSwipeDown,
-            onWalletPickerRequest = onWalletPickerRequest,
-            titleOverride = titleOverride,
-            subtitleOverride = subtitleOverride,
-            chevronExpanded = chevronExpanded,
-        )
     }
 }
 
@@ -403,7 +389,6 @@ private fun ScaffoldTopAppBar(
     accountDrawerVisible: Boolean,
     feedPickerVisible: Boolean,
     readPickerVisible: Boolean,
-    walletPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
     sharedState: MainScreenSharedState,
     toggleOverlay: (ActiveOverlay) -> Unit,
@@ -441,12 +426,10 @@ private fun ScaffoldTopAppBar(
         onAlgorithmMenuClick = onAlgorithmMenuClick,
         onFeedPickerRequest = { toggleOverlay(ActiveOverlay.FeedPicker) },
         onReadPickerRequest = { toggleOverlay(ActiveOverlay.ReadPicker) },
-        onWalletPickerRequest = { toggleOverlay(ActiveOverlay.WalletPicker) },
         titleOverride = drawerTitle,
         subtitleOverride = drawerSubtitle,
         chevronExpanded = feedPickerVisible ||
             readPickerVisible ||
-            walletPickerVisible ||
             exploreSectionPickerVisible,
         avatarCdnImage = mainState.activeAccountAvatarCdnImage,
         avatarBlossoms = mainState.activeAccountBlossoms,
@@ -508,7 +491,6 @@ private fun MainScreenContent(
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
     onHomeNewNotesChanged: (Boolean) -> Unit,
 ) {
-    val onGoToWallet = {}
     Box {
         // Every other tab pair here switches instantly (existing behavior, untouched) — Home and
         // Notifications are the one pair reachable from the bottom bar with no navigation-graph
@@ -533,7 +515,6 @@ private fun MainScreenContent(
                         scrollToFeed = sharedState.homeScrollToFeed,
                         snackbarHostState = sharedState.snackbarHostState,
                         paddingValues = paddingValues,
-                        onGoToWallet = onGoToWallet,
                         onNewNotesStateChanged = onHomeNewNotesChanged,
                     )
 
@@ -562,7 +543,6 @@ private fun MainScreenContent(
                                         onTabChanged(PrimalTopLevelDestination.Feeds)
                                     },
                                     onDismiss = { onTabChanged(PrimalTopLevelDestination.Feeds) },
-                                    onGoToWallet = onGoToWallet,
                                 )
                             }
                         }
@@ -578,20 +558,10 @@ private fun MainScreenContent(
                         onNotificationsSeen = onNotificationsSeen,
                         paddingValues = paddingValues,
                         noteCallbacks = noteCallbacks,
-                        onGoToWallet = onGoToWallet,
                         shouldAnimateScrollToTop = sharedState.notificationsShouldAnimateScrollToTop,
                     )
 
                     PrimalTopLevelDestination.Settings -> Unit
-
-                    PrimalTopLevelDestination.Wallet -> WalletDashboardContent(
-                        currencyMode = sharedState.walletCurrencyMode.value,
-                        onCurrencyModeToggle = { sharedState.walletCurrencyMode.value = it },
-                        onScrolledToTopChanged = { sharedState.walletIsScrolledToTop.value = it },
-                        shouldAnimateScrollToTop = sharedState.walletShouldAnimateScrollToTop,
-                        paddingValues = paddingValues,
-                        navController = navController,
-                    )
                 }
             }
         }
@@ -633,7 +603,6 @@ private fun MainScreenScaffold(
     var homeHasNewNotes by rememberSaveable { mutableStateOf(false) }
     val feedPickerVisible = activeOverlay == ActiveOverlay.FeedPicker
     val readPickerVisible = activeOverlay == ActiveOverlay.ReadPicker
-    val walletPickerVisible = activeOverlay == ActiveOverlay.WalletPicker
     val exploreSectionPickerVisible = activeOverlay == ActiveOverlay.ExploreSectionPicker
     val accountDrawerVisible = activeOverlay == ActiveOverlay.AccountDrawer
     val exploreActiveSection = ExploreSection.entries
@@ -731,7 +700,6 @@ private fun MainScreenScaffold(
                 accountDrawerVisible = accountDrawerVisible,
                 feedPickerVisible = feedPickerVisible,
                 readPickerVisible = readPickerVisible,
-                walletPickerVisible = walletPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
                 sharedState = sharedState,
                 toggleOverlay = ::toggleOverlay,
@@ -772,7 +740,6 @@ private fun MainScreenScaffold(
                 accountDrawerVisible = accountDrawerVisible,
                 feedPickerVisible = feedPickerVisible,
                 readPickerVisible = readPickerVisible,
-                walletPickerVisible = walletPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
                 algorithmDrawerVisible = algorithmDrawerVisible,
                 longReadVisible = longReadVisible,
@@ -888,7 +855,6 @@ private fun MainScreenOverlays(
     accountDrawerVisible: Boolean,
     feedPickerVisible: Boolean,
     readPickerVisible: Boolean,
-    walletPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
     algorithmDrawerVisible: Boolean,
     longReadVisible: Boolean,
@@ -930,7 +896,6 @@ private fun MainScreenOverlays(
                     sharedState.homeScrollToFeed.value = feed
                 },
                 onDismiss = onDismissOverlay,
-                onGoToWallet = {},
                 onEditAdvancedSearchFeedClick = { feedSpec ->
                     onDismissOverlay()
                     navController.navigateToAdvancedSearch(editingFeedSpec = feedSpec)
@@ -959,15 +924,6 @@ private fun MainScreenOverlays(
                 },
             )
         }
-    }
-
-    PrimalOverlay(
-        visible = walletPickerVisible,
-        onDismiss = onDismissOverlay,
-    ) {
-        WalletPickerOverlayContent(
-            onDismiss = onDismissOverlay,
-        )
     }
 
     // Notification filters were intentionally removed: the ALL stream is always visible.
@@ -1053,7 +1009,6 @@ private fun AlgorithmPickerDrawer(
                             feedSpecKind = FeedSpecKind.Notes,
                             onFeedClick = onFeedSelected,
                             onDismiss = onDismiss,
-                            onGoToWallet = {},
                             onEditAdvancedSearchFeedClick = onEditAdvancedSearch,
                         )
                     }
@@ -1144,7 +1099,6 @@ private fun rememberPerTabTopAppBarState(
     val readsTopAppBarState = rememberTopAppBarState()
     val exploreTopAppBarState = rememberTopAppBarState()
     val notificationsTopAppBarState = rememberTopAppBarState()
-    val walletTopAppBarState = rememberTopAppBarState()
 
     return when (activeTab) {
         PrimalTopLevelDestination.Feeds -> homeTopAppBarState
@@ -1152,7 +1106,6 @@ private fun rememberPerTabTopAppBarState(
         PrimalTopLevelDestination.Explore -> exploreTopAppBarState
         PrimalTopLevelDestination.Messages -> homeTopAppBarState
         PrimalTopLevelDestination.Alerts -> notificationsTopAppBarState
-        PrimalTopLevelDestination.Wallet -> walletTopAppBarState
         PrimalTopLevelDestination.Settings -> homeTopAppBarState
     }
 }
@@ -1165,7 +1118,6 @@ private fun handleActiveDestinationClick(
     val target = when (activeTab) {
         PrimalTopLevelDestination.Feeds -> sharedState.homeShouldAnimateScrollToTop
         PrimalTopLevelDestination.Reads -> sharedState.readsShouldAnimateScrollToTop
-        PrimalTopLevelDestination.Wallet -> sharedState.walletShouldAnimateScrollToTop
         PrimalTopLevelDestination.Alerts -> sharedState.notificationsShouldAnimateScrollToTop
         PrimalTopLevelDestination.Messages -> null
         else -> null
@@ -1183,6 +1135,5 @@ private enum class ActiveOverlay {
     AccountDrawer,
     FeedPicker,
     ReadPicker,
-    WalletPicker,
     ExploreSectionPicker,
 }

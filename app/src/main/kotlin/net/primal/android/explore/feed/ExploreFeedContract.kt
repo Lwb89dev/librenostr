@@ -40,7 +40,6 @@ interface ExploreFeedContract {
 
     data class ScreenCallbacks(
         val onClose: () -> Unit,
-        val onGoToWallet: () -> Unit,
         val onFeedEditCompleted: () -> Unit = {},
     )
 }

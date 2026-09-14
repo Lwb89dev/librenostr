@@ -95,7 +95,6 @@ import net.primal.android.notes.feed.note.ui.ThreadNoteStatsRow
 import net.primal.android.notes.feed.note.ui.attachment.PlayButton
 import net.primal.android.notes.feed.note.ui.events.MediaClickEvent
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.notes.feed.zaps.UnableToZapBottomSheet
 import net.primal.android.notes.feed.zaps.ZapBottomSheet
 import net.primal.android.theme.AppTheme
 import net.primal.android.thread.articles.ArticleContract
@@ -117,7 +116,6 @@ import net.primal.domain.nostr.Nip19TLV.toNeventString
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.ReactionType
 import net.primal.domain.nostr.ReportType
-import net.primal.domain.utils.canZap
 
 @Composable
 fun ArticleDetailsScreen(
@@ -203,15 +201,6 @@ private fun ArticleDetailsScreen(
     val listState = rememberLazyListState()
     val scrolledToTop by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
 
-    var showCantZapWarning by remember { mutableStateOf(false) }
-    if (showCantZapWarning) {
-        UnableToZapBottomSheet(
-            zappingState = zappingState,
-            onDismissRequest = { showCantZapWarning = false },
-            onGoToWallet = callbacks.onGoToWallet,
-        )
-    }
-
     var showZapOptions by remember { mutableStateOf(false) }
     if (showZapOptions && detailsState.article != null) {
         ZapBottomSheet(
@@ -219,26 +208,18 @@ private fun ArticleDetailsScreen(
             receiverName = detailsState.article.authorDisplayName,
             zappingState = zappingState,
             onZap = { zapAmount, zapDescription ->
-                if (zappingState.canZap(zapAmount)) {
-                    detailsEventPublisher(
-                        UiEvent.ZapArticle(
-                            zapAmount = zapAmount.toULong(),
-                            zapDescription = zapDescription,
-                        ),
-                    )
-                } else {
-                    showCantZapWarning = true
-                }
+                detailsEventPublisher(
+                    UiEvent.ZapArticle(
+                        zapAmount = zapAmount.toULong(),
+                        zapDescription = zapDescription,
+                    ),
+                )
             },
         )
     }
 
     fun invokeZapOptionsOrShowWarning() {
-        if (zappingState.walletConnected) {
-            showZapOptions = true
-        } else {
-            showCantZapWarning = true
-        }
+        showZapOptions = true
     }
 
     var showRepostOrQuoteConfirmation by remember { mutableStateOf(false) }
@@ -375,7 +356,6 @@ private fun ArticleDetailsScreen(
                         isHighlightActivityBottomSheetVisible = true
                     },
                     onZapOptionsClick = { invokeZapOptionsOrShowWarning() },
-                    onGoToWallet = callbacks.onGoToWallet,
                     noteCallbacks = noteCallbacks,
                     onPostAction = { action ->
                         when (action) {
@@ -384,13 +364,7 @@ private fun ArticleDetailsScreen(
                                     ?.let { noteCallbacks.onArticleReplyClick?.invoke(it) }
                             }
 
-                            FeedPostAction.Zap -> {
-                                if (zappingState.canZap()) {
-                                    detailsEventPublisher(UiEvent.ZapArticle())
-                                } else {
-                                    showCantZapWarning = true
-                                }
-                            }
+                            FeedPostAction.Zap -> detailsEventPublisher(UiEvent.ZapArticle())
 
                             FeedPostAction.Like -> detailsEventPublisher(UiEvent.LikeArticle)
 
@@ -537,7 +511,6 @@ private fun ArticleContentWithComments(
     onHighlightClick: (String) -> Unit,
     onZapOptionsClick: () -> Unit,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     onPostAction: ((FeedPostAction) -> Unit)? = null,
     onPostLongPressAction: ((FeedPostAction) -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
@@ -884,7 +857,6 @@ private fun ArticleContentWithComments(
                     headerSingleLine = true,
                     showReplyTo = false,
                     noteCallbacks = noteCallbacks,
-                    onGoToWallet = onGoToWallet,
                     onUiError = onUiError,
                 )
                 PrimalDivider()

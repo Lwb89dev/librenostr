@@ -193,17 +193,27 @@ internal class CachingImportRepositoryImpl(
         notes: List<PostData>,
         repostIdsByAuthor: List<Pair<String, String>>,
     ) {
+        if (notes.isEmpty() && repostIdsByAuthor.isEmpty()) return
+
+        // findMinPosition() is a full-table scan with no WHERE clause — querying it once per
+        // note/repost (as this used to) turned every persisted batch into an N+1 query. Read it
+        // once up front and hand out positions from an in-memory counter for the whole batch.
+        val positionCounter = PositionCounter(current = database.feedsConnections().findMinPosition() ?: 1L)
+
+        val rows = mutableListOf<FeedPostDataCrossRef>()
         notes.forEach { note ->
             val specs = feedSpecsFor(
                 userId = note.authorId,
                 includeLatestWithoutReplies = note.replyToPostId == null,
             )
-            connectToFeeds(ownerId = note.authorId, eventId = note.postId, specs = specs)
+            rows += buildCrossRefRows(ownerId = note.authorId, eventId = note.postId, specs = specs, positionCounter = positionCounter)
         }
         repostIdsByAuthor.forEach { (repostId, authorId) ->
             val specs = feedSpecsFor(userId = authorId, includeLatestWithoutReplies = true)
-            connectToFeeds(ownerId = authorId, eventId = repostId, specs = specs)
+            rows += buildCrossRefRows(ownerId = authorId, eventId = repostId, specs = specs, positionCounter = positionCounter)
         }
+
+        if (rows.isNotEmpty()) database.feedsConnections().connect(data = rows)
     }
 
     private fun feedSpecsFor(userId: String, includeLatestWithoutReplies: Boolean): List<String> {
@@ -215,25 +225,27 @@ internal class CachingImportRepositoryImpl(
         return specs
     }
 
-    private suspend fun connectToFeeds(ownerId: String, eventId: String, specs: List<String>) {
-        val positions = allocateTopPositions(count = specs.size)
-        val rows = specs.mapIndexed { index, spec ->
+    private fun buildCrossRefRows(
+        ownerId: String,
+        eventId: String,
+        specs: List<String>,
+        positionCounter: PositionCounter,
+    ): List<FeedPostDataCrossRef> =
+        specs.map { spec ->
             FeedPostDataCrossRef(
-                position = positions[index],
+                position = positionCounter.next(),
                 ownerId = ownerId,
                 feedSpec = spec,
                 eventId = eventId,
             )
         }
-        database.feedsConnections().connect(data = rows)
-    }
 
-    private suspend fun allocateTopPositions(count: Int): List<Long> {
-        var current = database.feedsConnections().findMinPosition() ?: 1L
-        return List(count) {
+    /** In-memory replacement for a per-row `findMinPosition()` DB round-trip. */
+    private class PositionCounter(private var current: Long) {
+        fun next(): Long {
             current -= 1
             if (current == 0L) current = -1L
-            current
+            return current
         }
     }
 

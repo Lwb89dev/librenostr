@@ -6,7 +6,6 @@ import net.primal.core.utils.Result
 import net.primal.core.utils.ensureWsOrWss
 import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
-import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.data.account.local.dao.apps.AppRequestState
 import net.primal.data.account.local.dao.apps.SignerMethodType
 import net.primal.data.account.repository.repository.internal.InternalPermissionsRepository
@@ -48,7 +47,6 @@ class SignerConnectionInitializer internal constructor(
         userPubKey: String,
         connectionUrl: String,
         trustLevel: TrustLevel,
-        nwcConnectionString: String? = null,
     ): Result<RemoteAppConnection> =
         runCatching {
             val (appConnection, secret) = parseConnectionUrlOrThrow(
@@ -57,12 +55,6 @@ class SignerConnectionInitializer internal constructor(
                 connectionUrl = connectionUrl,
                 trustLevel = trustLevel,
             )
-
-            val resultPayload = if (nwcConnectionString != null) {
-                listOf(secret, nwcConnectionString).encodeToJsonString()
-            } else {
-                secret
-            }
 
             connectionRepository.insertOrReplaceConnection(secret = secret, connection = appConnection)
             sessionRepository.startRemoteSession(appIdentifier = appConnection.clientPubKey)
@@ -76,7 +68,7 @@ class SignerConnectionInitializer internal constructor(
                         response = RemoteSignerMethodResponse.Success(
                             id = Uuid.random().toString(),
                             clientPubKey = appConnection.clientPubKey,
-                            result = resultPayload,
+                            result = secret,
                         ),
                     )
                 }

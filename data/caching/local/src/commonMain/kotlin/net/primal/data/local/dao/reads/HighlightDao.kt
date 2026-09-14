@@ -21,6 +21,7 @@ interface HighlightDao {
     @Query("SELECT * FROM HighlightData WHERE highlightId = :highlightId LIMIT 1")
     fun observeById(highlightId: String): Flow<Highlight?>
 
+    @Transaction
     @Query("SELECT * FROM HighlightData WHERE highlightId = :highlightId LIMIT 1")
     suspend fun findById(highlightId: String): Highlight?
 }

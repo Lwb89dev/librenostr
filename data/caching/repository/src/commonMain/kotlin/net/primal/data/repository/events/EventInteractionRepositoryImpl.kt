@@ -7,7 +7,6 @@ import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.createAppBuildHelper
 import net.primal.data.local.db.CachingDatabase
 import net.primal.domain.events.EventInteractionRepository
-import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.asClientTag
@@ -17,17 +16,11 @@ import net.primal.domain.nostr.asPubkeyTag
 import net.primal.domain.nostr.asReplaceableEventTag
 import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.publisher.NostrPublishException
-import net.primal.domain.nostr.zaps.NostrZapperFactory
-import net.primal.domain.nostr.zaps.ZapError
-import net.primal.domain.nostr.zaps.ZapRequestData
-import net.primal.domain.nostr.zaps.ZapResult
-import net.primal.domain.nostr.zaps.ZapTarget
 import net.primal.domain.publisher.PrimalPublisher
 
 class EventInteractionRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val primalPublisher: PrimalPublisher,
-    private val nostrZapperFactory: NostrZapperFactory,
     private val database: CachingDatabase,
 ) : EventInteractionRepository {
 
@@ -139,66 +132,9 @@ class EventInteractionRepositoryImpl(
         )
     }
 
-    override suspend fun zapEvent(
-        userId: String,
-        walletId: String,
-        amountInSats: ULong,
-        comment: String,
-        target: ZapTarget,
-        zapRequestEvent: NostrEvent,
-    ): ZapResult {
-        val statsUpdater = target.buildPostStatsUpdaterIfApplicable(userId = userId)
-
-        statsUpdater?.increaseZapStats(
-            amountInSats = amountInSats.toInt(),
-            zapComment = comment,
-        )
-
-        val nostrZapper = nostrZapperFactory.createOrNull(walletId = walletId)
-            ?: return ZapResult.Failure(error = ZapError.Unknown())
-
-        val result = nostrZapper.zap(
-            walletId = walletId,
-            data = ZapRequestData(
-                zapperUserId = userId,
-                target = target,
-                zapAmountInSats = amountInSats,
-                zapComment = comment,
-                userZapRequestEvent = zapRequestEvent,
-            ),
-        )
-
-        if (result is ZapResult.Failure) {
-            statsUpdater?.revertStats()
-        }
-
-        return result
-    }
-
     override suspend fun deleteZaps(eventId: String) {
         withContext(dispatcherProvider.io()) {
             database.eventZaps().deleteAll(eventId = eventId)
         }
     }
-
-    private fun ZapTarget.buildPostStatsUpdaterIfApplicable(userId: String): EventStatsUpdater? =
-        when (this) {
-            is ZapTarget.Event -> EventStatsUpdater(
-                userId = userId,
-                eventId = this.eventId,
-                eventAuthorId = this.recipientUserId,
-                database = database,
-            )
-
-            is ZapTarget.ReplaceableEvent -> EventStatsUpdater(
-                userId = userId,
-                eventId = this.eventId,
-                eventAuthorId = this.recipientUserId,
-                database = database,
-            )
-
-            is ZapTarget.PollEvent -> null
-
-            is ZapTarget.Profile -> null
-        }
 }

@@ -61,7 +61,7 @@ import net.primal.android.core.utils.shortened
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.core.utils.generateAmountChips
-import net.primal.domain.utils.parseSatsToUsd
+import net.primal.core.utils.parseSatsToUsd
 
 private const val ZAP_POLL_CHIP_COLUMNS = 3
 private const val MAX_CHIPS = 6

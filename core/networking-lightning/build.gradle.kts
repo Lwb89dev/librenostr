@@ -24,7 +24,6 @@ kotlin {
                 implementation(project(":core:utils"))
                 implementation(project(":core:networking-http"))
                 implementation(project(":domain:nostr"))
-                implementation(project(":domain:wallet"))
 
                 implementation(libs.kotlinx.coroutines.core)
 

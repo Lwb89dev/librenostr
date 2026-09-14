@@ -54,6 +54,7 @@ class GifPickerViewModel @Inject constructor(
     init {
         observeEvents()
         observeDebouncedSearchQuery()
+        fetchTrending()
     }
 
     private fun observeEvents() =
@@ -80,18 +81,10 @@ class GifPickerViewModel @Inject constructor(
                 .debounce(SEARCH_DEBOUNCE_DURATION)
                 .collectLatest {
                     nextCursor = null
+                    setState { copy(gifItems = emptyList()) }
                     if (it.query.isBlank()) {
-                        setState {
-                            copy(
-                                gifItems = emptyList(),
-                            )
-                        }
+                        performFetchTrending()
                     } else {
-                        setState {
-                            copy(
-                                gifItems = emptyList(),
-                            )
-                        }
                         performSearchGifs(query = it.query)
                     }
                 }
@@ -149,7 +142,7 @@ class GifPickerViewModel @Inject constructor(
             val query = currentState.searchQuery
             when {
                 query.isNotBlank() -> searchGifs(query = query, cursor = cursor)
-                else -> Unit
+                else -> fetchTrending(cursor = cursor)
             }
         }
 

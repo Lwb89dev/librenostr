@@ -193,6 +193,23 @@ fun ThreadScreen(
         },
     )
 
+    // Hoisted once instead of `.copy()`-ing inline at the call site below: NoteCallbacks is a
+    // large lambda-holding data class, and a fresh `.copy()` every recomposition would break
+    // structural equality on every pass, defeating Compose's skip check for the whole subtree.
+    val threadNoteCallbacks = remember(noteCallbacks, state.highlightPostId) {
+        noteCallbacks.copy(
+            onNotePrivateReplyClick = { item ->
+                callbacks.onExpandReply(
+                    NoteEditorArgs(
+                        privateReplyRootId = item.threadRootId ?: state.highlightPostId,
+                        privateReplyParentId = item.postId,
+                        showPrivateReplyRecipientPicker = true,
+                    ),
+                )
+            },
+        )
+    }
+
     val copyConfirmationText = stringResource(id = R.string.feed_context_copied_toast)
     LaunchedEffect(articleViewModel, articleViewModel.effects) {
         articleViewModel.effects.collect {
@@ -241,18 +258,7 @@ fun ThreadScreen(
                 ThreadConversationLazyColumn(
                     paddingValues = paddingValues,
                     state = state,
-                    noteCallbacks = noteCallbacks.copy(
-                        onNotePrivateReplyClick = { item ->
-                            callbacks.onExpandReply(
-                                NoteEditorArgs(
-                                    privateReplyRootId = item.threadRootId ?: state.highlightPostId,
-                                    privateReplyParentId = item.postId,
-                                    showPrivateReplyRecipientPicker = true,
-                                ),
-                            )
-                        },
-                    ),
-                    onGoToWallet = callbacks.onGoToWallet,
+                    noteCallbacks = threadNoteCallbacks,
                     eventPublisher = eventPublisher,
                     articleEventPublisher = articleViewModel::setEvent,
                     onRootPostDeleted = callbacks.onClose,
@@ -379,7 +385,6 @@ private fun ThreadConversationLazyColumn(
     paddingValues: PaddingValues,
     state: ThreadContract.UiState,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     onRootPostDeleted: () -> Unit,
     eventPublisher: (ThreadContract.UiEvent) -> Unit,
     articleEventPublisher: (ArticleContract.UiEvent) -> Unit,
@@ -429,7 +434,6 @@ private fun ThreadConversationLazyColumn(
             ThreadLazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = state,
-                onGoToWallet = onGoToWallet,
                 noteCallbacks = noteCallbacks,
                 onRootPostDeleted = onRootPostDeleted,
                 articleEventPublisher = articleEventPublisher,
@@ -446,7 +450,6 @@ private fun ThreadLazyColumn(
     state: ThreadContract.UiState,
     noteCallbacks: NoteCallbacks,
     onRootPostDeleted: () -> Unit,
-    onGoToWallet: (() -> Unit),
     articleEventPublisher: (ArticleContract.UiEvent) -> Unit,
     paddingValues: PaddingValues = PaddingValues(all = 0.dp),
     onUiError: ((UiError) -> Unit)? = null,
@@ -480,6 +483,19 @@ private fun ThreadLazyColumn(
             ((maxScreenHeight - highlightPostHeightPx) / repliesPlaceholderHeightPx)
                 .toInt().coerceAtLeast(0)
         }
+    }
+
+    // Hoisted once instead of `.copy()`-ing inside `itemsIndexed` below: rebuilding a
+    // NoteCallbacks (and its closure) on every recomposition, for every visible reply, broke
+    // structural equality and defeated Compose's skip check for each card's whole subtree.
+    val replyNoteCallbacks = remember(noteCallbacks, state.highlightPostId) {
+        noteCallbacks.copy(
+            onNoteClick = { noteId ->
+                if (state.highlightPostId != noteId) {
+                    noteCallbacks.onNoteClick?.invoke(noteId)
+                }
+            },
+        )
     }
 
     LazyColumn(
@@ -549,19 +565,12 @@ private fun ThreadLazyColumn(
                     showReplyTo = false,
                     showNoteStatCounts = index != state.highlightPostIndex,
                     couldAutoPlay = true,
-                    noteCallbacks = noteCallbacks.copy(
-                        onNoteClick = { noteId ->
-                            if (state.highlightPostId != noteId) {
-                                noteCallbacks.onNoteClick?.invoke(noteId)
-                            }
-                        },
-                    ),
+                    noteCallbacks = replyNoteCallbacks,
                     onNoteDeleted = {
                         if (!isReply) {
                             onRootPostDeleted()
                         }
                     },
-                    onGoToWallet = onGoToWallet,
                     contentFooter = {
                         Column(
                             modifier = Modifier
@@ -1000,7 +1009,6 @@ fun ThreadScreenPreview() {
             ),
             callbacks = ThreadContract.ScreenCallbacks(
                 onClose = {},
-                onGoToWallet = {},
                 onExpandReply = {},
             ),
             noteCallbacks = NoteCallbacks(),

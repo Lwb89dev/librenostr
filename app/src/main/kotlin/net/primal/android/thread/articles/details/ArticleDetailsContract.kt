@@ -66,6 +66,5 @@ interface ArticleDetailsContract {
     data class ScreenCallbacks(
         val onClose: () -> Unit,
         val onArticleHashtagClick: (hashtag: String) -> Unit,
-        val onGoToWallet: () -> Unit,
     )
 }

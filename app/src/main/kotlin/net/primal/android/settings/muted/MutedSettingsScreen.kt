@@ -50,7 +50,6 @@ fun MutedSettingsScreen(
     noteCallbacks: NoteCallbacks,
     onProfileClick: (String) -> Unit,
     onClose: () -> Unit,
-    onGoToWallet: () -> Unit,
     embedded: Boolean = false,
 ) {
     val state = viewModel.state.collectAsState()
@@ -60,7 +59,6 @@ fun MutedSettingsScreen(
         onProfileClick = onProfileClick,
         onClose = onClose,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         embedded = embedded,
     )
 }
@@ -70,7 +68,6 @@ fun MutedSettingsScreen(
 fun MutedSettingsScreen(
     state: MutedSettingsContract.UiState,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     eventPublisher: (MutedSettingsContract.UiEvent) -> Unit,
     onProfileClick: (String) -> Unit,
     onClose: () -> Unit,
@@ -108,7 +105,6 @@ fun MutedSettingsScreen(
                 state = state,
                 paddingValues = PaddingValues(),
                 noteCallbacks = noteCallbacks,
-                onGoToWallet = onGoToWallet,
                 eventPublisher = eventPublisher,
                 onProfileClick = onProfileClick,
             )
@@ -139,7 +135,6 @@ fun MutedSettingsScreen(
                 state = state,
                 paddingValues = paddingValues,
                 noteCallbacks = noteCallbacks,
-                onGoToWallet = onGoToWallet,
                 eventPublisher = eventPublisher,
                 onProfileClick = onProfileClick,
             )
@@ -154,7 +149,6 @@ private fun MutedSettingsPager(
     state: MutedSettingsContract.UiState,
     paddingValues: PaddingValues,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     eventPublisher: (MutedSettingsContract.UiEvent) -> Unit,
     onProfileClick: (String) -> Unit,
 ) {
@@ -185,7 +179,6 @@ private fun MutedSettingsPager(
                 defaultMuteThreadsFeedSpec = state.defaultMuteThreadsFeedSpec,
                 paddingValues = paddingValues,
                 noteCallbacks = noteCallbacks,
-                onGoToWallet = onGoToWallet,
             )
         }
     }
@@ -238,7 +231,6 @@ fun PreviewMutedScreen() {
             eventPublisher = {},
             onProfileClick = {},
             onClose = {},
-            onGoToWallet = {},
             noteCallbacks = NoteCallbacks(),
         )
     }

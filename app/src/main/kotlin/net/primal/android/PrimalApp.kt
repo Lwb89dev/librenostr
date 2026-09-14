@@ -11,7 +11,6 @@ import net.primal.core.config.store.AppConfigInitializer
 import net.primal.core.networking.tor.TorProxyContextHolder
 import net.primal.data.account.repository.repository.factory.AccountRepositoryFactory
 import net.primal.data.repository.factory.PrimalRepositoryFactory
-import net.primal.wallet.data.repository.factory.WalletRepositoryFactory
 
 @HiltAndroidApp
 class PrimalApp : Application() {
@@ -31,10 +30,6 @@ class PrimalApp : Application() {
         super.onCreate()
         AppConfigInitializer.init(context = this@PrimalApp)
         PrimalRepositoryFactory.init(context = this@PrimalApp)
-        WalletRepositoryFactory.init(
-            context = this@PrimalApp,
-            enableDbEncryption = !BuildConfig.DEBUG,
-        )
         AccountRepositoryFactory.init(
             context = this@PrimalApp,
             enableDbEncryption = !BuildConfig.DEBUG,

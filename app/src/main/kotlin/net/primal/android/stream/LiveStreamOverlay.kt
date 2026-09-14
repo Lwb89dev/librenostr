@@ -34,8 +34,6 @@ import net.primal.android.core.video.rememberManagedMediaController
 import net.primal.android.navigation.navigateToChat
 import net.primal.android.navigation.navigateToProfileEditor
 import net.primal.android.navigation.navigateToProfileQrCodeViewer
-import net.primal.android.navigation.navigateToWallet
-import net.primal.android.navigation.navigateToWalletCreateTransaction
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.stream.LiveStreamContract.UiEvent
 import net.primal.android.stream.di.rememberLiveStreamViewModel
@@ -264,10 +262,6 @@ private fun rememberLiveStreamScreenCallbacks(
     return remember(navController, noteCallbacks, streamState) {
         LiveStreamContract.ScreenCallbacks(
             onClose = { streamState.minimize() },
-            onGoToWallet = {
-                navController.navigateToWallet()
-                streamState.minimize()
-            },
             onEditProfileClick = {
                 navController.navigateToProfileEditor()
                 streamState.minimize()
@@ -294,10 +288,6 @@ private fun rememberLiveStreamScreenCallbacks(
             },
             onEventReactionsClick = { eventId, initialTab, articleATag ->
                 noteCallbacks.onEventReactionsClick?.invoke(eventId, initialTab, articleATag)
-                streamState.minimize()
-            },
-            onSendWalletTx = { draftTx ->
-                navController.navigateToWalletCreateTransaction(draftTx)
                 streamState.minimize()
             },
             onNostrUriClick = { uri ->

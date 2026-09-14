@@ -64,7 +64,6 @@ internal fun ExploreHomeContent(
     onFollowPackClick: (profileId: String, identifier: String) -> Unit,
     onRecentSearchEditClick: (query: String) -> Unit,
     onRecentSearchExecuteClick: (query: String) -> Unit,
-    onGoToWallet: () -> Unit,
 ) {
     val context = LocalContext.current
     val uiScope = rememberCoroutineScope()
@@ -82,7 +81,6 @@ internal fun ExploreHomeContent(
             ExploreSection.FeedGallery -> ExploreFeeds(
                 modifier = Modifier.background(color = AppTheme.colorScheme.surfaceVariant),
                 paddingValues = paddingValues,
-                onGoToWallet = onGoToWallet,
                 onUiError = { uiError: UiError ->
                     uiScope.launch {
                         snackbarHostState.showSnackbar(

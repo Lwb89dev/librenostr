@@ -20,7 +20,6 @@ fun DvmHeaderAndFeedList(
     showFollowsActionsAvatarRow: Boolean = false,
     clipShape: Shape? = AppTheme.shapes.small,
     noteCallbacks: NoteCallbacks = NoteCallbacks(),
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
@@ -38,7 +37,6 @@ fun DvmHeaderAndFeedList(
                             showFollowsActionsAvatarRow = showFollowsActionsAvatarRow,
                             clipShape = clipShape,
                             onProfileClick = noteCallbacks.onProfileClick,
-                            onGoToWallet = onGoToWallet,
                             onUiError = onUiError,
                         )
                     },
@@ -63,10 +61,8 @@ fun DvmHeaderAndFeedList(
                             showFollowsActionsAvatarRow = showFollowsActionsAvatarRow,
                             clipShape = clipShape,
                             onProfileClick = noteCallbacks.onProfileClick,
-                            onGoToWallet = onGoToWallet,
                         )
                     },
-                    onGoToWallet = {},
                 )
             }
 

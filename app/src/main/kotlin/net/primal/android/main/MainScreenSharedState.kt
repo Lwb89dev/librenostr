@@ -16,7 +16,6 @@ import net.primal.android.main.reads.ReadsScreenContract
 import net.primal.android.feeds.list.ui.model.FeedUi
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.notifications.NotificationGroup
-import net.primal.domain.wallet.CurrencyMode
 
 @Suppress("LongParameterList")
 internal class MainScreenSharedState(
@@ -31,9 +30,6 @@ internal class MainScreenSharedState(
     val homeScrollToFeed: MutableState<FeedUi?>,
     val readsShouldAnimateScrollToTop: MutableState<Boolean>,
     val readsScrollToFeed: MutableState<FeedUi?>,
-    val walletCurrencyMode: MutableState<CurrencyMode>,
-    val walletIsScrolledToTop: MutableState<Boolean>,
-    val walletShouldAnimateScrollToTop: MutableState<Boolean>,
     val notificationsShouldAnimateScrollToTop: MutableState<Boolean>,
 )
 
@@ -73,9 +69,6 @@ internal fun rememberMainScreenSharedState(
         homeScrollToFeed = remember { mutableStateOf(null) },
         readsShouldAnimateScrollToTop = remember { mutableStateOf(false) },
         readsScrollToFeed = remember { mutableStateOf(null) },
-        walletCurrencyMode = rememberSaveable { mutableStateOf(CurrencyMode.SATS) },
-        walletIsScrolledToTop = remember { mutableStateOf(true) },
-        walletShouldAnimateScrollToTop = remember { mutableStateOf(false) },
         notificationsShouldAnimateScrollToTop = remember { mutableStateOf(false) },
     )
 }

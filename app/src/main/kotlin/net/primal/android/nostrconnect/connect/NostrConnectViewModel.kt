@@ -3,8 +3,6 @@ package net.primal.android.nostrconnect.connect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ionspin.kotlin.bignum.decimal.BigDecimal
-import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
@@ -16,7 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import net.primal.android.core.compose.signer.SignerConnectBottomSheet.DAILY_BUDGET_OPTIONS
 import net.primal.android.core.errors.UiError
 import net.primal.android.core.push.PushNotificationsTokenUpdater
 import net.primal.android.drawer.multiaccount.model.asUserAccountUi
@@ -25,43 +22,25 @@ import net.primal.android.nostrconnect.utils.getNostrConnectCallback
 import net.primal.android.nostrconnect.utils.getNostrConnectImage
 import net.primal.android.nostrconnect.utils.getNostrConnectName
 import net.primal.android.nostrconnect.utils.getNostrConnectUrl
-import net.primal.android.nostrconnect.utils.hasNwcOption
 import net.primal.android.user.accounts.UserAccountsStore
-import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.credentials.CredentialsStore
 import net.primal.android.user.domain.CredentialType
 import net.primal.android.user.domain.asKeyPair
-import net.primal.android.wallet.repository.ExchangeRateHandler
-import net.primal.android.wallet.repository.isValidExchangeRate
-import net.primal.core.utils.CurrencyConversionUtils.formatAsString
-import net.primal.core.utils.CurrencyConversionUtils.fromSatsToUsd
-import net.primal.core.utils.CurrencyConversionUtils.toBtc
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.core.utils.map
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
 import net.primal.data.account.repository.repository.SignerConnectionInitializer
-import net.primal.domain.account.WalletAccountRepository
 import net.primal.domain.account.model.TrustLevel
-import net.primal.domain.connections.nostr.NwcRepository
-import net.primal.domain.connections.primal.PrimalWalletNwcRepository
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
-import net.primal.domain.wallet.Wallet
 
-@Suppress("LongParameterList")
 @HiltViewModel
 class NostrConnectViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val dispatcherProvider: DispatcherProvider,
     private val accountsStore: UserAccountsStore,
-    private val activeAccountStore: ActiveAccountStore,
-    private val exchangeRateHandler: ExchangeRateHandler,
     private val credentialsStore: CredentialsStore,
     private val signerConnectionInitializer: SignerConnectionInitializer,
-    private val primalWalletNwcRepository: PrimalWalletNwcRepository,
-    private val nwcRepository: NwcRepository,
-    private val walletAccountRepository: WalletAccountRepository,
     private val tokenUpdater: PushNotificationsTokenUpdater,
 ) : ViewModel() {
 
@@ -74,7 +53,6 @@ class NostrConnectViewModel @Inject constructor(
             appImageUrl = connectionUrl?.getNostrConnectImage(),
             connectionUrl = connectionUrl,
             callback = connectionUrl?.getNostrConnectCallback(),
-            hasNwcRequest = connectionUrl?.hasNwcOption() == true,
         ),
     )
     val state = _state.asStateFlow()
@@ -91,10 +69,6 @@ class NostrConnectViewModel @Inject constructor(
     init {
         observeEvents()
         observeAccounts()
-        if (connectionUrl?.hasNwcOption() == true) {
-            fetchExchangeRate()
-            observeUsdExchangeRate()
-        }
     }
 
     private fun observeEvents() {
@@ -104,7 +78,6 @@ class NostrConnectViewModel @Inject constructor(
                     is NostrConnectContract.UiEvent.ConnectUser -> connect(
                         userId = it.userId,
                         trustLevel = it.trustLevel,
-                        dailyBudget = it.dailyBudget,
                     )
 
                     NostrConnectContract.UiEvent.DismissError -> setState { copy(error = null) }
@@ -135,76 +108,14 @@ class NostrConnectViewModel @Inject constructor(
         }
     }
 
-    private fun fetchExchangeRate() =
-        viewModelScope.launch {
-            exchangeRateHandler.updateExchangeRate(
-                userId = activeAccountStore.activeUserId(),
-            )
-        }
-
-    private fun observeUsdExchangeRate() {
-        viewModelScope.launch {
-            exchangeRateHandler.usdExchangeRate.collect { exchangeRate ->
-                val budgetToUsdMap = calculateBudgetToUsdMap(exchangeRate)
-                setState { copy(budgetToUsdMap = budgetToUsdMap) }
-            }
-        }
-    }
-
-    private fun calculateBudgetToUsdMap(exchangeRate: Double?): Map<Long, BigDecimal?> {
-        if (!exchangeRate.isValidExchangeRate()) {
-            return emptyMap()
-        }
-
-        return DAILY_BUDGET_OPTIONS.associateWith { sats ->
-            sats.toString().toBigDecimal().fromSatsToUsd(exchangeRate)
-        }
-    }
-
     private fun connect(
         userId: String,
         trustLevel: TrustLevel,
-        dailyBudget: Long?,
     ) {
         viewModelScope.launch {
             setState { copy(connecting = true) }
             val currentState = state.value
             val connectionUrl = currentState.connectionUrl ?: return@launch
-
-            var nwcConnectionString: String? = null
-            var activeWallet: Wallet? = null
-            if (currentState.hasNwcRequest && dailyBudget != 0L) {
-                runCatching {
-                    val appName = currentState.appName ?: "External App"
-                    val wallet = walletAccountRepository.getActiveWallet(userId)?.wallet
-                    activeWallet = wallet
-                    when (wallet) {
-                        is Wallet.Spark -> {
-                            nwcRepository.createNewWalletConnection(
-                                userId = userId,
-                                walletId = wallet.walletId,
-                                appName = appName,
-                                dailyBudget = dailyBudget,
-                            ).getOrThrow()
-                        }
-
-                        is Wallet.Primal -> {
-                            val budgetBtc = dailyBudget?.toBtc()?.formatAsString()
-                            primalWalletNwcRepository.createNewWalletConnection(
-                                userId = userId,
-                                appName = appName,
-                                dailyBudget = budgetBtc,
-                            ).nwcConnectionUri
-                        }
-
-                        else -> error("Active wallet does not support NWC connections.")
-                    }
-                }.onSuccess { uri ->
-                    nwcConnectionString = uri
-                }.onFailure { error ->
-                    Napier.e(throwable = error) { "Failed to create new wallet connection" }
-                }
-            }
 
             val signerKeyPair = credentialsStore.getOrCreateInternalSignerCredentials().asKeyPair()
 
@@ -213,7 +124,6 @@ class NostrConnectViewModel @Inject constructor(
                 userPubKey = userId,
                 connectionUrl = connectionUrl,
                 trustLevel = trustLevel,
-                nwcConnectionString = nwcConnectionString,
             ).onSuccess {
                 CoroutineScope(dispatcherProvider.io()).launch {
                     runCatching { tokenUpdater.updateTokenForRemoteSigner() }
@@ -222,7 +132,6 @@ class NostrConnectViewModel @Inject constructor(
                     NostrConnectContract.SideEffect.ConnectionSuccess(
                         callbackUri = state.value.callback,
                         userId = userId,
-                        requiresNwcService = activeWallet is Wallet.Spark && nwcConnectionString != null,
                     ),
                 )
             }.onFailure { error ->

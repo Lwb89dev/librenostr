@@ -44,10 +44,10 @@ include(":data:caching:local")
 include(":data:caching:remote")
 include(":data:caching:repository")
 
-include(":data:wallet:local")
-include(":data:wallet:remote-primal")
+// NWC (Nostr Wallet Connect) client-side protocol module. Not depended on by `app` — kept
+// compiling as an unreachable stub in case NWC support (connecting to an EXTERNAL wallet) is
+// revisited later. See librenostr-wallet-purge-residuals memory note for context.
 include(":data:wallet:remote-nwc")
-include(":data:wallet:repository")
 
 include(":data:account:local")
 include(":data:account:remote")
@@ -56,6 +56,5 @@ include(":data:account:repository")
 
 include(":domain:nostr")
 include(":domain:primal")
-include(":domain:wallet")
 include(":domain:account")
 

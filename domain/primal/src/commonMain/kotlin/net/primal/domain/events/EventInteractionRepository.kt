@@ -2,12 +2,9 @@ package net.primal.domain.events
 
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.serialization.json.JsonArray
-import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.publisher.NostrPublishException
-import net.primal.domain.nostr.zaps.ZapResult
-import net.primal.domain.nostr.zaps.ZapTarget
 import net.primal.domain.publisher.PrimalPublishResult
 
 interface EventInteractionRepository {
@@ -55,15 +52,6 @@ interface EventInteractionRepository {
         content: String = DEFAULT_DELETION_CONTENT,
         relayHint: String? = null,
     ): PrimalPublishResult
-
-    suspend fun zapEvent(
-        userId: String,
-        walletId: String,
-        amountInSats: ULong,
-        comment: String,
-        target: ZapTarget,
-        zapRequestEvent: NostrEvent,
-    ): ZapResult
 
     suspend fun deleteZaps(eventId: String)
 }

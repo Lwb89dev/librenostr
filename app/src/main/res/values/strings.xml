@@ -56,7 +56,7 @@
     <string name="onboarding_gestures_continue">Got it</string>
     <string name="onboarding_orbot_title">Stay private with Tor</string>
     <string name="onboarding_orbot_description">LibreNostr can route your relay, media, and zap traffic through Tor via the Orbot app, hiding your IP address from relays and servers. It\'s off by default — turn it on anytime in Settings > Tor.</string>
-    <string name="onboarding_orbot_restart_notice">If you do turn it on, fully close LibreNostr afterward — swiping it away isn\'t enough if a wallet or signer notification is showing; force-stop it from Android Settings, or restart your device. Connections opened before that stay outside Tor.</string>
+    <string name="onboarding_orbot_restart_notice">If you do turn it on, fully close LibreNostr afterward — swiping it away isn\'t enough if a signer notification is showing; force-stop it from Android Settings, or restart your device. Connections opened before that stay outside Tor.</string>
     <string name="onboarding_orbot_install_button">Install Orbot</string>
     <string name="onboarding_orbot_continue">Got it</string>
     <string name="welcome_sign_in_button_title">Sign In</string>
@@ -123,7 +123,6 @@
     <string name="scan_code_error_invalid_login_string">Invalid remote login string. Please try again.</string>
     <string name="scan_code_redeem_button">Redeem code</string>
     <string name="scan_code_onboard_button">Onboard to LibreNostr</string>
-    <string name="scan_code_activate_wallet_button">Activate Wallet</string>
     <string name="scan_code_use_keyboard_button">Use Keyboard instead</string>
     <string name="scan_code_enter_placeholder">Enter code…</string>
     <string name="scan_code_remote_login_manual_entry_placeholder">nostrconnect://</string>
@@ -148,8 +147,6 @@
     <string name="settings_content_display_undo_post_timer_replies">Also for replies</string>
     <string name="settings_content_display_undo_post_seconds">Seconds to wait</string>
     <string name="note_see_original">See original</string>
-    <string name="scan_code_to_redeem_notice">To redeem your code, onboard to LibreNostr by\ncreating your Nostr account and activating\nyour wallet.</string>
-    <string name="scan_code_no_wallet_notice">To redeem your code,\nactivate your wallet.</string>
     <string name="scan_code_scan_anything_title">Scan Anything:</string>
     <string name="scan_code_scan_anything_subtitle">Invite code, payment invoice, login string, user link, content link, gift card</string>
     <string name="scan_code_remote_login_camera_title">Login to Any Nostr App</string>
@@ -163,7 +160,6 @@
 
     <string name="primary_destination_feed_label">Home</string>
     <string name="primary_destination_reads_label">Reads</string>
-    <string name="primary_destination_wallet_label">Wallet</string>
     <string name="primary_destination_notifications_label">Notifications</string>
     <string name="primary_destination_messages_label">Messages</string>
     <string name="primary_destination_explore_label">Algorithm</string>
@@ -587,25 +583,6 @@
     <string name="asearch_filters_none">None</string>
     <string name="asearch_filters_custom">Custom</string>
 
-    <string name="wallet_title">Wallet</string>
-    <string name="wallet_primal_title">Legacy Wallet</string>
-    <string name="wallet_spark_title">Wallet</string>
-    <string name="wallet_nwc_title">NWC Wallet</string>
-    <string name="wallet_picker_title">Wallets</string>
-    <string name="wallet_picker_configure_wallets">Configure</string>
-    <string name="wallet_picker_configure_title">Wallets</string>
-    <string name="wallet_picker_cancel">Cancel</string>
-    <string name="wallet_picker_done">Done</string>
-    <string name="wallet_picker_reassign_confirm_title">Reassign Lightning Address</string>
-    <string name="wallet_picker_reassign_confirm_text">Lightning payments will be routed to %s. Continue?</string>
-    <string name="wallet_picker_reassign_confirm_button">Reassign</string>
-    <string name="wallet_picker_reassign_error">Failed to reassign Lightning address. Please try again.</string>
-    <string name="wallet_picker_nwc_title">NWC Wallet</string>
-    <string name="wallet_picker_spark_title">Spark Wallet</string>
-    <string name="wallet_picker_legacy_title">Legacy Wallet</string>
-    <string name="wallet_picker_no_lightning_address">[ no lightning address ]</string>
-    <string name="wallet_picker_nwc_description">Your external lightning wallet</string>
-    <string name="wallet_top_app_bar_subtitle">All transactions</string>
 
     <string name="notifications_title">Notifications</string>
     <string name="notifications_filter_all_title">All Notifications</string>
@@ -709,7 +686,6 @@
     <string name="settings_account_hide_key">Hide Key</string>
     <string name="settings_account_key_copied">Key copied</string>
 
-    <string name="settings_wallet_title">Wallet</string>
     <string name="settings_wallet_connected_title">Wallet Connected</string>
     <string name="settings_wallet_use_external_wallet">Use external wallet</string>
     <string name="settings_wallet_use_external_wallet_hint">Alternatively you can connect to an external lightning wallet via Nostr Wallet Connect</string>
@@ -774,10 +750,7 @@
     <string name="settings_wallet_nwc_qr_code_scan_title">Connect NWC Wallet</string>
     <string name="settings_wallet_nwc_qr_code_scan_hint">Scan the NWC\nconnection QR code</string>
     <string name="settings_wallet_nwc_qr_code_scan_paste">Paste Connection String</string>
-    <string name="nwc_service_notification_title">NWC Wallet Service</string>
-    <string name="nwc_service_notification_text">Running for %s</string>
     <string name="nwc_service_notification_user_title">NWC Wallet Active</string>
-    <string name="nwc_service_notification_stop">Stop service</string>
     <string name="settings_wallet_nwc_auto_start">Auto start wallet service</string>
     <string name="settings_wallet_nwc_auto_start_hint">To keep running reliably it\'s necessary to run wallet service in the background.</string>
     <string name="settings_wallet_nwc_service_start">Start wallet service</string>
@@ -785,7 +758,6 @@
     <string name="nwc_notification_service_active">NWC Wallet Service active</string>
     <string name="nwc_notification_enable_switch_label">Enable Notifications</string>
     <string name="nwc_notification_enable_button">Let\'s Go</string>
-    <string name="nwc_notification_keep_running_description">To keep running reliably while LibreNostr is in the background or when your phone is locked, you need to enable wallet service notifications.</string>
 
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_error_update_settings">Unable to update notification settings.</string>
@@ -837,7 +809,7 @@
     <string name="settings_tor_port_title">Orbot SOCKS port</string>
     <string name="settings_tor_port_error">Enter a valid port number (1–65535).</string>
     <string name="settings_tor_orbot_not_installed">Orbot doesn\'t appear to be installed. Install and start Orbot, or connections will fail while Tor is enabled.</string>
-    <string name="settings_tor_restart_required">Fully close LibreNostr for this to take effect — force-stop it from Android Settings if a wallet or signer notification is showing, or restart your device.</string>
+    <string name="settings_tor_restart_required">Fully close LibreNostr for this to take effect — force-stop it from Android Settings if a signer notification is showing, or restart your device.</string>
     <string name="settings_network_relays_section">Relays</string>
     <string name="settings_network_relays_recommendation">Tip: for most users, 5–6 relays is a good balance between reliability and speed. More relays can increase connection and battery usage.</string>
     <string name="settings_network_add_a_relay_section">Add a relay</string>
@@ -863,7 +835,6 @@
     <string name="settings_zaps_editor_message">Message</string>
     <string name="settings_zaps_editor_value">Value</string>
     <string name="settings_zaps_editor_save">Save</string>
-    <string name="settings_wallet_needs_backup">needs backup</string>
 
     <string name="settings_muted_content_title">Muted Content</string>
     <string name="settings_muted_title">Muted</string>
@@ -990,18 +961,6 @@
     <string name="settings_developer_tools_clear">Clear Logs</string>
     <string name="settings_developer_tools_error_no_logs">No logs to export</string>
     <string name="settings_developer_tools_error_export_failed">Failed to export logs</string>
-    <string name="settings_developer_tools_wallet_picker_title">Wallet Picker</string>
-    <string name="settings_developer_tools_wallet_picker_description">Show wallet picker on the wallet dashboard</string>
-    <string name="settings_developer_tools_wallet_id_copy">Copy wallet ID</string>
-    <string name="settings_developer_tools_wallet_id_copied">Wallet ID copied</string>
-    <string name="settings_developer_tools_seed_words_copy">Copy seed words</string>
-    <string name="settings_developer_tools_seed_words_copied">Seed words copied</string>
-    <string name="settings_developer_tools_seed_words_copy_failed">Failed to copy seed words</string>
-    <string name="settings_developer_tools_delete_wallet">Delete Wallet</string>
-    <string name="settings_developer_tools_delete_wallet_title">Delete Wallet?</string>
-    <string name="settings_developer_tools_delete_wallet_text">If you haven\'t backed up your seed phrase, you may permanently lose access to funds on this wallet.</string>
-    <string name="settings_developer_tools_wallet_deleted">Wallet deleted</string>
-    <string name="settings_developer_tools_wallet_delete_failed">Failed to delete wallet</string>
     <string name="settings_developer_tools_data_inspector_title">Inspect User Data</string>
     <string name="settings_developer_tools_data_inspector_description">Browse and export local app data files</string>
     <string name="settings_developer_tools_data_inspector_screen_title">User Data</string>
@@ -1118,244 +1077,22 @@
     <string name="zap_warning_bottom_sheet_no_sats_to_zap">Insufficient sats to zap, you need to get some sats before you can zap.</string>
     <string name="zap_warning_bottom_sheet_go_to_wallet_button">Go to Wallet</string>
 
-    <string name="wallet_dashboard_create_wallet_button">Create Wallet</string>
-    <string name="wallet_dashboard_create_wallet_hint">You don’t have an active wallet.</string>
-    <string name="wallet_dashboard_create_wallet_error">Unable to create wallet.</string>
-    <string name="wallet_dashboard_refresh_error">Couldn\'t refresh wallet. Please try again.</string>
-    <string name="wallet_dashboard_activate_wallet_button">Activate Wallet</string>
-    <string name="wallet_dashboard_activate_wallet_hint">Your wallet is ready to be activated</string>
-    <string name="wallet_dashboard_no_sats_hint">You need sats to zap people on Nostr</string>
-    <string name="wallet_dashboard_no_transactions_hint">Your transactions will appear here.</string>
-    <string name="wallet_dashboard_low_sats_hint">You are running low on sats</string>
-    <string name="wallet_dashboard_buy_sats_button">Buy Sats Now</string>
-    <string name="wallet_dashboard_backup_notice_title">Important:</string>
-    <string name="wallet_dashboard_backup_notice_description">This wallet has not been \n backed up. You need to backup your wallet \n so you don\'t lose access to your funds.</string>
-    <string name="wallet_dashboard_backup_button">Backup Wallet Now</string>
-    <string name="wallet_dashboard_upgrade_header">IMPORTANT</string>
-    <string name="wallet_dashboard_upgrade_expires_on">This wallet will expire on</string>
-    <string name="wallet_dashboard_upgrade_please_upgrade">Please upgrade to continue using this wallet.</string>
-    <string name="wallet_dashboard_upgrade_button">Upgrade Wallet Now</string>
-    <string name="wallet_dashboard_detected_title">Wallet Detected</string>
-    <string name="wallet_dashboard_detected_description">We detected that you already have a non-custodial LibreNostr wallet associated with this Nostr account. To use it on this device, please restore it via the recovery phrase. Alternatively, you can create a new wallet which will be associated with your account.</string>
-    <string name="wallet_dashboard_discontinued_title">Wallet Discontinued</string>
-    <string name="wallet_dashboard_discontinued_description">The custodial wallet service has been discontinued. To recover your funds, please contact us at support@nostrich.org.</string>
-    <string name="wallet_dashboard_restore_button">Restore Existing Wallet</string>
-    <string name="wallet_dashboard_create_new_button">Create New Wallet</string>
 
     <!-- Wallet Notice: Upgrade (Case 1) -->
-    <string name="wallet_notice_upgrade_title">Upgrade Your Wallet!</string>
-    <string name="wallet_notice_upgrade_description_first">Good news: LibreNostr now features a new non-custodial wallet, which is a required upgrade for all users.</string>
-    <string name="wallet_notice_upgrade_description_second">With one tap, we\'ll move your funds and full\ntransaction history to your new non-custodial\nwallet - so you fully control your bitcoin.\nQuestions? Check out our </string>
-    <string name="wallet_notice_upgrade_faqs">FAQs</string>
-    <string name="wallet_notice_upgrade_button">Start Wallet Upgrade</string>
 
     <!-- Wallet Notice: Discontinued (Case 2) -->
-    <string name="wallet_notice_discontinued_title">Wallet Discontinued</string>
-    <string name="wallet_notice_discontinued_description">The custodial wallet service has been discontinued. To recover your funds, please contact us at support@nostrich.org.</string>
-    <string name="wallet_notice_discontinued_close_button">Close</string>
 
     <!-- Wallet Notice: Detected (Case 3) -->
-    <string name="wallet_notice_detected_title">Wallet Detected</string>
-    <string name="wallet_notice_detected_description">We detected that you already have a non-custodial LibreNostr wallet associated with this Nostr account. To use it on this device, please restore it via the recovery phrase. Alternatively, you can create a new wallet which will be associated with your account.</string>
-    <string name="wallet_notice_detected_restore_button">Restore Existing Wallet</string>
-    <string name="wallet_notice_detected_create_button">Create New Wallet</string>
 
-    <string name="wallet_upgrade_title">Wallet Upgrade</string>
-    <string name="wallet_upgrade_upgrading_title">Upgrading…</string>
-    <string name="wallet_upgrade_upgrading_support" tools:ignore="TypographyEllipsis">transferring your wallet\nbalance &amp; transaction history...</string>
-    <string name="wallet_upgrade_success_title">Success</string>
-    <string name="wallet_upgrade_success_headline">Wallet upgraded!</string>
-    <string name="wallet_upgrade_failed_title">Wallet Upgrade</string>
-    <string name="wallet_upgrade_failed_headline">We encountered an issue while upgrading your wallet.</string>
-    <string name="wallet_upgrade_done_button">Done</string>
-    <string name="wallet_upgrade_close_button">Close</string>
-    <string name="wallet_upgrade_retry_button">Retry</string>
-    <string name="wallet_upgrade_share_logs">Share error logs</string>
-    <string name="wallet_upgrade_ready_headline">Ready to Upgrade</string>
-    <string name="wallet_upgrade_ready_description">We\'ll transfer your existing wallet balance and transaction history to your new non-custodial wallet.\n\nPlease don\'t close the app during the upgrade.</string>
-    <string name="wallet_upgrade_start_button">Start Upgrade</string>
-    <string name="wallet_upgrade_step_creating_wallet">Creating your new wallet…</string>
-    <string name="wallet_upgrade_step_registering_wallet">Registering wallet…</string>
-    <string name="wallet_upgrade_step_checking_balance">Checking your balance…</string>
-    <string name="wallet_upgrade_step_creating_invoice">Preparing transfer…</string>
-    <string name="wallet_upgrade_step_transferring_funds">Transferring your funds…</string>
-    <string name="wallet_upgrade_step_awaiting_confirmation">Awaiting confirmation…</string>
-    <string name="wallet_upgrade_step_configuring_wallet">Configuring wallet…</string>
-    <string name="wallet_upgrade_step_importing_history">Importing transaction history…</string>
-    <string name="wallet_upgrade_step_activating_wallet">Activating wallet…</string>
 
-    <string name="wallet_upgrade_faq_title">Wallet Upgrade FAQ</string>
-    <string name="wallet_upgrade_faq_first_question">Do I have to upgrade my wallet?</string>
-    <string name="wallet_upgrade_faq_first_answer">Yes. Support for the old custodial wallet will be discontinued on April 30, 2026. All users need to upgrade prior to this date.</string>
-    <string name="wallet_upgrade_faq_second_question">Does the new LibreNostr wallet support both lightning and on-chain transactions?</string>
-    <string name="wallet_upgrade_faq_second_answer">Yes. Just like with the old custodial wallet, the new LibreNostr wallet enables users to send and receive lightning and on-chain bitcoin transactions.</string>
-    <string name="wallet_upgrade_faq_third_question">Can I keep my existing LibreNostr lightning address?</string>
-    <string name="wallet_upgrade_faq_third_answer">Yes. Your LibreNostr lightning address will not change after the wallet upgrade.</string>
-    <string name="wallet_upgrade_faq_fourth_question">Can I transfer my funds to a different wallet before I upgrade?</string>
-    <string name="wallet_upgrade_faq_fourth_answer">Yes. The old custodial wallet remains fully functional until April 30, 2026. You can send your funds to any other bitcoin wallet prior to upgrading.</string>
-    <string name="wallet_upgrade_faq_fifth_question">Will I be able to revert to the old custodial wallet after the upgrade?</string>
-    <string name="wallet_upgrade_faq_fifth_answer">No. After the wallet upgrade is completed, you will not be able to revert to the old custodial wallet, however your full transaction history will be transferred to the new wallet.</string>
-    <string name="wallet_upgrade_faq_sixth_question">What if I don\'t upgrade before support for the old wallet is discontinued?</string>
-    <string name="wallet_upgrade_faq_sixth_answer">After April 30, 2026 the old custodial wallet will no longer be functional. If you don\'t upgrade and still have some funds in that wallet, you will be able to recover them by contacting us at support@nostrich.org.</string>
-    <string name="wallet_upgrade_faq_seventh_question">Which technology is the new LibreNostr wallet built on?</string>
-    <string name="wallet_upgrade_faq_seventh_answer">The new LibreNostr wallet is built on the Spark network technology. For more information, you can visit: https://spark.money.</string>
-    <string name="wallet_upgrade_faq_eighth_question">Are there any transaction fees that I need to pay to upgrade?</string>
-    <string name="wallet_upgrade_faq_eighth_answer">No. LibreNostr will cover all transaction fees required to upgrade all our users to their new non-custodial wallets.</string>
-    <string name="wallet_upgrade_faq_ninth_question">Does the new wallet support Nostr Wallet Connect?</string>
-    <string name="wallet_upgrade_faq_ninth_answer">Yes. The new LibreNostr wallet does support Nostr Wallet Connect, however it works a bit differently than the old one. Since the new wallet is non-custodial, the LibreNostr mobile app needs to be running in order to sign NWC events. The NWC feature is best used in conjunction with the LibreNostr remote signer.</string>
-    <string name="wallet_upgrade_faq_tenth_question">I have existing NWC connections to the old LibreNostr wallet. Will I have to re-create those with the new wallet?</string>
-    <string name="wallet_upgrade_faq_tenth_answer">Yes. Old NWC connections will stop working when the old wallet is deprecated on April 30, 2026.</string>
 
-    <string name="wallet_restore_title">Restore Existing Wallet</string>
-    <string name="wallet_restore_enter_recovery_phrase_placeholder">Enter your wallet recovery phrase</string>
-    <string name="wallet_restore_helper_text">We support recovery of any existing bitcoin wallet on the network. Recovery phrases are 12 to 24 words long.</string>
-    <string name="wallet_restore_button">Restore Wallet Now</string>
-    <string name="wallet_restore_invalid_recovery_phrase">Invalid recovery phrase</string>
-    <string name="wallet_restore_valid_recovery_phrase">Valid recovery phrase</string>
-    <string name="wallet_restore_restoring_your_wallet">Restoring your wallet…</string>
-    <string name="wallet_restore_error_generic">Something went wrong. Please check your recovery phrase and try again.</string>
 
-    <string name="wallet_sats_suffix">sats</string>
-    <string name="wallet_usd_suffix">USD</string>
-    <string name="wallet_usd_prefix">$</string>
-    <string name="wallet_transaction_list_item_received">Received</string>
-    <string name="wallet_transaction_list_item_sent">Sent</string>
-    <string name="wallet_transaction_list_item_zap_received">Zap received</string>
-    <string name="wallet_transaction_list_item_zap_sent">Zap sent</string>
-    <string name="wallet_transaction_list_item_payment_received">Payment received</string>
-    <string name="wallet_transaction_list_item_payment_sent">Payment sent</string>
-    <string name="wallet_transaction_list_item_bitcoin">Bitcoin</string>
-    <string name="wallet_transaction_list_item_lightning">Lightning Payment</string>
-    <string name="wallet_transaction_list_item_bitcoin_pending">Incoming on-chain payment</string>
-    <string name="wallet_transactions_today">Today</string>
-    <string name="wallet_transactions_yesterday">Yesterday</string>
-    <string name="wallet_transactions_pending">Pending</string>
-    <string name="wallet_in_app_purchase_now_button">Purchase Now</string>
-    <string name="wallet_in_app_purchase_pay_label">Pay</string>
-    <string name="wallet_in_app_purchase_to_receive_label">To receive</string>
-    <string name="wallet_in_app_purchase_not_available">Unable to connect to the Google Play Store services. Please try again.</string>
-    <string name="wallet_in_app_purchase_store_try_again">Try again</string>
-    <string name="wallet_in_app_purchase_error_confirmation_failed">We were unable to confirm your purchase. Please reach out to LibreNostr Support.</string>
-    <string name="wallet_action_button_send">Send</string>
-    <string name="wallet_action_button_scan">Scan</string>
-    <string name="wallet_action_button_receive">Receive</string>
 
-    <string name="wallet_send_payment_nostr_title">Nostr Recipient</string>
-    <string name="wallet_send_payment_scan_qr_code_title">Scan</string>
-    <string name="wallet_send_payment_keyboard_title">Keyboard</string>
-    <string name="wallet_send_payment_scan_image_title">Scan Image</string>
-    <string name="wallet_send_payment_text_description">Type or paste the recipient’s lightning address or an invoice.</string>
-    <string name="wallet_send_payment_text_paste_from_keyboard">Paste from clipboard</string>
-    <string name="wallet_send_payment_text_next">Next</string>
-    <string name="wallet_send_payment_nostr_user_generic">User</string>
-    <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Cannot make payment. %1$s doesn’t have a lightning address set.</string>
-    <string name="wallet_send_payment_error_unable_to_parse_text">Please enter a valid lightning address or an invoice.</string>
-    <string name="wallet_send_payment_this_user_chunk">This user</string>
 
-    <string name="wallet_create_transaction_draft_title">Sending To</string>
-    <string name="wallet_create_transaction_send_button">Send</string>
-    <string name="wallet_create_transaction_cancel_numeric_pad_button">Cancel</string>
-    <string name="wallet_create_transaction_next_numeric_pad_button">Next</string>
-    <string name="wallet_create_transaction_note_hint">Add message</string>
-    <string name="wallet_create_transaction_note_hint_with_recipient">Add message for %1$s</string>
-    <string name="wallet_create_transaction_note_to_self">Add a note to self</string>
-    <string name="wallet_create_transaction_sending_title">Sending…</string>
-    <string name="wallet_create_transaction_sending_headline">Sending</string>
-    <string name="wallet_create_transaction_sats_to">sats to</string>
-    <string name="wallet_create_transaction_success_title">Success</string>
-    <string name="wallet_create_transaction_success_headline">Payment sent</string>
-    <string name="wallet_create_transaction_success_prefix">Success!</string>
-    <string name="wallet_create_transaction_success_suffix_recipient">sats sent to</string>
-    <string name="wallet_create_transaction_success_suffix">sats sent</string>
-    <string name="wallet_create_transaction_failed_title">Payment Failed</string>
-    <string name="wallet_create_transaction_failed_headline">Unable to send</string>
-    <string name="wallet_create_transaction_close_button">Close</string>
-    <string name="wallet_create_transaction_bitcoin_address">Bitcoin Address</string>
-    <string name="wallet_create_transaction_lightning_invoice">Lightning Invoice</string>
-    <string name="wallet_create_transaction_mining_fee">Mining Fee</string>
-    <string name="wallet_create_transaction_mining_fees_not_fetched">---</string>
-    <string name="wallet_create_transaction_min_tx_amount_title">Alert</string>
-    <string name="wallet_create_transaction_min_tx_amount_text">Amount too small for an on-chain transaction.</string>
-    <string name="wallet_create_transaction_min_tx_amount_for_selected_fee_tier_error">%1$s is minimal amount for %2$s tier.</string>
 
-    <string name="wallet_create_transaction_mining_fee_selector_title">Mining fee</string>
-    <string name="wallet_create_transaction_mining_fee_selector_approx_label_prefix">Approx.</string>
-    <string name="wallet_create_transaction_mining_fee_selector_about_text_button">About Mining Fees</string>
-    <string name="wallet_create_transaction_mining_fee_selector_about_title">About mining fees</string>
-    <string name="wallet_create_transaction_mining_fee_selector_about_text">Bitcoin mining fees are small payments made by users to compensate the network of computers that process and verify Bitcoin transactions. These fees help prioritize your transaction, ensuring it gets added to the blockchain quickly. They also support the overall security and maintenance of the Bitcoin network.</string>
 
-    <string name="wallet_receive_lightning_transaction_title">Receive via Lightning</string>
-    <string name="wallet_receive_btc_transaction_title">Receive On-chain</string>
-    <string name="wallet_receive_transaction_title">Receive</string>
-    <string name="wallet_receive_transaction_your_lightning_address">Your Lightning Address:</string>
-    <string name="wallet_receive_transaction_your_bitcoin_address">Your Bitcoin Address:</string>
-    <string name="wallet_receive_transaction_comment">Comment:</string>
-    <string name="wallet_receive_transaction_copy_button">Copy</string>
-    <string name="wallet_receive_transaction_add_details_button">Add Details</string>
-    <string name="wallet_receive_transaction_edit_details_button">Edit Details</string>
-    <string name="wallet_receive_transaction_comment_hint">Add a comment</string>
-    <string name="wallet_receive_transaction_cancel_numeric_pad_button">Cancel</string>
-    <string name="wallet_receive_transaction_apply_numeric_pad_button">Apply</string>
-    <string name="wallet_receive_transaction_invoice_creation_error">Unable to add details. Please try again in few moments.</string>
-    <string name="wallet_receive_transaction_success_title">Success</string>
-    <string name="wallet_receive_transaction_success_headline">%1$s sats received!</string>
-    <string name="wallet_receive_no_lightning_address">We couldn\'t get lightning address for this wallet. Try adding an amount or configuring lightning address.</string>
 
-    <string name="wallet_transaction_details_title_zap_received">Zap Received</string>
-    <string name="wallet_transaction_details_title_zap_sent">Zap Sent</string>
-    <string name="wallet_transaction_details_title_payment_pending">Payment Pending</string>
-    <string name="wallet_transaction_details_title_payment_received">Payment Received</string>
-    <string name="wallet_transaction_details_title_payment_sent">Payment Sent</string>
-    <string name="wallet_transaction_details_sent_to">Sent To</string>
-    <string name="wallet_transaction_details_received_from">Received From</string>
-    <string name="wallet_transaction_details_zapped_note">Zapped Note</string>
-    <string name="wallet_transaction_details_zapped_article">Zapped Article</string>
-    <string name="wallet_transaction_details_zapped_stream">Zapped Stream</string>
-    <string name="wallet_transaction_details_date_item">Date</string>
-    <string name="wallet_transaction_details_status_item">Status</string>
-    <string name="wallet_transaction_details_type_item">Transaction Type</string>
-    <string name="wallet_transaction_details_currents_usd_item">Current USD value</string>
-    <string name="wallet_transaction_details_original_usd_item">Original USD value</string>
-    <string name="wallet_transaction_details_fee_item">Transaction Fee</string>
-    <string name="wallet_transaction_details_mining_fee_item">Mining Fee</string>
-    <string name="wallet_transaction_details_details_item">Details</string>
-    <string name="wallet_transaction_details_invoice_item">Invoice</string>
-    <string name="wallet_transaction_details_expand_collapse_hint">Transaction details</string>
-    <string name="wallet_transaction_details_type_nostr_zap">Nostr Zap</string>
-    <string name="wallet_transaction_details_type_in_app_purchase">In-app Purchase</string>
-    <string name="wallet_transaction_details_type_bitcoin_payment">Bitcoin Payment</string>
-    <string name="wallet_transaction_details_type_on_chain_payment">On-chain Payment</string>
-    <string name="wallet_transaction_details_type_lightning_payment">Lightning Payment</string>
-    <string name="wallet_transaction_details_view_on_blockchain">View on Blockchain</string>
-    <string name="wallet_transaction_details_status_created">Pending</string>
-    <string name="wallet_transaction_details_status_processing">Pending</string>
-    <string name="wallet_transaction_details_status_succeeded">Paid</string>
-    <string name="wallet_transaction_details_status_succeeded_confirmed">Confirmed</string>
-    <string name="wallet_transaction_details_status_failed">Failed</string>
-    <string name="wallet_transaction_details_status_canceled">Canceled</string>
 
-    <string name="wallet_backup_title">Backup Wallet</string>
-    <string name="wallet_backup_verify_title">Verify Recovery Phrase</string>
-    <string name="wallet_backup_success_title">Congrats!</string>
-    <string name="wallet_backup_welcome_description">We are going to display your wallet recovery phrase on the next screen.</string>
-    <string name="wallet_backup_important">Important:</string>
-    <string name="wallet_backup_disclaimer_part_one">LibreNostr does not have access to the funds in your wallet. You have sole custody of your wallet via the recovery phrase. If you lose your recovery phrase, </string>
-    <string name="wallet_backup_disclaimer_part_two">LibreNostr will not be able to restore your funds.</string>
-    <string name="wallet_backup_button_i_understand">I understand, backup wallet</string>
-    <string name="wallet_backup_button_cancel">Cancel, I\'ll do this later</string>
-    <string name="wallet_backup_seed_description_one">This is your wallet recovery phrase. To backup your wallet, simply write these words down in the correct order.</string>
-    <string name="wallet_backup_seed_description_two">The words are not case sensitive and they are separated by spaces. We will ask you to verify on the next screen.</string>
-    <string name="wallet_backup_button_written_down">I have written it down</string>
-    <string name="wallet_backup_verify_word_label">Type word #%1$d:</string>
-    <string name="wallet_backup_verify_correct">Correct</string>
-    <string name="wallet_backup_verify_incorrect">Incorrect</string>
-    <string name="wallet_backup_button_verify">Verify</string>
-    <string name="wallet_backup_confirm_check_1">My funds are not held by LibreNostr</string>
-    <string name="wallet_backup_confirm_check_2">If my device gets lost or stolen, the only way to recover my funds is via the wallet recovery phrase</string>
-    <string name="wallet_backup_confirm_check_3">It is my sole responsibility to keep my recovery phrase safe</string>
-    <string name="wallet_backup_confirm_description">Your wallet has been backed up. You now hold the keys to your bitcoin!\nPlease confirm the three points below.</string>
-    <string name="wallet_backup_confirm_subtitle">I understand that:</string>
-    <string name="wallet_backup_button_finish">Finish</string>
 
     <string name="qrcode_scanner_permission_title">Permission required</string>
     <string name="qrcode_scanner_permission_rationale">LibreNostr needs access to your camera to scan QR codes.</string>
@@ -1528,11 +1265,6 @@
     <string name="nostr_connect_toast_connected">Connected!</string>
     <string name="nostr_connect_toast_connection_failed">Connection failed: %1$s</string>
     <string name="nostr_connect_apply_button">Apply</string>
-    <string name="nostr_connect_sats_unit">sats</string>
-    <string name="nostr_connect_daily_budget_title">Daily Budget</string>
-    <string name="nostr_connect_daily_spending_budget_title">Daily spending budget for this app:</string>
-    <string name="nostr_connect_usd_amount_approx">~%1$s</string>
-    <string name="nostr_connect_no_limit">No limit</string>
     <string name="nostr_connect_active_sessions_title">Active Sessions</string>
     <string name="nostr_connect_select_all_button">Select All</string>
     <string name="nostr_connect_deselect_all_button">Deselect All</string>
@@ -1579,23 +1311,6 @@
 
     <string name="local_app_unknown_app">Unknown App</string>
 
-    <string name="wallet_upgrade_ready_bullet_1">It will take less than a minute</string>
-    <string name="wallet_upgrade_ready_bullet_2">We\'ll transfer your wallet balance</string>
-    <string name="wallet_upgrade_ready_bullet_3">We\'ll copy your transaction history</string>
-    <string name="wallet_upgrade_ready_bullet_4">You\'ll keep your lightning address</string>
-    <string name="wallet_upgrade_keep_open">Please keep LibreNostr open\nuntil the upgrade process is done.</string>
-    <string name="wallet_upgrade_faq_question">Questions? Check out our </string>
-    <string name="wallet_upgrade_faq_link">FAQs</string>
-    <string name="wallet_upgrade_button_now">Upgrade Wallet Now</string>
-    <string name="wallet_upgrade_creating_spark">Creating your new Spark wallet…</string>
-    <string name="wallet_upgrade_failed_subtitle_1">But no worries, your old wallet is still fully functional and you can safely try again.</string>
-    <string name="wallet_upgrade_failed_subtitle_2">If you have a larger wallet balance, you can try sending it to a different wallet first.</string>
-    <string name="wallet_upgrade_failed_support_1">If this issue persists please feel free to contact support at</string>
-    <string name="wallet_upgrade_failed_support_email">support@nostrich.org</string>
-    <string name="wallet_upgrade_failed_support_2">. Make sure you</string>
-    <string name="wallet_upgrade_failed_support_copy_log">copy the error log</string>
-    <string name="wallet_upgrade_failed_support_3">, and include that in your email.</string>
-    <string name="wallet_upgrade_try_again_button">Try Again</string>
 
     <plurals name="poll_votes_count">
         <item quantity="one">%1$d vote</item>
@@ -1649,4 +1364,8 @@
     <string name="private_reply_recipient_cancel">Cancel</string>
     <string name="feed_context_private_reply">Private reply</string>
     <string name="thread_private_reply_badge">Private</string>
+
+    <string name="wallet_sats_suffix">sats</string>
+    <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Cannot make payment. %1$s doesn’t have a lightning address set.</string>
+    <string name="wallet_send_payment_this_user_chunk">This user</string>
 </resources>

@@ -7,15 +7,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -58,7 +54,6 @@ import net.primal.android.core.compose.icons.primaliconpack.MenuAccount
 import net.primal.android.core.compose.icons.primaliconpack.MuteUser
 import net.primal.android.core.compose.icons.primaliconpack.Notifications
 import net.primal.android.core.compose.icons.primaliconpack.NostrConnectSession
-import net.primal.android.core.compose.icons.primaliconpack.NavWallet
 import net.primal.android.core.compose.icons.primaliconpack.Zap
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
@@ -122,8 +117,7 @@ private fun SettingsHomeScreen(
                 ) {
                     items(
                         items = PrimalSettingsSection.entries.filter {
-                            it != PrimalSettingsSection.Wallet &&
-                                it != PrimalSettingsSection.ConnectedApps &&
+                            it != PrimalSettingsSection.ConnectedApps &&
                                 it != PrimalSettingsSection.Account &&
                                 it != PrimalSettingsSection.Zaps
                         },
@@ -144,7 +138,6 @@ private fun SettingsHomeScreen(
                             } else {
                                 Icons.AutoMirrored.Outlined.KeyboardArrowRight
                             },
-                            walletNeedsBackup = it == PrimalSettingsSection.Wallet && state.walletNeedsBackup,
                         )
                         AnimatedVisibility(
                             visible = expandedSection == it.name,
@@ -218,7 +211,6 @@ private fun SettingsListItem(
     description: String? = null,
     leadingIcon: ImageVector? = null,
     trailingIcon: ImageVector? = null,
-    walletNeedsBackup: Boolean = false,
 ) {
     ListItem(
         modifier = Modifier
@@ -240,20 +232,10 @@ private fun SettingsListItem(
             null
         },
         headlineContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title,
-                    style = AppTheme.typography.titleMedium,
-                )
-                if (walletNeedsBackup) {
-                    Badge(
-                        modifier = Modifier
-                            .size(size = 8.dp)
-                            .offset(x = 8.dp, y = (-8).dp),
-                        containerColor = AppTheme.colorScheme.primary,
-                    )
-                }
-            }
+            Text(
+                text = title,
+                style = AppTheme.typography.titleMedium,
+            )
         },
         supportingContent = {
             if (description != null) {
@@ -263,20 +245,8 @@ private fun SettingsListItem(
             }
         },
         trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (walletNeedsBackup) {
-                    Text(
-                        text = stringResource(id = R.string.settings_wallet_needs_backup),
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
-                    )
-                }
-                if (trailingIcon != null) {
-                    Icon(imageVector = trailingIcon, contentDescription = null)
-                }
+            if (trailingIcon != null) {
+                Icon(imageVector = trailingIcon, contentDescription = null)
             }
         },
     )
@@ -296,7 +266,6 @@ private fun PrimalSettingsSection.icon(): ImageVector {
     return when (this) {
         PrimalSettingsSection.Account -> PrimalIcons.MenuAccount
         PrimalSettingsSection.Accounts -> PrimalIcons.AddAccount
-        PrimalSettingsSection.Wallet -> PrimalIcons.NavWallet
         PrimalSettingsSection.Network -> PrimalIcons.ConnectRelay
         PrimalSettingsSection.Tor -> PrimalIcons.Key
         PrimalSettingsSection.Appearance -> PrimalIcons.DarkMode
@@ -317,7 +286,6 @@ private fun PrimalSettingsSection.title(): String {
         PrimalSettingsSection.Accounts -> stringResource(id = R.string.settings_accounts_title)
         PrimalSettingsSection.Network -> stringResource(id = R.string.settings_network_title)
         PrimalSettingsSection.Tor -> stringResource(id = R.string.settings_tor_title)
-        PrimalSettingsSection.Wallet -> stringResource(id = R.string.settings_wallet_title)
         PrimalSettingsSection.Appearance -> stringResource(id = R.string.settings_appearance_title)
         PrimalSettingsSection.ContentDisplay -> stringResource(id = R.string.settings_content_display_title)
         PrimalSettingsSection.Notifications -> stringResource(id = R.string.settings_notifications_title)

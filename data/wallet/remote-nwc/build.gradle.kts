@@ -28,7 +28,6 @@ kotlin {
                 implementation(project(":core:networking-lightning"))
                 implementation(project(":domain:primal"))
                 implementation(project(":domain:nostr"))
-                implementation(project(":domain:wallet"))
 
                 implementation(libs.kotlinx.coroutines.core)
 

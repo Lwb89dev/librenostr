@@ -28,10 +28,6 @@ import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.isClientTag
 import net.primal.domain.nostr.publisher.NostrPublishException
-import net.primal.domain.nostr.zaps.NostrZapper
-import net.primal.domain.nostr.zaps.NostrZapperFactory
-import net.primal.domain.nostr.zaps.ZapResult
-import net.primal.domain.nostr.zaps.ZapTarget
 import net.primal.domain.publisher.PrimalPublishResult
 import net.primal.domain.publisher.PrimalPublisher
 import net.primal.shared.data.local.db.withTransaction
@@ -106,48 +102,13 @@ class EventInteractionRepositoryImplTest {
         primalPublisher: PrimalPublisher = mockk {
             coEvery { signPublishImportNostrEvent(any(), any()) } returns dummyPublishResult
         },
-        nostrZapperFactory: NostrZapperFactory = mockk(),
     ): EventInteractionRepository {
         return EventInteractionRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             primalPublisher = primalPublisher,
-            nostrZapperFactory = nostrZapperFactory,
             database = mockDatabase,
         )
     }
-
-    private fun buildSuccessfulZapperFactory(): NostrZapperFactory {
-        val mockZapper = mockk<NostrZapper> {
-            coEvery { zap(any(), any()) } returns ZapResult.Success
-        }
-        return mockk {
-            coEvery { createOrNull(any()) } returns mockZapper
-        }
-    }
-
-    private fun buildFailingZapperFactory(): NostrZapperFactory {
-        val mockZapper = mockk<NostrZapper> {
-            coEvery { zap(any(), any()) } returns ZapResult.Failure(
-                error = net.primal.domain.nostr.zaps.ZapError.FailedToPublishEvent,
-            )
-        }
-        return mockk {
-            coEvery { createOrNull(any()) } returns mockZapper
-        }
-    }
-
-    private val eventZapTarget = ZapTarget.Event(
-        eventId = eventId,
-        recipientUserId = eventAuthorId,
-        recipientLnUrlDecoded = "lnurl_decoded",
-    )
-
-    private val pollZapTarget = ZapTarget.PollEvent(
-        eventId = eventId,
-        optionId = "0",
-        recipientUserId = eventAuthorId,
-        recipientLnUrlDecoded = "lnurl_decoded",
-    )
 
     @Test
     fun `likePost updates like stats in database if reaction was published`() =
@@ -338,108 +299,4 @@ class EventInteractionRepositoryImplTest {
             }
         }
 
-    @Test
-    fun `zapEvent with Event target updates zap stats in database`() =
-        runTest(testDispatcher) {
-            val repository = buildRepository(nostrZapperFactory = buildSuccessfulZapperFactory())
-
-            repository.zapEvent(
-                userId = userId,
-                walletId = "wallet_id",
-                amountInSats = 21u,
-                comment = "nice",
-                target = eventZapTarget,
-                zapRequestEvent = dummyNostrEvent,
-            )
-
-            coVerify { mockEventStatsDao.upsert(data = match { it.zaps == 1L && it.satsZapped == 21L }) }
-            coVerify { mockEventUserStatsDao.upsert(data = match { it.zapped }) }
-            coVerify { mockEventZapDao.insert(data = any()) }
-        }
-
-    @Test
-    fun `zapEvent with PollEvent target does not update zap stats in database`() =
-        runTest(testDispatcher) {
-            val repository = buildRepository(nostrZapperFactory = buildSuccessfulZapperFactory())
-
-            repository.zapEvent(
-                userId = userId,
-                walletId = "wallet_id",
-                amountInSats = 21u,
-                comment = "nice",
-                target = pollZapTarget,
-                zapRequestEvent = dummyNostrEvent,
-            )
-
-            coVerify(exactly = 0) { mockEventStatsDao.upsert(data = any()) }
-            coVerify(exactly = 0) { mockEventUserStatsDao.upsert(data = any()) }
-            coVerify(exactly = 0) { mockEventZapDao.insert(data = any()) }
-        }
-
-    @Test
-    fun `zapEvent with Event target reverts stats on failure`() =
-        runTest(testDispatcher) {
-            val repository = buildRepository(nostrZapperFactory = buildFailingZapperFactory())
-
-            val result = repository.zapEvent(
-                userId = userId,
-                walletId = "wallet_id",
-                amountInSats = 21u,
-                comment = "nice",
-                target = eventZapTarget,
-                zapRequestEvent = dummyNostrEvent,
-            )
-
-            result shouldBe ZapResult.Failure(error = net.primal.domain.nostr.zaps.ZapError.FailedToPublishEvent)
-            // increaseZapStats upserts once, then revertStats upserts once more
-            coVerify(atLeast = 2) { mockEventStatsDao.upsert(data = any()) }
-            coVerify(atLeast = 2) { mockEventUserStatsDao.upsert(data = any()) }
-        }
-
-    @Test
-    fun `zapEvent with PollEvent target does not revert stats on failure`() =
-        runTest(testDispatcher) {
-            val repository = buildRepository(nostrZapperFactory = buildFailingZapperFactory())
-
-            val result = repository.zapEvent(
-                userId = userId,
-                walletId = "wallet_id",
-                amountInSats = 21u,
-                comment = "nice",
-                target = pollZapTarget,
-                zapRequestEvent = dummyNostrEvent,
-            )
-
-            result shouldBe ZapResult.Failure(error = net.primal.domain.nostr.zaps.ZapError.FailedToPublishEvent)
-            coVerify(exactly = 0) { mockEventStatsDao.upsert(data = any()) }
-            coVerify(exactly = 0) { mockEventUserStatsDao.upsert(data = any()) }
-        }
-
-    @Test
-    fun `zapEvent passes correct target to nostr zapper`() =
-        runTest(testDispatcher) {
-            val mockZapper = mockk<NostrZapper> {
-                coEvery { zap(any(), any()) } returns ZapResult.Success
-            }
-            val zapperFactory = mockk<NostrZapperFactory> {
-                coEvery { createOrNull(any()) } returns mockZapper
-            }
-            val repository = buildRepository(nostrZapperFactory = zapperFactory)
-
-            repository.zapEvent(
-                userId = userId,
-                walletId = "wallet_id",
-                amountInSats = 21u,
-                comment = "nice",
-                target = pollZapTarget,
-                zapRequestEvent = dummyNostrEvent,
-            )
-
-            coVerify {
-                mockZapper.zap(
-                    walletId = "wallet_id",
-                    data = match { it.target == pollZapTarget },
-                )
-            }
-        }
 }

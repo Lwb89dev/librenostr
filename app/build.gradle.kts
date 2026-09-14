@@ -51,8 +51,8 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
     )
 }
 
-val appVersionCode = 35
-val appVersionName = "0.5.14"
+val appVersionCode = 36
+val appVersionName = "0.5.15"
 
 tasks.register("generateReleaseProperties") {
     doLast {
@@ -253,13 +253,10 @@ dependencies {
 
     implementation(project(":domain:nostr"))
     implementation(project(":domain:primal"))
-    implementation(project(":domain:wallet"))
     implementation(project(":domain:account"))
 
     implementation(project(":data:caching:remote"))
     implementation(project(":data:caching:repository"))
-
-    implementation(project(":data:wallet:repository"))
 
     implementation(project(":data:account:repository"))
     implementation(project(":data:account:signer"))

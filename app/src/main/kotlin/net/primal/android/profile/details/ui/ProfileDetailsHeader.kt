@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import net.primal.android.R
-import net.primal.android.core.activity.LocalZappingState
 import net.primal.android.core.compose.AvatarOverlap
 import net.primal.android.core.compose.AvatarThumbnailsRow
 import net.primal.android.core.compose.IconText
@@ -62,9 +61,8 @@ import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.profile.details.ProfileDetailsContract
 import net.primal.android.profile.details.ui.model.PremiumProfileDataUi
 import net.primal.android.theme.AppTheme
+import net.primal.core.utils.isLightningAddress
 import net.primal.domain.nostr.utils.asEllipsizedNpub
-import net.primal.domain.utils.isLightningAddress
-import net.primal.domain.wallet.DraftTx
 
 @Composable
 fun ProfileHeaderDetails(
@@ -72,19 +70,18 @@ fun ProfileHeaderDetails(
     eventPublisher: (ProfileDetailsContract.UiEvent) -> Unit,
     callbacks: ProfileDetailsContract.ScreenCallbacks,
     noteCallbacks: NoteCallbacks,
-    showCantZapWarning: () -> Unit,
     snackbarHostState: SnackbarHostState,
 ) {
     val uiScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val zappingState = LocalZappingState.current
 
-    fun onZapProfile(draftTx: DraftTx) {
-        if (zappingState.walletConnected) {
-            callbacks.onSendWalletTx(draftTx)
-        } else {
-            showCantZapWarning()
-        }
+    fun onZapProfile(profileId: String, profileLnUrlDecoded: String) {
+        eventPublisher(
+            ProfileDetailsContract.UiEvent.ZapProfile(
+                profileId = profileId,
+                profileLnUrlDecoded = profileLnUrlDecoded,
+            ),
+        )
     }
 
     fun onUnableToZapProfile() {
@@ -106,9 +103,11 @@ fun ProfileHeaderDetails(
         onEditProfileClick = callbacks.onEditProfileClick,
         onMessageClick = { state.profileId?.let { callbacks.onMessageClick(state.profileId) } },
         onZapProfileClick = {
+            val profileId = state.profileId
             val profileLud16 = state.profileDetails?.lightningAddress
-            if (profileLud16?.isLightningAddress() == true) {
-                onZapProfile(DraftTx(targetUserId = state.profileId, targetLud16 = profileLud16))
+            val profileLnUrlDecoded = state.profileDetails?.lnUrlDecoded
+            if (profileId != null && profileLnUrlDecoded != null && profileLud16?.isLightningAddress() == true) {
+                onZapProfile(profileId = profileId, profileLnUrlDecoded = profileLnUrlDecoded)
             } else {
                 onUnableToZapProfile()
             }

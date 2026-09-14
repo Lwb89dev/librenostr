@@ -128,7 +128,6 @@ fun SearchScreen(
                             NoteFeedList(
                                 feedSpec = feedSpec,
                                 noteCallbacks = callbacks.noteCallbacks,
-                                onGoToWallet = callbacks.onGoToWallet,
                                 contentPadding = PaddingValues(0.dp),
                             )
                         }

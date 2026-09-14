@@ -18,14 +18,11 @@ import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asNeventString
 import net.primal.android.notes.feed.note.NoteContract.UiEvent
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.notes.feed.zaps.UnableToZapBottomSheet
 import net.primal.android.notes.feed.zaps.ZapBottomSheet
 import net.primal.android.profile.report.ReportUserDialog
-import net.primal.domain.utils.canZap
 
 @Stable
 class NoteCardDialogsState {
-    var showCantZapWarning by mutableStateOf(false)
     var showZapOptions by mutableStateOf(false)
     var showDeleteDialog by mutableStateOf(false)
     var showReportDialog by mutableStateOf(false)
@@ -44,36 +41,23 @@ fun NoteCardDialogs(
     noteState: NoteContract.UiState,
     eventPublisher: (UiEvent) -> Unit,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: (() -> Unit)?,
     repostAnchor: AnchorHandle,
 ) {
     val zappingState = LocalZappingState.current
-    if (dialogsState.showCantZapWarning) {
-        UnableToZapBottomSheet(
-            zappingState = zappingState,
-            onDismissRequest = { dialogsState.showCantZapWarning = false },
-            onGoToWallet = { onGoToWallet?.invoke() },
-        )
-    }
-
     if (dialogsState.showZapOptions) {
         ZapBottomSheet(
             onDismissRequest = { dialogsState.showZapOptions = false },
             receiverName = data.authorName,
             zappingState = zappingState,
             onZap = { zapAmount, zapDescription ->
-                if (zappingState.canZap(zapAmount)) {
-                    eventPublisher(
-                        UiEvent.ZapAction(
-                            postId = data.postId,
-                            postAuthorId = data.authorId,
-                            zapAmount = zapAmount.toULong(),
-                            zapDescription = zapDescription,
-                        ),
-                    )
-                } else {
-                    dialogsState.showCantZapWarning = true
-                }
+                eventPublisher(
+                    UiEvent.ZapAction(
+                        postId = data.postId,
+                        postAuthorId = data.authorId,
+                        zapAmount = zapAmount.toULong(),
+                        zapDescription = zapDescription,
+                    ),
+                )
             },
         )
     }

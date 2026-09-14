@@ -9,7 +9,9 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -80,7 +82,7 @@ class RelayPool(
         const val AUTH_SIGN_TIMEOUT_MS = 5_000L
     }
 
-    private val scope = CoroutineScope(dispatchers.io())
+    private val scope = CoroutineScope(dispatchers.io() + SupervisorJob())
     private val activeSubscriptions = AtomicInteger(0)
 
     @VisibleForTesting
@@ -147,6 +149,22 @@ class RelayPool(
         }
         socketClients = emptyList()
         relays = emptyList()
+    }
+
+    /**
+     * Terminates this pool for good: closes every socket directly (awaited, not fire-and-forget)
+     * and cancels the pool's internal scope. Unlike [closePool] — which leaves the scope alive so
+     * a long-lived pool can be repopulated later via [changeRelays], e.g. on re-login — a
+     * destroyed pool can never be reused: its `scope.launch { }` calls silently become no-ops
+     * forever after this. Only call this on a disposable, one-shot pool (e.g. the per-request
+     * custom pools RelaysSocketManager builds for NIP-17 DM operations), never on a pool meant to
+     * outlive a single operation.
+     */
+    suspend fun destroy() {
+        socketClients.forEach { client -> runCatching { client.close() } }
+        socketClients = emptyList()
+        relays = emptyList()
+        scope.cancel()
     }
 
     fun hasRelays() = relays.isNotEmpty()

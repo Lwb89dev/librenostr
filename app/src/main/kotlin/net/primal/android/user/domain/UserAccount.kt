@@ -2,14 +2,10 @@ package net.primal.android.user.domain
 
 import java.time.Instant
 import kotlinx.serialization.Serializable
-import net.primal.android.settings.wallet.domain.WalletPreference
 import net.primal.domain.global.ContentAppSettings
 import net.primal.domain.links.CdnImage
 import net.primal.domain.membership.PrimalLegendProfile
 import net.primal.domain.nostr.utils.asEllipsizedNpub
-import net.primal.domain.wallet.NostrWalletConnect
-import net.primal.domain.wallet.WalletSettings
-import net.primal.domain.wallet.WalletState
 
 @Serializable
 data class UserAccount(
@@ -23,20 +19,6 @@ data class UserAccount(
     val followersCount: Int? = null,
     val notesCount: Int? = null,
     val repliesCount: Int? = null,
-    @Deprecated("Please use WalletDatabase for wallet information.")
-    val nostrWallet: NostrWalletConnect? = null,
-    @Deprecated("Please use WalletDatabase for wallet information.")
-    val primalWallet: PrimalWallet? = null,
-    @Deprecated("Please use WalletDatabase for wallet information.")
-    val primalWalletState: WalletState = WalletState(),
-    @Deprecated("Please use WalletDatabase for wallet information.")
-    val primalWalletSettings: WalletSettings = WalletSettings(),
-    @Deprecated("Please use WalletDatabase for wallet information.")
-    val walletPreference: WalletPreference = when {
-        primalWallet != null -> WalletPreference.PrimalWallet
-        nostrWallet != null -> WalletPreference.NostrWalletConnect
-        else -> WalletPreference.Undefined
-    },
     val appSettings: ContentAppSettings? = null,
     val contentDisplaySettings: ContentDisplaySettings = ContentDisplaySettings(),
     val following: Set<String> = emptySet(),
@@ -56,8 +38,6 @@ data class UserAccount(
      */
     val showFollowNotifications: Boolean = true,
     val shouldShowStreamControlPopup: Boolean = true,
-    val shouldShowWalletDetectedNotice: Boolean = true,
-    val shouldShowWalletDiscontinuedNotice: Boolean = true,
     val shouldShowExploreHint: Boolean = true,
 ) {
     companion object {

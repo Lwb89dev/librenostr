@@ -15,7 +15,7 @@ import net.primal.android.feeds.dvm.DvmFeedListItemContract.UiEvent
 import net.primal.android.feeds.dvm.DvmFeedListItemContract.UiState
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.accounts.active.ActiveAccountStore
-import net.primal.android.wallet.zaps.ZapHandler
+import net.primal.android.zaps.ZapHandler
 import net.primal.domain.events.EventInteractionRepository
 import net.primal.domain.feeds.DvmFeed
 import net.primal.domain.nostr.NostrEventKind

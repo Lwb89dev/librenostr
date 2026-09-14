@@ -14,6 +14,5 @@ interface BookmarksContract {
 
     data class ScreenCallbacks(
         val onClose: () -> Unit,
-        val onGoToWallet: () -> Unit,
     )
 }

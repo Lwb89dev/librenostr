@@ -1,7 +1,6 @@
 package net.primal.android.scanner.domain
 
 import net.primal.android.nostrconnect.utils.isNostrConnectUrl
-import net.primal.android.scan.utils.isPromoCodeUrl
 import net.primal.domain.nostr.utils.isNAddr
 import net.primal.domain.nostr.utils.isNAddrUri
 import net.primal.domain.nostr.utils.isNEvent
@@ -12,12 +11,11 @@ import net.primal.domain.nostr.utils.isNPub
 import net.primal.domain.nostr.utils.isNPubUri
 import net.primal.domain.nostr.utils.isNote
 import net.primal.domain.nostr.utils.isNoteUri
-import net.primal.domain.parser.isNwcUrl
-import net.primal.domain.utils.isBitcoinAddress
-import net.primal.domain.utils.isBitcoinUri
-import net.primal.domain.utils.isLightningUri
-import net.primal.domain.utils.isLnInvoice
-import net.primal.domain.utils.isLnUrl
+import net.primal.core.utils.isBitcoinAddress
+import net.primal.core.utils.isBitcoinUri
+import net.primal.core.utils.isLightningUri
+import net.primal.core.utils.isLnInvoice
+import net.primal.core.utils.isLnUrl
 
 enum class QrCodeDataType(val validator: (String) -> Boolean) {
     NPUB_URI(validator = { it.isNPubUri() }),
@@ -35,9 +33,7 @@ enum class QrCodeDataType(val validator: (String) -> Boolean) {
     LNURL(validator = { it.isLnUrl() }),
     BITCOIN_URI(validator = { it.isBitcoinUri() }),
     BITCOIN_ADDRESS(validator = { it.isBitcoinAddress() }),
-    NWC_URL(validator = { it.isNwcUrl() }),
     NOSTR_CONNECT(validator = { it.isNostrConnectUrl() }),
-    PROMO_CODE(validator = { it.isPromoCodeUrl() }),
     ;
 
     companion object {

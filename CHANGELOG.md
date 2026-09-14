@@ -7,6 +7,47 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.15] - 2026-09-14
+
+### Removed
+
+- The in-app Primal wallet is gone: no more custodial balance, deposits/withdrawals, the
+  self-custodial Spark wallet option, promo-code redemption, or the ability to let another app
+  spend from either wallet over Nostr Wallet Connect (NWC). Safely operating a real wallet isn't
+  something this fork can commit to, so it's better removed cleanly than left half-working.
+  **Zapping is unaffected** — it still builds a standard NIP-57 zap request and hands the invoice
+  to whichever Lightning wallet app is installed on your phone, exactly as before.
+
+### Fixed
+
+- The notifications tab did a full refresh from relays every time it was opened, even seconds
+  after the previous visit with nothing new to show. It now only does a full refresh when little
+  or nothing is cached locally yet.
+- The GIF picker in the note composer opened blank until you typed a search. Trending GIFs now
+  load automatically as soon as it opens.
+- Every direct-message send or fetch left a background task running for the rest of the app
+  session, never cleaned up — a slow memory leak on accounts that use DMs a lot.
+- An internal cache used to avoid re-checking Nostr address (NIP-05) verification kept growing for
+  as long as the app ran, with nothing ever removed from it. It's now capped to a sane size.
+- Live stream chat kept the *entire* message history for a broadcast in memory and reprocessed all
+  of it on every new message, so long or popular streams could accumulate this without bound. Chat
+  now keeps a rolling window of the most recent messages instead.
+- Reconnecting to a remote signer app (e.g. Amber) more than once in the same app session could
+  produce duplicate "new signer request" notifications; the underlying subscriptions now only ever
+  start once per app session instead of stacking on every reconnect.
+
+### Changed
+
+- Reply threads could visibly stutter while scrolling long conversations: any single change
+  anywhere in the thread (a like, a zap, anything) was rebuilding *every* visible reply card from
+  scratch instead of only the one that actually changed. Scrolling should now feel noticeably
+  smoother, especially in longer threads.
+- Saving a page of fetched notes to the local cache ran one extra, unfiltered database query per
+  note before saving it — a full feed page could mean dozens of redundant queries fired back to
+  back. A page now saves with a single query regardless of how many notes it contains.
+- Raised the local image/media cache limits (feed avatars, attachments, video thumbnails), so
+  scrolling back up through a session causes fewer unnecessary re-downloads than before.
+
 ## [0.5.14] - 2026-09-12
 
 ### Fixed

@@ -63,7 +63,6 @@ import java.time.Instant
 import net.primal.android.R
 import net.primal.android.core.activity.LocalActiveAccountId
 import net.primal.android.core.activity.LocalContentDisplaySettings
-import net.primal.android.core.activity.LocalZappingState
 import net.primal.android.core.compose.IconText
 import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.bubble.anchor
@@ -122,7 +121,6 @@ fun MediaFeedCard(
     data: FeedPostUi,
     noteCallbacks: NoteCallbacks = NoteCallbacks(),
     couldAutoPlay: Boolean = false,
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
 ) {
     val viewModel = hiltViewModel<NoteViewModel, NoteViewModel.Factory>(
@@ -152,7 +150,6 @@ fun MediaFeedCard(
         noteState = uiState,
         eventPublisher = viewModel::setEvent,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         repostAnchor = repostAnchor,
     )
 
@@ -185,7 +182,6 @@ private fun MediaFeedCardBody(
     repostAnchor: AnchorHandle,
 ) {
     val graphicsLayer = rememberGraphicsLayer()
-    val zappingState = LocalZappingState.current
     val displaySettings = LocalContentDisplaySettings.current
     val avatarSizeDp = displaySettings.contentAppearance.noteAvatarSize
 
@@ -259,13 +255,7 @@ private fun MediaFeedCardBody(
                     FeedPostAction.Reply ->
                         noteCallbacks.onNoteReplyClick?.invoke(data.asNeventString())
 
-                    FeedPostAction.Zap -> {
-                        if (zappingState.walletConnected) {
-                            dialogsState.showZapOptions = true
-                        } else {
-                            dialogsState.showCantZapWarning = true
-                        }
-                    }
+                    FeedPostAction.Zap -> dialogsState.showZapOptions = true
 
                     FeedPostAction.Like -> eventPublisher(
                         UiEvent.PostLikeAction(

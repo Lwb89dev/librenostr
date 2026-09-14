@@ -44,7 +44,6 @@ import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayEventSubscriber
-import net.primal.domain.nostr.zaps.NostrZapperFactory
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
 import net.primal.domain.posts.FeedRepository
@@ -190,14 +189,10 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createEventInteractionRepository(
-        primalPublisher: PrimalPublisher,
-        nostrZapperFactory: NostrZapperFactory,
-    ): EventInteractionRepository {
+    fun createEventInteractionRepository(primalPublisher: PrimalPublisher): EventInteractionRepository {
         return EventInteractionRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             primalPublisher = primalPublisher,
-            nostrZapperFactory = nostrZapperFactory,
             database = resolveCachingDatabase(),
         )
     }

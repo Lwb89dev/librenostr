@@ -117,7 +117,6 @@ fun FeedNoteCard(
     couldAutoPlay: Boolean = false,
     noteCallbacks: NoteCallbacks = NoteCallbacks(),
     onNoteDeleted: (() -> Unit)? = null,
-    onGoToWallet: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
     contentFooter: @Composable () -> Unit = {},
 ) {
@@ -163,7 +162,6 @@ fun FeedNoteCard(
         noteOptionsMenuEnabled = noteOptionsMenuEnabled,
         couldAutoPlay = couldAutoPlay,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         contentFooter = contentFooter,
     )
 }
@@ -193,7 +191,6 @@ private fun FeedNoteCard(
     showNoteStatCounts: Boolean = true,
     couldAutoPlay: Boolean = false,
     noteCallbacks: NoteCallbacks = NoteCallbacks(),
-    onGoToWallet: (() -> Unit)? = null,
     contentFooter: @Composable () -> Unit = {},
 ) {
     val zappingState = LocalZappingState.current
@@ -205,7 +202,6 @@ private fun FeedNoteCard(
         noteState = state,
         eventPublisher = eventPublisher,
         noteCallbacks = noteCallbacks,
-        onGoToWallet = onGoToWallet,
         repostAnchor = repostAnchor,
     )
 
@@ -391,10 +387,8 @@ private fun FeedNoteCard(
                                 }
 
                                 FeedPostAction.Zap -> {
-                                    if (!data.isPrivate && zappingState.walletConnected) {
+                                    if (!data.isPrivate) {
                                         dialogsState.showZapOptions = true
-                                    } else if (!data.isPrivate) {
-                                        dialogsState.showCantZapWarning = true
                                     }
                                 }
 

@@ -107,7 +107,6 @@ private fun BookmarksScreen(
                     contentPadding = paddingValues,
                     feedSpec = state.feedSpec,
                     noteCallbacks = noteCallbacks,
-                    onGoToWallet = callbacks.onGoToWallet,
                     pollingEnabled = false,
                     pullToRefreshEnabled = false,
                     showTopZaps = true,

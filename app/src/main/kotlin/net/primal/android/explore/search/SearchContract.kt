@@ -29,6 +29,5 @@ interface SearchContract {
         val onProfileClick: (String) -> Unit,
         val onNaddrClick: (String) -> Unit,
         val noteCallbacks: NoteCallbacks = NoteCallbacks(),
-        val onGoToWallet: () -> Unit = {},
     )
 }

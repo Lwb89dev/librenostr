@@ -101,6 +101,15 @@ class PrimalRemoteSignerService : Service(), DefaultLifecycleObserver {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Lazily built once and reused, instead of constructing a brand-new ImageLoader (its own
+    // memory/disk cache, its own HTTP client) on every session-notification icon fetch. Note this
+    // is Coil 2 (`coil.ImageLoader`), a separate major version from the rest of the app's Coil 3
+    // pipeline (`SingletonImageLoader` in PrimalImageLoaderFactory) — most likely riding in
+    // transitively via Markwon's image-coil module; left as-is rather than migrating this one
+    // call site to Coil 3 in this pass, since the exact Coil 3 API for decoding to an Android
+    // Bitmap wasn't confirmed and this is a rare, low-frequency code path.
+    private val bitmapImageLoader by lazy { ImageLoader(this) }
+
     inner class RemoteSignerBinder : Binder() {
         val service: PrimalRemoteSignerService get() = this@PrimalRemoteSignerService
     }
@@ -114,6 +123,13 @@ class PrimalRemoteSignerService : Service(), DefaultLifecycleObserver {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         _isServiceRunning.value = true
         createNotificationChannel()
+        // onCreate() runs exactly once per service instance, unlike onStartCommand() (which the
+        // system can invoke more than once — START_STICKY redelivery, or two near-simultaneous
+        // ensureServiceStarted() calls racing this onCreate). Starting these here instead of
+        // there guarantees exactly one collector each for the service's lifetime, instead of
+        // silently stacking duplicates that double-fire notification work.
+        observeOngoingSessions()
+        observeSessionEventsPendingUserAction()
     }
 
     override fun onStartCommand(
@@ -145,9 +161,6 @@ class PrimalRemoteSignerService : Service(), DefaultLifecycleObserver {
 
             signer?.initialize()
         }
-
-        observeOngoingSessions()
-        observeSessionEventsPendingUserAction()
 
         return START_STICKY
     }
@@ -280,15 +293,13 @@ class PrimalRemoteSignerService : Service(), DefaultLifecycleObserver {
     }
 
     suspend fun loadBitmapFromUrl(url: String): Bitmap? {
-        val loader = ImageLoader(this)
-
         val requestBuilder = ImageRequest.Builder(this)
             .data(url)
             .allowHardware(false)
 
         requestBuilder.transformations(CircleCropTransformation())
 
-        val drawable = loader.execute(requestBuilder.build()).drawable ?: return null
+        val drawable = bitmapImageLoader.execute(requestBuilder.build()).drawable ?: return null
         return (drawable as? BitmapDrawable)?.bitmap
     }
 

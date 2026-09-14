@@ -15,11 +15,19 @@ interface StreamChatMessageDao {
     @Upsert
     suspend fun upsert(data: StreamChatMessageData)
 
+    // Capped to the most recent 300 messages: with no LIMIT, every new chat message re-ran and
+    // re-emitted the entire history for the stream, growing without bound for as long as a
+    // long/popular broadcast was watched. The inner query picks the newest rows; the outer
+    // ORDER BY restores ascending order for display.
     @Transaction
     @Query(
         """
-            SELECT * FROM StreamChatMessageData
-            WHERE streamATag = :streamATag
+            SELECT * FROM (
+                SELECT * FROM StreamChatMessageData
+                WHERE streamATag = :streamATag
+                ORDER BY createdAt DESC
+                LIMIT 300
+            )
             ORDER BY createdAt ASC
         """,
     )

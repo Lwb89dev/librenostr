@@ -96,6 +96,23 @@ interface NotificationDao {
     )
     suspend fun lastByGroup(ownerId: String, groupKey: String): NotificationData?
 
+    /**
+     * How many notifications this group already has cached locally.
+     *
+     * Used to decide whether opening the tab can skip its mandatory refresh: see
+     * [NotificationsRemoteMediator.shouldResetLocalCache][net.primal.data.repository.notifications.paging.NotificationsRemoteMediator.shouldResetLocalCache]'s
+     * own doc for why a low count, not staleness, is what actually matters here.
+     */
+    @Query(
+        """
+            SELECT COUNT(*) FROM NotificationData n
+            INNER JOIN NotificationGroupCrossRef g
+                ON n.notificationId = g.notificationId AND n.ownerId = g.ownerId
+            WHERE n.ownerId = :ownerId AND g.groupKey = :groupKey
+        """,
+    )
+    suspend fun countByGroup(ownerId: String, groupKey: String): Int
+
     @Query("UPDATE NotificationData SET seenGloballyAt = :seenAt WHERE seenGloballyAt IS NULL AND ownerId = :ownerId")
     suspend fun markAllUnseenNotificationsAsSeen(ownerId: String, seenAt: Long)
 

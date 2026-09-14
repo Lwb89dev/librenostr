@@ -135,7 +135,7 @@ import net.primal.android.scan.ScanCodeContract.ScanMode
 import net.primal.android.scan.ScanCodeScreen
 import net.primal.android.scan.ScanCodeViewModel
 import net.primal.android.stream.LiveStreamOverlay
-import net.primal.android.wallet.zaps.AndroidLightningWallet
+import net.primal.android.zaps.AndroidLightningWallet
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.PrimalTheme
@@ -213,13 +213,11 @@ fun NavController.navigateToHome() {
     navigate(route = "main", navOptions = navOptions { clearBackStack() })
 }
 
-fun NavController.navigateToWallet() = Unit
-
 fun NavController.navigateToFollowPack(profileId: String, followPackId: String) =
     navigate(route = "explore/followPack/$profileId/$followPackId")
 
-fun NavController.navigateToScanCode(scanMode: ScanMode, promoCode: String? = null) =
-    navigate(route = "scanCode?$SCAN_MODE=$scanMode&$PROMO_CODE=$promoCode")
+fun NavController.navigateToScanCode(scanMode: ScanMode) =
+    navigate(route = "scanCode?$SCAN_MODE=$scanMode")
 
 internal fun NavController.navigateToMessages() = navigate(route = "messages")
 
@@ -283,9 +281,6 @@ fun NavController.navigateToExploreFeed(
 
 private fun NavController.navigateToBookmarks() = navigate(route = "bookmarks")
 
-private fun NavController.navigateToUpgradeToPrimalPro() =
-    navigate(route = "premium/buying?$UPGRADE_TO_PRIMAL_PRO=true")
-
 internal fun NavController.navigateToNostrConnectBottomSheet(url: String) {
     val safeUrl = url.asUrlEncoded()
     navigate(route = "nostrConnectBottomSheet?$NOSTR_CONNECT_URI=$safeUrl")
@@ -298,9 +293,13 @@ fun accountSwitcherCallbacksHandler(navController: NavController) =
         onCreateNewAccountClick = { navController.navigateToOnboarding() },
     )
 
+@Composable
 fun noteCallbacksHandler(
     navController: NavController,
-    onPayInvoice: (String) -> Unit = { navController.navigateToWalletCreateTransaction(lnbc = it) },
+    onPayInvoice: (String) -> Unit = run {
+        val context = LocalContext.current
+        { invoice: String -> AndroidLightningWallet(context).payBolt11(invoice) }
+    },
 ) =
     NoteCallbacks(
         onNoteClick = { noteId -> navController.navigateToThread(noteId = noteId) },
@@ -505,20 +504,11 @@ private fun PrimalAppNavigation(
         )
 
         scanCode(
-            route = "scanCode?$SCAN_MODE={$SCAN_MODE}&$PROMO_CODE={$PROMO_CODE}",
+            route = "scanCode?$SCAN_MODE={$SCAN_MODE}",
             arguments = listOf(
                 navArgument(SCAN_MODE) {
                     type = NavType.StringType
                     nullable = true
-                },
-                navArgument(PROMO_CODE) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-            ),
-            deepLinks = listOf(
-                navDeepLink {
-                    uriPattern = "https://nostrich.org/rc/{$PROMO_CODE}"
                 },
             ),
             navController = navController,
@@ -921,8 +911,6 @@ private fun PrimalAppNavigation(
         )
 
         settingsNavigation(route = "settings", navController = navController)
-
-        walletScreens(navController = navController)
             }
         }
     }
@@ -1096,12 +1084,10 @@ private fun NavGraphBuilder.onboarding(route: String, navController: NavControll
 private fun NavGraphBuilder.scanCode(
     route: String,
     arguments: List<NamedNavArgument>,
-    deepLinks: List<NavDeepLink>,
     navController: NavController,
 ) = composable(
     route = route,
     arguments = arguments,
-    deepLinks = deepLinks,
     enterTransition = {
         val initialRoute = initialState.destination.route
         when {
@@ -1129,21 +1115,20 @@ private fun NavGraphBuilder.scanCode(
 ) {
     val viewModel = hiltViewModel<ScanCodeViewModel>()
     val streamState = LocalStreamState.current
+    val context = LocalContext.current
     ApplyEdgeToEdge()
     LockToOrientationPortrait()
     ScanCodeScreen(
         viewModel = viewModel,
         callbacks = ScanCodeContract.ScreenCallbacks(
             onClose = navController::navigateUp,
-            navigateToOnboarding = { navController.navigateToOnboarding() },
-            navigateToWalletOnboarding = { },
             onNostrConnectRequest = { url ->
                 navController.popBackStack()
                 navController.navigateToNostrConnectBottomSheet(url = url)
             },
-            onDraftTransactionReady = { draft ->
+            onPayLightningInvoice = { invoice ->
                 navController.popBackStack()
-                navController.navigateToWalletCreateTransaction(draftTransaction = draft)
+                AndroidLightningWallet(context).payBolt11(invoice)
             },
             onProfileScan = { profileId ->
                 navController.popBackStack()
@@ -1395,7 +1380,6 @@ private fun NavGraphBuilder.exploreFeed(
         noteCallbacks = noteCallbacksHandler(navController),
         callbacks = ExploreFeedContract.ScreenCallbacks(
             onClose = { navController.navigateUp() },
-            onGoToWallet = { navController.navigateToWallet() },
             onFeedEditCompleted = {
                 navController.previousBackStackEntry?.savedStateHandle?.set(FEED_SAVED_RESULT, true)
                 navController.popBackStack()
@@ -1446,7 +1430,6 @@ private fun NavGraphBuilder.search(
             onProfileClick = { profileId -> navController.navigateToProfile(profileId) },
             onNaddrClick = { naddr -> navController.navigateToArticleDetails(naddr) },
             noteCallbacks = noteCallbacksHandler(navController),
-            onGoToWallet = { navController.navigateToWallet() },
         ),
     )
 }
@@ -1566,7 +1549,6 @@ private fun NavGraphBuilder.bookmarks(
         noteCallbacks = noteCallbacksHandler(navController),
         callbacks = BookmarksContract.ScreenCallbacks(
             onClose = { navController.navigateUp() },
-            onGoToWallet = { navController.navigateToWallet() },
         ),
     )
 }
@@ -1662,7 +1644,6 @@ private fun NavGraphBuilder.thread(
         viewModel = viewModel,
         callbacks = ThreadContract.ScreenCallbacks(
             onClose = { navController.navigateUp() },
-            onGoToWallet = { navController.navigateToWallet() },
             onExpandReply = { args -> navController.navigateToNoteEditor(args) },
             onGifReply = { args ->
                 navBackEntry.savedStateHandle[PENDING_GIF_REPLY_ARGS] = args.toJson()
@@ -1697,7 +1678,6 @@ private fun NavGraphBuilder.articleDetails(
             onArticleHashtagClick = { hashtag ->
                 navController.navigateToExploreFeed(feedSpec = buildReadsTopicFeedSpec(hashtag = hashtag))
             },
-            onGoToWallet = { navController.navigateToWallet() },
         ),
         noteCallbacks = noteCallbacksHandler(navController),
     )
@@ -1796,7 +1776,6 @@ private fun NavGraphBuilder.profile(
             onClose = { navController.navigateUp() },
             onEditProfileClick = { navController.navigateToProfileEditor() },
             onMessageClick = { profileId -> navController.navigateToChat(profileId = profileId) },
-            onSendWalletTx = { transaction -> navController.navigateToWalletCreateTransaction(transaction) },
             onDrawerQrCodeClick = { profileId -> navController.navigateToProfileQrCodeViewer(profileId) },
             onFollowsClick = { profileId, followsType ->
                 navController.navigateToProfileFollows(
@@ -1805,7 +1784,6 @@ private fun NavGraphBuilder.profile(
                 )
             },
             onMediaItemClick = { navController.navigateToMediaItem(it) },
-            onGoToWallet = { navController.navigateToWallet() },
             onSearchClick = { navController.navigateToAdvancedSearch(initialPostedBy = listOf(it)) },
             onNewPostClick = { navController.navigateToNoteEditor(null) },
             onLiveStreamClick = { naddr -> streamState.start(naddr) },
@@ -1870,6 +1848,7 @@ private fun NavGraphBuilder.profileQrCodeViewer(
     popExitTransition = { primalSlideOutHorizontallyToEnd },
 ) {
     val streamState = LocalStreamState.current
+    val context = LocalContext.current
     val viewModel = hiltViewModel<ProfileQrCodeViewModel>()
     PrimalTheme(primalTheme = PrimalTheme.Midnight) {
         ApplyEdgeToEdge(isDarkTheme = false)
@@ -1894,13 +1873,9 @@ private fun NavGraphBuilder.profileQrCodeViewer(
                     navController.popBackStack()
                     navController.navigateToArticleDetails(naddr)
                 },
-                onDraftTxScan = { draftTx ->
+                onPayLightningInvoice = { invoice ->
                     navController.popBackStack()
-                    navController.navigateToWalletCreateTransaction(draftTx)
-                },
-                onPromoCodeScan = {
-                    navController.popBackStack()
-                    navController.navigateToScanCode(scanMode = ScanMode.Anything, promoCode = it)
+                    AndroidLightningWallet(context).payBolt11(invoice)
                 },
             ),
         )

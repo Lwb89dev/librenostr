@@ -56,7 +56,6 @@ fun NoteFeedLazyColumn(
     listState: LazyListState,
     showPaywall: Boolean,
     noteCallbacks: NoteCallbacks,
-    onGoToWallet: () -> Unit,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     showCentralLoadingSpinner: Boolean = false,
@@ -142,7 +141,6 @@ fun NoteFeedLazyColumn(
                             data = item,
                             noteCallbacks = noteCallbacks,
                             couldAutoPlay = couldAutoPlay,
-                            onGoToWallet = onGoToWallet,
                             onUiError = onUiError,
                         )
                     } else {
@@ -157,7 +155,6 @@ fun NoteFeedLazyColumn(
                             showReplyTo = showReplyTo,
                             couldAutoPlay = couldAutoPlay,
                             noteCallbacks = noteCallbacks,
-                            onGoToWallet = onGoToWallet,
                             onUiError = onUiError,
                             contentFooter = {
                                 if (showTopZaps && item.eventZaps.isNotEmpty()) {
