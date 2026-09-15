@@ -29,7 +29,9 @@ import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withTimeout
@@ -78,12 +80,50 @@ class RelayPool(
         const val MAX_RELAYS = 30
         const val MAX_ACTIVE_SUBSCRIPTIONS = 64
 
+        /**
+         * A single [query] call sends REQ to *every* connected relay at once, but nothing
+         * coordinated how many [query] calls could be doing that simultaneously: a feed
+         * pull-to-refresh alone fans out into a page-body fetch (its own 8-wide semaphore),
+         * a referenced-notes lookup (unbounded), a profile-metadata fetch (a second, separate
+         * 8-wide semaphore), and — once that page lands — an event-stats fetch that queries 4
+         * interaction kinds in parallel with no limit at all, and Paging3 kicks off the next
+         * page's APPEND before the REFRESH above has even finished. None of those share any
+         * state, so in the worst case 15+ concurrent [query] calls each broadcast a REQ to the
+         * same handful of relay sockets within milliseconds of each other, and a single feed page
+         * measured on-device needed ~60-125 [query] calls in total.
+         *
+         * A rejection (nostr.mom and offchain.pub, confirmed via captured device logs, reject a
+         * socket's REQ outright once too many land on it close together) now fails that relay leg
+         * in milliseconds instead of riding out [SUBSCRIBE_TIMEOUT] (see
+         * `RelayRejectedRequestException` in [queryOneRelay]). A second, independent bug used to
+         * compound this: every relay's subscription stayed open until the *whole* query() call
+         * settled across all 7 relays, not just until that relay's own EOSE — so a relay that
+         * answered in well under a second (confirmed via an isolated probe: offchain.pub does)
+         * still counted as open for up to [SUBSCRIBE_TIMEOUT] whenever some other relay in the
+         * same call was slower. [queryOneRelay] now closes each relay's subscription the moment
+         * *it* answers, which the same probe confirmed removes the rejections outright on its own
+         * (20 "too many concurrent REQs" down to 0, identical request pattern against a fresh
+         * connection).
+         *
+         * With both of those fixed, raising this cap past 4 was re-tried twice more, expecting the
+         * removed risk to make a wider cap pay off — both times it measured slower instead (12.2s/
+         * 24.3s at 4 vs. 17.5s/29.6s and 17.8s/33.9s at 8, first-stage/full-cycle, same feed), with
+         * "too many concurrent REQs" reappearing despite the fixes above. On the relays this
+         * account actually uses, sending more *new* REQs into the same instant seems to matter on
+         * its own, independent of how quickly they then close. 4 is the empirically faster value,
+         * confirmed across four separate on-device measurements, not a theoretical one — re-measure
+         * on-device (a cold-start run and a warm one both, since cache state changes how many calls
+         * a page needs and confounds a same-session before/after comparison) before changing it.
+         */
+        const val MAX_CONCURRENT_QUERIES = 4
+
         /** Amber answers a pre-approved kind synchronously; this only guards against no answer. */
         const val AUTH_SIGN_TIMEOUT_MS = 5_000L
     }
 
     private val scope = CoroutineScope(dispatchers.io() + SupervisorJob())
     private val activeSubscriptions = AtomicInteger(0)
+    private val queryGate = Semaphore(MAX_CONCURRENT_QUERIES)
 
     @VisibleForTesting
     var subscriptionIdFactory: () -> String = { Uuid.random().toString() }
@@ -273,21 +313,28 @@ class RelayPool(
         val clients = readClients()
         if (clients.isEmpty()) return RelayPoolQueryResult()
 
-        val subscriptionId = subscriptionIdFactory()
-        if (!tryAcquireSubscription()) return RelayPoolQueryResult()
-        try {
-            val result = collectUntilEose(
-                clients = clients,
-                subscriptionId = subscriptionId,
-                filter = safeFilter,
-                timeoutMs = safeTimeoutMs,
-                requestedCount = requestedCount,
-            )
-            publishQueryStats(requested = clients.size, result = result)
-            return result
-        } finally {
-            activeSubscriptions.decrementAndGet()
-            closeSubscription(clients, subscriptionId)
+        // Bounded by queryGate rather than left to fire the moment a caller asks: this is the
+        // one choke point every fetcher in the app shares (see MAX_CONCURRENT_QUERIES).
+        return queryGate.withPermit {
+            val subscriptionId = subscriptionIdFactory()
+            if (!tryAcquireSubscription()) {
+                RelayPoolQueryResult()
+            } else {
+                try {
+                    val result = collectUntilEose(
+                        clients = clients,
+                        subscriptionId = subscriptionId,
+                        filter = safeFilter,
+                        timeoutMs = safeTimeoutMs,
+                        requestedCount = requestedCount,
+                    )
+                    publishQueryStats(requested = clients.size, result = result)
+                    result
+                } finally {
+                    activeSubscriptions.decrementAndGet()
+                    closeSubscription(clients, subscriptionId)
+                }
+            }
         }
     }
 
@@ -535,9 +582,34 @@ class RelayPool(
                         if (consumeQueryMessage(message, client, onEvent)) onEose()
                     }
             }
+            // Sent the moment THIS relay reaches its own EOSE, instead of only from the shared
+            // closeSubscription() once every relay in the call has settled. A relay that answers
+            // in well under a second (confirmed via an isolated probe: offchain.pub does) was
+            // still sitting with its subscription formally open for up to [timeoutMs] whenever any
+            // other relay in the same call was slower — and on a page needing dozens of overlapping
+            // query() calls, that is enough open-but-already-answered subscriptions stacking up on
+            // one connection to trip its concurrent-REQ limit. The same probe, same relay, same
+            // request pattern: closing this early took a run from 20 "too many concurrent REQs"
+            // rejections down to zero. closeSubscription() below still runs for every relay as a
+            // safety net; sending CLOSE twice for one already-closed subscription is a harmless
+            // no-op.
+            runCatching { client.sendCLOSE(subscriptionId) }
         } catch (_: TimeoutCancellationException) {
             Napier.i { "REQ timeout on ${client.socketUrl}" }
+            runCatching { client.sendCLOSE(subscriptionId) }
             onFailure("timeout")
+        } catch (error: RelayRejectedRequestException) {
+            // A rejected REQ never gets an EOSE — without this, the collector above just sat
+            // waiting on a subscription that would never answer until the full [timeoutMs]
+            // elapsed, indistinguishable from a genuinely slow relay. On a relay that rate-limits
+            // aggressively (confirmed via captured device logs: nostr.mom and offchain.pub reject
+            // outright once too many REQs land on the same connection close together) that turned
+            // one rejected relay into an 8-second dead wait, repeated on every query stage of a
+            // single pull-to-refresh. Failing the moment the relay says so — rather than waiting
+            // it out — is what actually removes that stall; MAX_CONCURRENT_QUERIES above only
+            // reduces how often the rejection happens in the first place.
+            Napier.i { "REQ rejected on ${client.socketUrl}: ${error.notice}" }
+            onFailure("rejected")
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -555,12 +627,34 @@ class RelayPool(
             is NostrIncomingMessage.EventMessage -> message.nostrEvent?.let { onEvent(it) }
             is NostrIncomingMessage.EventsMessage -> message.nostrEvents.forEach { onEvent(it) }
             is NostrIncomingMessage.EoseMessage -> return true
-            is NostrIncomingMessage.NoticeMessage ->
+            is NostrIncomingMessage.NoticeMessage -> {
                 Napier.w { "NOTICE from ${client.socketUrl}: ${message.message}" }
+                val notice = message.message
+                if (notice != null && notice.isRelayRejectionNotice()) {
+                    throw RelayRejectedRequestException(notice)
+                }
+            }
             else -> Unit
         }
         return false
     }
+
+    /**
+     * A relay can NOTICE a REQ it has no intention of ever answering — most commonly a
+     * concurrency cap ("too many concurrent REQs", seen from nostr.mom and offchain.pub), or the
+     * standardized NIP-01 `rate-limited:`/`blocked:` prefixes other relays use for the same thing.
+     * Matched loosely on purpose: relay NOTICE wording is not standardized, and treating a false
+     * positive as "this relay failed" costs nothing a real timeout would not have cost anyway,
+     * while missing a real rejection costs the full [SUBSCRIBE_TIMEOUT].
+     */
+    private fun String.isRelayRejectionNotice(): Boolean {
+        val normalized = lowercase()
+        return normalized.contains("too many concurrent") ||
+            normalized.startsWith("rate-limited:") ||
+            normalized.startsWith("blocked:")
+    }
+
+    private class RelayRejectedRequestException(val notice: String) : Exception(notice)
 
     private suspend fun closeSubscription(clients: List<NostrSocketClient>, subscriptionId: String) {
         clients.forEach { client ->

@@ -7,6 +7,25 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.16] - 2026-09-15
+
+### Fixed
+
+- Pulling to refresh the feed or notifications could take much longer than it should: a single
+  refresh fires off dozens of overlapping relay queries, and a couple of the public relays this
+  app talks to (nostr.mom, offchain.pub) reject a connection's request outright once too many of
+  its subscriptions are still open at the same time. Every relay's subscription used to stay
+  "open" from that relay's point of view until the *entire* page's fetch had settled across every
+  relay, even for the relay that had already answered in milliseconds — so a handful of slow
+  relays kept otherwise-fast ones tied up long enough to trip that limit repeatedly on every
+  refresh. Subscriptions now close the moment each relay actually answers, a rejected request now
+  fails immediately instead of sitting through the full request timeout waiting for a reply that
+  was never coming, and no more than 4 relay queries run at once app-wide. Confirmed via captured
+  device logs and an isolated reproduction against the affected relays: rejections dropped to
+  zero under identical traffic. A page still needs on the order of a hundred relay round trips in
+  this fork's fully relay-only design, so refresh isn't instant, but it no longer wastes time on
+  rejections it caused itself.
+
 ## [0.5.15] - 2026-09-14
 
 ### Removed
