@@ -25,6 +25,12 @@ internal class FeedSpecInvalidationTracker {
 
     private val activeSources = AtomicReference<Map<FeedKey, Set<PagingSource<*, *>>>>(emptyMap())
 
+    /** One retry handler per (ownerId, feedSpec) — only one mediator is ever "the" answer for a
+     * given spec at a time, so a plain overwrite-on-register is correct: a new mediator
+     * construction (e.g. on account switch) naturally replaces whatever handler was registered
+     * before it, no unbounded growth or self-unregister dance needed here unlike [track]. */
+    private val appendRetryHandlers = AtomicReference<Map<FeedKey, () -> Unit>>(emptyMap())
+
     fun <Key : Any, Value : Any> track(
         ownerId: String,
         feedSpec: String,
@@ -50,5 +56,26 @@ internal class FeedSpecInvalidationTracker {
         activeSources.load().values.forEach { sources ->
             sources.forEach { it.invalidate() }
         }
+    }
+
+    /** Registers the callback that clears one mediator's own APPEND give-up state (used by
+     * [retryAppend]). Called once from that mediator's own init. */
+    fun registerAppendRetryHandler(ownerId: String, feedSpec: String, onRetry: () -> Unit) {
+        val key = FeedKey(ownerId = ownerId, feedSpec = feedSpec)
+        appendRetryHandlers.update { it + (key to onRetry) }
+    }
+
+    /**
+     * Manual "load more" after a mediator has deliberately given up on APPEND. Clears that
+     * mediator's own exhaustion state (so it gets a fresh retry budget, continuing further back
+     * rather than repeating the window it just gave up on) then invalidates the current
+     * PagingSource generation so Paging3 issues a fresh, non-terminal APPEND load. A missing
+     * handler (no mediator has ever registered for this spec) still runs the invalidate — a
+     * harmless no-op if nothing is tracking that spec either.
+     */
+    fun retryAppend(ownerId: String, feedSpec: String) {
+        val key = FeedKey(ownerId = ownerId, feedSpec = feedSpec)
+        appendRetryHandlers.load()[key]?.invoke()
+        invalidate(ownerId = ownerId, feedSpec = feedSpec)
     }
 }

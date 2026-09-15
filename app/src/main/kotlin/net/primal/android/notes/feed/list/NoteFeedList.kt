@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -53,6 +54,7 @@ import net.primal.android.core.di.rememberMediaCacher
 import net.primal.android.core.errors.UiError
 import net.primal.android.events.ui.findNearestOrNull
 import net.primal.android.notes.feed.list.NoteFeedContract.UiEvent
+import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.StreamPillUi
 import net.primal.android.notes.feed.note.ui.attachment.MaxDisplayImages
@@ -97,6 +99,7 @@ fun NoteFeedList(
         factory.create(feedSpec = feedSpec, allowMutedThreads = allowMutedThreads, showStreams = showStreamsInNewPill)
     }
     val uiState = viewModel.state.collectAsState()
+    val statsOverrides = viewModel.statsOverrides.collectAsState()
     val contentDisplaySettings = LocalContentDisplaySettings.current
 
     LaunchedEffect(uiState.value.notesSyncStats.latestNoteIds) {
@@ -128,6 +131,7 @@ fun NoteFeedList(
 
     NoteFeedList(
         state = uiState.value,
+        statsOverrides = statsOverrides,
         noteCallbacks = noteCallbacks,
         useMediaCards = feedSpec.isImageSpec() || feedSpec.isVideoSpec(),
         bigPillStreams = bigPillStreams,
@@ -149,6 +153,7 @@ fun NoteFeedList(
 @Composable
 private fun NoteFeedList(
     state: NoteFeedContract.UiState,
+    statsOverrides: State<Map<String, EventStatsUi>>,
     noteCallbacks: NoteCallbacks,
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
@@ -192,8 +197,15 @@ private fun NoteFeedList(
             feedWidthPx = feedWidthPx,
         )
 
+        FeedStatsViewportLoader(
+            pagingItems = pagingItems,
+            listState = listState,
+            eventPublisher = eventPublisher,
+        )
+
         NoteFeedList(
             pagingItems = pagingItems,
+            statsOverrides = statsOverrides,
             streamPills = bigPillStreams,
             pullToRefreshEnabled = pullToRefreshEnabled,
             feedListState = listState,
@@ -204,6 +216,7 @@ private fun NoteFeedList(
             noteCallbacks = noteCallbacks,
             paddingValues = contentPadding,
             onScrolledToTop = { eventPublisher(UiEvent.FeedScrolledToTop) },
+            onRetryAppend = { eventPublisher(UiEvent.LoadOlderNotesClick) },
             onUiError = onUiError,
             header = header,
             stickyHeader = stickyHeader,
@@ -267,6 +280,7 @@ fun NoteFeedList(
     streamPills: List<StreamPillUi>,
     showPaywall: Boolean,
     noteCallbacks: NoteCallbacks,
+    statsOverrides: State<Map<String, EventStatsUi>> = remember { mutableStateOf(emptyMap<String, EventStatsUi>()) },
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     showCentralLoadingSpinner: Boolean = false,
@@ -275,6 +289,7 @@ fun NoteFeedList(
     noContentVerticalArrangement: Arrangement.Vertical = Arrangement.Center,
     noContentPaddingValues: PaddingValues = PaddingValues(all = 0.dp),
     onScrolledToTop: (() -> Unit)? = null,
+    onRetryAppend: (() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
     noContentText: String = stringResource(id = R.string.feed_no_content),
     header: @Composable (LazyItemScope.() -> Unit)? = null,
@@ -336,6 +351,8 @@ fun NoteFeedList(
                 .fillMaxSize(),
             contentPadding = paddingValues,
             pagingItems = pagingItems,
+            statsOverrides = statsOverrides,
+            onRetryAppend = onRetryAppend,
             streamPills = streamPills,
             listState = feedListState,
             showPaywall = showPaywall,
@@ -406,6 +423,60 @@ private fun FeedMediaUrlPreLoader(
                         if (urls.isNotEmpty()) {
                             currentMediaCacher.preCacheFeedMedia(urls, scope)
                         }
+                    }
+                }
+            }
+    }
+}
+
+/**
+ * Mirrors [FeedMediaUrlPreLoader]'s exact window/debounce shape, but for event stats instead of
+ * media: an initial window as soon as the page has content, then a scroll-driven window as the
+ * user scrolls. `postId` is the correct key here — `FeedPost`'s `eventStats` relation is keyed by
+ * `postId`, not `repostId` (Nostr interactions target the original note, not a repost wrapping
+ * it). Requesting stats for notes before they're actually rendered means they usually already
+ * have counters the moment they scroll into view, rather than popping in a beat later.
+ */
+@OptIn(FlowPreview::class)
+@Composable
+private fun FeedStatsViewportLoader(
+    pagingItems: LazyPagingItems<FeedPostUi>,
+    listState: LazyListState,
+    eventPublisher: (UiEvent) -> Unit,
+    preloadCount: Int = INITIAL_PRELOAD_COUNT,
+) {
+    val currentEventPublisher by rememberUpdatedState(eventPublisher)
+
+    LaunchedEffect(pagingItems) {
+        snapshotFlow { pagingItems.itemCount > 0 }
+            .distinctUntilChanged()
+            .filter { it }
+            .take(1)
+            .collect {
+                val countToPreload = minOf(preloadCount, pagingItems.itemCount)
+                val ids = (0 until countToPreload).mapNotNull { pagingItems.peek(it)?.postId }
+                if (ids.isNotEmpty()) {
+                    currentEventPublisher(UiEvent.RequestStatsForVisibleNotes(ids))
+                }
+            }
+    }
+
+    LaunchedEffect(listState, pagingItems) {
+        snapshotFlow { listState.firstVisibleItemIndex / SCROLL_PRELOAD_COUNT }
+            .distinctUntilChanged()
+            .debounce(150.milliseconds)
+            .collect {
+                val itemCount = pagingItems.itemCount
+                if (itemCount == 0) return@collect
+
+                val firstVisibleIndex = listState.firstVisibleItemIndex
+                val start = (firstVisibleIndex + 1).coerceAtMost(itemCount - 1)
+                val end = (firstVisibleIndex + 1 + SCROLL_PRELOAD_COUNT).coerceAtMost(itemCount)
+
+                if (start < end) {
+                    val ids = (start until end).mapNotNull { pagingItems.peek(it)?.postId }
+                    if (ids.isNotEmpty()) {
+                        currentEventPublisher(UiEvent.RequestStatsForVisibleNotes(ids))
                     }
                 }
             }

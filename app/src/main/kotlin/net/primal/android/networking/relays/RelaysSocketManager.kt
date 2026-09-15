@@ -108,19 +108,54 @@ class RelaysSocketManager @Inject constructor(
             }
         }
 
+    // The two sources merged into userRelaysPool: the account's own configured relays (from the
+    // DB, editable in Settings > Manage Relays) and a bounded set of the follow list's most
+    // common NIP-65 write relays, added on top by OutboxRelayCoordinator so queries reach relays
+    // that actually carry a given author's content, not just the ones the user chose to connect
+    // to. Kept as two separate fields rather than merging at the write site so either source can
+    // update independently without the other's most recent value being lost.
+    private var latestConfiguredUserRelays: List<Relay> = emptyList()
+    private var latestOutboxEnrichmentRelays: List<Relay> = emptyList()
+
     private suspend fun updateRelayPools(regularRelays: List<Relay>?) {
         relayPoolsMutex.withLock {
-            val sanitizedUserRelays = regularRelays.orEmpty()
-            val userRelaysChanged = userRelaysPool.relays != sanitizedUserRelays
-            if (userRelaysChanged) {
-                userRelaysPool.changeRelays(relays = sanitizedUserRelays)
-                connectPool(userRelaysPool)
-            }
+            latestConfiguredUserRelays = regularRelays.orEmpty()
+            applyRelayPoolChangeLocked()
+        }
+    }
+
+    /**
+     * Adds [relays] to the query pool only — never written to `usersDatabase.relays()`, so they
+     * never appear in Settings > Manage Relays as if the user had added them. Callers must mark
+     * every relay `write = false`: this set exists to widen where the pool *reads* from, never to
+     * add a publish target the user didn't choose.
+     */
+    suspend fun updateOutboxEnrichmentRelays(relays: List<Relay>) {
+        relayPoolsMutex.withLock {
+            latestOutboxEnrichmentRelays = relays
+            applyRelayPoolChangeLocked()
+        }
+    }
+
+    /** Call under [relayPoolsMutex]. */
+    private fun applyRelayPoolChangeLocked() {
+        val configuredUrls = latestConfiguredUserRelays.map { it.url }.toSet()
+        // Enrichment relays are appended after the user's own, never prepended, so RelayPool's
+        // own MAX_RELAYS cap never evicts a relay the user actually chose in favor of one this
+        // class added on its behalf.
+        val merged = latestConfiguredUserRelays +
+            latestOutboxEnrichmentRelays
+                .filterNot { it.url in configuredUrls }
+                .map { it.copy(read = true, write = false) }
+        if (userRelaysPool.relays != merged) {
+            userRelaysPool.changeRelays(relays = merged)
+            connectPool(userRelaysPool)
         }
     }
 
     private suspend fun clearRelayPools() =
         relayPoolsMutex.withLock {
+            latestOutboxEnrichmentRelays = emptyList()
             userRelaysPool.closePool()
         }
 

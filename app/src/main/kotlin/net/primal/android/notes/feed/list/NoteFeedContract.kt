@@ -28,5 +28,7 @@ interface NoteFeedContract {
         data object AutoUpdateFeed : UiEvent()
         data object NewPostsPillClick : UiEvent()
         data class UpdateCurrentTopVisibleNote(val noteId: String, val repostId: String? = null) : UiEvent()
+        data class RequestStatsForVisibleNotes(val eventIds: List<String>) : UiEvent()
+        data object LoadOlderNotesClick : UiEvent()
     }
 }

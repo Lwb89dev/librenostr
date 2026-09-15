@@ -179,6 +179,7 @@ abstract class CommonRepositoryFactory {
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
             relayEventQuerier = relayEventQuerier,
+            fetchCoordinator = fetchCoordinator,
         )
     }
 

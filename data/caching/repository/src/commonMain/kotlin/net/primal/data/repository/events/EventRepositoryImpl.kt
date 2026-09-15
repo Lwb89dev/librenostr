@@ -26,6 +26,8 @@ import net.primal.core.utils.toDouble
 import net.primal.data.local.dao.events.EventZap as EventZapPO
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.repository.events.paging.EventZapsMediator
+import net.primal.data.repository.feed.RelayEventStatsFetcher
+import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.mappers.local.asEventZapDO
 import net.primal.data.repository.mappers.local.asNostrEventStats
 import net.primal.data.repository.mappers.local.asNostrEventUserStats
@@ -55,17 +57,35 @@ import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.nostr.utils.LnInvoiceUtils
 import net.primal.shared.data.local.db.withTransaction
 
-class EventRepositoryImpl(
+internal class EventRepositoryImpl(
     private val dispatcherProvider: DispatcherProvider,
     private val database: CachingDatabase,
     private val relayEventQuerier: RelayEventQuerier,
+    private val fetchCoordinator: FetchCoordinator,
 ) : EventRepository {
+
+    private val relayEventStatsFetcher = RelayEventStatsFetcher(
+        querier = relayEventQuerier,
+        coordinator = fetchCoordinator,
+    )
 
     override fun observeEventStats(eventIds: List<String>) =
         database.eventStats().observeStats(eventIds).map { it.map { it.asNostrEventStats() } }
 
     override fun observeUserEventStatus(eventIds: List<String>, userId: String) =
         database.eventUserStats().observeStats(eventIds, userId).map { it.map { it.asNostrEventUserStats() } }
+
+    override suspend fun fetchAndCacheEventStats(eventIds: List<String>, userId: String) =
+        withContext(dispatcherProvider.io()) {
+            if (eventIds.isEmpty()) return@withContext
+            val stats = relayEventStatsFetcher.fetch(eventIds = eventIds, userId = userId)
+            database.withTransaction {
+                database.eventStats().upsertAll(stats.eventStats)
+                if (stats.userStats.isNotEmpty()) {
+                    database.eventUserStats().upsertAll(stats.userStats)
+                }
+            }
+        }
 
     override suspend fun fetchEventActions(eventId: String, kind: Int): List<NostrEventAction> =
         withContext(dispatcherProvider.io()) {

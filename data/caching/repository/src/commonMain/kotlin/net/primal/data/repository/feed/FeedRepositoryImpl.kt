@@ -252,6 +252,10 @@ internal class FeedRepositoryImpl(
         invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
     }
 
+    override suspend fun retryAppendFeed(userId: String, feedSpec: String) {
+        invalidationTracker.retryAppend(ownerId = userId, feedSpec = feedSpec)
+    }
+
     override suspend fun replaceFeed(
         userId: String,
         feedSpec: String,
@@ -448,12 +452,12 @@ internal class FeedRepositoryImpl(
             // end of the currently loaded window.
             prefetchDistance = DEFAULT_PAGE_SIZE / 2,
             initialLoadSize = FeedRepository.INITIAL_PAGE_SIZE,
-            // Placeholders make Paging3 anchor a post-invalidation reload by index, and
-            // NoteFeedRemoteMediator.refreshRelayEventStats() invalidates on every APPEND once its
-            // relay stats query lands (see its comment) — often after the user has scrolled past
-            // where that index now points, which read as the feed jumping. LazyColumn already keys
-            // items by postId/repostId (NoteFeedLazyColumn.kt), so keeping placeholders off lets it
-            // re-anchor by key across a reload instead.
+            // Placeholders make Paging3 anchor a post-invalidation reload by index.
+            // NoteFeedRemoteMediator.refreshRelayEventStats() invalidates once its relay stats
+            // query lands for REFRESH (see its comment) — by then the user may already have
+            // scrolled past where that index now points, which reads as the feed jumping.
+            // LazyColumn already keys items by postId/repostId (NoteFeedLazyColumn.kt), so keeping
+            // placeholders off lets it re-anchor by key across a reload instead.
             enablePlaceholders = false,
         ),
         remoteMediator = NoteFeedRemoteMediator(

@@ -5,6 +5,9 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import io.github.aakira.napier.Napier
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.update
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -42,6 +45,7 @@ import net.primal.domain.posts.FeedRepository
 import net.primal.shared.data.local.db.withTransaction
 
 @ExperimentalPagingApi
+@OptIn(ExperimentalAtomicApi::class)
 internal class NoteFeedRemoteMediator(
     private val dispatcherProvider: DispatcherProvider,
     private val feedSpec: String,
@@ -69,6 +73,43 @@ internal class NoteFeedRemoteMediator(
     private val useRelayFollowingFeed = relayFeedFetcher != null && feedSpec.isRelayServableNotesFeedSpec()
 
     private val lastRequests: MutableMap<LoadType, Pair<MultiKindFeedBySpecRequestBody, Long>> = mutableMapOf()
+
+    // Together these make a single empty APPEND batch non-fatal instead of permanently ending
+    // pagination. FeedProcessor.processRemoteKeys() only writes a FeedPostRemoteKey for events
+    // actually returned, so an empty batch leaves findLastFeedPostRemoteKey() resolving the same
+    // stale key next time — without this, that identical request trips RepeatingRequestBodyException
+    // and this PagingSource generation's APPEND direction is done forever (Paging3's retry() only
+    // re-attempts a load in LoadState.Error, never one that already completed as NotLoading with
+    // endOfPaginationReached=true — there is no lower-level API to undo that short of a fresh
+    // PagingSource generation).
+
+    /** Furthest `until` any APPEND attempt has already queried, regardless of whether it
+     * returned events. Lets the next attempt step strictly further back instead of repeating a
+     * window the DB-derived cursor hasn't moved past. Reset only on REFRESH. */
+    private val furthestAppendUntil = AtomicReference<Long?>(null)
+
+    /** Consecutive APPEND batches that returned zero notes/polls/reposts. Reset by any batch
+     * with at least one event, by REFRESH, and by a manual retry. Bounds automatic step-back
+     * retrying: see MAX_CONSECUTIVE_EMPTY_APPEND_BATCHES. */
+    private val consecutiveEmptyAppendBatches = AtomicReference(0)
+
+    /** One-shot APPEND page-size override consumed by exactly the next APPEND fetch, set by a
+     * manual "load more" retry so a single tap reliably asks for MANUAL_APPEND_RETRY_LIMIT notes
+     * instead of the normal small steady-state page size. */
+    private val forceNextAppendLimit = AtomicReference<Int?>(null)
+
+    init {
+        // Lets a UI action (NoteFeedViewModel -> FeedRepository.retryAppendFeed) reach back into
+        // this specific mediator instance without FeedRepositoryImpl needing to hold a reference
+        // to it — mirrors how PagingSources register themselves via invalidationTracker.track().
+        invalidationTracker.registerAppendRetryHandler(ownerId = userId, feedSpec = feedSpec) {
+            consecutiveEmptyAppendBatches.store(0)
+            forceNextAppendLimit.store(MANUAL_APPEND_RETRY_LIMIT)
+            // furthestAppendUntil is deliberately left as-is: resetting it would make the next
+            // attempt recompute the same stale boundary that was just exhausted, defeating the
+            // whole point of a "load further back" retry.
+        }
+    }
 
     private val feedProcessor: FeedProcessor = FeedProcessor(
         feedSpec = feedSpec,
@@ -139,7 +180,12 @@ internal class NoteFeedRemoteMediator(
             }
 
             Napier.i("feed_spec $feedSpec load exit 6")
-            MediatorResult.Success(endOfPaginationReached = false)
+            // Only APPEND can end deliberately here now: a bounded run of consecutive empty
+            // batches (see syncAppend), not the accidental one-shot give-up a single flaky empty
+            // batch used to cause via RepeatingRequestBodyException below.
+            val appendExhausted = loadType == LoadType.APPEND &&
+                consecutiveEmptyAppendBatches.load() >= MAX_CONSECUTIVE_EMPTY_APPEND_BATCHES
+            MediatorResult.Success(endOfPaginationReached = appendExhausted)
         } catch (error: IOException) {
             Napier.w("feed_spec $feedSpec load exit 7", error)
             MediatorResult.Error(error)
@@ -174,6 +220,16 @@ internal class NoteFeedRemoteMediator(
         pagingState: PagingState<Int, FeedPost>,
         remoteKey: FeedPostRemoteKey?,
     ) {
+        if (loadType == LoadType.REFRESH) {
+            // A fresh top-of-feed view must not inherit a give-up/step-back state left over from
+            // a prior deep-scroll session: without this, a REFRESH's newly-written (recent,
+            // large-timestamp) remote key could compare as "hasn't advanced past" a much older
+            // watermark, wrongly forcing the very first post-refresh APPEND to step back from
+            // stale history instead of trying the natural next window.
+            furthestAppendUntil.store(null)
+            consecutiveEmptyAppendBatches.store(0)
+        }
+
         // Load a deliberately larger first snapshot, then keep subsequent pages small to
         // avoid retaining/downloading an unnecessarily large feed at startup.
         val pageSize = if (loadType == LoadType.REFRESH) {
@@ -192,12 +248,21 @@ internal class NoteFeedRemoteMediator(
             response = response,
             clearFeed = loadType == LoadType.REFRESH,
         )
-        refreshRelayEventStats(response = response, invalidateAfter = loadType == LoadType.REFRESH)
+        // Only REFRESH's page is guaranteed to be what the user is actually looking at the
+        // moment it lands; APPEND pages are prefetched ahead of scroll (Paging3's own
+        // prefetchDistance) and may not be seen for a while, if ever. Fetching stats for those
+        // eagerly was most of the relay round-trips a refresh didn't need yet — APPEND pages now
+        // get their stats lazily, from the viewport-visibility trigger in NoteFeedViewModel /
+        // NoteFeedList instead (EventRepository.fetchAndCacheEventStats), once a note actually
+        // scrolls into view.
+        if (loadType == LoadType.REFRESH) {
+            refreshRelayEventStats(response = response)
+        }
 
         lastRequests[loadType] = request to Clock.System.now().epochSeconds
     }
 
-    private suspend fun refreshRelayEventStats(response: FeedResponse, invalidateAfter: Boolean) {
+    private suspend fun refreshRelayEventStats(response: FeedResponse) {
         val statsFetcher = relayEventStatsFetcher ?: return
         val eventIds = (response.notes + response.articles + response.reposts).map { it.id }.distinct()
         if (eventIds.isEmpty()) return
@@ -209,18 +274,12 @@ internal class NoteFeedRemoteMediator(
             }
         }
         // EventStats is a relation and is intentionally excluded from Room's paging
-        // observed-entity set, so on REFRESH (where already-visible older items get no
-        // accompanying post write of their own) an explicit invalidate is the only way
-        // their counters redraw without navigating away/back. On APPEND, skip it: the
-        // post/crossref insert that just happened for this same page already triggers
-        // Room's own observer, and by the time that re-query runs this stats upsert has
-        // already committed too — an extra invalidate here only reloads the entire
-        // already-scrolled window, which is what made the feed appear to randomly jump
-        // mid-scroll (worse the slower the relay, since it lands later, further into the
-        // scroll).
-        if (invalidateAfter) {
-            invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
-        }
+        // observed-entity set, so an explicit invalidate is the only way their counters redraw
+        // without navigating away/back. Safe to do unconditionally now that this function only
+        // ever runs for REFRESH: REFRESH clears and replaces the whole feed spec, so there is no
+        // already-scrolled window for an invalidate to disrupt (that risk — and why APPEND used
+        // to skip this — is why APPEND no longer calls this function at all, see syncFeed above).
+        invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
     }
 
     private suspend fun syncRefresh(pageSize: Int): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
@@ -261,12 +320,29 @@ internal class NoteFeedRemoteMediator(
         remoteKey: FeedPostRemoteKey?,
         pageSize: Int,
     ): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
+        // An empty batch writes no FeedPostRemoteKey (see FeedProcessor.processRemoteKeys), so
+        // candidateUntil can resolve to the exact same boundary a previous attempt already
+        // queried. When it hasn't advanced past the furthest point already probed, step back by
+        // EMPTY_BATCH_STEP_BACK instead of repeating that window — that repeat is exactly what
+        // used to trip RepeatingRequestBodyException below on nothing more than one flaky empty
+        // relay round trip.
+        val candidateUntil = remoteKey?.sinceId
+        val watermark = furthestAppendUntil.load()
+        val until = if (candidateUntil != null && watermark != null && candidateUntil >= watermark) {
+            watermark - EMPTY_BATCH_STEP_BACK
+        } else {
+            candidateUntil
+        }
+
+        val effectiveLimit = forceNextAppendLimit.load() ?: pageSize
+        forceNextAppendLimit.store(null)
+
         val requestBody = MultiKindFeedBySpecRequestBody(
             spec = feedSpec,
             userPubKey = userId,
             kinds = kinds,
-            limit = pageSize,
-            until = remoteKey?.sinceId,
+            limit = effectiveLimit,
+            until = until,
         )
 
         lastRequests[LoadType.APPEND]?.let { (lastRequest, lastRequestAt) ->
@@ -276,6 +352,13 @@ internal class NoteFeedRemoteMediator(
         }
 
         val feedResponse = fetchFeedPage(requestBody)
+
+        if (until != null) {
+            furthestAppendUntil.update { current -> minOf(until, current ?: until) }
+        }
+        val returnedCount = feedResponse.notes.size + feedResponse.polls.size + feedResponse.reposts.size
+        consecutiveEmptyAppendBatches.store(if (returnedCount == 0) consecutiveEmptyAppendBatches.load() + 1 else 0)
+
         return requestBody to feedResponse
     }
 
@@ -369,5 +452,32 @@ internal class NoteFeedRemoteMediator(
 
     companion object {
         private val LAST_REQUEST_EXPIRY = 10.seconds.inWholeSeconds
+
+        /** How far back (seconds) a stuck APPEND cursor is forced past its last attempted
+         * boundary. Trade-off: too small and a genuinely sparse account (long real gaps between
+         * posts) burns through MAX_CONSECUTIVE_EMPTY_APPEND_BATCHES probing tiny slices, giving
+         * up while relays still have more; too large and a single step can leap over real content
+         * sitting between two sparse points — the cursor only ever moves backward, nothing
+         * revisits a skipped span. 6h is small next to plausible gaps in an actively-followed
+         * multi-author feed while coarse enough that a handful of steps covers a meaningful
+         * stretch before giving up. Not derived from telemetry (none exists for this path); tune
+         * if real-world gaps prove different. */
+        private val EMPTY_BATCH_STEP_BACK = 6.hours.inWholeSeconds
+
+        /** Consecutive empty APPEND batches allowed before deliberately giving up. 1 alone
+         * absorbs the reported failure mode (a single flaky/timed-out relay round trip)
+         * trivially; 4 total attempts (3 forced step-backs of EMPTY_BATCH_STEP_BACK each, up to
+         * ~18h of history probed) bounds automatic retrying for a genuine gap or truly-exhausted
+         * history to a small, fixed number of extra round trips rather than unthrottled
+         * hammering, then hands off to the user via the "load more" retry. */
+        private const val MAX_CONSECUTIVE_EMPTY_APPEND_BATCHES = 4
+
+        /** One-shot APPEND limit for the fetch immediately following a manual "load more" tap,
+         * so a single tap reliably asks for ~100 older notes rather than the steady-state page
+         * size. `limit` is an unvalidated pass-through all the way to the relay/cache-server
+         * request body (same as `until`/`since`), and 50 is already used as the initial page
+         * size elsewhere in this same class, so 100 is well within already-demonstrated-safe
+         * range. */
+        private const val MANUAL_APPEND_RETRY_LIMIT = 100
     }
 }

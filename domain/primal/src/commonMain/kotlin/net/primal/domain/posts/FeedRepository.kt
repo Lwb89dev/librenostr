@@ -43,6 +43,15 @@ interface FeedRepository {
 
     suspend fun removeFeedSpec(userId: String, feedSpec: String)
 
+    /**
+     * Manually resumes older-notes pagination after the feed's RemoteMediator has deliberately
+     * given up on APPEND (a bounded run of consecutive empty relay batches — not necessarily
+     * "no more history exists", just nothing found in the spans probed so far). No scroll jump:
+     * placeholders are off and rows are keyed by postId/repostId, so the resulting new
+     * PagingSource generation re-anchors by key instead of jumping to the top.
+     */
+    suspend fun retryAppendFeed(userId: String, feedSpec: String)
+
     suspend fun replaceFeed(
         userId: String,
         feedSpec: String,

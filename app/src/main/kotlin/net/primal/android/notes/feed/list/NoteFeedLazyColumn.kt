@@ -12,13 +12,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -36,6 +41,7 @@ import net.primal.android.core.compose.isNotEmpty
 import net.primal.android.core.compose.zaps.FeedNoteTopZapsSection
 import net.primal.android.core.errors.UiError
 import net.primal.android.nostr.mappers.asFeedPostUi
+import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.StreamPillUi
 import net.primal.android.notes.feed.note.FeedNoteCard
@@ -56,6 +62,7 @@ fun NoteFeedLazyColumn(
     listState: LazyListState,
     showPaywall: Boolean,
     noteCallbacks: NoteCallbacks,
+    statsOverrides: State<Map<String, EventStatsUi>> = remember { mutableStateOf(emptyMap<String, EventStatsUi>()) },
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     showCentralLoadingSpinner: Boolean = false,
@@ -69,6 +76,7 @@ fun NoteFeedLazyColumn(
     header: @Composable (LazyItemScope.() -> Unit)? = null,
     stickyHeader: @Composable (LazyItemScope.() -> Unit)? = null,
     onUiError: ((UiError) -> Unit)? = null,
+    onRetryAppend: (() -> Unit)? = null,
 ) {
     val streamState = LocalStreamState.current
     val pagingItemsOffset = (if (stickyHeader != null) 1 else 0) + (if (header != null) 1 else 0) + 1
@@ -133,19 +141,27 @@ fun NoteFeedLazyColumn(
             val couldAutoPlay by remember(index) {
                 derivedStateOf { index == firstVisibleVideoPlayingIndex.value }
             }
+            // Scoped to this one item's postId so a stats update for note A never recomposes
+            // note B's row — reading statsOverrides.value directly here (a whole-map State)
+            // would recompose every visible row on every update, the same class of over-broad
+            // redraw the mediator's own invalidate() used to cause, just via Compose instead.
+            val overrideStats by remember(item?.postId) {
+                derivedStateOf { item?.postId?.let { statsOverrides.value[it] } }
+            }
+            val renderedItem = overrideStats?.let { item?.copy(stats = it) } ?: item
 
             when {
-                item != null -> Column {
+                renderedItem != null -> Column {
                     if (useMediaCards) {
                         MediaFeedCard(
-                            data = item,
+                            data = renderedItem,
                             noteCallbacks = noteCallbacks,
                             couldAutoPlay = couldAutoPlay,
                             onUiError = onUiError,
                         )
                     } else {
                         FeedNoteCard(
-                            data = item,
+                            data = renderedItem,
                             shape = AppTheme.shapes.large,
                             border = BorderStroke(1.dp, AppTheme.libreNostrTokens.softOutline),
                             cardPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
@@ -157,17 +173,17 @@ fun NoteFeedLazyColumn(
                             noteCallbacks = noteCallbacks,
                             onUiError = onUiError,
                             contentFooter = {
-                                if (showTopZaps && item.eventZaps.isNotEmpty()) {
+                                if (showTopZaps && renderedItem.eventZaps.isNotEmpty()) {
                                     FeedNoteTopZapsSection(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 8.dp)
                                             .padding(top = 4.dp, end = 2.dp),
-                                        zaps = item.eventZaps,
+                                        zaps = renderedItem.eventZaps,
                                         onClick = if (noteCallbacks.onEventReactionsClick != null) {
                                             {
                                                 noteCallbacks.onEventReactionsClick
-                                                    .invoke(item.postId, ReactionType.ZAPS, null)
+                                                    .invoke(renderedItem.postId, ReactionType.ZAPS, null)
                                             }
                                         } else {
                                             null
@@ -252,6 +268,20 @@ fun NoteFeedLazyColumn(
                 }
             }
 
+            is LoadState.NotLoading -> {
+                // NoteFeedRemoteMediator's APPEND direction now only ends deliberately, after a
+                // bounded run of empty relay batches — not necessarily "no more history exists",
+                // just nothing found in the spans probed so far. Offer a way to keep going
+                // instead of a silent, permanent wall.
+                val retryAppend = onRetryAppend
+                val isExhausted = appendMediatorLoadState.endOfPaginationReached
+                if (isExhausted && pagingItems.isNotEmpty() && retryAppend != null) {
+                    item(contentType = "AppendExhausted") {
+                        AppendExhaustedFooter(onClick = retryAppend)
+                    }
+                }
+            }
+
             else -> Unit
         }
 
@@ -269,6 +299,28 @@ fun NoteFeedLazyColumn(
             item(contentType = "Footer") {
                 Spacer(modifier = Modifier.height(104.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun AppendExhaustedFooter(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 32.dp),
+            text = stringResource(id = R.string.feed_append_exhausted_message),
+            textAlign = TextAlign.Center,
+        )
+        TextButton(
+            modifier = Modifier.padding(vertical = 8.dp),
+            onClick = onClick,
+        ) {
+            Text(text = stringResource(id = R.string.feed_append_exhausted_button).uppercase())
         }
     }
 }

@@ -8,6 +8,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -239,6 +240,57 @@ class RelaysSocketManagerTest {
             advanceUntilIdle()
 
             coVerify(exactly = 0) { client.sendAUTH(any()) }
+        }
+
+    @Test
+    fun `updateOutboxEnrichmentRelays adds a new relay to the pool alongside the user's own`() =
+        runTest {
+            val userRelayUrl = "wss://users-own-relay.example.com"
+            val enrichmentUrl = "wss://outbox-enrichment.example.com"
+            val relayPOs = listOf(
+                RelayPO(userId = expectedUserId, kind = RelayKind.UserRelay, url = userRelayUrl, read = true, write = true),
+            )
+            val manager = buildRelaysSocketManager(usersDatabase = buildUsersDatabase(relays = relayPOs))
+            advanceUntilIdle()
+
+            manager.updateOutboxEnrichmentRelays(
+                relays = listOf(Relay(url = enrichmentUrl, read = true, write = false)),
+            )
+            advanceUntilIdle()
+
+            verify {
+                NostrSocketClientFactory.create(
+                    wssUrl = enrichmentUrl,
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            }
+        }
+
+    @Test
+    fun `updateOutboxEnrichmentRelays does not duplicate a relay already in the user's own set`() =
+        runTest {
+            val sharedUrl = "wss://already-configured.example.com"
+            val relayPOs = listOf(
+                RelayPO(userId = expectedUserId, kind = RelayKind.UserRelay, url = sharedUrl, read = true, write = true),
+            )
+            val manager = buildRelaysSocketManager(usersDatabase = buildUsersDatabase(relays = relayPOs))
+            advanceUntilIdle()
+
+            // Same URL the user already configured, as if it also happened to be a top outbox
+            // relay for the follow list — must not create a second socket for it.
+            manager.updateOutboxEnrichmentRelays(
+                relays = listOf(Relay(url = sharedUrl, read = true, write = false)),
+            )
+            advanceUntilIdle()
+
+            verify(exactly = 1) {
+                NostrSocketClientFactory.create(
+                    wssUrl = sharedUrl,
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            }
         }
 
     @Test

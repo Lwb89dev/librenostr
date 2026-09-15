@@ -59,6 +59,40 @@ class FeedSpecInvalidationTrackerTest {
     }
 
     @Test
+    fun retryAppend_invokesTheRegisteredHandlerForThatSpec() {
+        val tracker = FeedSpecInvalidationTracker()
+        var handlerCalled = false
+        tracker.registerAppendRetryHandler(OWNER_ID, FEED_SPEC_A) { handlerCalled = true }
+        val source = tracker.track(OWNER_ID, FEED_SPEC_A, FakePagingSource())
+
+        tracker.retryAppend(ownerId = OWNER_ID, feedSpec = FEED_SPEC_A)
+
+        assertTrue(handlerCalled, "retryAppend must invoke the handler registered for that spec")
+        assertTrue(source.invalid, "retryAppend must also invalidate the tracked source")
+    }
+
+    @Test
+    fun retryAppend_doesNotInvokeAnotherSpecsHandler() {
+        val tracker = FeedSpecInvalidationTracker()
+        var wrongHandlerCalled = false
+        tracker.registerAppendRetryHandler(OWNER_ID, FEED_SPEC_B) { wrongHandlerCalled = true }
+
+        tracker.retryAppend(ownerId = OWNER_ID, feedSpec = FEED_SPEC_A)
+
+        assertFalse(wrongHandlerCalled, "a handler registered for an unrelated spec must not fire")
+    }
+
+    @Test
+    fun retryAppend_withNoRegisteredHandler_stillInvalidatesWithoutThrowing() {
+        val tracker = FeedSpecInvalidationTracker()
+        val source = tracker.track(OWNER_ID, FEED_SPEC_A, FakePagingSource())
+
+        tracker.retryAppend(ownerId = OWNER_ID, feedSpec = FEED_SPEC_A)
+
+        assertTrue(source.invalid, "a missing handler must not prevent the invalidate from running")
+    }
+
+    @Test
     fun invalidateAll_invalidatesEveryTrackedSource() {
         val tracker = FeedSpecInvalidationTracker()
         val sourceA = tracker.track(OWNER_ID, FEED_SPEC_A, FakePagingSource())

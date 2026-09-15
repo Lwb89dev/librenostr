@@ -21,6 +21,15 @@ interface EventRepository {
     fun observeEventStats(eventIds: List<String>): Flow<List<NostrEventStats>>
     fun observeUserEventStatus(eventIds: List<String>, userId: String): Flow<List<NostrEventUserStats>>
 
+    /**
+     * Fetches like/reply/repost/zap counters for [eventIds] from relays and persists them.
+     * Deliberately does not invalidate any feed's paging source — callers that need the update
+     * to be visible should observe it via [observeEventStats]/[observeUserEventStatus] instead,
+     * which react to the same Room write this performs. Meant for on-demand, targeted refreshes
+     * (e.g. a note becoming visible in a viewport) rather than a whole page's worth at once.
+     */
+    suspend fun fetchAndCacheEventStats(eventIds: List<String>, userId: String)
+
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun fetchEventActions(eventId: String, kind: Int): List<NostrEventAction>
 

@@ -32,12 +32,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import net.primal.android.notes.feed.list.NoteFeedContract.UiEvent
 import net.primal.android.notes.feed.list.NoteFeedContract.UiState
+import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostsSyncStats
 import net.primal.android.notes.feed.model.StreamsSyncStats
 import net.primal.android.notes.feed.model.asFeedPostUi
 import net.primal.android.profile.domain.mapAsProfileDataDO
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.core.utils.coroutines.DispatcherProvider
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
+import net.primal.domain.events.EventRepository
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.data.remote.mapper.flatMapNotNullAsCdnResource
 import net.primal.data.remote.mapper.mapAsMapPubkeyToListOfBlossomServers
@@ -66,6 +73,7 @@ class NoteFeedViewModel @AssistedInject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val mutedItemRepository: MutedItemRepository,
     private val streamRepository: StreamRepository,
+    private val eventRepository: EventRepository,
     private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
 
@@ -103,6 +111,32 @@ class NoteFeedViewModel @AssistedInject constructor(
     private var topVisibleNote: Pair<String, String?>? = null
 
     private var pollingJob: Job? = null
+
+    // Session-scoped only, not TTL-bounded like FetchCoordinator's own dedup: a note's stats are
+    // asked for at most once per ViewModel lifetime once it has scrolled into view. Good enough
+    // for how long a single feed session actually scrolls; revisit with a sliding window if a
+    // very long session ever shows this growing large enough to matter.
+    private val requestedStatsEventIds = mutableSetOf<String>()
+    private val statsRequestedIds = MutableStateFlow<Set<String>>(emptySet())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val statsOverrides: StateFlow<Map<String, EventStatsUi>> = statsRequestedIds
+        .flatMapLatest { ids ->
+            if (ids.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                val idsList = ids.toList()
+                val userId = activeAccountStore.activeUserId()
+                combine(
+                    eventRepository.observeEventStats(eventIds = idsList),
+                    eventRepository.observeUserEventStatus(eventIds = idsList, userId = userId),
+                ) { stats, userStats ->
+                    val userStatsByEventId = userStats.associateBy { it.eventId }
+                    stats.associate { it.eventId to EventStatsUi.from(it, userStatsByEventId[it.eventId]) }
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STATS_SUBSCRIPTION_TIMEOUT_MS), emptyMap())
 
     init {
         if (showStreamsInNewPill) {
@@ -160,9 +194,30 @@ class NoteFeedViewModel @AssistedInject constructor(
                     is UiEvent.UpdateCurrentTopVisibleNote -> {
                         topVisibleNote = it.noteId to it.repostId
                     }
+                    is UiEvent.RequestStatsForVisibleNotes -> requestStatsForVisibleNotes(it.eventIds)
+                    UiEvent.LoadOlderNotesClick -> retryAppend()
                 }
             }
         }
+
+    private fun retryAppend() =
+        viewModelScope.launch(dispatcherProvider.io()) {
+            runCatching {
+                feedRepository.retryAppendFeed(userId = activeAccountStore.activeUserId(), feedSpec = feedSpec)
+            }.onFailure { Napier.w(throwable = it) { "Load-older-notes retry failed." } }
+        }
+
+    private fun requestStatsForVisibleNotes(eventIds: List<String>) {
+        val newIds = eventIds.filterNot { it in requestedStatsEventIds }
+        if (newIds.isEmpty()) return
+        requestedStatsEventIds += newIds
+        statsRequestedIds.value = requestedStatsEventIds.toSet()
+        val userId = activeAccountStore.activeUserId()
+        viewModelScope.launch(dispatcherProvider.io()) {
+            runCatching { eventRepository.fetchAndCacheEventStats(eventIds = newIds, userId = userId) }
+                .onFailure { Napier.w(throwable = it) { "Viewport stats fetch failed." } }
+        }
+    }
 
     /**
      * Watches for new notes with a live relay subscription instead of a short poll.
@@ -378,5 +433,8 @@ class NoteFeedViewModel @AssistedInject constructor(
 
         /** Backstop for a subscription that dies quietly; far rarer than the old 30s poll. */
         private const val SAFETY_REFRESH_INTERVAL_SECONDS = 300
+
+        /** Keeps the stats Flow alive through a brief config change/recomposition gap. */
+        private const val STATS_SUBSCRIPTION_TIMEOUT_MS = 5_000L
     }
 }
