@@ -7,6 +7,25 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.5.17] - 2026-09-15
+
+### Changed
+
+- Feed queries now also reach the relays that the people you follow actually publish to (NIP-65
+  write relays), not only the relays configured in Settings — less time spent waiting on a relay
+  that never had a given author's notes in the first place.
+- Like/reply/repost/zap counts for notes further down the feed are now fetched only once a note
+  actually scrolls into view, instead of eagerly for the entire page. Combined with the relay
+  routing above, pull-to-refresh and scrolling through the feed and notifications are both
+  noticeably faster.
+
+### Fixed
+
+- A single relay hiccup while scrolling deep into the feed could permanently stop further notes
+  from loading for the rest of that session. The feed now retries further back automatically
+  before giving up, with a "Load more" button once it does — this is a partial fix, reaching the
+  very end of the feed can still get stuck in some cases and needs further work.
+
 ## [0.5.16] - 2026-09-15
 
 ### Fixed
