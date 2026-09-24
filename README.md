@@ -24,6 +24,10 @@ client  <->  Nostr relays  +  local Room/DataStore
 
 The imported codebase still contains upstream namespaces and compatibility services. Those are being removed incrementally, path by path, instead of hiding the remaining dependencies behind a rebrand.
 
+The current release is [`v0.6.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v0.6.0). Release APKs
+are signed, `arm64-v8a` only, and published from the [`altRelease`](https://github.com/Lwb89dev/librenostr/releases)
+build variant.
+
 ## Current state
 
 **100% of active Android data paths are relay-native.** Feeds, profiles, threads,
@@ -51,6 +55,24 @@ The app name and launcher icon are LibreNostr. The Android application ID is
 `com.librenostr.android`; the internal Kotlin/Java package namespace is still
 `net.primal.android` and is renamed separately from the networking migration.
 
+### Network routing and Tor
+
+LibreNostr supports three network modes:
+
+| Mode | Behavior |
+|---|---|
+| Direct | Tor is off and connections use the ordinary network path. |
+| Tor for everything | All supported connections use Tor. If Tor is unavailable, the connection fails instead of falling back to a direct path. |
+| Only `.onion` addresses | `.onion` destinations use Tor; clearnet destinations remain direct and are not hidden. |
+
+When a Tor mode is selected, relay WebSockets, HTTP requests, media, uploads and web pages follow
+the selected route. Relay connections are re-established when the mode changes, and destinations
+that must use Tor are never resolved or fetched directly.
+
+Tor can run through either the external Orbot SOCKS proxy or the built-in Arti engine. Built-in Tor
+is bundled as a native `arm64-v8a` library, so no additional app is required. The Android build is
+therefore distributed as an `arm64-v8a` split only.
+
 ## Remaining boundaries
 
 LibreNostr is not yet a complete removal of every upstream-specific component. In particular:
@@ -69,11 +91,15 @@ Remaining paths and phased removal are tracked in [`docs/LIBRENOSTR_ROADMAP.md`]
 | `core/` | Networking, caching, media, cryptography and shared UI primitives |
 | `data/` | Local databases, remote APIs and repository implementations |
 | `domain/` | Platform-independent Nostr, feed, profile and wallet models |
+| `tools/arti-build/` | Pinned Rust/Arti JNI wrapper build and reproducibility scripts for built-in Tor |
 | `docs/` | Architecture notes, dependency inventory and migration roadmap |
 
 ## Building
 
 Requires JDK 21 and an Android SDK with compile SDK 37. The project uses AGP 9.2.1, Kotlin 2.4.0 and min SDK 26.
+The Android application is packaged for `arm64-v8a` only. The built-in Tor native library is already
+committed under `app/src/main/jniLibs/arm64-v8a/`; rebuilding it separately requires the pinned toolchain
+documented in [`tools/arti-build/README.md`](tools/arti-build/README.md).
 
 There is a single build: LibreNostr ships without Google Play services, Play Billing, ML Kit or Firebase, so there is no flavor dimension.
 
@@ -93,23 +119,33 @@ The AOSP debug APK has been compiled, installed and exercised through ADB during
 
 ### Release builds
 
-Create a gitignored `config.properties` in the repository root:
+Create a gitignored `config.properties` in the repository root with the `alternative` signing
+properties. The keystore itself must stay outside Git:
 
 ```properties
-localStorage.keyAlias={KeystoreAliasForEncryption}
+alternative.storeFile=/path/to/librenostr-release.jks
+alternative.storePassword={KeystorePassword}
+alternative.keyAlias={KeyAlias}
+alternative.keyPassword={KeyPassword}
 ```
 
-Signing properties are optional and use the `alternative` signing block. Then run the release task:
+The optional `localStorage.keyAlias` property can also be supplied when configuring the release
+storage key. Build and install the signed release with:
 
 ```bash
-./gradlew :app:installAltRelease
+./gradlew :app:assembleAltRelease --no-daemon
+./gradlew :app:installAltRelease --no-daemon
 ```
+
+The APK is written to
+`app/build/outputs/apk/altRelease/librenostr-<version>-arm64-v8a.apk`.
 
 ## Releases
 
 Signed release APKs (`altRelease`, `arm64-v8a` only) are published on the
-[GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page,
-starting with `v0.1.0`. Verify the APK signature before installing:
+[GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page. The latest release is
+[`v0.6.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v0.6.0). Verify the APK signature
+before installing:
 
 ```bash
 apksigner verify --print-certs librenostr-<version>-<abi>.apk
@@ -119,6 +155,8 @@ apksigner verify --print-certs librenostr-<version>-<abi>.apk
 
 | File | Description |
 |---|---|
+| [`CHANGELOG.md`](CHANGELOG.md) | English release history |
+| [`built_in_tor.md`](built_in_tor.md) | Built-in Tor design, implementation status and verification notes |
 | [`docs/UPSTREAM.md`](docs/UPSTREAM.md) | Origin, remotes and MIT obligations |
 | [`docs/BASELINE.md`](docs/BASELINE.md) | Toolchain and imported baseline |
 | [`docs/ARCHITECTURE_UPSTREAM.md`](docs/ARCHITECTURE_UPSTREAM.md) | KEEP / REFACTOR / REPLACE / REMOVE map |
