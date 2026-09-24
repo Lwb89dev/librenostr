@@ -7,6 +7,28 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.6.0] - 2026-09-24
+
+### Added
+
+- Built-in Tor powered by Arti, bundled for `arm64-v8a`, so Tor can run inside LibreNostr without
+  installing another app.
+- Tor settings now show the built-in engine state and bootstrap progress, alongside the existing
+  Orbot engine.
+
+### Changed
+
+- Network routing now offers Direct, Tor for everything, and Only `.onion` addresses modes.
+- Relay WebSockets, HTTP requests, media, uploads, and web pages follow the selected network mode;
+  switching modes reconnects relay sockets through the new route.
+- `.onion` relay addresses are accepted as cleartext WebSockets only when they are routed through
+  Tor.
+
+### Fixed
+
+- Traffic that cannot be routed through the selected Tor mode is no longer silently fetched directly.
+- Strict Tor mode fails closed when Tor is unavailable instead of falling back to a direct connection.
+
 ## [0.5.17] - 2026-09-15
 
 ### Changed
