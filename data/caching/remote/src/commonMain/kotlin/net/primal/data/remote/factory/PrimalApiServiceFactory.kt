@@ -16,12 +16,9 @@ import net.primal.data.remote.api.polls.PollsApi
 import net.primal.data.remote.api.polls.PollsApiImpl
 import net.primal.data.remote.api.settings.SettingsApi
 import net.primal.data.remote.api.settings.SettingsApiImpl
-import net.primal.data.remote.api.stream.LiveStreamApi
-import net.primal.data.remote.api.stream.LiveStreamApiImpl
 import net.primal.data.remote.api.users.UsersApi
 import net.primal.data.remote.api.users.UsersApiImpl
 import net.primal.domain.nostr.relay.RelayEventQuerier
-import net.primal.domain.nostr.relay.RelayEventSubscriber
 
 object PrimalApiServiceFactory {
 
@@ -45,10 +42,4 @@ object PrimalApiServiceFactory {
     fun createPollsApi(primalApiClient: PrimalApiClient): PollsApi = PollsApiImpl(primalApiClient)
 
     fun createUsersApi(primalApiClient: PrimalApiClient): UsersApi = UsersApiImpl(primalApiClient)
-
-    fun createStreamMonitor(
-        relayEventSubscriber: RelayEventSubscriber,
-    ): LiveStreamApi = LiveStreamApiImpl(
-        relayEventSubscriber = relayEventSubscriber,
-    )
 }

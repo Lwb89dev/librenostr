@@ -23,7 +23,6 @@ import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.AvatarNostrich
-import net.primal.android.core.compose.icons.primaliconpack.Play
 import net.primal.android.core.compose.icons.primaliconpack.FeedPicker
 import net.primal.android.core.compose.icons.primaliconpack.VideoPlay
 import net.primal.android.core.compose.settings.SettingsItem
@@ -243,25 +242,6 @@ private fun ContentDisplaySettingsScreen(
                     },
                     onClick = {
                         eventPublisher(UiEvent.UpdateShowAnimatedAvatars(enabled = !state.showAnimatedAvatars))
-                    },
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SettingsItem(
-                    headlineText = stringResource(id = R.string.settings_content_display_live_streams),
-                    supportText = stringResource(id = R.string.settings_content_display_live_streams_hint),
-                    leadingIcon = PrimalIcons.Play,
-                    trailingContent = {
-                        PrimalSwitch(
-                            checked = state.showLiveStreams,
-                            onCheckedChange = {
-                                eventPublisher(UiEvent.UpdateShowLiveStreams(enabled = it))
-                            },
-                        )
-                    },
-                    onClick = {
-                        eventPublisher(UiEvent.UpdateShowLiveStreams(enabled = !state.showLiveStreams))
                     },
                 )
             }

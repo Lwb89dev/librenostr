@@ -18,8 +18,10 @@ import net.primal.domain.feeds.extractFollowSetDTag
 import net.primal.domain.feeds.extractFollowSetPubkey
 import net.primal.domain.feeds.extractPubkeyFromFeedSpec
 import net.primal.domain.feeds.isFollowSetFeedSpec
+import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNotesFeedSpec
+import net.primal.domain.nostr.eventIdTagValues
 import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.hasEventIdTag
 import net.primal.domain.nostr.pubkeyTagValues
@@ -30,9 +32,38 @@ internal class RelayNotesFeedFetcher(
     private val querier: RelayEventQuerier,
     private val coordinator: FetchCoordinator,
     private val cache: LocalEventCache? = null,
+    /**
+     * The notes the user bookmarked, most recently bookmarked first, as the local table holds them.
+     * That table is kept current by the bookmark sync and by every add and remove, so it answers
+     * without a round trip; when it is empty (a fresh install whose first sync has not landed
+     * yet) the list is read from the relays instead.
+     */
+    private val localBookmarkedNoteIds: (suspend (userId: String, limit: Int) -> List<String>)? = null,
 ) {
 
     suspend fun fetch(
+        userId: String,
+        feedSpec: String,
+        includeReplies: Boolean,
+        limit: Int,
+        until: Long? = null,
+        since: Long? = null,
+    ): FeedResponse =
+        if (feedSpec.isNotesBookmarkFeedSpec()) {
+            fetchBookmarkedNotes(userId = userId, limit = limit, until = until, since = since)
+        } else {
+            fetchAuthoredNotes(
+                userId = userId,
+                feedSpec = feedSpec,
+                includeReplies = includeReplies,
+                limit = limit,
+                until = until,
+                since = since,
+            )
+        }
+
+    /** Every feed whose scope is a set of authors: following, a follow set, or one profile. */
+    private suspend fun fetchAuthoredNotes(
         userId: String,
         feedSpec: String,
         includeReplies: Boolean,
@@ -59,6 +90,14 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
+        return buildPageResponse(page)
+    }
+
+    /**
+     * Everything a page of notes needs around it: the notes it quotes, and a kind 0 for its
+     * authors and mentions. Shared by every feed this fetcher serves, whatever picked the page.
+     */
+    private suspend fun buildPageResponse(page: List<NostrEvent>): FeedResponse {
         val pageIds = page.map { it.id }.toSet()
         val pageAuthorCandidates = page.metadataAuthorCandidates()
 
@@ -84,6 +123,58 @@ internal class RelayNotesFeedFetcher(
             metadata = pageMetadata + extraMetadata,
             referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() },
         )
+    }
+
+    /**
+     * A bookmarks feed is the odd one out among the feeds served here: its scope is not a set of
+     * authors but the list of event ids the user saved (NIP-51, kind 10003), so there is no author
+     * filter to build. Each id is resolved the way a quoted note is, from what is already stored
+     * locally and from the relays only for the rest, and the page is then cut by the notes' own
+     * timestamps like every other feed, so the mediator's `until` cursor keeps its usual meaning.
+     *
+     * Only kind 1 notes come back: they are the one kind the relay-served feeds turn into feed
+     * posts with their content intact. A bookmark that points at anything else is left out rather
+     * than shown as an empty card.
+     */
+    private suspend fun fetchBookmarkedNotes(
+        userId: String,
+        limit: Int,
+        until: Long?,
+        since: Long?,
+    ): FeedResponse {
+        val bookmarkedIds = loadBookmarkedNoteIds(userId)
+        if (bookmarkedIds.isEmpty()) return emptyFeedResponse()
+
+        val page = fetchReferencedNotes(referencedIds = bookmarkedIds)
+            .distinctBy { it.id }
+            .filter { it.kind == NostrEventKind.ShortTextNote.value }
+            .filter { until == null || it.createdAt <= until }
+            .filter { since == null || it.createdAt >= since }
+            .sortedByDescending { it.createdAt }
+            .take(limit)
+        return buildPageResponse(page)
+    }
+
+    private suspend fun loadBookmarkedNoteIds(userId: String): List<String> {
+        val local = runCatching { localBookmarkedNoteIds?.invoke(userId, MAX_BOOKMARKED_NOTES) }
+            .getOrDefault(null)
+            .orEmpty()
+        return local.ifEmpty { loadBookmarkedNoteIdsFromRelays(userId) }
+    }
+
+    private suspend fun loadBookmarkedNoteIdsFromRelays(userId: String): List<String> {
+        val list = runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.BookmarksList.value),
+                    authors = listOf(userId),
+                    limit = BOOKMARK_LIST_QUERY_LIMIT,
+                ),
+            )
+        }.getOrDefault(emptyList()).maxByOrNull { it.createdAt } ?: return emptyList()
+
+        // Entries are appended as they are added, so the newest bookmark is the last tag.
+        return list.tags.eventIdTagValues().distinct().asReversed().take(MAX_BOOKMARKED_NOTES)
     }
 
     /** Everyone the content renderer might need a kind 0 for: an author, or an `nostr:` mention. */
@@ -268,6 +359,10 @@ internal class RelayNotesFeedFetcher(
         private const val MAX_FOLLOW_AUTHORS = 2_000
         private const val MAX_PARALLEL_CHUNKS = 8
         private const val ID_CHUNK = 50
+
+        /** Every page resolves the whole list, so the list a feed will ever look at is bounded. */
+        private const val MAX_BOOKMARKED_NOTES = 300
+        private const val BOOKMARK_LIST_QUERY_LIMIT = 5
 
         private const val AUTHORED_NOTES_PREFIX = """{"id":"feed","kind":"notes","notes":"authored""""
         private const val AUTHORED_REPLIES_PREFIX =

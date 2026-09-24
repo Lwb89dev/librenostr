@@ -46,6 +46,9 @@ fun FeedListOverlayContent(
     onDismiss: () -> Unit,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
     inlineActions: Boolean = false,
+    /** Off when the list is not the bottom-most thing on screen, where the navigation bar inset
+     * would otherwise be reserved at the bottom of a pane that ends mid-screen. */
+    applyNavigationBarsPadding: Boolean = true,
 ) {
     val viewModel = hiltViewModel<FeedListViewModel, FeedListViewModel.Factory>(
         key = "FeedListViewModel_$feedSpecKind",
@@ -61,6 +64,7 @@ fun FeedListOverlayContent(
         eventPublisher = viewModel::setEvent,
         onEditAdvancedSearchFeedClick = onEditAdvancedSearchFeedClick,
         inlineActions = inlineActions,
+        applyNavigationBarsPadding = applyNavigationBarsPadding,
     )
 }
 
@@ -73,6 +77,7 @@ private fun FeedListOverlayContent(
     eventPublisher: (FeedListContract.UiEvent) -> Unit,
     onEditAdvancedSearchFeedClick: ((feedSpec: String) -> Unit)? = null,
     inlineActions: Boolean = false,
+    applyNavigationBarsPadding: Boolean = true,
 ) {
     BackHandler {
         when (state.feedMarketplaceStage) {
@@ -90,7 +95,7 @@ private fun FeedListOverlayContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 16.dp)
-            .navigationBarsPadding(),
+            .then(if (applyNavigationBarsPadding) Modifier.navigationBarsPadding() else Modifier),
         targetState = state.feedMarketplaceStage,
         transitionSpec = { transitionSpecBetweenStages() },
         label = "FeedsOverlay",

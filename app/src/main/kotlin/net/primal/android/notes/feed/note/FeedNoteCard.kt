@@ -640,6 +640,9 @@ private fun FeedNote(
                     eventStats = data.stats,
                     showCounts = showNoteStatCounts,
                     highlightedNote = !showNoteStatCounts,
+                    // A private message is not a public event, so there is nothing to bookmark.
+                    showBookmark = !data.isPrivate,
+                    isBookmarked = data.isBookmarked,
                     onPostAction = onPostAction,
                     onPostLongPressAction = onPostLongClickAction,
                     repostAnchor = repostAnchor,

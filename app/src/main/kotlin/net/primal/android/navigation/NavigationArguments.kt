@@ -15,9 +15,6 @@ inline val SavedStateHandle.noteIdOrThrow: String
 const val PRIMAL_NAME = "primalName"
 inline val SavedStateHandle.primalName: String? get() = get(PRIMAL_NAME)
 
-const val PROFILE_NPUB = "profileNpub"
-inline val SavedStateHandle.npub: String? get() = get(PROFILE_NPUB)
-
 const val IDENTIFIER = "identifier"
 inline val SavedStateHandle.identifier: String? get() = get(IDENTIFIER)
 inline val SavedStateHandle.identifierOrThrow: String
@@ -38,9 +35,6 @@ inline val SavedStateHandle.articleATag: String? get() = get(ARTICLE_A_TAG)
 
 const val ARTICLE_ID = "articleId"
 inline val SavedStateHandle.articleId: String? get() = get(ARTICLE_ID)
-
-const val STREAM_NADDR = "streamNaddr"
-inline val SavedStateHandle.streamNaddr: String? get() = get(STREAM_NADDR)
 
 const val ARTICLE_NADDR = "articleNaddr"
 inline val SavedStateHandle.articleNaddr: String? get() = get(ARTICLE_NADDR)

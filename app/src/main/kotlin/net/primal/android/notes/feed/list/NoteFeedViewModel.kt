@@ -34,7 +34,6 @@ import net.primal.android.notes.feed.list.NoteFeedContract.UiEvent
 import net.primal.android.notes.feed.list.NoteFeedContract.UiState
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostsSyncStats
-import net.primal.android.notes.feed.model.StreamsSyncStats
 import net.primal.android.notes.feed.model.asFeedPostUi
 import net.primal.android.profile.domain.mapAsProfileDataDO
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -61,18 +60,15 @@ import net.primal.domain.posts.FeedPageSnapshot
 import net.primal.domain.posts.FeedPost
 import net.primal.domain.posts.FeedRepository
 import net.primal.domain.posts.FeedRepository.Companion.INITIAL_PAGE_SIZE
-import net.primal.domain.streams.StreamRepository
 
 @OptIn(FlowPreview::class)
 @HiltViewModel(assistedFactory = NoteFeedViewModel.Factory::class)
 class NoteFeedViewModel @AssistedInject constructor(
     @Assisted private val feedSpec: String,
     @Assisted("allowMutedThreads") private val allowMutedThreads: Boolean,
-    @Assisted("showStreamsInNewPill") private val showStreamsInNewPill: Boolean,
     private val feedRepository: FeedRepository,
     private val activeAccountStore: ActiveAccountStore,
     private val mutedItemRepository: MutedItemRepository,
-    private val streamRepository: StreamRepository,
     private val eventRepository: EventRepository,
     private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
@@ -82,7 +78,6 @@ class NoteFeedViewModel @AssistedInject constructor(
         fun create(
             feedSpec: String,
             @Assisted("allowMutedThreads") allowMutedThreads: Boolean,
-            @Assisted("showStreamsInNewPill") showStreams: Boolean,
         ): NoteFeedViewModel
     }
 
@@ -139,9 +134,6 @@ class NoteFeedViewModel @AssistedInject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STATS_SUBSCRIPTION_TIMEOUT_MS), emptyMap())
 
     init {
-        if (showStreamsInNewPill) {
-            observeLiveEventsFromFollows()
-        }
         subscribeToEvents()
         observeActiveAccount()
         observeMutedUsers()
@@ -152,23 +144,6 @@ class NoteFeedViewModel @AssistedInject constructor(
             mutedItemRepository.observeMutedProfileIdsByOwnerId(ownerId = activeAccountStore.activeUserId())
                 .collect {
                     setState { copy(mutedProfileIds = it) }
-                }
-        }
-
-    private fun observeLiveEventsFromFollows() =
-        viewModelScope.launch {
-            streamRepository.observeLiveEventsFromFollows(userId = activeAccountStore.activeUserId())
-                .collect { streams ->
-                    setState {
-                        copy(
-                            streamsSyncStats = StreamsSyncStats(
-                                streamsCount = streams.size,
-                                streamAvatarCdnImages = streams.mapNotNull { it.mainHostProfile?.avatarCdnImage }
-                                    .distinct()
-                                    .take(MAX_AVATARS),
-                            ),
-                        )
-                    }
                 }
         }
 

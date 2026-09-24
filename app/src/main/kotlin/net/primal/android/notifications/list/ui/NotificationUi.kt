@@ -3,7 +3,6 @@ package net.primal.android.notifications.list.ui
 import java.time.Instant
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.domain.links.CdnImage
-import net.primal.domain.links.ReferencedStream
 import net.primal.domain.notifications.NotificationType
 
 data class NotificationUi(
@@ -18,7 +17,6 @@ data class NotificationUi(
     val actionUserAvatarCdnImage: CdnImage? = null,
     val actionPost: FeedPostUi? = null,
     val actionUserSatsZapped: Long? = null,
-    val referencedStream: ReferencedStream? = null,
     /**
      * How many notifications this row stands for.
      *

@@ -59,15 +59,12 @@ import net.primal.core.networking.blossom.UploadJob
 import net.primal.core.networking.blossom.UploadResult
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.fetchAndGet
-import net.primal.core.utils.fetchAndGetResult
 import net.primal.core.utils.fold
 import net.primal.core.utils.isLnInvoice
 import net.primal.core.utils.map
-import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.events.EventRelayHintsRepository
-import net.primal.domain.events.EventRepository
 import net.primal.domain.messages.ChatRepository
 import net.primal.domain.nostr.MAX_RELAY_HINTS
 import net.primal.domain.nostr.Naddr
@@ -89,8 +86,6 @@ import net.primal.domain.posts.FeedRepository
 import net.primal.domain.reads.Article
 import net.primal.domain.reads.ArticleRepository
 import net.primal.domain.reads.HighlightRepository
-import net.primal.domain.streams.StreamRepository
-import net.primal.domain.streams.mappers.asReferencedStream
 
 @Suppress("LongParameterList")
 class NoteEditorViewModel @AssistedInject constructor(
@@ -104,10 +99,8 @@ class NoteEditorViewModel @AssistedInject constructor(
     private val chatRepository: ChatRepository,
     private val primalUploadService: AndroidPrimalBlossomUploadService,
     private val highlightRepository: HighlightRepository,
-    private val streamRepository: StreamRepository,
     private val articleRepository: ArticleRepository,
     private val relayHintsRepository: EventRelayHintsRepository,
-    private val eventRepository: EventRepository,
     private val gifBlossomUploader: GifBlossomUploader,
     private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
@@ -122,7 +115,6 @@ class NoteEditorViewModel @AssistedInject constructor(
     private val referencedArticleNaddr = args.referencedArticleNaddr?.let(Nip19TLV::parseUriAsNaddrOrNull)
     private val referencedHighlightNevent = args.referencedHighlightNevent?.let(Nip19TLV::parseUriAsNeventOrNull)
     private val referencedNoteNevent = args.referencedNoteNevent?.let(Nip19TLV::parseUriAsNeventOrNull)
-    private val referencedStreamNaddr = args.referencedStreamNaddr?.let(Nip19TLV::parseUriAsNaddrOrNull)
 
     private val _state = MutableStateFlow(
         UiState(
@@ -195,14 +187,6 @@ class NoteEditorViewModel @AssistedInject constructor(
                 },
                 referencedArticleNaddr?.let {
                     ReferencedUri.Article(
-                        data = null,
-                        loading = true,
-                        uri = it.toNaddrString(),
-                        naddr = it,
-                    )
-                },
-                referencedStreamNaddr?.let {
-                    ReferencedUri.Stream(
                         data = null,
                         loading = true,
                         uri = it.toNaddrString(),
@@ -554,8 +538,6 @@ class NoteEditorViewModel @AssistedInject constructor(
                     is ReferencedUri.Highlight ->
                         getAndUpdateHighlightUriDetails(it.uri, it.nevent)
 
-                    is ReferencedUri.Stream -> fetchAndUpdateStreamUriDetails(it.uri, it.naddr)
-
                     is ReferencedUri.LightningInvoice -> Unit
                 }
             }
@@ -608,59 +590,6 @@ class NoteEditorViewModel @AssistedInject constructor(
             } catch (error: NetworkException) {
                 Napier.w(throwable = error) { "Failed to fetch note thread for noteId=$replyToNoteId" }
             }
-        }
-
-    private fun fetchAndUpdateStreamUriDetails(uri: String, naddr: Naddr) =
-        viewModelScope.launch {
-            setState {
-                copy(
-                    referencedNostrUris = referencedNostrUris.updateByUri<ReferencedUri.Stream>(
-                        uri = uri,
-                    ) { copy(loading = true) },
-                )
-            }
-
-            fetchAndGetResult(
-                fetch = { eventRepository.fetchReplaceableEvent(naddr) },
-                get = { streamRepository.getStream(aTag = naddr.asATagValue()).getOrNull() },
-                onFinally = {
-                    setState {
-                        copy(
-                            referencedNostrUris = referencedNostrUris.updateByUri<ReferencedUri.Stream>(
-                                uri = uri,
-                            ) { copy(loading = false) },
-                        )
-                    }
-                },
-                onSuccess = { stream ->
-                    setState {
-                        copy(
-                            referencedNostrUris = referencedNostrUris.updateByUri<ReferencedUri.Stream>(uri = uri) {
-                                copy(data = stream.asReferencedStream())
-                            },
-                        )
-                    }
-                },
-            )
-
-            streamRepository.getStream(aTag = naddr.asATagValue())
-                .onSuccess { stream ->
-                    setState {
-                        copy(
-                            referencedNostrUris = referencedNostrUris.updateByUri<ReferencedUri.Stream>(uri = uri) {
-                                copy(data = stream.asReferencedStream())
-                            },
-                        )
-                    }
-                }.run {
-                    setState {
-                        copy(
-                            referencedNostrUris = referencedNostrUris.updateByUri<ReferencedUri.Stream>(uri = uri) {
-                                copy(loading = false)
-                            },
-                        )
-                    }
-                }
         }
 
     private fun fetchAndUpdateNoteUriDetails(uri: String, nevent: Nevent) =
@@ -1180,30 +1109,14 @@ class NoteEditorViewModel @AssistedInject constructor(
         }
 
         return uri.takeAsNaddrOrNull()
-            .takeIf {
-                it?.kind == NostrEventKind.LongFormContent.value ||
-                    it?.kind == NostrEventKind.LiveActivity.value
-            }
+            .takeIf { it?.kind == NostrEventKind.LongFormContent.value }
             ?.let { naddr ->
-                when (naddr.kind) {
-                    NostrEventKind.LiveActivity.value ->
-                        ReferencedUri.Stream(
-                            data = null,
-                            loading = true,
-                            uri = uri,
-                            naddr = naddr,
-                        )
-
-                    NostrEventKind.LongFormContent.value ->
-                        ReferencedUri.Article(
-                            data = null,
-                            loading = true,
-                            uri = uri,
-                            naddr = naddr,
-                        )
-
-                    else -> null
-                }
+                ReferencedUri.Article(
+                    data = null,
+                    loading = true,
+                    uri = uri,
+                    naddr = naddr,
+                )
             } ?: uri.takeAsNeventOrNull()?.toEmbeddableReferencedUriOrNull(uri)
     }
 

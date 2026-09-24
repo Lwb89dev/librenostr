@@ -135,10 +135,6 @@ class ScanCodeViewModel @Inject constructor(
             NostrEventKind.LongFormContent.value -> {
                 setEffect(SideEffect.NostrArticleDetected(code))
             }
-
-            NostrEventKind.LiveActivity.value -> {
-                setEffect(SideEffect.NostrLiveStreamDetected(code))
-            }
         }
     }
 

@@ -2,7 +2,6 @@ package net.primal.domain.notifications
 
 import net.primal.domain.posts.FeedPost
 import net.primal.domain.profile.ProfileData
-import net.primal.domain.streams.Stream
 
 data class Notification(
     val notificationId: String,
@@ -15,7 +14,6 @@ data class Notification(
     val satsZapped: Long? = null,
     val actionByUser: ProfileData?,
     val actionOnPost: FeedPost?,
-    val liveActivity: Stream?,
     val reaction: String? = null,
     /** How many notifications this one stands for; follows are collapsed to one row per day. */
     val groupCount: Int = 1,

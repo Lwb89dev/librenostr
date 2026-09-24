@@ -11,7 +11,6 @@ data class FeedPageSnapshot(
     val articles: List<NostrEvent>,
     val reposts: List<NostrEvent>,
     val zaps: List<NostrEvent>,
-    val liveActivity: List<NostrEvent>,
     val referencedEvents: List<PrimalEvent>,
     val primalEventStats: List<PrimalEvent>,
     val primalEventUserStats: List<PrimalEvent>,

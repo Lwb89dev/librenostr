@@ -71,6 +71,8 @@ import net.primal.android.core.compose.PrimalClickableText
 import net.primal.android.core.compose.asBeforeNowFormat
 import net.primal.android.core.compose.attachment.model.EventUriUi
 import net.primal.android.core.compose.icons.PrimalIcons
+import net.primal.android.core.compose.icons.primaliconpack.FeedBookmarkFilled
+import net.primal.android.core.compose.icons.primaliconpack.FeedBookmarkOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedLikeOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewLikeFilled
 import net.primal.android.core.compose.icons.primaliconpack.FeedReplyOutline
@@ -249,6 +251,7 @@ private fun MediaFeedCardBody(
 
         MediaFeedActionsRow(
             eventStats = data.stats,
+            isBookmarked = data.isBookmarked,
             repostAnchor = repostAnchor,
             onPostAction = { postAction ->
                 when (postAction) {
@@ -654,6 +657,7 @@ private fun buildMediaFeedAnnotatedString(
 @Composable
 private fun MediaFeedActionsRow(
     eventStats: EventStatsUi,
+    isBookmarked: Boolean,
     onPostAction: (FeedPostAction) -> Unit,
     onPostLongPressAction: (FeedPostAction) -> Unit,
     repostAnchor: AnchorHandle,
@@ -717,6 +721,18 @@ private fun MediaFeedActionsRow(
                 iconHighlighted = PrimalIcons.FeedNewRepostsFilled,
                 highlightColor = AppTheme.extraColorScheme.reposted,
                 contentDescription = stringResource(R.string.accessibility_repost_count),
+                numberFormat = numberFormat,
+                onPostAction = onPostAction,
+                onPostLongPressAction = onPostLongPressAction,
+            )
+            ActionStat(
+                action = FeedPostAction.Bookmark,
+                count = 0,
+                highlighted = isBookmarked,
+                icon = PrimalIcons.FeedBookmarkOutline,
+                iconHighlighted = PrimalIcons.FeedBookmarkFilled,
+                highlightColor = AppTheme.extraColorScheme.bookmarked,
+                contentDescription = stringResource(R.string.accessibility_bookmark),
                 numberFormat = numberFormat,
                 onPostAction = onPostAction,
                 onPostLongPressAction = onPostLongPressAction,

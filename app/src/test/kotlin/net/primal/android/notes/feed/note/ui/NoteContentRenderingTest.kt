@@ -63,7 +63,6 @@ class NoteContentRenderingTest {
         referencedArticle = null,
         referencedUser = referencedUser,
         referencedZap = null,
-        referencedStream = null,
         position = 0,
     )
 

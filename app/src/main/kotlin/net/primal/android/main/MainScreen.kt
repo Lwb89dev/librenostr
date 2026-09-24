@@ -75,6 +75,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import net.primal.android.R
 import net.primal.android.articles.feed.ArticleFeedList
+import net.primal.android.bookmarks.drawer.BookmarksDrawerSection
+import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.AppBarPage
 import net.primal.android.core.compose.PrimalOverlay
 import net.primal.android.core.compose.PrimalTopLevelAppBar
@@ -130,11 +132,11 @@ import net.primal.android.navigation.navigateToProfile
 import net.primal.android.navigation.navigateToProfileQrCodeViewer
 import net.primal.android.navigation.navigateToSearch
 import net.primal.android.navigation.navigateToSettings
+import net.primal.android.navigation.navigateToThread
 import net.primal.android.navigation.noteCallbacksHandler
 import net.primal.android.zaps.AndroidLightningWallet
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.notifications.list.ui.NotificationUi
-import net.primal.android.stream.player.LocalStreamState
 import net.primal.domain.feeds.FeedSpecKind
 import net.primal.domain.feeds.buildAdvancedSearchNotesFeedSpec
 import net.primal.domain.feeds.buildAdvancedSearchReadsFeedSpec
@@ -193,8 +195,6 @@ fun MainScreen(
 
     val noteFeedsViewModel = hiltViewModel<NoteFeedsViewModel>(navBackStackEntry)
     val noteFeedsState by noteFeedsViewModel.state.collectAsState()
-
-    MainScreenHomeEffects(noteFeedsViewModel)
 
     val readsViewModel = hiltViewModel<ReadsViewModel>(navBackStackEntry)
     val readsState by readsViewModel.state.collectAsState()
@@ -608,7 +608,6 @@ private fun MainScreenScaffold(
     val exploreActiveSection = ExploreSection.entries
         .getOrElse(sharedState.explorePagerState.currentPage) { ExploreSection.Explore }
 
-    val streamState = LocalStreamState.current
     // Keep the algorithm drawer available during the short interval in which the
     // feed pager is still restoring its active item from storage.
     val drawerActiveFeed = sharedState.homeActiveFeed.value
@@ -623,9 +622,6 @@ private fun MainScreenScaffold(
     }
     BackHandler(enabled = algorithmDrawerVisible && !longReadVisible) {
         algorithmDrawerVisible = false
-    }
-    LaunchedEffect(activeOverlay, algorithmDrawerVisible, longReadVisible) {
-        if (activeOverlay != null || algorithmDrawerVisible || longReadVisible) streamState.acquireHide() else streamState.releaseHide()
     }
 
     fun toggleOverlay(overlay: ActiveOverlay) {
@@ -747,6 +743,7 @@ private fun MainScreenScaffold(
                 sharedState = sharedState,
                 homeFeeds = homeState.feeds,
                 drawerActiveFeed = drawerActiveFeed,
+                activeAccountId = mainState.activeAccountId,
                 onDismissOverlay = { activeOverlay = null },
                 onDismissAlgorithmDrawer = { algorithmDrawerVisible = false },
                 onDismissLongRead = { longReadVisible = false },
@@ -862,6 +859,7 @@ private fun MainScreenOverlays(
     sharedState: MainScreenSharedState,
     homeFeeds: List<FeedUi>,
     drawerActiveFeed: FeedUi?,
+    activeAccountId: String,
     onDismissOverlay: () -> Unit,
     onDismissAlgorithmDrawer: () -> Unit,
     onDismissLongRead: () -> Unit,
@@ -950,6 +948,15 @@ private fun MainScreenOverlays(
             onDismissAlgorithmDrawer()
             navController.navigateToAdvancedSearch(editingFeedSpec = feedSpec)
         },
+        activeUserId = activeAccountId,
+        onBookmarkedNoteClick = { noteId ->
+            onDismissAlgorithmDrawer()
+            navController.navigateToThread(noteId = noteId)
+        },
+        onSeeAllBookmarksClick = {
+            onDismissAlgorithmDrawer()
+            onDrawerDestinationClick(DrawerScreenDestination.Bookmarks(userId = activeAccountId))
+        },
     )
 
     LongReadOverlay(
@@ -966,6 +973,9 @@ private fun AlgorithmPickerDrawer(
     onDismiss: () -> Unit,
     onFeedSelected: (FeedUi) -> Unit,
     onEditAdvancedSearch: (String) -> Unit,
+    activeUserId: String,
+    onBookmarkedNoteClick: (noteId: String) -> Unit,
+    onSeeAllBookmarksClick: () -> Unit,
 ) {
     if (activeFeed == null) return
 
@@ -1003,6 +1013,9 @@ private fun AlgorithmPickerDrawer(
                             color = AppTheme.colorScheme.onSurface,
                         )
                     }
+                    // The drawer is split in two equal halves: the algorithms above, the bookmarks
+                    // below. The nav-bar inset belongs to the bottom edge of the drawer, so the
+                    // upper half must not reserve it in the middle of the screen.
                     Box(modifier = Modifier.weight(1f)) {
                         FeedListOverlayContent(
                             activeFeed = activeFeed,
@@ -1010,8 +1023,16 @@ private fun AlgorithmPickerDrawer(
                             onFeedClick = onFeedSelected,
                             onDismiss = onDismiss,
                             onEditAdvancedSearchFeedClick = onEditAdvancedSearch,
+                            applyNavigationBarsPadding = false,
                         )
                     }
+                    PrimalDivider()
+                    BookmarksDrawerSection(
+                        modifier = Modifier.weight(1f),
+                        activeUserId = activeUserId,
+                        onNoteClick = onBookmarkedNoteClick,
+                        onSeeAllClick = onSeeAllBookmarksClick,
+                    )
                 }
             }
             Box(
@@ -1061,18 +1082,6 @@ private fun MainScreenSharedEffects(mainViewModel: MainViewModel, navController:
         mainViewModel.effects.collect {
             when (it) {
                 MainContract.SideEffect.AccountSwitched -> navController.navigateToHome()
-            }
-        }
-    }
-}
-
-@Composable
-private fun MainScreenHomeEffects(noteFeedsViewModel: NoteFeedsViewModel) {
-    val streamState = LocalStreamState.current
-    LaunchedEffect(noteFeedsViewModel, noteFeedsViewModel.effects) {
-        noteFeedsViewModel.effects.collect {
-            when (it) {
-                is NoteFeedsContract.SideEffect.StartStream -> streamState.start(naddr = it.naddr)
             }
         }
     }

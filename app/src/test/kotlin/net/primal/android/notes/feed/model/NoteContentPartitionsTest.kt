@@ -23,7 +23,6 @@ class NoteContentPartitionsTest {
         referencedArticle = null,
         referencedUser = null,
         referencedZap = null,
-        referencedStream = null,
         position = 0,
     )
 
@@ -58,7 +57,6 @@ class NoteContentPartitionsTest {
         val partitions = noteContent(nostrUris = listOf(withPayload, withoutPayload)).partitions
 
         partitions.referencedHighlights shouldBe listOf(highlight)
-        partitions.referencedStreams shouldBe emptyList()
         partitions.referencedZaps shouldBe emptyList()
     }
 

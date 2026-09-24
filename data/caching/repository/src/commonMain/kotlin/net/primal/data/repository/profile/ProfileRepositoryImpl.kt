@@ -11,7 +11,9 @@ import net.primal.data.local.db.CachingDatabase
 import net.primal.data.repository.mappers.local.asProfileDataDO
 import net.primal.data.repository.mappers.local.asProfileStatsDO
 import net.primal.data.repository.mappers.remote.asProfileDataPOFromRelay
+import net.primal.data.repository.mappers.remote.asProfileStatsPO
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
+import net.primal.data.remote.api.users.UsersApi
 import net.primal.domain.common.UserProfileSearchItem
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -38,6 +40,7 @@ internal class ProfileRepositoryImpl(
     private val nip05VerificationService: Nip05VerificationService? = null,
     private val relayEventQuerier: RelayEventQuerier? = null,
     private val fetchCoordinator: FetchCoordinator,
+    private val usersApi: UsersApi? = null,
 ) : ProfileRepository {
 
     companion object {
@@ -89,6 +92,16 @@ internal class ProfileRepositoryImpl(
             database.profileStats().findProfileStats(profileIds = profileIds)
                 .map { it.asProfileStatsDO() }
         }
+
+    override suspend fun fetchAndCacheProfileStats(profileId: String) {
+        val api = usersApi ?: return
+        withContext(dispatcherProvider.io()) {
+            runCatching {
+                val stats = api.getUserProfile(userId = profileId).profileStats?.asProfileStatsPO()
+                if (stats != null) database.profileStats().upsertAll(data = listOf(stats))
+            }
+        }
+    }
 
     override suspend fun findProfileData(profileIds: List<String>) =
         withContext(dispatcherProvider.io()) {

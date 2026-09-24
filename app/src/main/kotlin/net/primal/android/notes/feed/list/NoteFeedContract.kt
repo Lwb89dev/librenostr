@@ -4,7 +4,6 @@ import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.FeedPostsSyncStats
-import net.primal.android.notes.feed.model.StreamsSyncStats
 
 interface NoteFeedContract {
 
@@ -15,10 +14,9 @@ interface NoteFeedContract {
         val feedPostsCount: Int = 0,
         val feedAutoRefresh: Boolean = false,
         val notesSyncStats: FeedPostsSyncStats = FeedPostsSyncStats(),
-        val streamsSyncStats: StreamsSyncStats = StreamsSyncStats(),
         val shouldAnimateScrollToTop: Boolean? = null,
     ) {
-        val showSyncStats get() = notesSyncStats.latestNoteIds.isNotEmpty() || streamsSyncStats.streamsCount > 0
+        val showSyncStats get() = notesSyncStats.latestNoteIds.isNotEmpty()
     }
 
     sealed class UiEvent {

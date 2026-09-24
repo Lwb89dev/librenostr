@@ -9,6 +9,7 @@ import net.primal.android.user.repository.UserRepository
 import net.primal.core.utils.Result
 import net.primal.core.utils.runCatching
 import net.primal.core.utils.updater.Updater
+import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.profile.Nip05VerificationService
 import net.primal.domain.profile.ProfileRepository
 
@@ -18,6 +19,7 @@ class UserDataUpdater @AssistedInject constructor(
     private val relayRepository: RelayRepository,
     private val profileRepository: ProfileRepository,
     private val nip05VerificationService: Nip05VerificationService,
+    private val publicBookmarksRepository: PublicBookmarksRepository,
 ) : Updater() {
 
     override suspend fun doUpdate(): Result<Unit> {
@@ -37,6 +39,10 @@ class UserDataUpdater @AssistedInject constructor(
             }
 
             launch { runCatching { relayRepository.syncUserRelaysOrBootstrap(userId = userId) } }
+
+            // Nothing else reads the bookmark list back from the relays, so without this the
+            // bookmark state of every note only ever knew about what this device had added itself.
+            launch { runCatching { publicBookmarksRepository.fetchAndPersistBookmarks(userId = userId) } }
         }
 
         return Result.success(Unit)

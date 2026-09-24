@@ -30,7 +30,6 @@ import net.primal.data.repository.mappers.remote.mapNotNullAsEventUserStatsPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsPollDataPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsPostDataPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsRepostDataPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
 import net.primal.data.repository.mappers.remote.mapReferencedEventsAsArticleDataPO
 import net.primal.data.repository.mappers.remote.mapReferencedEventsAsHighlightDataPO
 import net.primal.data.repository.mappers.remote.mapReferencedNostrUriAsEventUriNostrPO
@@ -104,7 +103,6 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
     )
 
     val refEvents = referencedEvents.mapNotNull { it.content.decodeFromJsonStringOrNull<NostrEvent>() }
-    val streamData = liveActivity.mapNotNullAsStreamDataPO() + refEvents.mapNotNullAsStreamDataPO()
 
     val pollStatsMap = this.primalPollStats.parseAndMapPrimalPollStats()
     val allPollData = (this.polls + refEvents).mapNotNullAsPollDataPO()
@@ -127,7 +125,6 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
         eventIdToNostrEvent = refEvents.associateBy { it.id },
         postIdToPostDataMap = postIdToPostDataMap,
         articleIdToArticle = allArticles.associateBy { it.articleId },
-        streamIdToStreamData = streamData.associateBy { it.dTag },
         profileIdToProfileDataMap = profileIdToProfileDataMap,
         cdnResources = cdnResources,
         videoThumbnails = videoThumbnails,
@@ -159,7 +156,6 @@ internal suspend inline fun FeedResponse.persistToDatabase(userId: String, datab
     database.eventUserStats().upsertAll(data = userPostStats)
     database.articles().upsertAll(list = allArticles)
     database.highlights().upsertAll(data = referencedHighlights)
-    database.streams().upsertStreamData(data = streamData)
     // See NoteConversationCrossRef's own doc: this is the one-hop, genuinely-structural half of
     // the two write paths that feed it. Do not remove without also revisiting
     // persistNoteRepliesAndArticleCommentsToDatabase below — the two exist for different reasons.
@@ -233,11 +229,16 @@ private suspend fun CachingDatabase.reclassifyResolvedNoteCitations(
             eventIdToNostrEvent = emptyMap(),
             postIdToPostDataMap = postIdToPostDataMap,
             articleIdToArticle = emptyMap(),
-            streamIdToStreamData = emptyMap(),
             profileIdToProfileDataMap = knownProfiles,
             cdnResources = cdnResources,
             linkPreviews = linkPreviews,
             videoThumbnails = videoThumbnails,
+            // The local lookup above is the last place an author's profile could come from. A quoted
+            // note that is stored but whose author was never fetched (no relay had their kind 0 in
+            // time) used to stay "Mentioned event not found" forever, with the note itself sitting
+            // in the database. Showing it under a shortened npub is strictly better, and the row is
+            // derived again, with the real name, whenever its citing note is next persisted.
+            allowMissingNoteAuthor = true,
         ).singleOrNull() ?: return@mapNotNull null
         if (reference.type == EventUriNostrType.Unsupported) return@mapNotNull null
         row.copy(

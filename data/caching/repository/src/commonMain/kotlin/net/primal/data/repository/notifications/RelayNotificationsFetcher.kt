@@ -50,17 +50,8 @@ internal class RelayNotificationsFetcher(
         limit: Int,
         until: Long? = null,
     ): RelayNotificationsResult {
-        // Only the kinds that can produce a notification in this group are requested. Opening the
-        // Zaps tab used to download reactions, replies, reposts and follow lists as well, only to
-        // discard them after the group filter.
-        val events = query(
-            RelayFilter(
-                kinds = group.notificationKinds(),
-                pubkeyTags = listOf(userId),
-                limit = limit,
-                until = until,
-            ),
-        )
+        val page = fetchPageEvents(userId = userId, group = group, limit = limit, until = until)
+        val events = page.events
 
         val notifications = events.mapNotNull { it.asNotification(userId) }
             .filter { it.type.belongsTo(group) }
@@ -121,24 +112,103 @@ internal class RelayNotificationsFetcher(
         // (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in its content) — one level deeper than
         // actionPostId reaches, so without this that nested reference showed "Mentioned event not
         // found" here even when it rendered fine in the note feed/thread.
-        val knownIds = contentEvents.map { it.id }.toSet()
-        val missingQuotedIds = contentEvents.referencedNoteIds().filterNot { it in knownIds }
-        val quotedNotes = if (missingQuotedIds.isEmpty()) {
-            emptyList()
-        } else {
-            query(RelayFilter(ids = missingQuotedIds, kinds = CONTENT_KINDS, limit = missingQuotedIds.size))
-        }
+        val quoted = fetchQuotedNotes(contentEvents = contentEvents, alreadyFetchedAuthors = actors)
+        val allMetadata = metadata + quoted.authorsMetadata
 
         return RelayNotificationsResult(
             notifications = notifications,
-            feedResponse = (contentEvents + metadata).distinctBy { it.id }
-                .toFeedResponse(metadata, referencedEvents = quotedNotes.map { it.asReferencedPrimalEvent() }),
+            feedResponse = (contentEvents + allMetadata).distinctBy { it.id }
+                .toFeedResponse(allMetadata, referencedEvents = quoted.notes.map { it.asReferencedPrimalEvent() }),
             // Pagination must key off what the relays returned, not off the group-filtered rows.
             // Judging by the filtered count declared the end of the list as soon as a tab was
             // sparse — the Zaps tab stopped after its first page even with older zaps available.
-            relayEventCount = events.size,
+            relayEventCount = if (page.isFull) maxOf(events.size, limit) else events.size,
         )
     }
+
+    /**
+     * The notes that the ones a page shows quote, and a kind 0 for each of their authors.
+     *
+     * Without the authors the quoted note is stored but cannot be shown: a quote card needs the
+     * name to head it, so it stayed "Mentioned event not found" although the note itself had
+     * been downloaded. The page's own actors were the only profiles this fetcher ever asked for.
+     */
+    private suspend fun fetchQuotedNotes(
+        contentEvents: List<NostrEvent>,
+        alreadyFetchedAuthors: List<String>,
+    ): QuotedNotes {
+        val knownIds = contentEvents.map { it.id }.toSet()
+        val missingQuotedIds = contentEvents.referencedNoteIds().filterNot { it in knownIds }
+        if (missingQuotedIds.isEmpty()) return QuotedNotes(notes = emptyList(), authorsMetadata = emptyList())
+
+        val notes = query(RelayFilter(ids = missingQuotedIds, kinds = CONTENT_KINDS, limit = missingQuotedIds.size))
+        val authors = notes.map { it.pubKey }.distinct().filterNot { it in alreadyFetchedAuthors }
+        val wanted = cache?.claimMetadataPubkeys(authors) ?: authors
+        val authorsMetadata = if (wanted.isEmpty()) emptyList() else fetchMetadata(wanted)
+        return QuotedNotes(notes = notes, authorsMetadata = authorsMetadata)
+    }
+
+    private class QuotedNotes(val notes: List<NostrEvent>, val authorsMetadata: List<NostrEvent>)
+
+    /**
+     * The raw events one page of notifications is derived from, and whether the relays filled it.
+     *
+     * Content and follow lists are requested apart, see the comment below for why.
+     */
+    private suspend fun fetchPageEvents(
+        userId: String,
+        group: NotificationGroup,
+        limit: Int,
+        until: Long?,
+    ): PageEvents {
+        // Only the kinds that can produce a notification in this group are requested. Opening the
+        // Zaps tab used to download reactions, replies, reposts and follow lists as well, only to
+        // discard them after the group filter.
+        val kinds = group.notificationKinds()
+        val (mainEvents, followEvents) = coroutineScope {
+            val content = async {
+                query(
+                    RelayFilter(
+                        kinds = kinds - NostrEventKind.FollowList.value,
+                        pubkeyTags = listOf(userId),
+                        limit = limit,
+                        until = until,
+                    ),
+                )
+            }
+            val follows = async {
+                if (NostrEventKind.FollowList.value !in kinds) {
+                    emptyList()
+                } else {
+                    query(
+                        RelayFilter(
+                            kinds = listOf(NostrEventKind.FollowList.value),
+                            pubkeyTags = listOf(userId),
+                            limit = FOLLOW_LIST_PAGE_LIMIT,
+                            until = until,
+                        ),
+                    )
+                }
+            }
+            content.await() to follows.await()
+        }
+
+        // A follow notification is a whole kind 3 contact list, and one list can weigh a couple of
+        // hundred kilobytes. Bots that follow/unfollow in a loop republish it in full every cycle,
+        // so mixing kind 3 into the same `limit = 200` request let a single account fill the page
+        // with hundreds of these: every relay streamed tens of megabytes per request, several
+        // requests overlapped, and the app died with an OutOfMemoryError while merely opening the
+        // notifications tab. Follows therefore get their own small page. When it comes back full
+        // there may be older follows that were not fetched, so anything older than its oldest
+        // entry is held back too: the next page starts from there instead of skipping the gap.
+        val followsSaturated = followEvents.size >= FOLLOW_LIST_PAGE_LIMIT
+        val followCutoff = if (followsSaturated) followEvents.minOf { it.createdAt } else null
+        val events = mainEvents.filter { followCutoff == null || it.createdAt >= followCutoff } + followEvents
+        val pageIsFull = mainEvents.size >= limit || followsSaturated
+        return PageEvents(events = events, isFull = pageIsFull)
+    }
+
+    private class PageEvents(val events: List<NostrEvent>, val isFull: Boolean)
 
     private fun NotificationGroup.notificationKinds(): List<Int> =
         when (this) {
@@ -273,6 +343,9 @@ internal class RelayNotificationsFetcher(
         const val MILLISATS_PER_SAT = 1000L
         const val SECONDS_PER_DAY = 86_400L
         const val FOLLOW_ID_PREFIX = "follow:"
+
+        /** Kind 3 events are huge, see the comment where this is used. */
+        const val FOLLOW_LIST_PAGE_LIMIT = 20
 
         val CONTENT_KINDS = listOf(
             NostrEventKind.ShortTextNote.value,

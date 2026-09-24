@@ -21,6 +21,16 @@ interface ProfileRepository {
 
     suspend fun findProfileStats(profileIds: List<String>): List<ProfileStats>
 
+    /**
+     * Fetches [profileId]'s follower/following/notes/zap counters and persists them, so
+     * [observeProfileStats] has something to emit. Nothing else populates these on opening a
+     * profile that hasn't separately shown up in, say, a notification — without an explicit
+     * fetch they stay permanently unset rather than merely stale. Failures are swallowed by the
+     * implementation: a profile screen should still show whatever else loaded even if this one
+     * counter fetch fails.
+     */
+    suspend fun fetchAndCacheProfileStats(profileId: String)
+
     fun observeProfileData(profileId: String): Flow<ProfileData>
     fun observeProfileData(profileIds: List<String>): Flow<List<ProfileData>>
     fun observeProfileStats(profileId: String): Flow<ProfileStats?>

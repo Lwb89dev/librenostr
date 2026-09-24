@@ -8,7 +8,6 @@ data class ContentDisplaySettings(
     val autoPlayVideos: Int = AUTO_PLAY_VIDEO_NEVER,
     val autoPlayVideoSoundOn: Boolean = true,
     val showAnimatedAvatars: Boolean = false,
-    val showLiveStreams: Boolean = false,
     /** Refresh the active feed when the app/feed becomes visible again. */
     val autoUpdateFeed: Boolean = true,
     /** Hold a note back for a few seconds after tapping post, so it can still be called off. */

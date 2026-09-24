@@ -7,7 +7,6 @@ import net.primal.android.messages.chat.model.ChatMessageUi
 import net.primal.domain.common.util.isPrimalIdentifier
 import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.links.ReferencedHighlight
-import net.primal.domain.links.ReferencedStream
 import net.primal.domain.links.ReferencedZap
 import net.primal.domain.nostr.utils.LnInvoiceUtils
 import net.primal.domain.posts.FeedPost
@@ -28,7 +27,6 @@ data class NoteContentUi(
 
 @Immutable
 data class NoteContentPartitions(
-    val referencedStreams: List<ReferencedStream>,
     val referencedHighlights: List<ReferencedHighlight>,
     val referencedNotes: List<NoteNostrUriUi>,
     val referencedArticles: List<NoteNostrUriUi>,
@@ -44,9 +42,6 @@ private fun computePartitions(uris: List<EventUriUi>, nostrUris: List<NoteNostrU
         .toSet()
 
     return NoteContentPartitions(
-        referencedStreams = nostrUris
-            .filter { it.type == EventUriNostrType.Stream }
-            .mapNotNull { it.referencedStream },
         referencedHighlights = nostrUris
             .filter { it.type == EventUriNostrType.Highlight }
             .mapNotNull { it.referencedHighlight },

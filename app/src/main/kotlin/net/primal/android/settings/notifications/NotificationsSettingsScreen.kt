@@ -62,7 +62,6 @@ import net.primal.android.core.compose.icons.primaliconpack.Messages
 import net.primal.android.core.compose.icons.primaliconpack.Mute
 import net.primal.android.core.compose.icons.primaliconpack.NavWallet
 import net.primal.android.core.compose.icons.primaliconpack.Notifications
-import net.primal.android.core.compose.icons.primaliconpack.Play
 import net.primal.android.core.compose.icons.primaliconpack.Zap
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.utils.getNotificationSettingsIntent
@@ -551,14 +550,6 @@ private fun NotificationSettingsType.toTitle(): String =
         )
 
         NotificationSettingsType.TabNotifications.Zaps -> stringResource(R.string.settings_notifications_group_zaps)
-
-        NotificationSettingsType.TabNotifications.LiveEvents -> stringResource(
-            id = R.string.settings_notifications_live_streams,
-        )
-
-        NotificationSettingsType.PushNotifications.LiveEvents -> stringResource(
-            id = R.string.settings_notifications_live_streams,
-        )
     }
 
 private fun NotificationSettingsType.icon(): ImageVector =
@@ -575,14 +566,12 @@ private fun NotificationSettingsType.icon(): ImageVector =
         NotificationSettingsType.PushNotifications.Reposts -> PrimalIcons.FeedRepostsOutline
         NotificationSettingsType.PushNotifications.WalletTransactions -> PrimalIcons.NavWallet
         NotificationSettingsType.PushNotifications.Zaps -> PrimalIcons.Zap
-        NotificationSettingsType.PushNotifications.LiveEvents -> PrimalIcons.Play
         NotificationSettingsType.TabNotifications.Mentions -> PrimalIcons.Message
         NotificationSettingsType.TabNotifications.NewFollows -> PrimalIcons.Follow
         NotificationSettingsType.TabNotifications.Reactions -> PrimalIcons.FeedLikeOutline
         NotificationSettingsType.TabNotifications.Replies -> PrimalIcons.FeedReplyOutline
         NotificationSettingsType.TabNotifications.Reposts -> PrimalIcons.FeedRepostsOutline
         NotificationSettingsType.TabNotifications.Zaps -> PrimalIcons.Zap
-        NotificationSettingsType.TabNotifications.LiveEvents -> PrimalIcons.Play
     }
 
 @Preview

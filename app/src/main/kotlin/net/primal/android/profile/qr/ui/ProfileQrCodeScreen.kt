@@ -62,7 +62,6 @@ fun ProfileQrCodeViewerScreen(viewModel: ProfileQrCodeViewModel, callbacks: Prof
             when (it) {
                 is ProfileQrCodeContract.SideEffect.NostrProfileDetected -> callbacks.onProfileScan(it.profileId)
                 is ProfileQrCodeContract.SideEffect.NostrNoteDetected -> callbacks.onNoteScan(it.noteId)
-                is ProfileQrCodeContract.SideEffect.NostrLiveStreamDetected -> callbacks.onLiveStreamScan(it.naddr)
                 is ProfileQrCodeContract.SideEffect.NostrArticleDetected -> callbacks.onArticleScan(it.naddr)
                 is ProfileQrCodeContract.SideEffect.PayLightningInvoice -> callbacks.onPayLightningInvoice(it.invoice)
             }
@@ -272,7 +271,6 @@ private fun PreviewProfileQrCodeViewerScreen() {
                     onClose = {},
                     onProfileScan = {},
                     onNoteScan = {},
-                    onLiveStreamScan = {},
                     onArticleScan = {},
                     onPayLightningInvoice = {},
                 ),

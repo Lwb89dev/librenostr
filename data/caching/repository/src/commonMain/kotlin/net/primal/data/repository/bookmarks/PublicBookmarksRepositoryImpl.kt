@@ -61,40 +61,66 @@ class PublicBookmarksRepositoryImpl(
 
     override suspend fun fetchAndPersistBookmarks(userId: String) {
         val bookmarks = fetchLatestPublicBookmarks(userId = userId)
+        val rows = bookmarks.asPublicBookmarkRows(userId = userId)
+
+        // This runs every time the app returns to the foreground. Rewriting the table invalidates
+        // every feed that shows a bookmark state, so a list that has not changed is left alone.
+        val stored = withContext(dispatcherProvider.io()) { database.publicBookmarks().findAll(userId = userId) }
+        if (stored.toSet() == rows.toSet()) return
+
+        // A relay query that times out comes back empty rather than failing, and an empty answer
+        // is indistinguishable from "the user has no bookmarks". Believing it here would wipe a
+        // real local list on a flaky connection, so an empty answer never replaces a stored one.
+        // The cost is that clearing the whole list on another device is not mirrored here; removing
+        // bookmarks in this app deletes their rows itself.
+        if (rows.isEmpty() && stored.isNotEmpty()) return
+
         persistUserBookmarks(userId = userId, bookmarks = bookmarks)
     }
 
     private suspend fun persistUserBookmarks(userId: String, bookmarks: Set<TagBookmark>?) {
         withContext(dispatcherProvider.io()) {
             val bookmarksDao = database.publicBookmarks()
-            val notesBookmarks = bookmarks?.filter { it.type == "e" }?.map {
-                PublicBookmarkPO(
-                    ownerId = userId,
-                    bookmarkType = BookmarkType.Note,
-                    tagType = it.type,
-                    tagValue = it.value,
-                )
-            } ?: emptyList()
-
-            val articleBookmarks = bookmarks?.filter { it.type == "a" }?.mapNotNull {
-                val kind = it.value.split(":").getOrNull(index = 0)?.toIntOrNull()
-                if (kind == NostrEventKind.LongFormContent.value) {
-                    PublicBookmarkPO(
-                        ownerId = userId,
-                        bookmarkType = BookmarkType.Article,
-                        tagType = it.type,
-                        tagValue = it.value,
-                    )
-                } else {
-                    null
-                }
-            } ?: emptyList()
+            val rows = bookmarks.asPublicBookmarkRows(userId = userId)
 
             database.withTransaction {
                 bookmarksDao.deleteAllBookmarks(userId = userId)
-                bookmarksDao.upsertBookmarks(data = notesBookmarks + articleBookmarks)
+                bookmarksDao.upsertBookmarks(data = rows)
             }
         }
+    }
+
+    /**
+     * The rows a list is stored as: its notes first, then its long-form articles.
+     *
+     * The order is the list's own, and it is what [PublicBookmarkPO]'s recency is read back from,
+     * so it must survive the trip through the table.
+     */
+    private fun Set<TagBookmark>?.asPublicBookmarkRows(userId: String): List<PublicBookmarkPO> {
+        val notesBookmarks = this?.filter { it.type == "e" }?.map {
+            PublicBookmarkPO(
+                ownerId = userId,
+                bookmarkType = BookmarkType.Note,
+                tagType = it.type,
+                tagValue = it.value,
+            )
+        } ?: emptyList()
+
+        val articleBookmarks = this?.filter { it.type == "a" }?.mapNotNull {
+            val kind = it.value.split(":").getOrNull(index = 0)?.toIntOrNull()
+            if (kind == NostrEventKind.LongFormContent.value) {
+                PublicBookmarkPO(
+                    ownerId = userId,
+                    bookmarkType = BookmarkType.Article,
+                    tagType = it.type,
+                    tagValue = it.value,
+                )
+            } else {
+                null
+            }
+        } ?: emptyList()
+
+        return notesBookmarks + articleBookmarks
     }
 
     override suspend fun isBookmarked(tagValue: String) =

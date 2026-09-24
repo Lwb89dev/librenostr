@@ -221,7 +221,6 @@ internal class MessagesProcessor(
                 cdnResources = emptyMap(),
                 linkPreviews = emptyMap(),
                 videoThumbnails = emptyMap(),
-                streamIdToStreamData = emptyMap(),
             ).mapReferencedNostrUriAsEventUriNostrPO(),
         )
     }

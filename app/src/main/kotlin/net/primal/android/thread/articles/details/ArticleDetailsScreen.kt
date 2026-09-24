@@ -820,6 +820,8 @@ private fun ArticleContentWithComments(
                         eventStats = state.article.eventStatsUi,
                         showCounts = false,
                         highlightedNote = true,
+                        showBookmark = true,
+                        isBookmarked = state.article.isBookmarked,
                         onPostAction = onPostAction,
                         onPostLongPressAction = onPostLongPressAction,
                     )

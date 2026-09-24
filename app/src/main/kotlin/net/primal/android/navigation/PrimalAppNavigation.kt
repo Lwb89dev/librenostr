@@ -134,9 +134,8 @@ import net.primal.android.scan.ScanCodeContract
 import net.primal.android.scan.ScanCodeContract.ScanMode
 import net.primal.android.scan.ScanCodeScreen
 import net.primal.android.scan.ScanCodeViewModel
-import net.primal.android.stream.LiveStreamOverlay
+import net.primal.android.stream.player.StreamStateProvider
 import net.primal.android.zaps.AndroidLightningWallet
-import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.PrimalTheme
 import net.primal.android.theme.domain.PrimalTheme
@@ -314,14 +313,6 @@ fun noteCallbacksHandler(
                 ),
             )
         },
-        onStreamQuoteClick = { streamNaddr ->
-            navController.navigateToNoteEditor(
-                args = NoteEditorArgs(
-                    referencedStreamNaddr = streamNaddr,
-                    isQuoting = true,
-                ),
-            )
-        },
         onHighlightReplyClick = { highlightNevent, articleNaddr ->
             navController.navigateToNoteEditor(
                 args = NoteEditorArgs(
@@ -395,13 +386,11 @@ fun PrimalAppNavigation(navController: NavHostController, startDestination: Stri
     SharedTransitionLayout {
         AppOverlays {
             PiPManagerProvider {
-                LiveStreamOverlay(
-                    navController = navController,
-                    noteCallbacks = noteCallbacksHandler(
-                        navController = navController,
-                        onPayInvoice = openExternalWallet,
-                    ),
-                ) {
+                // Streams (the live audio/video watch experience) is gone, but StreamStateProvider
+                // stays: LocalStreamState is still read app-wide as a "is something else about to
+                // play audio/video" coordination point (see PauseStreamMiniPlayer/hideStreamMiniPlayer
+                // call sites), and those calls would crash without a provider in the tree.
+                StreamStateProvider {
                     AudioPlayerStateProvider {
                         PrimalAppNavigation(
                             navController = navController,
@@ -551,32 +540,9 @@ private fun PrimalAppNavigation(
                 navDeepLink { uriPattern = "https://nostrich.org/reads" },
                 navDeepLink { uriPattern = "https://nostrich.org/explore" },
                 navDeepLink { uriPattern = "https://nostrich.org/notifications" },
-                navDeepLink { uriPattern = "https://nostrich.org/p/{$PROFILE_NPUB}/live/{$IDENTIFIER}" },
-                navDeepLink { uriPattern = "https://nostrich.org/{$PRIMAL_NAME}/live/{$IDENTIFIER}" },
                 navDeepLink { uriPattern = "$NOSTR_CONNECT_SCHEME://.*" },
             ),
-            arguments = listOf(
-                navArgument(PROFILE_NPUB) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument(IDENTIFIER) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument(PRIMAL_NAME) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument(STREAM_NADDR) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-            ),
+            arguments = emptyList(),
         )
 
         followPack(
@@ -1114,7 +1080,6 @@ private fun NavGraphBuilder.scanCode(
     },
 ) {
     val viewModel = hiltViewModel<ScanCodeViewModel>()
-    val streamState = LocalStreamState.current
     val context = LocalContext.current
     ApplyEdgeToEdge()
     LockToOrientationPortrait()
@@ -1141,10 +1106,6 @@ private fun NavGraphBuilder.scanCode(
             onArticleScan = { naddr ->
                 navController.popBackStack()
                 navController.navigateToArticleDetails(naddr)
-            },
-            onLiveStreamScan = { naddr ->
-                navController.popBackStack()
-                streamState.start(naddr)
             },
         ),
     )
@@ -1726,6 +1687,7 @@ private fun NavGraphBuilder.media(
         EventMediaGalleryScreen(
             onClose = { navController.navigateUp() },
             viewModel = viewModel,
+            noteCallbacks = noteCallbacksHandler(navController),
         )
     }
 }
@@ -1765,7 +1727,6 @@ private fun NavGraphBuilder.profile(
     popEnterTransition = { primalScaleIn },
     popExitTransition = { primalSlideOutHorizontallyToEnd },
 ) {
-    val streamState = LocalStreamState.current
     val viewModel = hiltViewModel<ProfileDetailsViewModel>(it)
 
     ApplyEdgeToEdge()
@@ -1786,7 +1747,6 @@ private fun NavGraphBuilder.profile(
             onMediaItemClick = { navController.navigateToMediaItem(it) },
             onSearchClick = { navController.navigateToAdvancedSearch(initialPostedBy = listOf(it)) },
             onNewPostClick = { navController.navigateToNoteEditor(null) },
-            onLiveStreamClick = { naddr -> streamState.start(naddr) },
         ),
         noteCallbacks = noteCallbacksHandler(navController),
     )
@@ -1847,7 +1807,6 @@ private fun NavGraphBuilder.profileQrCodeViewer(
     popEnterTransition = { primalScaleIn },
     popExitTransition = { primalSlideOutHorizontallyToEnd },
 ) {
-    val streamState = LocalStreamState.current
     val context = LocalContext.current
     val viewModel = hiltViewModel<ProfileQrCodeViewModel>()
     PrimalTheme(primalTheme = PrimalTheme.Midnight) {
@@ -1864,10 +1823,6 @@ private fun NavGraphBuilder.profileQrCodeViewer(
                 onNoteScan = { noteId ->
                     navController.popBackStack()
                     navController.navigateToThread(noteId)
-                },
-                onLiveStreamScan = { naddr ->
-                    streamState.start(naddr)
-                    navController.popBackStack()
                 },
                 onArticleScan = { naddr ->
                     navController.popBackStack()

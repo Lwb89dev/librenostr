@@ -111,9 +111,6 @@ class ProfileQrCodeViewModel @Inject constructor(
     private fun processNaddr(naddr: String) {
         val naddrObject = naddr.takeAsNaddrOrNull()
         when (naddrObject?.kind) {
-            NostrEventKind.LiveActivity.value -> {
-                setEffect(SideEffect.NostrLiveStreamDetected(naddr = naddr))
-            }
             NostrEventKind.LongFormContent.value -> {
                 setEffect(SideEffect.NostrArticleDetected(naddr = naddr))
             }

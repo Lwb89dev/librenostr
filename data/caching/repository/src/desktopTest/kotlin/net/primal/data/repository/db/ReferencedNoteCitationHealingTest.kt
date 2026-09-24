@@ -22,6 +22,7 @@ import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.cryptography.utils.hexToNoteHrp
+import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.shared.data.local.db.LocalDatabaseFactory
 
 /**
@@ -130,6 +131,35 @@ class ReferencedNoteCitationHealingTest {
                 stillUnsupported.any { it.eventId == CITING_NOTE_ID },
                 "a citation must stay unresolved until its actual target shows up",
             )
+        }
+
+    @Test
+    fun `a quoted note whose author has no profile anywhere still resolves under a shortened npub`() =
+        withDatabase { database, tracker ->
+            val citingContent = "look at this nostr:${QUOTED_NOTE_ID.hexToNoteHrp()}"
+            processor(database, tracker).processAndPersistToDatabase(
+                userId = USER_ID,
+                response = noteResponse(id = CITING_NOTE_ID, author = CITING_AUTHOR_ID, content = citingContent),
+                clearFeed = false,
+            )
+
+            // The note arrives, but its author's kind 0 is neither in the response nor in the
+            // database: no relay had it in time. This used to leave the quote "not found" for good.
+            processor(database, tracker).processAndPersistToDatabase(
+                userId = USER_ID,
+                response = noteResponse(
+                    id = QUOTED_NOTE_ID,
+                    author = AUTHOR_WITHOUT_PROFILE_ID,
+                    content = "the original",
+                ),
+                clearFeed = false,
+            )
+
+            val row = database.eventUris().findEventNostrUrisByEventId(CITING_NOTE_ID).single()
+            assertEquals(EventUriNostrType.Note, row.type, "the note is stored, so it must be shown")
+            val referencedNote = assertNotNull(row.referencedNote)
+            assertEquals(AUTHOR_WITHOUT_PROFILE_ID.asEllipsizedNpub(), referencedNote.authorName)
+            assertNull(referencedNote.authorAvatarCdnImage)
         }
 
     @Test
@@ -250,6 +280,7 @@ class ReferencedNoteCitationHealingTest {
         val CITING_AUTHOR_ID = "a".repeat(64)
         val QUOTED_NOTE_ID = "2".repeat(64)
         val QUOTED_AUTHOR_ID = "b".repeat(64)
+        val AUTHOR_WITHOUT_PROFILE_ID = "c".repeat(64)
         val ALREADY_KNOWN_NOTE_ID = "3".repeat(64)
         val UNRELATED_NOTE_ID = "4".repeat(64)
 

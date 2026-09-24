@@ -43,22 +43,18 @@ import net.primal.android.core.errors.UiError
 import net.primal.android.nostr.mappers.asFeedPostUi
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
-import net.primal.android.notes.feed.model.StreamPillUi
 import net.primal.android.notes.feed.note.FeedNoteCard
 import net.primal.android.notes.feed.note.MediaFeedCard
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.domain.nostr.ReactionType
 
 internal const val FEED_NESTED_NOTES_CUT_OFF_LIMIT = 2
-internal const val STREAM_PILLS_ROW_KEY = "streamPillsRow"
 
 @Composable
 fun NoteFeedLazyColumn(
     modifier: Modifier = Modifier,
     pagingItems: LazyPagingItems<FeedPostUi>,
-    streamPills: List<StreamPillUi>,
     listState: LazyListState,
     showPaywall: Boolean,
     noteCallbacks: NoteCallbacks,
@@ -78,7 +74,6 @@ fun NoteFeedLazyColumn(
     onUiError: ((UiError) -> Unit)? = null,
     onRetryAppend: (() -> Unit)? = null,
 ) {
-    val streamState = LocalStreamState.current
     val pagingItemsOffset = (if (stickyHeader != null) 1 else 0) + (if (header != null) 1 else 0) + 1
     val firstVisibleVideoPlayingIndex = rememberFirstVisibleVideoPlayingItemIndex(
         listState = listState,
@@ -105,16 +100,6 @@ fun NoteFeedLazyColumn(
         if (header != null) {
             item {
                 header()
-            }
-        }
-
-        if (pagingItems.isNotEmpty()) {
-            item(key = STREAM_PILLS_ROW_KEY) {
-                StreamPillsRow(
-                    streamPills = streamPills,
-                    onClick = { streamState.start(it) },
-                    onProfileClick = { noteCallbacks.onProfileClick?.invoke(it) },
-                )
             }
         }
 

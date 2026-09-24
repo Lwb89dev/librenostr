@@ -61,7 +61,14 @@ internal class NoteFeedRemoteMediator(
 ) : RemoteMediator<Int, FeedPost>() {
 
     private val relayFeedFetcher = relayEventQuerier?.let {
-        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator, cache = localEventCache)
+        RelayNotesFeedFetcher(
+            querier = it,
+            coordinator = fetchCoordinator,
+            cache = localEventCache,
+            localBookmarkedNoteIds = { ownerId, limit ->
+                database.publicBookmarks().findBookmarkedNoteIds(userId = ownerId, limit = limit)
+            },
+        )
     }
     private val relayAdvancedSearchFetcher = relayEventQuerier?.let {
         RelayAdvancedSearchFeedFetcher(querier = it, coordinator = fetchCoordinator)
@@ -81,7 +88,10 @@ internal class NoteFeedRemoteMediator(
     // and this PagingSource generation's APPEND direction is done forever (Paging3's retry() only
     // re-attempts a load in LoadState.Error, never one that already completed as NotLoading with
     // endOfPaginationReached=true — there is no lower-level API to undo that short of a fresh
-    // PagingSource generation).
+    // PagingSource generation). manualAppendRetryPending below handles what getting that fresh
+    // generation actually costs: Paging3 only ever hands a new generation a REFRESH load, never a
+    // direct APPEND, so without it the manual "load more" retry would run a real refresh and wipe
+    // every older row this feedSpec had cached instead of extending it.
 
     /** Furthest `until` any APPEND attempt has already queried, regardless of whether it
      * returned events. Lets the next attempt step strictly further back instead of repeating a
@@ -98,6 +108,17 @@ internal class NoteFeedRemoteMediator(
      * instead of the normal small steady-state page size. */
     private val forceNextAppendLimit = AtomicReference<Int?>(null)
 
+    /** Set by the manual "load more" retry handler, consumed by exactly the next REFRESH.
+     * PagingSource.invalidate() is the only way Paging3 lets a mediator that already returned
+     * endOfPaginationReached=true for APPEND load again — but the load it triggers for the new
+     * generation is always a REFRESH, never a direct APPEND. Without this flag that REFRESH would
+     * run the ordinary syncRefresh()/clearFeed=true path: fetch just the newest page and delete
+     * every older row this feedSpec had cached, which is why tapping "load more" used to visibly
+     * reset the feed to the top instead of extending it further back. When set, syncFeed() runs
+     * syncAppend() instead (continuing from furthestAppendUntil, stepped back the usual way) and
+     * skips clearFeed entirely. */
+    private val manualAppendRetryPending = AtomicReference(false)
+
     init {
         // Lets a UI action (NoteFeedViewModel -> FeedRepository.retryAppendFeed) reach back into
         // this specific mediator instance without FeedRepositoryImpl needing to hold a reference
@@ -105,6 +126,7 @@ internal class NoteFeedRemoteMediator(
         invalidationTracker.registerAppendRetryHandler(ownerId = userId, feedSpec = feedSpec) {
             consecutiveEmptyAppendBatches.store(0)
             forceNextAppendLimit.store(MANUAL_APPEND_RETRY_LIMIT)
+            manualAppendRetryPending.store(true)
             // furthestAppendUntil is deliberately left as-is: resetting it would make the next
             // attempt recompute the same stale boundary that was just exhausted, defeating the
             // whole point of a "load further back" retry.
@@ -220,7 +242,16 @@ internal class NoteFeedRemoteMediator(
         pagingState: PagingState<Int, FeedPost>,
         remoteKey: FeedPostRemoteKey?,
     ) {
-        if (loadType == LoadType.REFRESH) {
+        // See manualAppendRetryPending's own doc comment: a REFRESH here can be a real
+        // top-of-feed refresh, or the REFRESH Paging3 forces after a manual append retry's
+        // invalidate() call. Consuming the flag tells the two apart for the rest of this call.
+        val isAppendRetryRefresh = loadType == LoadType.REFRESH && manualAppendRetryPending.load()
+        if (isAppendRetryRefresh) {
+            manualAppendRetryPending.store(false)
+        }
+        val isRealRefresh = loadType == LoadType.REFRESH && !isAppendRetryRefresh
+
+        if (isRealRefresh) {
             // A fresh top-of-feed view must not inherit a give-up/step-back state left over from
             // a prior deep-scroll session: without this, a REFRESH's newly-written (recent,
             // large-timestamp) remote key could compare as "hasn't advanced past" a much older
@@ -232,30 +263,40 @@ internal class NoteFeedRemoteMediator(
 
         // Load a deliberately larger first snapshot, then keep subsequent pages small to
         // avoid retaining/downloading an unnecessarily large feed at startup.
-        val pageSize = if (loadType == LoadType.REFRESH) {
+        val pageSize = if (isRealRefresh) {
             pagingState.config.initialLoadSize
         } else {
             pagingState.config.pageSize
         }
-        val (request, response) = when (loadType) {
-            LoadType.REFRESH -> syncRefresh(pageSize = pageSize)
-            LoadType.PREPEND -> syncPrepend(remoteKey = remoteKey, pageSize = pageSize)
-            LoadType.APPEND -> syncAppend(remoteKey = remoteKey, pageSize = pageSize)
+        val (request, response) = if (isAppendRetryRefresh) {
+            // Exactly what a real LoadType.APPEND would run: remoteKey is null because this IS a
+            // REFRESH call (no PagingState "last item" to resolve one from), so syncAppend falls
+            // back to the watermark itself and steps back from it — the boundary the mediator
+            // just gave up on, not the newest page a real refresh would fetch.
+            syncAppend(remoteKey = null, pageSize = pageSize)
+        } else {
+            when (loadType) {
+                LoadType.REFRESH -> syncRefresh(pageSize = pageSize)
+                LoadType.PREPEND -> syncPrepend(remoteKey = remoteKey, pageSize = pageSize)
+                LoadType.APPEND -> syncAppend(remoteKey = remoteKey, pageSize = pageSize)
+            }
         }
 
         feedProcessor.processAndPersistToDatabase(
             userId = userId,
             response = response,
-            clearFeed = loadType == LoadType.REFRESH,
+            // Never wipe the feed for an append-retry REFRESH: the whole point of the retry is to
+            // extend what's already cached further back, not replace it with just the newest page.
+            clearFeed = isRealRefresh,
         )
-        // Only REFRESH's page is guaranteed to be what the user is actually looking at the
-        // moment it lands; APPEND pages are prefetched ahead of scroll (Paging3's own
-        // prefetchDistance) and may not be seen for a while, if ever. Fetching stats for those
-        // eagerly was most of the relay round-trips a refresh didn't need yet — APPEND pages now
-        // get their stats lazily, from the viewport-visibility trigger in NoteFeedViewModel /
-        // NoteFeedList instead (EventRepository.fetchAndCacheEventStats), once a note actually
-        // scrolls into view.
-        if (loadType == LoadType.REFRESH) {
+        // Only a real REFRESH's page is guaranteed to be what the user is actually looking at the
+        // moment it lands; APPEND pages (and append-retry-REFRESH pages, which are really the
+        // same thing) are prefetched ahead of scroll (Paging3's own prefetchDistance) and may not
+        // be seen for a while, if ever. Fetching stats for those eagerly was most of the relay
+        // round-trips a refresh didn't need yet — those pages now get their stats lazily, from
+        // the viewport-visibility trigger in NoteFeedViewModel / NoteFeedList instead
+        // (EventRepository.fetchAndCacheEventStats), once a note actually scrolls into view.
+        if (isRealRefresh) {
             refreshRelayEventStats(response = response)
         }
 
@@ -326,8 +367,16 @@ internal class NoteFeedRemoteMediator(
         // EMPTY_BATCH_STEP_BACK instead of repeating that window — that repeat is exactly what
         // used to trip RepeatingRequestBodyException below on nothing more than one flaky empty
         // relay round trip.
-        val candidateUntil = remoteKey?.sinceId
+        //
+        // remoteKey is null both when a real LoadType.APPEND has no DB-resolvable key yet
+        // (handled earlier in load(), which throws before reaching here) and, deliberately, when
+        // this call is actually an append-retry-triggered REFRESH (see syncFeed): there is no
+        // PagingState "last item" to resolve a key from in that case, so fall straight back to
+        // the watermark — it already IS the furthest boundary any APPEND reached before giving
+        // up, and the step-back check below then correctly moves past it instead of re-querying
+        // the exact spot that just produced the give-up.
         val watermark = furthestAppendUntil.load()
+        val candidateUntil = remoteKey?.sinceId ?: watermark
         val until = if (candidateUntil != null && watermark != null && candidateUntil >= watermark) {
             watermark - EMPTY_BATCH_STEP_BACK
         } else {

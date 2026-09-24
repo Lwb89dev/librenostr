@@ -71,13 +71,11 @@ import net.primal.android.core.errors.UiError
 import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.notes.feed.grid.MediaFeedGrid
 import net.primal.android.notes.feed.list.NoteFeedList
-import net.primal.android.notes.feed.list.StreamPillsRow
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.profile.details.ui.PROFILE_TAB_COUNT
 import net.primal.android.profile.details.ui.ProfileHeaderDetails
 import net.primal.android.profile.details.ui.ProfileTabs
 import net.primal.android.profile.details.ui.ProfileTopCoverBar
-import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 
@@ -347,7 +345,6 @@ private fun ProfileDetailsFeeds(
     snackbarHostState: SnackbarHostState,
     noteCallbacks: NoteCallbacks,
 ) {
-    val streamState = LocalStreamState.current
     val uiScope = rememberCoroutineScope()
     val tabVerticalPadding = 8.dp
 
@@ -365,12 +362,6 @@ private fun ProfileDetailsFeeds(
             onRepliesCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = REPLIES_TAB_INDEX) } },
             onReadsCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = READS_TAB_INDEX) } },
             onMediaCountClick = { uiScope.launch { pagerState.animateScrollToPage(page = MEDIA_TAB_INDEX) } },
-        )
-
-        StreamPillsRow(
-            streamPills = state.streamPills,
-            onClick = { streamState.start(it) },
-            onProfileClick = { noteCallbacks.onProfileClick?.invoke(it) },
         )
 
         ProfileDetailsHorizontalPager(
@@ -514,7 +505,6 @@ private fun PreviewProfileScreen() {
                 onEditProfileClick = {},
                 onMessageClick = {},
                 onDrawerQrCodeClick = {},
-                onLiveStreamClick = {},
                 onFollowsClick = { _, _ -> },
                 onNewPostClick = {},
             ),

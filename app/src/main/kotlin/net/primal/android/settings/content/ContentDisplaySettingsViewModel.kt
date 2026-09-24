@@ -39,7 +39,6 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                 when (it) {
                     is UiEvent.UpdateAutoPlayVideos -> handleAutoPlayVideosUpdate(it)
                     is UiEvent.UpdateShowAnimatedAvatars -> handleShowAnimatedAvatarsUpdate(it)
-                    is UiEvent.UpdateShowLiveStreams -> handleShowLiveStreamsUpdate(it)
                     is UiEvent.UpdateAutoUpdateFeed -> handleAutoUpdateFeedUpdate(it)
                     is UiEvent.UpdateUndoPostTimerEnabled -> handleUndoPostTimerEnabled(it)
                     is UiEvent.UpdateUndoPostTimerSeconds -> handleUndoPostTimerSeconds(it)
@@ -56,7 +55,6 @@ class ContentDisplaySettingsViewModel @Inject constructor(
                     copy(
                         autoPlayVideos = it.contentDisplaySettings.autoPlayVideos,
                         showAnimatedAvatars = it.contentDisplaySettings.showAnimatedAvatars,
-                        showLiveStreams = it.contentDisplaySettings.showLiveStreams,
                         autoUpdateFeed = it.contentDisplaySettings.autoUpdateFeed,
                         undoPostTimerEnabled = it.contentDisplaySettings.undoPostTimerEnabled,
                         undoPostTimerSeconds = it.contentDisplaySettings.undoPostTimerSeconds.coerceIn(
@@ -83,15 +81,6 @@ class ContentDisplaySettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
                 copy(showAnimatedAvatars = event.enabled)
-            }
-        }
-    }
-
-    private fun handleShowLiveStreamsUpdate(event: UiEvent.UpdateShowLiveStreams) {
-        setState { copy(showLiveStreams = event.enabled) }
-        viewModelScope.launch {
-            userRepository.updateContentDisplaySettings(userId = activeAccountStore.activeUserId()) {
-                copy(showLiveStreams = event.enabled)
             }
         }
     }

@@ -1,6 +1,7 @@
 package net.primal.android.events.gallery
 
 import net.primal.android.core.compose.attachment.model.EventUriUi
+import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.domain.links.EventUriType
 
 interface EventMediaGalleryContract {
@@ -11,6 +12,9 @@ interface EventMediaGalleryContract {
         val initialPositionMs: Long = 0,
         val error: MediaGalleryError? = null,
         val attachments: List<EventUriUi> = emptyList(),
+        /** Null until the note this gallery was opened from has been fetched, or if it could
+         * not be found (e.g. deleted). The reply/zap/like/repost bar only renders once set. */
+        val note: FeedPostUi? = null,
     ) {
         sealed class MediaGalleryError {
             data class FailedToSaveMedia(val cause: Throwable) : MediaGalleryError()

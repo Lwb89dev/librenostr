@@ -31,7 +31,6 @@ interface ScanCodeContract {
         data class NostrProfileDetected(val profileId: String) : SideEffect()
         data class NostrNoteDetected(val noteId: String) : SideEffect()
         data class NostrArticleDetected(val naddr: String) : SideEffect()
-        data class NostrLiveStreamDetected(val naddr: String) : SideEffect()
     }
 
     enum class ScanCodeStage {
@@ -51,6 +50,5 @@ interface ScanCodeContract {
         val onProfileScan: (profileId: String) -> Unit,
         val onNoteScan: (noteId: String) -> Unit,
         val onArticleScan: (naddr: String) -> Unit,
-        val onLiveStreamScan: (naddr: String) -> Unit,
     )
 }

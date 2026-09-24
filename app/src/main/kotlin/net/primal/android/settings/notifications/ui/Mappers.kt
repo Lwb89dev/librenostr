@@ -19,7 +19,6 @@ fun ContentAppSettings.mapAsPushNotificationSwitchUi() =
             PushNotifications.Mentions,
             PushNotifications.DirectMessages,
             PushNotifications.WalletTransactions,
-            PushNotifications.LiveEvents,
         ).map { pushNotificationType ->
             val enabled = remoteMap[pushNotificationType.id]?.jsonPrimitive?.booleanOrNull ?: true
             NotificationSwitchUi(settingsType = pushNotificationType, enabled = enabled)
@@ -43,7 +42,6 @@ fun ContentAppSettings.mapAsTabNotificationSwitchUi() =
                 TabNotifications.Replies.resolveIfEnabled(remoteMap),
                 TabNotifications.Reposts.resolveIfEnabled(remoteMap),
                 TabNotifications.Mentions.resolveIfEnabled(remoteMap),
-                TabNotifications.LiveEvents.resolveIfEnabled(remoteMap),
             )
         }.map {
             NotificationSwitchUi(settingsType = it.first, enabled = it.second)

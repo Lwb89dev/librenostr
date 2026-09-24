@@ -39,7 +39,6 @@ internal class UsersApiImpl(
             primalLegendProfiles = queryResult.findPrimalEvent(NostrEventKind.PrimalLegendProfiles),
             primalPremiumInfo = queryResult.findPrimalEvent(NostrEventKind.PrimalPremiumInfo),
             blossomServers = queryResult.filterNostrEvents(NostrEventKind.BlossomServerList),
-            liveActivity = queryResult.filterNostrEvents(NostrEventKind.LiveActivity),
         )
     }
 

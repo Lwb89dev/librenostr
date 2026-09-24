@@ -25,7 +25,6 @@ import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.cryptography.NostrEventSignatureHandler
 import net.primal.domain.nostr.relay.RelayEventQuerier
-import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
 import net.primal.domain.posts.FeedRepository
@@ -34,8 +33,6 @@ import net.primal.domain.profile.ProfileRepository
 import net.primal.domain.publisher.PrimalPublisher
 import net.primal.domain.reads.ArticleRepository
 import net.primal.domain.reads.HighlightRepository
-import net.primal.domain.streams.StreamRepository
-import net.primal.domain.streams.chat.LiveStreamChatRepository
 import net.primal.domain.user.UserDataCleanupRepository
 
 @Suppress("TooManyFunctions")
@@ -144,6 +141,7 @@ object CachingRepositoriesModule {
 
     @Provides
     fun provideProfileRepository(
+        @PrimalCacheApiClient primalApiClient: PrimalApiClient,
         primalPublisher: PrimalPublisher,
         nip05VerificationService: Nip05VerificationService,
         relayEventQuerier: RelayEventQuerier,
@@ -152,6 +150,7 @@ object CachingRepositoriesModule {
             primalPublisher = primalPublisher,
             nip05VerificationService = nip05VerificationService,
             relayEventQuerier = relayEventQuerier,
+            cachingPrimalApiClient = primalApiClient,
         )
 
     @Provides
@@ -195,24 +194,6 @@ object CachingRepositoriesModule {
     @Provides
     fun provideUserDataCleanupRepository(): UserDataCleanupRepository =
         PrimalRepositoryFactory.createUserDataCleanupRepository()
-
-    @Provides
-    fun provideStreamRepository(
-        primalPublisher: PrimalPublisher,
-        nip05VerificationService: Nip05VerificationService,
-        relayEventSubscriber: RelayEventSubscriber,
-    ): StreamRepository =
-        PrimalRepositoryFactory.createStreamRepository(
-            primalPublisher = primalPublisher,
-            nip05VerificationService = nip05VerificationService,
-            relayEventSubscriber = relayEventSubscriber,
-        )
-
-    @Provides
-    fun provideLiveStreamChatRepository(primalPublisher: PrimalPublisher): LiveStreamChatRepository =
-        PrimalRepositoryFactory.createStreamChatRepository(
-            primalPublisher = primalPublisher,
-        )
 
     @Provides
     fun providePollsRepository(

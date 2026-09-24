@@ -4,7 +4,6 @@ import net.primal.android.core.compose.profile.approvals.FollowsApproval
 import net.primal.android.core.compose.profile.model.ProfileDetailsUi
 import net.primal.android.core.compose.profile.model.ProfileStatsUi
 import net.primal.android.core.errors.UiError
-import net.primal.android.notes.feed.model.StreamPillUi
 import net.primal.android.profile.domain.ProfileFeedSpec
 import net.primal.android.profile.domain.ProfileFollowsType
 import net.primal.android.user.handler.ProfileFollowsHandler
@@ -16,9 +15,6 @@ interface ProfileDetailsContract {
         val profileId: String? = null,
         val isResolvingProfileId: Boolean = true,
         val isActiveUser: Boolean? = null,
-        val liveStreamNaddr: String? = null,
-        val isLive: Boolean = false,
-        val streamPills: List<StreamPillUi> = emptyList(),
         val activeUserPremiumTier: String? = null,
         val isProfileFollowed: Boolean = false,
         val isProfileFollowingMe: Boolean = false,
@@ -86,7 +82,6 @@ interface ProfileDetailsContract {
         val onEditProfileClick: () -> Unit,
         val onMessageClick: (String) -> Unit,
         val onDrawerQrCodeClick: (String) -> Unit,
-        val onLiveStreamClick: (naddr: String) -> Unit,
         val onFollowsClick: (String, ProfileFollowsType) -> Unit,
         val onNewPostClick: () -> Unit,
     )

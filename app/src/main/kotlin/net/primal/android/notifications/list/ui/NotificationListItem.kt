@@ -49,15 +49,11 @@ import net.primal.android.notes.feed.model.asNeventString
 import net.primal.android.notes.feed.model.toNoteContentUi
 import net.primal.android.notes.feed.note.ui.FeedNoteActionsRow
 import net.primal.android.notes.feed.note.ui.NoteContent
-import net.primal.android.notes.feed.note.ui.ReferencedNotificationStream
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
-import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme.Midnight
-import net.primal.domain.links.ReferencedStream
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.notifications.NotificationType
-import net.primal.domain.streams.StreamStatus
 
 @Composable
 fun NotificationListItem(
@@ -96,7 +92,9 @@ fun NotificationListItem(
             // for both a single zap and a collapsed group. Post stats may still be absent or
             // stale while the notification has already arrived.
             totalSatsZapped = (activeUsersTotalSatsZapped ?: postTotalSatsZapped)?.shortened(),
-            isLive = notifications.first().referencedStream?.status == StreamStatus.LIVE,
+            // There is no way to check a stream's current status anymore, so a
+            // LIVE_EVENT_HAPPENING notification always reads as already ended.
+            isLive = false,
         ),
         noteCallbacks = noteCallbacks,
         onPostAction = { postAction ->
@@ -188,9 +186,8 @@ private fun NotificationContent(
         modifier = modifier.fillMaxWidth(),
     ) {
         if (notifications.collapsedCount() == 1) {
-            val bottomPadding = if (firstNotification.referencedStream != null) 5.dp else 12.dp
             NotificationHeader(
-                modifier = Modifier.padding(top = 12.dp, bottom = bottomPadding, end = 12.dp),
+                modifier = Modifier.padding(top = 12.dp, bottom = 12.dp, end = 12.dp),
                 notification = notifications.first(),
                 suffixText = suffixText,
                 isSeen = isSeen,
@@ -208,18 +205,7 @@ private fun NotificationContent(
 
         val localUriHandler = LocalUriHandler.current
 
-        if (firstNotification.referencedStream != null) {
-            val streamState = LocalStreamState.current
-
-            ReferencedNotificationStream(
-                modifier = Modifier
-                    .padding(end = 16.dp, bottom = 12.dp),
-                stream = firstNotification.referencedStream,
-                onClick = { naddr ->
-                    streamState.start(naddr)
-                },
-            )
-        } else if (actionPost != null) {
+        if (actionPost != null) {
             NoteContent(
                 modifier = Modifier.padding(end = 16.dp),
                 data = actionPost.toNoteContentUi(),
@@ -644,22 +630,6 @@ private val PreviewExamplePost = FeedPostUi(
     timestamp = Instant.now(),
 )
 
-private val PreviewExampleStream = ReferencedStream(
-    naddr = "naddr1streampreview",
-    title = "Bitcoin At ALL TIME HIGH, Where To Next? | RABBIT HOLE RECAP #145",
-    status = StreamStatus.LIVE,
-    startedAt = Instant.now().minusSeconds(18 * 60).epochSecond,
-    endedAt = null,
-    currentParticipants = 112,
-    totalParticipants = null,
-    mainHostId = "hostId",
-    mainHostIsLive = true,
-    mainHostName = "RABBIT HOLE REC...",
-    mainHostAvatarCdnImage = null,
-    mainHostInternetIdentifier = null,
-    mainHostLegendProfile = null,
-)
-
 private class NotificationsParameterProvider : PreviewParameterProvider<List<NotificationUi>> {
     override val values: Sequence<List<NotificationUi>>
         get() = sequenceOf(
@@ -815,7 +785,6 @@ private class NotificationsParameterProvider : PreviewParameterProvider<List<Not
                         timestamp = Instant.now(),
                         stats = EventStatsUi(),
                     ),
-                    referencedStream = PreviewExampleStream,
                 ),
             ),
         )

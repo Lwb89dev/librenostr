@@ -97,8 +97,6 @@ internal fun NoteFeedsContent(
             pollingEnabled = pollingStates[visibleFeed] ?: true,
             noteCallbacks = noteCallbacks,
             showTopZaps = true,
-            bigPillStreams = if (state.showLiveStreams) state.streams else emptyList(),
-            showStreamsInNewPill = state.showLiveStreams,
             contentPadding = paddingValues,
             shouldAnimateScrollToTop = shouldAnimateScrollToTop.value,
             onNewNotesStateChanged = onNewNotesStateChanged,

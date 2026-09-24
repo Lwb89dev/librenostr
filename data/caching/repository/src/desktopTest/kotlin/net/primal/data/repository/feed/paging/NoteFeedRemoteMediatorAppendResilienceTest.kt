@@ -92,6 +92,39 @@ class NoteFeedRemoteMediatorAppendResilienceTest {
         }
 
     @Test
+    fun `a manual retry after giving up extends the cached feed instead of wiping it`() =
+        withMediator { mediator, requests ->
+            repeat(4) { enqueueEmptyResponse(until = SEED_UNTIL) }
+            repeat(4) { mediator.load(LoadType.APPEND, emptyAppendState()) }
+
+            // Paging3 never hands a new generation a direct APPEND — invalidate() always
+            // produces a REFRESH, which is exactly what this simulates: retryAppend() runs the
+            // registered handler (resetting the give-up counters, arming manualAppendRetryPending)
+            // then invalidates, and the next load Paging3 would issue for the new generation is
+            // this REFRESH call.
+            enqueueNonEmptyResponse(eventId = "retry-older-note")
+            invalidationTracker.retryAppend(ownerId = USER_ID, feedSpec = FEED_SPEC)
+            val retryResult = mediator.load(LoadType.REFRESH, emptyAppendState())
+
+            assertEquals(
+                false,
+                retryResult.endOfPaginationReachedOrFail(),
+                "the retry's own fetch result should not itself already be exhausted",
+            )
+            assertEquals(
+                SEED_EVENT_ID,
+                database.feedsConnections().findFirstBySpec(ownerId = USER_ID, spec = FEED_SPEC)?.eventId,
+                "a manual retry must extend the cached feed, not replace it — the row seeded " +
+                    "before any APPEND ran must still be the oldest connection afterwards",
+            )
+            assertTrue(
+                requests.last().until!! < SEED_UNTIL,
+                "the retry's fetch must continue further back from the exhausted boundary, not " +
+                    "request the newest page the way a real top-of-feed refresh would",
+            )
+        }
+
+    @Test
     fun `a REFRESH after giving up clears the state for the next APPEND`() =
         withMediator { mediator, _ ->
             repeat(4) { enqueueEmptyResponse(until = SEED_UNTIL) }
@@ -124,6 +157,8 @@ class NoteFeedRemoteMediatorAppendResilienceTest {
 
     private lateinit var feedApi: FeedApi
     private lateinit var capturedRequests: MutableList<MultiKindFeedBySpecRequestBody>
+    private lateinit var database: CachingDatabase
+    private lateinit var invalidationTracker: FeedSpecInvalidationTracker
 
     private fun enqueueEmptyResponse(until: Long?) {
         val slot = slot<MultiKindFeedBySpecRequestBody>()
@@ -191,7 +226,7 @@ class NoteFeedRemoteMediatorAppendResilienceTest {
     ) = runBlocking {
         val databaseName = "primal_feed_append_resilience_${counter++}.db"
         LocalDatabaseFactory.deleteDatabases(names = listOf(databaseName))
-        val database = LocalDatabaseFactory.createDatabase<CachingDatabase>(databaseName = databaseName)
+        database = LocalDatabaseFactory.createDatabase<CachingDatabase>(databaseName = databaseName)
         try {
             // Seeds "the last thing we know about" so the very first APPEND has a cursor to
             // start from, exactly like a feed that already has some cached content before the
@@ -214,6 +249,7 @@ class NoteFeedRemoteMediatorAppendResilienceTest {
 
             capturedRequests = mutableListOf()
             feedApi = mockk()
+            invalidationTracker = FeedSpecInvalidationTracker()
             val dispatcher = UnconfinedTestDispatcher()
             val mediator = NoteFeedRemoteMediator(
                 dispatcherProvider = mockk<DispatcherProvider> {
@@ -224,7 +260,7 @@ class NoteFeedRemoteMediatorAppendResilienceTest {
                 userId = USER_ID,
                 feedApi = feedApi,
                 database = database,
-                invalidationTracker = FeedSpecInvalidationTracker(),
+                invalidationTracker = invalidationTracker,
                 fetchCoordinator = FetchCoordinator(dispatcherProvider = mockk { every { io() } returns dispatcher }),
                 localEventCache = LocalEventCache(database = database),
             )

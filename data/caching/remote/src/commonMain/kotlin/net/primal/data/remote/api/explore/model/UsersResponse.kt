@@ -12,5 +12,4 @@ data class UsersResponse(
     val primalLegendProfiles: PrimalEvent? = null,
     val primalPremiumInfo: PrimalEvent? = null,
     val blossomServers: List<NostrEvent> = emptyList(),
-    val liveActivity: List<NostrEvent> = emptyList(),
 )

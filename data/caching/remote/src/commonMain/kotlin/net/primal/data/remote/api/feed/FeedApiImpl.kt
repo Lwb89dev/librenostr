@@ -46,7 +46,6 @@ internal class FeedApiImpl(
                 queryResult.filterNostrEvents(NostrEventKind.ZapPoll),
             pollResponses = queryResult.filterNostrEvents(NostrEventKind.PollResponse),
             primalPollStats = queryResult.filterPrimalEvents(NostrEventKind.PrimalPollStats),
-            liveActivity = queryResult.filterNostrEvents(NostrEventKind.LiveActivity),
         )
     }
 
@@ -81,7 +80,6 @@ internal class FeedApiImpl(
                 queryResult.filterNostrEvents(NostrEventKind.ZapPoll),
             pollResponses = queryResult.filterNostrEvents(NostrEventKind.PollResponse),
             primalPollStats = queryResult.filterPrimalEvents(NostrEventKind.PrimalPollStats),
-            liveActivity = queryResult.filterNostrEvents(NostrEventKind.LiveActivity),
         )
     }
 
@@ -116,7 +114,6 @@ internal class FeedApiImpl(
             blossomServers = queryResult.filterNostrEvents(NostrEventKind.BlossomServerList),
             genericReposts = emptyList(),
             pictureNotes = queryResult.filterNostrEvents(NostrEventKind.PictureNote),
-            liveActivity = queryResult.filterNostrEvents(NostrEventKind.LiveActivity),
         )
     }
 
@@ -154,7 +151,6 @@ internal class FeedApiImpl(
                 queryResult.filterNostrEvents(NostrEventKind.ZapPoll),
             pollResponses = queryResult.filterNostrEvents(NostrEventKind.PollResponse),
             primalPollStats = queryResult.filterPrimalEvents(NostrEventKind.PrimalPollStats),
-            liveActivity = queryResult.filterNostrEvents(NostrEventKind.LiveActivity),
         )
     }
 }

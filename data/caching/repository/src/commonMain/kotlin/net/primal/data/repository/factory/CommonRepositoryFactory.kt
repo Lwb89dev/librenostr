@@ -28,8 +28,6 @@ import net.primal.data.repository.nip05.Nip05VerificationServiceImpl
 import net.primal.data.repository.notifications.NotificationRepositoryImpl
 import net.primal.data.repository.polls.PollsRepositoryImpl
 import net.primal.data.repository.profile.ProfileRepositoryImpl
-import net.primal.data.repository.streams.LiveStreamChatRepositoryImpl
-import net.primal.data.repository.streams.StreamRepositoryImpl
 import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.events.EventInteractionRepository
 import net.primal.domain.events.EventRelayHintsRepository
@@ -43,7 +41,6 @@ import net.primal.domain.messages.Nip17Transport
 import net.primal.domain.mutes.MutedItemRepository
 import net.primal.domain.nostr.cryptography.MessageCipher
 import net.primal.domain.nostr.relay.RelayEventQuerier
-import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.polls.PollsRepository
 import net.primal.domain.posts.FeedRepository
@@ -52,8 +49,6 @@ import net.primal.domain.profile.ProfileRepository
 import net.primal.domain.publisher.PrimalPublisher
 import net.primal.domain.reads.ArticleRepository
 import net.primal.domain.reads.HighlightRepository
-import net.primal.domain.streams.StreamRepository
-import net.primal.domain.streams.chat.LiveStreamChatRepository
 import net.primal.domain.user.UserDataCleanupRepository
 
 abstract class CommonRepositoryFactory {
@@ -255,6 +250,7 @@ abstract class CommonRepositoryFactory {
         primalPublisher: PrimalPublisher,
         nip05VerificationService: Nip05VerificationService? = null,
         relayEventQuerier: RelayEventQuerier? = null,
+        cachingPrimalApiClient: PrimalApiClient? = null,
     ): ProfileRepository {
         return ProfileRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
@@ -263,6 +259,7 @@ abstract class CommonRepositoryFactory {
             nip05VerificationService = nip05VerificationService,
             relayEventQuerier = relayEventQuerier,
             fetchCoordinator = fetchCoordinator,
+            usersApi = cachingPrimalApiClient?.let { PrimalApiServiceFactory.createUsersApi(it) },
         )
     }
 
@@ -289,29 +286,6 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createStreamRepository(
-        primalPublisher: PrimalPublisher,
-        nip05VerificationService: Nip05VerificationService? = null,
-        relayEventSubscriber: RelayEventSubscriber,
-    ): StreamRepository =
-        StreamRepositoryImpl(
-            database = resolveCachingDatabase(),
-            dispatcherProvider = dispatcherProvider,
-            profileRepository = createProfileRepository(
-                primalPublisher = primalPublisher,
-                nip05VerificationService = nip05VerificationService,
-                relayEventQuerier = relayEventSubscriber,
-            ),
-            liveStreamApi = PrimalApiServiceFactory.createStreamMonitor(relayEventSubscriber),
-        )
-
-    fun createStreamChatRepository(primalPublisher: PrimalPublisher): LiveStreamChatRepository {
-        return LiveStreamChatRepositoryImpl(
-            dispatcherProvider = dispatcherProvider,
-            database = resolveCachingDatabase(),
-            primalPublisher = primalPublisher,
-        )
-    }
 
     fun createPollsRepository(
         cachingPrimalApiClient: PrimalApiClient,

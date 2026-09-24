@@ -8,7 +8,6 @@ import net.primal.data.local.dao.notes.PostData
 import net.primal.data.local.dao.polls.PollData
 import net.primal.data.local.dao.profiles.ProfileData
 import net.primal.data.local.dao.reads.ArticleData
-import net.primal.data.local.dao.streams.StreamData
 import net.primal.data.repository.mappers.authorNameUiFriendly
 import net.primal.data.repository.mappers.local.asPollInfo
 import net.primal.data.repository.mappers.usernameUiFriendly
@@ -19,7 +18,6 @@ import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.links.ReferencedArticle
 import net.primal.domain.links.ReferencedHighlight
 import net.primal.domain.links.ReferencedNote
-import net.primal.domain.links.ReferencedStream
 import net.primal.domain.links.ReferencedUser
 import net.primal.domain.links.ReferencedZap
 import net.primal.domain.nostr.Naddr
@@ -62,7 +60,6 @@ fun List<EventUriNostrReference>.mapReferencedNostrUriAsEventUriNostrPO() =
             referencedArticle = it.referencedArticle,
             referencedUser = it.referencedUser,
             referencedZap = it.referencedZap,
-            referencedStream = it.referencedStream,
         )
     }
 
@@ -70,7 +67,6 @@ fun List<PostData>.flatMapPostsAsReferencedNostrUriDO(
     eventIdToNostrEvent: Map<String, NostrEvent>,
     postIdToPostDataMap: Map<String, PostData>,
     articleIdToArticle: Map<String, ArticleData>,
-    streamIdToStreamData: Map<String, StreamData>,
     profileIdToProfileDataMap: Map<String, ProfileData>,
     cdnResources: Map<String, CdnResource>,
     linkPreviews: Map<String, EventLinkPreviewData>,
@@ -83,7 +79,6 @@ fun List<PostData>.flatMapPostsAsReferencedNostrUriDO(
             eventId = postData.postId,
             eventIdToNostrEvent = eventIdToNostrEvent,
             postIdToPostDataMap = postIdToPostDataMap,
-            streamIdToStreamData = streamIdToStreamData,
             articleIdToArticle = articleIdToArticle,
             profileIdToProfileDataMap = profileIdToProfileDataMap,
             cdnResources = cdnResources,
@@ -97,7 +92,6 @@ fun List<PostData>.flatMapPostsAsReferencedNostrUriDO(
 fun List<DirectMessageData>.flatMapMessagesAsReferencedNostrUriDO(
     eventIdToNostrEvent: Map<String, NostrEvent>,
     postIdToPostDataMap: Map<String, PostData>,
-    streamIdToStreamData: Map<String, StreamData>,
     articleIdToArticle: Map<String, ArticleData>,
     profileIdToProfileDataMap: Map<String, ProfileData>,
     cdnResources: Map<String, CdnResource>,
@@ -110,7 +104,6 @@ fun List<DirectMessageData>.flatMapMessagesAsReferencedNostrUriDO(
         eventId = messageData.messageId,
         eventIdToNostrEvent = eventIdToNostrEvent,
         postIdToPostDataMap = postIdToPostDataMap,
-        streamIdToStreamData = streamIdToStreamData,
         articleIdToArticle = articleIdToArticle,
         profileIdToProfileDataMap = profileIdToProfileDataMap,
         cdnResources = cdnResources,
@@ -124,7 +117,6 @@ fun List<DirectMessageData>.flatMapMessagesAsReferencedNostrUriDO(
 fun List<String>.mapAsReferencedNostrUriDO(
     eventId: String,
     eventIdToNostrEvent: Map<String, NostrEvent>,
-    streamIdToStreamData: Map<String, StreamData>,
     postIdToPostDataMap: Map<String, PostData>,
     articleIdToArticle: Map<String, ArticleData>,
     profileIdToProfileDataMap: Map<String, ProfileData>,
@@ -133,6 +125,13 @@ fun List<String>.mapAsReferencedNostrUriDO(
     videoThumbnails: Map<String, String>,
     postIdToPollDataMap: Map<String, PollData> = emptyMap(),
     postIdToUserVotedOption: Map<String, String?> = emptyMap(),
+    /**
+     * Resolve a quoted note whose author's profile is unknown, under a shortened npub, instead of
+     * calling it "not found". Off by default: on first sight a missing profile usually just means
+     * this response did not carry it, and a later step still looks it up locally. Only the caller
+     * that has already done that lookup turns this on. See `reclassifyResolvedNoteCitations`.
+     */
+    allowMissingNoteAuthor: Boolean = false,
 ) = filter { it.isNostrUri() }.map { link ->
     val refUserProfileId = link.extractProfileId()
 
@@ -143,8 +142,6 @@ fun List<String>.mapAsReferencedNostrUriDO(
     val refNaddr: Naddr? = Nip19TLV.parseUriAsNaddrOrNull(link)
     val refNaddrAuthor = profileIdToProfileDataMap[refNaddr?.userId]
     val refArticle = articleIdToArticle[refNaddr?.identifier]
-    val refStream = streamIdToStreamData[refNaddr?.identifier]
-    val refStreamMainHost = profileIdToProfileDataMap[refStream?.mainHostId]
 
     val referencedNostrEvent: NostrEvent? = eventIdToNostrEvent[link.extractEventId()]
 
@@ -153,12 +150,9 @@ fun List<String>.mapAsReferencedNostrUriDO(
 
     val type = when {
         refUserProfileId != null -> EventUriNostrType.Profile
-        refNote != null && refPostAuthor != null -> EventUriNostrType.Note
+        refNote != null && (refPostAuthor != null || allowMissingNoteAuthor) -> EventUriNostrType.Note
         refNaddr?.kind == NostrEventKind.LongFormContent.value &&
             refArticle != null && refNaddrAuthor != null -> EventUriNostrType.Article
-
-        refNaddr?.kind == NostrEventKind.LiveActivity.value &&
-            refStream != null && refStreamMainHost != null -> EventUriNostrType.Stream
 
         referencedNostrEvent?.kind == NostrEventKind.Highlight.value &&
             refHighlightText?.isNotEmpty() == true && refHighlightATag != null -> EventUriNostrType.Highlight
@@ -184,9 +178,9 @@ fun List<String>.mapAsReferencedNostrUriDO(
             postIdToPostDataMap = postIdToPostDataMap,
             articleIdToArticle = articleIdToArticle,
             profileIdToProfileDataMap = profileIdToProfileDataMap,
-            streamIdToStreamData = streamIdToStreamData,
             postIdToPollDataMap = postIdToPollDataMap,
             postIdToUserVotedOption = postIdToUserVotedOption,
+            allowMissingAuthor = allowMissingNoteAuthor,
         ),
         referencedArticle = takeAsReferencedArticleOrNull(refNaddr, refArticle, refNaddrAuthor),
         referencedZap = takeAsReferencedZapOrNull(
@@ -198,7 +192,6 @@ fun List<String>.mapAsReferencedNostrUriDO(
             nostrEventsMap = eventIdToNostrEvent,
             videoThumbnailsMap = videoThumbnails,
             articlesMap = articleIdToArticle,
-            streamMap = streamIdToStreamData,
         ),
         referencedHighlight = takeAsReferencedHighlightOrNull(
             uri = link,
@@ -206,37 +199,6 @@ fun List<String>.mapAsReferencedNostrUriDO(
             aTag = refHighlightATag,
             authorId = referencedNostrEvent?.tags?.findFirstProfileId(),
         ),
-        referencedStream = takeAsReferencedStreamOrNull(
-            naddr = link,
-            streams = streamIdToStreamData.map { it.value },
-            streamData = refStream,
-            mainHost = refStreamMainHost,
-        ),
-    )
-}
-
-private fun takeAsReferencedStreamOrNull(
-    naddr: String,
-    streams: List<StreamData>,
-    streamData: StreamData?,
-    mainHost: ProfileData?,
-): ReferencedStream? {
-    if (streamData == null || mainHost == null) return null
-
-    return ReferencedStream(
-        naddr = naddr,
-        title = streamData.title,
-        currentParticipants = streamData.currentParticipants,
-        totalParticipants = streamData.totalParticipants,
-        startedAt = streamData.startsAt,
-        endedAt = streamData.endsAt,
-        status = streamData.status,
-        mainHostId = mainHost.ownerId,
-        mainHostIsLive = streams.filter { it.isLive() }.any { it.mainHostId == mainHost.ownerId },
-        mainHostName = mainHost.authorNameUiFriendly(),
-        mainHostAvatarCdnImage = mainHost.avatarCdnImage,
-        mainHostLegendProfile = mainHost.primalPremiumInfo?.legendProfile,
-        mainHostInternetIdentifier = mainHost.internetIdentifier,
     )
 }
 
@@ -249,22 +211,22 @@ private fun takeAsReferencedNoteOrNull(
     eventIdToNostrEvent: Map<String, NostrEvent>,
     postIdToPostDataMap: Map<String, PostData>,
     articleIdToArticle: Map<String, ArticleData>,
-    streamIdToStreamData: Map<String, StreamData>,
     profileIdToProfileDataMap: Map<String, ProfileData>,
     postIdToPollDataMap: Map<String, PollData> = emptyMap(),
     postIdToUserVotedOption: Map<String, String?> = emptyMap(),
-) = if (refNote != null && refPostAuthor != null) {
+    allowMissingAuthor: Boolean = false,
+) = if (refNote != null && (refPostAuthor != null || allowMissingAuthor)) {
     ReferencedNote(
         postId = refNote.postId,
         kind = refNote.kind,
         createdAt = refNote.createdAt,
         content = refNote.content,
         authorId = refNote.authorId,
-        authorName = refPostAuthor.authorNameUiFriendly(),
-        authorAvatarCdnImage = refPostAuthor.avatarCdnImage,
-        authorInternetIdentifier = refPostAuthor.internetIdentifier,
-        authorLightningAddress = refPostAuthor.lightningAddress,
-        authorLegendProfile = refPostAuthor.primalPremiumInfo?.legendProfile,
+        authorName = refPostAuthor?.authorNameUiFriendly() ?: refNote.authorId.asEllipsizedNpub(),
+        authorAvatarCdnImage = refPostAuthor?.avatarCdnImage,
+        authorInternetIdentifier = refPostAuthor?.internetIdentifier,
+        authorLightningAddress = refPostAuthor?.lightningAddress,
+        authorLegendProfile = refPostAuthor?.primalPremiumInfo?.legendProfile,
         attachments = listOf(refNote).flatMapPostsAsEventUriPO(
             cdnResources = cdnResources,
             linkPreviews = linkPreviews,
@@ -274,7 +236,6 @@ private fun takeAsReferencedNoteOrNull(
             eventIdToNostrEvent = eventIdToNostrEvent,
             postIdToPostDataMap = postIdToPostDataMap,
             articleIdToArticle = articleIdToArticle,
-            streamIdToStreamData = streamIdToStreamData,
             profileIdToProfileDataMap = profileIdToProfileDataMap,
             cdnResources = cdnResources,
             linkPreviews = linkPreviews,
@@ -356,7 +317,6 @@ private fun takeAsReferencedZapOrNull(
     nostrEventsMap: Map<String, NostrEvent>,
     videoThumbnailsMap: Map<String, String>,
     articlesMap: Map<String, ArticleData>,
-    streamMap: Map<String, StreamData>,
 ): ReferencedZap? {
     val zapRequest = event?.extractZapRequestOrNull()
 
@@ -378,7 +338,6 @@ private fun takeAsReferencedZapOrNull(
         eventIdToNostrEvent = nostrEventsMap,
         postIdToPostDataMap = postsMap,
         articleIdToArticle = articlesMap,
-        streamIdToStreamData = streamMap,
         profileIdToProfileDataMap = profilesMap,
         cdnResources = cdnResourcesMap,
         videoThumbnails = videoThumbnailsMap,

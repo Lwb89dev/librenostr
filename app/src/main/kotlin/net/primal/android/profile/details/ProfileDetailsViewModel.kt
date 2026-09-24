@@ -8,6 +8,7 @@ import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +26,6 @@ import net.primal.android.core.errors.asSignatureUiError
 import net.primal.android.navigation.primalName
 import net.primal.android.navigation.profileId
 import net.primal.android.networking.relays.errors.NostrPublishException
-import net.primal.android.notes.feed.model.asStreamPillUi
 import net.primal.android.profile.details.ProfileDetailsContract.UiEvent
 import net.primal.android.profile.details.ProfileDetailsContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -53,7 +53,6 @@ import net.primal.domain.nostr.zaps.ZapError
 import net.primal.domain.nostr.zaps.ZapResult
 import net.primal.domain.nostr.zaps.ZapTarget
 import net.primal.domain.profile.ProfileRepository
-import net.primal.domain.streams.StreamRepository
 
 @HiltViewModel
 class ProfileDetailsViewModel @Inject constructor(
@@ -66,7 +65,6 @@ class ProfileDetailsViewModel @Inject constructor(
     private val mutedItemRepository: MutedItemRepository,
     private val zapHandler: ZapHandler,
     private val profileFollowsHandler: ProfileFollowsHandler,
-    private val streamRepository: StreamRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -81,7 +79,6 @@ class ProfileDetailsViewModel @Inject constructor(
     private fun setEffect(effect: ProfileDetailsContract.SideEffect) = viewModelScope.launch { _effects.send(effect) }
 
     private var referencedProfilesObserver: Job? = null
-    private var streamObserverJob: Job? = null
 
     init {
         observeEvents()
@@ -206,13 +203,30 @@ class ProfileDetailsViewModel @Inject constructor(
         }
     }
 
+    // fetchLatestProfile and fetchLatestMuteList each cost a relay round trip (worst case ~4s
+    // apiece, plus up to ~10s more on fetchLatestProfile for a first-time NIP-05 verification) and
+    // don't depend on each other, so running them one after another used to make ProfileUpdateFinished
+    // wait roughly their sum instead of just the slower of the two. fetchProfileFollowedBy/
+    // fetchProfileStats already don't block this at all — they launch their own independent jobs.
     private fun requestProfileUpdate(profileId: String) =
         viewModelScope.launch {
-            fetchLatestProfile(profileId = profileId)
-            observeLiveStreamsByProfile(profileId = profileId)
             fetchProfileFollowedBy(profileId = profileId)
-            fetchLatestMuteList()
+            fetchProfileStats(profileId = profileId)
+            joinAll(
+                launch { fetchLatestProfile(profileId = profileId) },
+                launch { fetchLatestMuteList() },
+            )
             setEffect(ProfileDetailsContract.SideEffect.ProfileUpdateFinished)
+        }
+
+    // Follower/following/notes counters aren't included in the profile metadata event itself and
+    // nothing else fetches them for a profile opened directly (the only other writer is
+    // NotificationsRemoteMediator, incidentally, for profiles that show up in a notification) —
+    // without this, observeProfileStats below simply never emits and the counters stay blank
+    // forever rather than just being briefly stale.
+    private fun fetchProfileStats(profileId: String) =
+        viewModelScope.launch(dispatcherProvider.io()) {
+            profileRepository.fetchAndCacheProfileStats(profileId = profileId)
         }
 
     private fun fetchProfileFollowedBy(profileId: String) =
@@ -333,22 +347,6 @@ class ProfileDetailsViewModel @Inject constructor(
                 }
             }
         }
-
-    private fun observeLiveStreamsByProfile(profileId: String) {
-        streamObserverJob?.cancel()
-        streamObserverJob = viewModelScope.launch {
-            streamRepository.observeLiveStreamsByMainHostId(mainHostId = profileId)
-                .collect { streams ->
-                    setState {
-                        copy(
-                            isLive = streams.isNotEmpty(),
-                            liveStreamNaddr = streams.firstOrNull()?.toNaddrString(),
-                            streamPills = streams.map { it.asStreamPillUi() },
-                        )
-                    }
-                }
-        }
-    }
 
     private fun resolveFollowsMe(profileId: String) {
         val activeUserId = activeAccountStore.activeUserId()

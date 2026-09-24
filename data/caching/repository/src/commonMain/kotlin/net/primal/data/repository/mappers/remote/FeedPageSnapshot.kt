@@ -11,7 +11,6 @@ internal fun FeedResponse.asFeedPageSnapshot(): FeedPageSnapshot {
         articles = this.articles,
         reposts = this.reposts,
         zaps = this.zaps,
-        liveActivity = this.liveActivity,
         referencedEvents = this.referencedEvents,
         primalEventStats = this.primalEventStats,
         primalEventUserStats = this.primalEventUserStats,

@@ -37,7 +37,6 @@ import net.primal.data.repository.mappers.remote.mapAsEventZapDO
 import net.primal.data.repository.mappers.remote.asProfileDataPOFromRelay
 import net.primal.data.repository.mappers.remote.latestMetadataByPubkey
 import net.primal.data.repository.mappers.remote.mapNotNullAsArticleDataPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
 import net.primal.domain.events.EventRepository
 import net.primal.domain.events.EventZap as EventZapDO
 import net.primal.domain.events.NostrEventAction
@@ -224,14 +223,10 @@ internal class EventRepositoryImpl(
         val articles = events
             .filter { it.kind == NostrEventKind.LongFormContent.value }
             .mapNotNullAsArticleDataPO(cdnResources = emptyMap<String, CdnResource>())
-        val streams = events
-            .filter { it.kind == NostrEventKind.LiveActivity.value }
-            .mapNotNullAsStreamDataPO()
 
         database.withTransaction {
             database.profiles().insertOrUpdateAll(data = profiles)
             database.articles().upsertAll(articles)
-            database.streams().upsertStreamData(streams)
         }
     }
 

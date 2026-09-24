@@ -21,13 +21,11 @@ import net.primal.android.user.domain.Badges
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
 import net.primal.domain.messages.ChatRepository
-import net.primal.domain.streams.StreamRepository
 
 @Singleton
 class SubscriptionsManager @Inject constructor(
     dispatcherProvider: DispatcherProvider,
     private val activeAccountStore: ActiveAccountStore,
-    private val streamRepository: StreamRepository,
     private val chatRepository: ChatRepository,
 ) {
 
@@ -35,7 +33,6 @@ class SubscriptionsManager @Inject constructor(
     private val scope = CoroutineScope(dispatcherProvider.io() + SupervisorJob())
     private var subscriptionsActive = false
 
-    private var streamsFromFollowsSubscription: Job? = null
     private var privateMessagesSubscription: Job? = null
 
     private val _badges = MutableSharedFlow<Badges>(
@@ -105,7 +102,6 @@ class SubscriptionsManager @Inject constructor(
 
     private fun subscribeAll(userId: String) {
         subscriptionsActive = true
-        streamsFromFollowsSubscription = launchStreamsFromFollowsSubscription(userId = userId)
         privateMessagesSubscription = scope.launch {
             runCatching { chatRepository.collectNewMessages(userId = userId) }
         }
@@ -113,13 +109,6 @@ class SubscriptionsManager @Inject constructor(
 
     private suspend fun unsubscribeAll() {
         subscriptionsActive = false
-        streamsFromFollowsSubscription?.cancel()
         privateMessagesSubscription?.cancel()
     }
-
-    private fun launchStreamsFromFollowsSubscription(userId: String) =
-        scope.launch {
-            runCatching { streamRepository.fetchLiveEventsFromFollows(userId = userId) }
-            streamRepository.startLiveEventsFromFollowsSubscription(userId = userId)
-        }
 }

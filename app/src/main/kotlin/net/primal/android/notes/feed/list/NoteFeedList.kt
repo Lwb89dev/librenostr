@@ -56,7 +56,6 @@ import net.primal.android.events.ui.findNearestOrNull
 import net.primal.android.notes.feed.list.NoteFeedContract.UiEvent
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
-import net.primal.android.notes.feed.model.StreamPillUi
 import net.primal.android.notes.feed.note.ui.attachment.MaxDisplayImages
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.theme.AppTheme
@@ -73,8 +72,6 @@ fun NoteFeedList(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     allowMutedThreads: Boolean = false,
     showTopZaps: Boolean = false,
-    bigPillStreams: List<StreamPillUi> = emptyList(),
-    showStreamsInNewPill: Boolean = false,
     previewMode: Boolean = false,
     pullToRefreshEnabled: Boolean = true,
     pollingEnabled: Boolean = true,
@@ -96,7 +93,7 @@ fun NoteFeedList(
     }
 
     val viewModel = hiltViewModel<NoteFeedViewModel, NoteFeedViewModel.Factory>(key = viewModelKey) { factory ->
-        factory.create(feedSpec = feedSpec, allowMutedThreads = allowMutedThreads, showStreams = showStreamsInNewPill)
+        factory.create(feedSpec = feedSpec, allowMutedThreads = allowMutedThreads)
     }
     val uiState = viewModel.state.collectAsState()
     val statsOverrides = viewModel.statsOverrides.collectAsState()
@@ -134,7 +131,6 @@ fun NoteFeedList(
         statsOverrides = statsOverrides,
         noteCallbacks = noteCallbacks,
         useMediaCards = feedSpec.isImageSpec() || feedSpec.isVideoSpec(),
-        bigPillStreams = bigPillStreams,
         showTopZaps = showTopZaps,
         showCentralLoadingSpinner = feedSpec.isSearchFeedSpec(),
         contentPadding = contentPadding,
@@ -158,7 +154,6 @@ private fun NoteFeedList(
     useMediaCards: Boolean = false,
     showTopZaps: Boolean = false,
     showCentralLoadingSpinner: Boolean = false,
-    bigPillStreams: List<StreamPillUi> = emptyList(),
     pullToRefreshEnabled: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onUiError: ((UiError) -> Unit)? = null,
@@ -206,7 +201,6 @@ private fun NoteFeedList(
         NoteFeedList(
             pagingItems = pagingItems,
             statsOverrides = statsOverrides,
-            streamPills = bigPillStreams,
             pullToRefreshEnabled = pullToRefreshEnabled,
             feedListState = listState,
             showPaywall = state.paywall,
@@ -277,7 +271,6 @@ private fun TopVisibleNoteTracker(
 fun NoteFeedList(
     feedListState: LazyListState,
     pagingItems: LazyPagingItems<FeedPostUi>,
-    streamPills: List<StreamPillUi>,
     showPaywall: Boolean,
     noteCallbacks: NoteCallbacks,
     statsOverrides: State<Map<String, EventStatsUi>> = remember { mutableStateOf(emptyMap<String, EventStatsUi>()) },
@@ -353,7 +346,6 @@ fun NoteFeedList(
             pagingItems = pagingItems,
             statsOverrides = statsOverrides,
             onRetryAppend = onRetryAppend,
-            streamPills = streamPills,
             listState = feedListState,
             showPaywall = showPaywall,
             showCentralLoadingSpinner = showCentralLoadingSpinner,

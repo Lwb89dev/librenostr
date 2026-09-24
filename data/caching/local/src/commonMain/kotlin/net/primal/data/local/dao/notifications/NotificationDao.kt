@@ -113,6 +113,15 @@ interface NotificationDao {
     )
     suspend fun countByGroup(ownerId: String, groupKey: String): Int
 
+    /**
+     * The moment the user last marked everything as seen, or null if they never have.
+     *
+     * Every "mark all as seen" stamps the rows it touches with the same time, so the newest stamp
+     * is that moment.
+     */
+    @Query("SELECT MAX(seenGloballyAt) FROM NotificationData WHERE ownerId = :ownerId")
+    suspend fun latestSeenAt(ownerId: String): Long?
+
     @Query("UPDATE NotificationData SET seenGloballyAt = :seenAt WHERE seenGloballyAt IS NULL AND ownerId = :ownerId")
     suspend fun markAllUnseenNotificationsAsSeen(ownerId: String, seenAt: Long)
 

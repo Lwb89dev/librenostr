@@ -178,7 +178,6 @@ internal class CachingImportRepositoryImpl(
             eventIdToNostrEvent = emptyMap(),
             postIdToPostDataMap = postIdToPostDataMap,
             articleIdToArticle = emptyMap(),
-            streamIdToStreamData = emptyMap(),
             profileIdToProfileDataMap = profileIdToProfileDataMap,
             cdnResources = emptyMap(),
             linkPreviews = emptyMap(),

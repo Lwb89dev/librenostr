@@ -24,7 +24,6 @@ import net.primal.data.remote.api.notifications.model.wireToken
 import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
 import net.primal.data.repository.mappers.remote.mapNotNullAsNotificationPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsProfileStatsPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
 import net.primal.data.repository.notifications.persist
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
@@ -146,7 +145,6 @@ internal class NotificationsRemoteMediator(
         mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
         lastRequests[loadType] = requestBody
 
-        val streamData = response.liveActivity.mapNotNullAsStreamDataPO()
         val userProfileStats = response.primalUserProfileStats.mapNotNullAsProfileStatsPO()
         val notifications = response.primalNotifications.mapNotNullAsNotificationPO()
 
@@ -190,7 +188,6 @@ internal class NotificationsRemoteMediator(
                         )
                     },
                 )
-                database.streams().upsertStreamData(data = streamData)
             }
         }
 

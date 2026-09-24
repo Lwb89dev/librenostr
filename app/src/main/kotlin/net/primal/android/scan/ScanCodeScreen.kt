@@ -59,9 +59,6 @@ fun ScanCodeScreen(viewModel: ScanCodeViewModel, callbacks: ScanCodeContract.Scr
                 is ScanCodeContract.SideEffect.NostrArticleDetected -> {
                     callbacks.onArticleScan(it.naddr)
                 }
-                is ScanCodeContract.SideEffect.NostrLiveStreamDetected -> {
-                    callbacks.onLiveStreamScan(it.naddr)
-                }
             }
         }
     }

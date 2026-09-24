@@ -72,6 +72,49 @@ class FollowSpamCollapseTest {
             assertEquals(NotificationType.YOUR_POST_WAS_LIKED, result.notifications.first().type)
         }
 
+    @Test
+    fun `follow lists are requested apart from content with a small page`() =
+        runBlocking {
+            // A kind 3 event can be a couple of hundred kilobytes and a bot republishes it in a
+            // loop, so sharing the 200-event content page with follows exhausted the heap.
+            val filters = mutableListOf<RelayFilter>()
+            val recording = object : RelayEventQuerier {
+                override suspend fun query(filter: RelayFilter): List<NostrEvent> {
+                    filters += filter
+                    return emptyList()
+                }
+            }
+
+            RelayNotificationsFetcher(querier = recording)
+                .fetch(userId = USER_ID, group = NotificationGroup.ALL, limit = 200)
+
+            val followFilters = filters.filter { it.kinds == listOf(NostrEventKind.FollowList.value) }
+            assertEquals(1, followFilters.size, "follow lists get exactly one dedicated request")
+            assertEquals(true, (followFilters.single().limit ?: Int.MAX_VALUE) <= 20)
+            assertEquals(
+                false,
+                filters.filter { it !in followFilters }.any { NostrEventKind.FollowList.value in it.kinds.orEmpty() },
+                "no other request may ask for follow lists",
+            )
+        }
+
+    @Test
+    fun `a full follow page holds back older content so the next page leaves no gap`() =
+        runBlocking {
+            val follows = (0 until 20).map { followList(pubkey = "f$it", createdAt = DAY_START + 1_000 + it) }
+            val olderReaction = reaction(id = "old-reaction", createdAt = DAY_START)
+            val querier = object : RelayEventQuerier {
+                override suspend fun query(filter: RelayFilter): List<NostrEvent> =
+                    if (filter.kinds == listOf(NostrEventKind.FollowList.value)) follows else listOf(olderReaction)
+            }
+
+            val result = RelayNotificationsFetcher(querier = querier)
+                .fetch(userId = USER_ID, group = NotificationGroup.ALL, limit = 200)
+
+            assertEquals(20, result.notifications.size, "the reaction older than the follow page is held back")
+            assertEquals(true, result.relayEventCount >= 200, "a saturated page must keep pagination going")
+        }
+
     // ------------------------------------------------------------------------------- harness
 
     private suspend fun fetch(events: List<NostrEvent>): RelayNotificationsResult =

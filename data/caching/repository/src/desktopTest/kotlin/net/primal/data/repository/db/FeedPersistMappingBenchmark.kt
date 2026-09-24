@@ -30,7 +30,6 @@ import net.primal.data.repository.mappers.remote.mapNotNullAsEventUserStatsPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsPollDataPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsPostDataPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsRepostDataPO
-import net.primal.data.repository.mappers.remote.mapNotNullAsStreamDataPO
 import net.primal.data.repository.mappers.remote.mapReferencedEventsAsArticleDataPO
 import net.primal.data.repository.mappers.remote.mapReferencedEventsAsHighlightDataPO
 import net.primal.data.repository.mappers.remote.mapReferencedNostrUriAsEventUriNostrPO
@@ -257,10 +256,6 @@ class FeedPersistMappingBenchmark {
             val refEvents = timed("ref_events_decode", referencedEvents.size) {
                 referencedEvents.mapNotNull { it.content.decodeFromJsonStringOrNull<NostrEvent>() }
             }
-            val streamData = timed("stream_data", liveActivity.size + refEvents.size) {
-                liveActivity.mapNotNullAsStreamDataPO() + refEvents.mapNotNullAsStreamDataPO()
-            }
-
             val pollData = timed("poll_data", polls.size + refEvents.size) {
                 val pollStatsMap = primalPollStats.parseAndMapPrimalPollStats()
                 val allPollData = (polls + refEvents).mapNotNullAsPollDataPO()
@@ -286,7 +281,6 @@ class FeedPersistMappingBenchmark {
                     eventIdToNostrEvent = refEvents.associateBy { it.id },
                     postIdToPostDataMap = allPosts.associateBy { it.postId },
                     articleIdToArticle = allArticles.associateBy { it.articleId },
-                    streamIdToStreamData = streamData.associateBy { it.dTag },
                     profileIdToProfileDataMap = profileIdToProfileDataMap,
                     cdnResources = cdnResources,
                     videoThumbnails = videoThumbnails,
@@ -370,7 +364,6 @@ class FeedPersistMappingBenchmark {
             polls = nostr("polls"),
             pollResponses = nostr("pollResponses"),
             primalPollStats = primal("primalPollStats"),
-            liveActivity = nostr("liveActivity"),
         )
     }
 
@@ -378,7 +371,7 @@ class FeedPersistMappingBenchmark {
         metadata.size + notes.size + articles.size + reposts.size + zaps.size + referencedEvents.size +
             primalEventStats.size + primalEventUserStats.size + cdnResources.size + primalLinkPreviews.size +
             primalRelayHints.size + blossomServers.size + genericReposts.size + pictureNotes.size +
-            polls.size + pollResponses.size + primalPollStats.size + liveActivity.size +
+            polls.size + pollResponses.size + primalPollStats.size +
             listOfNotNull(primalUserNames, primalLegendProfiles, primalPremiumInfo).size
 
     private fun deleteDbFiles(name: String) {

@@ -38,7 +38,6 @@ import net.primal.android.notifications.list.ui.NotificationUi
 import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.subscriptions.SubscriptionsManager
 import net.primal.core.utils.coroutines.DispatcherProvider
-import net.primal.domain.links.ReferencedStream
 import net.primal.domain.nostr.utils.asEllipsizedNpub
 import net.primal.domain.notifications.Notification
 import net.primal.domain.notifications.NotificationGroup
@@ -46,7 +45,6 @@ import net.primal.domain.notifications.NotificationRepository
 import net.primal.domain.notifications.NotificationType
 import net.primal.domain.posts.immediateParentId
 import net.primal.domain.posts.threadRootId
-import net.primal.domain.streams.mappers.asReferencedStream
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -228,15 +226,8 @@ class NotificationsViewModel @Inject constructor(
             actionUserAvatarCdnImage = this.actionByUser?.avatarCdnImage,
             actionUserSatsZapped = this.satsZapped,
             actionPost = this.extractFeedPostUi(),
-            referencedStream = this.extractReferencedStream(),
             groupCount = this.groupCount,
         )
-    }
-
-    private fun Notification.extractReferencedStream(): ReferencedStream? {
-        return this.liveActivity.let {
-            this.liveActivity?.asReferencedStream()
-        }
     }
 
     private fun Notification.extractFeedPostUi(): FeedPostUi? {

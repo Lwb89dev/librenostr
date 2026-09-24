@@ -21,7 +21,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
@@ -54,8 +56,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -81,6 +85,7 @@ import net.primal.android.core.compose.HorizontalPagerIndicator
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.attachment.model.EventUriUi
+import net.primal.android.core.compose.bubble.AnchorHandle
 import net.primal.android.core.compose.dropdown.DropdownPrimalMenu
 import net.primal.android.core.compose.dropdown.DropdownPrimalMenuItem
 import net.primal.android.core.compose.foundation.KeepScreenOn
@@ -95,13 +100,27 @@ import net.primal.android.core.di.rememberFeedVideoCache
 import net.primal.android.core.utils.copyBitmapToClipboard
 import net.primal.android.core.utils.copyText
 import net.primal.android.core.video.initializePlayer
+import net.primal.android.notes.feed.model.FeedPostAction
+import net.primal.android.notes.feed.model.FeedPostUi
+import net.primal.android.notes.feed.model.asNeventString
+import net.primal.android.notes.feed.note.NoteCardDialogs
+import net.primal.android.notes.feed.note.NoteCardDialogsState
+import net.primal.android.notes.feed.note.NoteContract
+import net.primal.android.notes.feed.note.NoteViewModel
+import net.primal.android.notes.feed.note.rememberNoteCardDialogsState
+import net.primal.android.notes.feed.note.ui.FeedNoteActionsRow
+import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.stream.player.PauseStreamMiniPlayer
 import net.primal.android.stream.player.hideStreamMiniPlayer
 import net.primal.android.theme.AppTheme
 import net.primal.domain.links.EventUriType
 
 @Composable
-fun EventMediaGalleryScreen(viewModel: EventMediaGalleryViewModel, onClose: () -> Unit) {
+fun EventMediaGalleryScreen(
+    viewModel: EventMediaGalleryViewModel,
+    onClose: () -> Unit,
+    noteCallbacks: NoteCallbacks = NoteCallbacks(),
+) {
     val uiState = viewModel.state.collectAsState()
     val context = LocalContext.current
 
@@ -121,10 +140,24 @@ fun EventMediaGalleryScreen(viewModel: EventMediaGalleryViewModel, onClose: () -
         }
     }
 
+    // Owns interaction handling (like/zap/repost/bookmark) for the note this gallery was opened
+    // from — the exact same ViewModel FeedNoteCard instantiates for a note card, keyed the same
+    // way, so replying/zapping/reposting from inside the gallery behaves identically to doing it
+    // from the feed. This ViewModel only supplies *what* note to act on (see UiState.note); it
+    // never handles the actions themselves.
+    val noteViewModel = hiltViewModel<NoteViewModel, NoteViewModel.Factory>(
+        key = "noteViewModel${uiState.value.noteId}",
+        creationCallback = { it.create(noteId = uiState.value.noteId) },
+    )
+    val noteUiState by noteViewModel.state.collectAsState()
+
     EventMediaGalleryScreen(
         state = uiState.value,
         onClose = onClose,
         eventPublisher = { viewModel.setEvent(it) },
+        noteState = noteUiState,
+        noteEventPublisher = noteViewModel::setEvent,
+        noteCallbacks = noteCallbacks,
     )
 }
 
@@ -136,6 +169,9 @@ private fun EventMediaGalleryScreen(
     state: EventMediaGalleryContract.UiState,
     onClose: () -> Unit,
     eventPublisher: (EventMediaGalleryContract.UiEvent) -> Unit,
+    noteState: NoteContract.UiState,
+    noteEventPublisher: (NoteContract.UiEvent) -> Unit,
+    noteCallbacks: NoteCallbacks,
 ) {
     val context = LocalContext.current
     val window = LocalActivity.current?.window
@@ -165,6 +201,17 @@ private fun EventMediaGalleryScreen(
     )
 
     val containerColor = AppTheme.colorScheme.surface.copy(alpha = 0.21f)
+    val note = state.note
+    val repostAnchor = remember { AnchorHandle() }
+    val dialogsState = rememberNoteCardDialogsState()
+    MediaGalleryNoteDialogs(
+        note = note,
+        dialogsState = dialogsState,
+        noteState = noteState,
+        noteEventPublisher = noteEventPublisher,
+        noteCallbacks = noteCallbacks,
+        repostAnchor = repostAnchor,
+    )
 
     PrimalScaffold(
         contentColor = AppTheme.colorScheme.background,
@@ -183,6 +230,17 @@ private fun EventMediaGalleryScreen(
                 )
             }
         },
+        bottomBar = {
+            MediaGalleryBottomBar(
+                note = note,
+                visible = immersiveMode?.isImmersive != true,
+                containerColor = containerColor,
+                repostAnchor = repostAnchor,
+                dialogsState = dialogsState,
+                noteCallbacks = noteCallbacks,
+                noteEventPublisher = noteEventPublisher,
+            )
+        },
         content = {
             MediaGalleryContent(
                 pagerState = pagerState,
@@ -198,6 +256,109 @@ private fun EventMediaGalleryScreen(
             SnackbarHost(hostState = snackbarHostState)
         },
     )
+}
+
+@Composable
+private fun MediaGalleryNoteDialogs(
+    note: FeedPostUi?,
+    dialogsState: NoteCardDialogsState,
+    noteState: NoteContract.UiState,
+    noteEventPublisher: (NoteContract.UiEvent) -> Unit,
+    noteCallbacks: NoteCallbacks,
+    repostAnchor: AnchorHandle,
+) {
+    if (note == null) return
+    NoteCardDialogs(
+        dialogsState = dialogsState,
+        data = note,
+        noteState = noteState,
+        eventPublisher = noteEventPublisher,
+        noteCallbacks = noteCallbacks,
+        repostAnchor = repostAnchor,
+    )
+}
+
+@Composable
+private fun MediaGalleryBottomBar(
+    note: FeedPostUi?,
+    visible: Boolean,
+    containerColor: Color,
+    repostAnchor: AnchorHandle,
+    dialogsState: NoteCardDialogsState,
+    noteCallbacks: NoteCallbacks,
+    noteEventPublisher: (NoteContract.UiEvent) -> Unit,
+) {
+    if (note == null) return
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+    ) {
+        MediaGalleryActionsBar(
+            note = note,
+            containerColor = containerColor,
+            repostAnchor = repostAnchor,
+            onPostAction = { postAction ->
+                handleGalleryPostAction(
+                    postAction = postAction,
+                    note = note,
+                    noteCallbacks = noteCallbacks,
+                    dialogsState = dialogsState,
+                    noteEventPublisher = noteEventPublisher,
+                )
+            },
+        )
+    }
+}
+
+private fun handleGalleryPostAction(
+    postAction: FeedPostAction,
+    note: FeedPostUi,
+    noteCallbacks: NoteCallbacks,
+    dialogsState: NoteCardDialogsState,
+    noteEventPublisher: (NoteContract.UiEvent) -> Unit,
+) {
+    when (postAction) {
+        FeedPostAction.Reply -> noteCallbacks.onNoteReplyClick?.invoke(note.asNeventString())
+        FeedPostAction.Zap -> dialogsState.showZapOptions = true
+        FeedPostAction.Like -> noteEventPublisher(
+            NoteContract.UiEvent.PostLikeAction(postId = note.postId, postAuthorId = note.authorId),
+        )
+        FeedPostAction.Repost -> dialogsState.showRepostConfirmation = true
+        FeedPostAction.Bookmark -> noteEventPublisher(NoteContract.UiEvent.BookmarkAction(noteId = note.postId))
+    }
+}
+
+@Composable
+private fun MediaGalleryActionsBar(
+    note: FeedPostUi,
+    containerColor: Color,
+    repostAnchor: AnchorHandle,
+    onPostAction: (FeedPostAction) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = containerColor)
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+    ) {
+        FeedNoteActionsRow(
+            modifier = Modifier.fillMaxWidth(),
+            eventStats = note.stats,
+            showBookmark = !note.isPrivate,
+            isBookmarked = note.isBookmarked,
+            onPostAction = onPostAction,
+            repostAnchor = repostAnchor,
+            // The row's default tint is a muted theme gray meant for a normal surface — over a
+            // photo or video it needs to read against arbitrary content instead, same treatment
+            // AttachmentLoadingError's warning icon already gets in this same screen.
+            unhighlightedColor = Color.White,
+            // The row's normal (non-highlighted) 17sp icons read as too small for a full-screen
+            // immersive overlay with no other chrome around them — 40% larger touch targets.
+            iconSizeOverride = 17.sp * 1.4f,
+        )
+    }
 }
 
 @Composable

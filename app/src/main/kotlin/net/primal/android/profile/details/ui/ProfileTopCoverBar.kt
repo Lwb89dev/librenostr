@@ -234,7 +234,6 @@ private fun ProfileTopCoverBar(
                             start = avatarValues.avatarPadding * 1 / 8,
                             end = avatarValues.avatarPadding * 7 / 8,
                         ),
-                    isLive = state.isLive,
                     avatarSize = avatarValues.avatarSize,
                     avatarCdnImage = state.profileDetails?.avatarCdnImage,
                     avatarBlossoms = state.profileDetails?.profileBlossoms ?: emptyList(),
@@ -243,16 +242,7 @@ private fun ProfileTopCoverBar(
                     forceAnimationIfAvailable = true,
                     canDownscaleToZero = true,
                     onClick = {
-                        if (state.isLive) {
-                            state.liveStreamNaddr?.let { callbacks.onLiveStreamClick(it) }
-                        } else {
-                            state.profileDetails?.avatarCdnImage?.sourceUrl?.let { onMediaItemClick(it) }
-                        }
-                    },
-                    onLongClick = {
-                        if (state.isLive) {
-                            state.profileDetails?.avatarCdnImage?.sourceUrl?.let { onMediaItemClick(it) }
-                        }
+                        state.profileDetails?.avatarCdnImage?.sourceUrl?.let { onMediaItemClick(it) }
                     },
                 )
             }

@@ -47,6 +47,7 @@ import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.data.repository.utils.performTopologicalSortOrThis
 import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.feeds.isAdvancedSearchFeedSpec
+import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isRelayServableNotesFeedSpec
 import net.primal.domain.feeds.isUserNotesLwrFeedSpec
 import net.primal.domain.feeds.supportsNoteReposts
@@ -80,7 +81,14 @@ internal class FeedRepositoryImpl(
 ) : FeedRepository {
 
     private val notesFeedFetcher = relayEventQuerier?.let {
-        RelayNotesFeedFetcher(querier = it, coordinator = fetchCoordinator, cache = localEventCache)
+        RelayNotesFeedFetcher(
+            querier = it,
+            coordinator = fetchCoordinator,
+            cache = localEventCache,
+            localBookmarkedNoteIds = { ownerId, limit ->
+                database.publicBookmarks().findBookmarkedNoteIds(userId = ownerId, limit = limit)
+            },
+        )
     }
 
     override fun feedBySpec(
@@ -293,8 +301,13 @@ internal class FeedRepositoryImpl(
     override fun streamNewNotes(userId: String, feedSpec: String): Flow<NostrEvent> {
         // The injected querier is the socket manager, which already implements the subscriber
         // port; nothing extra has to be wired to open a live REQ.
-        val subscriber = relayEventQuerier as? RelayEventSubscriber ?: return emptyFlow()
-        val fetcher = notesFeedFetcher ?: return emptyFlow()
+        val subscriber = relayEventQuerier as? RelayEventSubscriber
+        val fetcher = notesFeedFetcher
+
+        // A bookmarks feed only changes when its owner edits the list, never because somebody
+        // published; the author scope resolveAuthors would fall back to is the follow list, whose
+        // live notes do not belong in it.
+        if (subscriber == null || fetcher == null || feedSpec.isNotesBookmarkFeedSpec()) return emptyFlow()
 
         return flow {
             val authors = fetcher.resolveAuthors(userId = userId, feedSpec = feedSpec)
@@ -549,5 +562,4 @@ private fun EventUriNostr.asDO() =
         referencedArticle = referencedArticle,
         referencedUser = referencedUser,
         referencedZap = referencedZap,
-        referencedStream = referencedStream,
     )

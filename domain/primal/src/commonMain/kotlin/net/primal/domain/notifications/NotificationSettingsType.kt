@@ -29,7 +29,6 @@ sealed class NotificationSettingsType(val id: String, val order: Int) {
         data object Mentions : PushNotifications(id = MENTIONS, order = 6)
         data object DirectMessages : PushNotifications(id = DIRECT_MESSAGES, order = 7)
         data object WalletTransactions : PushNotifications(id = WALLET_TRANSACTIONS, order = 8)
-        data object LiveEvents : PushNotifications(id = LIVE_EVENTS, order = 9)
 
         companion object {
             private const val NEW_FOLLOWS = "NEW_FOLLOWS"
@@ -40,11 +39,9 @@ sealed class NotificationSettingsType(val id: String, val order: Int) {
             private const val MENTIONS = "MENTIONS"
             private const val DIRECT_MESSAGES = "DIRECT_MESSAGES"
             private const val WALLET_TRANSACTIONS = "WALLET_TRANSACTIONS"
-            private const val LIVE_EVENTS = "LIVE_EVENT_HAPPENING"
 
             fun valueOf(id: String): PushNotifications? {
                 return when (id) {
-                    LIVE_EVENTS -> LiveEvents
                     NEW_FOLLOWS -> NewFollows
                     ZAPS -> Zaps
                     REACTIONS -> Reactions
@@ -146,14 +143,6 @@ sealed class NotificationSettingsType(val id: String, val order: Int) {
                 YOUR_POST_WAS_MENTIONED_IN_POST,
             ),
             order = 6,
-        )
-
-        data object LiveEvents : TabNotifications(
-            id = "LIVE_EVENTS",
-            types = listOf(
-                NotificationType.LIVE_EVENT_HAPPENING,
-            ),
-            order = 7,
         )
     }
 }
