@@ -4,6 +4,7 @@ import java.net.InetSocketAddress
 import java.net.Proxy
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
+import net.primal.core.networking.tor.engine.BuiltInTor
 import okhttp3.OkHttpClient
 
 private const val TOR_SOCKS_HOST = "127.0.0.1"
@@ -17,14 +18,28 @@ private const val TOR_READ_TIMEOUT_SECONDS = 30L
 private const val TOR_WRITE_TIMEOUT_SECONDS = 30L
 
 /**
- * Applies Orbot's SOCKS proxy and Tor-appropriate timeouts when [settings] has Tor enabled;
- * a no-op otherwise. Deliberately has no fallback to a direct connection if the proxy port
- * isn't reachable — the call should fail, not silently leak traffic outside Tor.
+ * Applies the Tor SOCKS proxy and Tor-appropriate timeouts when [settings] has Tor enabled; a no-op
+ * otherwise. Deliberately has no fallback to a direct connection if the proxy is not reachable — the
+ * call should fail, not silently leak traffic outside Tor.
+ *
+ * With [TorEngineType.ORBOT] the proxy is Orbot's, at the configured port. With
+ * [TorEngineType.BUILT_IN] the port belongs to the in-app engine and is looked up on every connect
+ * through [TorPortProxySelector], so the client survives the engine restarting on another port.
  */
 fun OkHttpClient.Builder.applyTorProxyIfEnabled(settings: TorProxySettings): OkHttpClient.Builder =
     apply {
         if (!settings.enabled) return@apply
-        proxy(Proxy(Proxy.Type.SOCKS, InetSocketAddress(TOR_SOCKS_HOST, settings.socksPort)))
+        when (settings.engine) {
+            TorEngineType.ORBOT ->
+                proxy(Proxy(Proxy.Type.SOCKS, InetSocketAddress(TOR_SOCKS_HOST, settings.socksPort)))
+
+            TorEngineType.BUILT_IN -> proxySelector(
+                TorPortProxySelector(
+                    currentPort = BuiltInTor::currentPort,
+                    awaitPort = BuiltInTor::awaitPortBlocking,
+                ),
+            )
+        }
         connectTimeout(TOR_CONNECT_TIMEOUT_SECONDS.seconds.toJavaDuration())
         readTimeout(TOR_READ_TIMEOUT_SECONDS.seconds.toJavaDuration())
         writeTimeout(TOR_WRITE_TIMEOUT_SECONDS.seconds.toJavaDuration())

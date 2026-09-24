@@ -91,3 +91,9 @@
 
 # OkHttp EventSource
 -keep class okhttp3.internal.sse.** { *; }
+
+# Built-in Tor (Arti). The native library resolves its entry points by class and method NAME
+# (Java_net_primal_core_networking_tor_engine_ArtiNative_*), so R8 must neither rename nor strip them.
+# A missing rule fails only at runtime, on release builds, as an UnsatisfiedLinkError.
+-keep class net.primal.core.networking.tor.engine.ArtiNative { *; }
+-keepclasseswithmembernames class * { native <methods>; }

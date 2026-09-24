@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
+import net.primal.core.networking.tor.TorEngineType
 import net.primal.core.networking.tor.TorProxySettings
 import net.primal.core.networking.tor.TorProxySettingsStore
 import net.primal.core.utils.coroutines.DispatcherProvider
@@ -34,5 +35,9 @@ class TorProxySettingsRepository @Inject constructor(
 
     suspend fun setPort(port: Int) {
         persistence.updateData { it.copy(socksPort = port) }
+    }
+
+    suspend fun setEngine(engine: TorEngineType) {
+        persistence.updateData { it.copy(engine = engine) }
     }
 }

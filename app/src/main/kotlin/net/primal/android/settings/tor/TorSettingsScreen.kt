@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -36,6 +37,8 @@ import net.primal.android.core.compose.icons.primaliconpack.Key
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.theme.AppTheme
+import net.primal.core.networking.tor.TorEngineType
+import net.primal.core.networking.tor.engine.TorEngineState
 
 @Composable
 fun TorSettingsScreen(
@@ -122,7 +125,7 @@ private fun TorSettingsContent(
         modifier = modifier
             .background(color = AppTheme.colorScheme.surfaceVariant)
             .fillMaxWidth()
-            // The port field and the "Orbot not installed" warning below only show once
+            // The engine options, port field and the "Orbot not installed" warning below only show once
             // torEnabled/orbotInstalled settle (async DataStore reads that can land after the
             // enclosing AnimatedVisibility's own enter animation already measured a shorter
             // first pass) — animateContentSize keeps this column's real height in sync with
@@ -148,39 +151,93 @@ private fun TorSettingsContent(
         )
 
         if (state.torEnabled) {
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = PrimalDefaults.outlinedTextFieldColors(),
-                shape = AppTheme.shapes.medium,
-                value = state.torSocksPortText,
-                onValueChange = {
-                    eventPublisher(TorSettingsContract.UiEvent.UpdateTorPort(rawPort = it))
-                },
-                singleLine = true,
-                isError = state.torPortInvalid,
-                label = { Text(text = stringResource(id = R.string.settings_tor_port_title)) },
-                supportingText = if (state.torPortInvalid) {
-                    { Text(text = stringResource(id = R.string.settings_tor_port_error)) }
-                } else {
-                    null
-                },
-                textStyle = AppTheme.typography.bodyMedium,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
+            TorEngineOptions(state = state, eventPublisher = eventPublisher)
 
-            if (!state.orbotInstalled) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    text = stringResource(id = R.string.settings_tor_orbot_not_installed),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colorScheme.error,
-                )
+            if (state.torEngine == TorEngineType.ORBOT) {
+                OrbotPortSection(state = state, eventPublisher = eventPublisher)
             }
         }
     }
 }
+
+@Composable
+private fun TorEngineOptions(
+    state: TorSettingsContract.UiState,
+    eventPublisher: (TorSettingsContract.UiEvent) -> Unit,
+) {
+    val builtInSelected = state.torEngine == TorEngineType.BUILT_IN
+    val builtInDescription = stringResource(id = R.string.settings_tor_engine_built_in_description)
+
+    SettingsItem(
+        headlineText = stringResource(id = R.string.settings_tor_engine_built_in_title),
+        supportText = when {
+            !state.builtInAvailable -> stringResource(id = R.string.settings_tor_status_unavailable)
+            builtInSelected -> "$builtInDescription\n${state.builtInState.statusText()}"
+            else -> builtInDescription
+        },
+        enabled = state.builtInAvailable,
+        trailingContent = { RadioButton(selected = builtInSelected, onClick = null) },
+        onClick = { eventPublisher(TorSettingsContract.UiEvent.SelectTorEngine(TorEngineType.BUILT_IN)) },
+    )
+
+    SettingsItem(
+        headlineText = stringResource(id = R.string.settings_tor_engine_orbot_title),
+        supportText = stringResource(id = R.string.settings_tor_engine_orbot_description),
+        trailingContent = { RadioButton(selected = !builtInSelected, onClick = null) },
+        onClick = { eventPublisher(TorSettingsContract.UiEvent.SelectTorEngine(TorEngineType.ORBOT)) },
+    )
+}
+
+@Composable
+private fun TorEngineState.statusText(): String =
+    when (this) {
+        TorEngineState.Unavailable -> stringResource(id = R.string.settings_tor_status_unavailable)
+        TorEngineState.Off -> stringResource(id = R.string.settings_tor_status_off)
+        TorEngineState.Starting -> stringResource(id = R.string.settings_tor_status_starting)
+        is TorEngineState.Bootstrapping ->
+            stringResource(id = R.string.settings_tor_status_downloading, progressPermille / PERMILLE_PER_PERCENT)
+        is TorEngineState.Ready -> stringResource(id = R.string.settings_tor_status_ready)
+        is TorEngineState.Failed -> stringResource(id = R.string.settings_tor_status_failed)
+    }
+
+@Composable
+private fun OrbotPortSection(
+    state: TorSettingsContract.UiState,
+    eventPublisher: (TorSettingsContract.UiEvent) -> Unit,
+) {
+    OutlinedTextField(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = PrimalDefaults.outlinedTextFieldColors(),
+        shape = AppTheme.shapes.medium,
+        value = state.torSocksPortText,
+        onValueChange = {
+            eventPublisher(TorSettingsContract.UiEvent.UpdateTorPort(rawPort = it))
+        },
+        singleLine = true,
+        isError = state.torPortInvalid,
+        label = { Text(text = stringResource(id = R.string.settings_tor_port_title)) },
+        supportingText = if (state.torPortInvalid) {
+            { Text(text = stringResource(id = R.string.settings_tor_port_error)) }
+        } else {
+            null
+        },
+        textStyle = AppTheme.typography.bodyMedium,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    )
+
+    if (!state.orbotInstalled) {
+        Text(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            text = stringResource(id = R.string.settings_tor_orbot_not_installed),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colorScheme.error,
+        )
+    }
+}
+
+private const val PERMILLE_PER_PERCENT = 10
 
 @Preview
 @Composable

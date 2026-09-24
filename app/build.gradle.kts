@@ -54,6 +54,13 @@ fun extractSigningConfigProperties(storeName: String): SigningConfigProperties? 
 val appVersionCode = 38
 val appVersionName = "0.5.17"
 
+// ELF header layout, used by verifyBuiltInTorLibrary below.
+val ELF_HEADER_BYTES = 20
+val ELF_CLASS_OFFSET = 4
+val ELF_CLASS_64: Byte = 2
+val ELF_MACHINE_OFFSET = 18
+val ELF_MACHINE_AARCH64 = 0xB7
+
 tasks.register("generateReleaseProperties") {
     doLast {
         val file = File("${project.rootDir}/release.properties")
@@ -61,8 +68,47 @@ tasks.register("generateReleaseProperties") {
     }
 }
 
+// The built-in Tor library (tools/arti-build) is committed under src/main/jniLibs/arm64-v8a. This checks
+// the file before every build because a wrong one fails silently and late: a truncated download or a
+// library for another architecture installs fine and only reports "Tor is not available" on the
+// device. A *missing* library is legitimate on a branch or a machine without the Android toolchain
+// (built-in Tor is then simply unavailable and the settings screen says so), so it only fails the
+// build when -Plibrenostr.requireBuiltInTor=true, which release builds set.
+val builtInTorLibrary = file("src/main/jniLibs/arm64-v8a/libnostr_arti.so")
+val requireBuiltInTor = providers.gradleProperty("librenostr.requireBuiltInTor").map { it.toBoolean() }.orElse(false)
+
+val verifyBuiltInTorLibrary = tasks.register("verifyBuiltInTorLibrary") {
+    group = "verification"
+    description = "Checks that the committed built-in Tor library, if present, is an arm64 ELF shared object."
+    doLast {
+        if (!builtInTorLibrary.exists()) {
+            val message = "Built-in Tor library missing (${builtInTorLibrary.relativeTo(projectDir)}); " +
+                "built-in Tor will be unavailable in this build. Build it with tools/arti-build/build-arti.sh."
+            if (requireBuiltInTor.get()) throw GradleException(message) else logger.warn(message)
+            return@doLast
+        }
+        val header = builtInTorLibrary.inputStream().use { it.readNBytes(ELF_HEADER_BYTES) }
+        val isElf = header.size == ELF_HEADER_BYTES &&
+            header[0] == 0x7f.toByte() && header[1] == 'E'.code.toByte() &&
+            header[2] == 'L'.code.toByte() && header[3] == 'F'.code.toByte()
+        val is64Bit = header.size == ELF_HEADER_BYTES && header[ELF_CLASS_OFFSET] == ELF_CLASS_64
+        // e_machine is a little-endian 16-bit field at offset 18; 0x00B7 (183) is AArch64.
+        val machine = if (header.size == ELF_HEADER_BYTES) {
+            (header[ELF_MACHINE_OFFSET].toInt() and 0xff) or ((header[ELF_MACHINE_OFFSET + 1].toInt() and 0xff) shl 8)
+        } else {
+            -1
+        }
+        if (!isElf || !is64Bit || machine != ELF_MACHINE_AARCH64) {
+            throw GradleException(
+                "${builtInTorLibrary.relativeTo(projectDir)} is not an arm64-v8a ELF shared object " +
+                    "(elf=$isElf, 64bit=$is64Bit, e_machine=$machine). It would install and then fail to load.",
+            )
+        }
+    }
+}
+
 tasks.named("preBuild").configure {
-    dependsOn("generateReleaseProperties")
+    dependsOn("generateReleaseProperties", verifyBuiltInTorLibrary)
 }
 
 ksp {
@@ -188,6 +234,12 @@ android {
     }
 
     packaging {
+        jniLibs {
+            // Ship the built-in Tor library exactly as tools/arti-build produced it. Its Cargo release
+            // profile already strips it, so AGP's own strip pass would only rewrite the .comment section,
+            // making the copy in the APK differ from the committed one and the build unverifiable.
+            keepDebugSymbols += "**/libnostr_arti.so"
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
 
