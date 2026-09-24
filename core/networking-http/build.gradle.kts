@@ -85,3 +85,18 @@ kotlin {
         languageSettings.optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
     }
 }
+
+// Opt-in: run the host tests that load the real Arti library (tools/arti-build) and talk to the Tor
+// network, e.g.
+//
+//   ./gradlew :core:networking-http:testAndroidHostTest -Pnostr.arti.hostLib=/path/to/dir/with/libnostr_arti.so
+//
+// The directory must hold a build for the machine running the tests (`cargo build --release` in
+// tools/arti-build produces one). Without the property those tests skip themselves, so the ordinary
+// test run needs neither the library nor network access.
+providers.gradleProperty("nostr.arti.hostLib").orNull?.let { libraryDir ->
+    tasks.withType<Test>().configureEach {
+        systemProperty("java.library.path", libraryDir)
+        systemProperty("nostr.arti.hostLib", libraryDir)
+    }
+}

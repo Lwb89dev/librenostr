@@ -275,8 +275,10 @@ Keep Amethyst's decisions from §2.3 and fix §2.7:
 - `ArtiGuardState` (JSON parse of `guards.json`, ratio rule) and `TorSupervisor` (watchdog with
   progress-aware stall detection, gentle-then-wipe escalation, cooldowns, network-change reset),
   both pure and unit-tested with virtual time.
-- `TorProxySettings` gains a `mode` (`OFF` / `EXTERNAL` (Orbot) / `BUILT_IN`); the persisted JSON
-  from today (`enabled`, `socksPort`) must keep decoding, mapping `enabled=true` to `EXTERNAL`.
+- `TorProxySettings` gains an `engine` (`ORBOT` / `BUILT_IN`) next to the existing `enabled`; the
+  persisted JSON from today (`enabled`, `socksPort`) keeps decoding as Orbot. (Built as an engine
+  choice under one on/off switch rather than the three-way mode first sketched: it changes nothing
+  for existing installs and keeps the toggle's meaning.)
 - `applyTorProxyIfEnabled` becomes mode-aware and resolves the port through a `ProxySelector` that
   reads the engine state **at connect time**, so a restarted engine (new ephemeral port) does not
   require rebuilding every client. It must stay fail-closed: while the engine is not `Ready` the
@@ -389,6 +391,67 @@ Behavioural requirements:
 
 ## 7. Status on this branch
 
-_Updated as work lands; see `git log feature/built-in-tor`._
+Branch `feature/built-in-tor`. Everything below is committed; `git log feature/built-in-tor` has the
+detail. **The Android library has not been built**, so a build of this branch reports built-in Tor as
+"not part of this build" and behaves exactly like `main` otherwise.
 
-(nothing built yet at the time of writing this section)
+### 7.1 Done and how it was verified
+
+| Piece | Verification |
+|---|---|
+| `tools/arti-build`: the Rust wrapper (`src/lib.rs`), `Cargo.lock`, toolchain/NDK/Arti pins | `cargo test`: 9 protocol/mapping tests pass. 4 engine tests against the real Arti client pass on this machine (`--ignored`): `destroy()` releases the state-file lock over 4 cycles on one directory; stop/restart keeps the client; a SOCKS greeting sent one byte at a time is accepted; a TLS request through the tunnel to check.torproject.org returns `{"IsTor":true}` |
+| Kotlin engine (`core/networking-http`, `...tor.engine`): `ArtiBridge`, `ArtiTorEngine`, `ArtiGuardState`, `TorSupervisor` | 34 unit tests with a fake bridge and virtual time, plus an opt-in JVM test (`-Pnostr.arti.hostLib=<dir>`) that loads the real library through JNI: the Kotlin `external` declarations match the exported symbols, a request through OkHttp exits via Tor, a gentle restart comes back and works again, stop returns to Off |
+| `guards.json` heuristic | tested against a **real** file captured from Arti 2.6.0, and against synthetic wedged samples including the 59-of-60-disabled field failure |
+| Settings model, `TorPortProxySelector`, WebView proxy, app wiring, settings UI | unit tests for JSON backward compatibility (a file written before the option existed decodes as Orbot; an unknown engine name falls back to Orbot), for the selector's fail-closed behaviour (never `NO_PROXY`), and for which proxy each engine installs. UI compiled but **not seen on a device** |
+| Gradle: `keepDebugSymbols`, R8 keep rules, `verifyBuiltInTorLibrary` | R8 run on `altRelease`: the JNI class and all its native methods appear in `seeds.txt`. The task was exercised against a missing file (warns; fails with `-Plibrenostr.requireBuiltInTor=true`), an x86_64 library (fails, `e_machine=62`) and a 10-byte file (fails) |
+| App checks | `:app:testDebugUnitTest` 402 pass; `:core:networking-http` 53 tests, 1 skipped (the opt-in one); app detekt at its baseline of 93 findings; the module's detekt is clean |
+
+### 7.2 Numbers measured here (x86_64 Linux host, distro rustc 1.95.0)
+
+- Release library: **6.25 MB** for x86_64 (`opt-level = "z"`, LTO, stripped). The arm64 figure is not
+  measured; Amethyst reports 5–6 MB for its equivalent, which the x86_64 number is consistent with.
+- Release build time: about **1 minute** from a warm dependency cache, 7.5 minutes of CPU time.
+- **Cold bootstrap to "ready for traffic": 12.5 to 27 s** across five runs, with monotonic progress
+  (0 → 1000 permille) that the supervisor can watch.
+- Arti persists the guard sample lazily: `state/state/guards.json` exists after the first stream but
+  holds an empty sample; a **confirmed guard appeared on disk about 31 s after** the first successful
+  stream (measured once). So "Tor has worked on this install" is not known for the first half minute,
+  and a process killed earlier loses it; the supervisor degrades to the first-start behaviour then,
+  which is the safe direction.
+- Real-Tor test of the whole Kotlin → JNI → Rust chain: 15–28 s including a restart.
+
+### 7.3 Not done, and what each needs
+
+1. **Android build of the library.** Needs `rustup`, the `aarch64-linux-android` target, `cargo-ndk`
+   and the pinned NDK (§4.1). Installing them writes to the user's home directory, so it waits for an
+   explicit yes. `build-arti.sh` and `verify-reproducible.sh` are written but have **never been run**.
+   The NDK (`30.0.16248370`) and cargo-ndk (`4.1.2`) pins were copied from Amethyst's verified build
+   and are unconfirmed here.
+2. **Committing the library**, `-Plibrenostr.requireBuiltInTor=true` in the release workflow, and
+   the reproducibility check. Depends on 1.
+3. **Device validation** (§4.8.3): cold/warm bootstrap on the Pixel, airplane mode and Wi-Fi↔cellular,
+   a packet capture to confirm there is no DNS leak, WebView and ExoPlayer paths, battery over hours.
+4. **Onboarding screen** (`OrbotOnboardingScreen`) still talks only about Orbot.
+5. **Turning Tor on still needs an app restart**, as today. Already-open direct sockets are not
+   dropped by the toggle; designing that is separate work.
+6. **Leak audit of the raw-OkHttp call sites** the store's KDoc mentions (crash reporter, language
+   packs): they use `applyTorProxyIfEnabled`, so they follow the engine, but nobody has checked that
+   list is complete.
+7. **Process model** (§5.1) is undecided; the engine sits behind the `TorEngine` interface so it can
+   move to a `:tor` process later.
+8. **Italian strings**: the Italian locale has no Tor strings at all (the whole screen falls back to
+   English), so the new ones are English only.
+
+### 7.4 How to run what exists
+
+```bash
+# Rust: protocol tests, then the engine tests against the real Tor network (needs outbound access)
+CARGO_HOME=/scratch/cargo-home CARGO_TARGET_DIR=/scratch/target tools/arti-build/run-host-tests.sh
+
+# Kotlin: everything, including the tests that need no library
+./gradlew :core:networking-http:testAndroidHostTest
+
+# Kotlin -> JNI -> Rust -> Tor, on the host (build the library first: `cargo build --release --locked`)
+./gradlew :core:networking-http:testAndroidHostTest \
+    --tests "*ArtiNativeHostIntegrationTest*" -Pnostr.arti.hostLib=/scratch/target/release
+```
