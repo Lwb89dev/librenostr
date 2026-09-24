@@ -1,10 +1,7 @@
 package net.primal.core.networking.tor
 
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
-import java.net.Proxy
 import kotlinx.coroutines.test.runTest
-import okhttp3.OkHttpClient
 import okio.Buffer
 import org.junit.Test
 
@@ -46,33 +43,48 @@ class TorEngineSettingsTest {
     }
 
     @Test
-    fun `Orbot still gets a fixed SOCKS proxy at the configured port`() {
-        val client = OkHttpClient.Builder()
-            .applyTorProxyIfEnabled(TorProxySettings(enabled = true, socksPort = 9123, engine = TorEngineType.ORBOT))
-            .build()
+    fun `settings saved before network modes existed keep their meaning`() =
+        runTest {
+            // "enabled" used to mean everything through Tor with no fallback, which is exactly TOR.
+            decode("""{"enabled":true,"socksPort":9050}""").effectiveMode shouldBe NetworkMode.TOR
+            decode("""{"enabled":false,"socksPort":9050}""").effectiveMode shouldBe NetworkMode.DIRECT
+            decode("""{}""").effectiveMode shouldBe NetworkMode.DIRECT
+        }
 
-        client.proxy?.type() shouldBe Proxy.Type.SOCKS
+    @Test
+    fun `an explicit mode wins over the legacy flag`() =
+        runTest {
+            val settings = decode("""{"enabled":false,"mode":"ONION_ONLY"}""")
+
+            settings.effectiveMode shouldBe NetworkMode.ONION_ONLY
+        }
+
+    @Test
+    fun `a mode name from a future version falls back to what the legacy flag says`() =
+        runTest {
+            val settings = decode("""{"enabled":true,"mode":"SOMETHING_NEW"}""")
+
+            settings.effectiveMode shouldBe NetworkMode.TOR
+        }
+
+    @Test
+    fun `withMode keeps the legacy flag consistent for anything that still reads it`() {
+        val base = TorProxySettings()
+
+        base.withMode(NetworkMode.TOR).enabled shouldBe true
+        base.withMode(NetworkMode.ONION_ONLY).enabled shouldBe true
+        base.withMode(NetworkMode.TOR).withMode(NetworkMode.DIRECT).enabled shouldBe false
+        base.withMode(NetworkMode.ONION_ONLY).effectiveMode shouldBe NetworkMode.ONION_ONLY
     }
 
     @Test
-    fun `the built-in engine resolves its port per connection instead of baking one in`() {
-        val client = OkHttpClient.Builder()
-            .applyTorProxyIfEnabled(TorProxySettings(enabled = true, engine = TorEngineType.BUILT_IN))
-            .build()
+    fun `the built-in engine runs only when Tor carries traffic and it is the chosen engine`() {
+        val builtIn = TorProxySettings(engine = TorEngineType.BUILT_IN)
+        val orbot = TorProxySettings(engine = TorEngineType.ORBOT)
 
-        // No fixed proxy: the engine's port changes every time it restarts.
-        client.proxy shouldBe null
-        client.proxySelector.shouldBeInstanceOf<TorPortProxySelector>()
-    }
-
-    @Test
-    fun `nothing is applied when Tor is off, whatever the engine`() {
-        val client = OkHttpClient.Builder()
-            .applyTorProxyIfEnabled(TorProxySettings(enabled = false, engine = TorEngineType.BUILT_IN))
-            .build()
-
-        client.proxy shouldBe null
-        client.proxySelector.shouldBeInstanceOf<java.net.ProxySelector>()
-        (client.proxySelector is TorPortProxySelector) shouldBe false
+        builtIn.withMode(NetworkMode.DIRECT).wantsBuiltInEngine shouldBe false
+        builtIn.withMode(NetworkMode.TOR).wantsBuiltInEngine shouldBe true
+        builtIn.withMode(NetworkMode.ONION_ONLY).wantsBuiltInEngine shouldBe true
+        orbot.withMode(NetworkMode.TOR).wantsBuiltInEngine shouldBe false
     }
 }

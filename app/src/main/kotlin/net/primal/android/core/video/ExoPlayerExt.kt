@@ -45,7 +45,7 @@ fun rememberPrimalExoPlayer(): ExoPlayer {
 fun initializePlayer(context: Context, cache: SimpleCache): ExoPlayer {
     val cacheDataSourceFactory = CacheDataSource.Factory()
         .setCache(cache)
-        .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(MediaOkHttpClientProvider.get(context)))
+        .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(MediaOkHttpClientProvider.get()))
         .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
     val mediaSourceFactory = DefaultMediaSourceFactory(context)

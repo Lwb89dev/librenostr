@@ -11,8 +11,7 @@ import coil3.memory.MemoryCache
 import coil3.video.VideoFrameDecoder
 import javax.inject.Inject
 import javax.inject.Singleton
-import net.primal.core.networking.tor.TorProxySettingsStore
-import net.primal.core.networking.tor.applyTorProxyIfEnabled
+import net.primal.core.networking.tor.applyNetworkRoute
 import okio.Path.Companion.toOkioPath
 import okhttp3.OkHttpClient
 
@@ -49,7 +48,7 @@ class PrimalImageLoaderFactory @Inject constructor() : SingletonImageLoader.Fact
                     chain.proceed(request)
                 }
             }
-            .applyTorProxyIfEnabled(TorProxySettingsStore.readBlocking(context))
+            .applyNetworkRoute()
             .build()
 
         return defaultBuilder

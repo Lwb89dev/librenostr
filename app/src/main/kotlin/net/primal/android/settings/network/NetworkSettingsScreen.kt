@@ -52,6 +52,7 @@ import net.primal.android.core.compose.icons.primaliconpack.Close
 import net.primal.android.core.compose.icons.primaliconpack.ConnectRelay
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.settings.DecoratedSettingsOutlinedTextField
+import net.primal.android.networking.relays.isValidRelayUrl
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -364,16 +365,6 @@ private fun PermissionLabel(
         color = color,
         fontWeight = if (enabled) FontWeight.SemiBold else FontWeight.Normal,
     )
-}
-
-private fun String.isValidRelayUrl(): Boolean {
-    val normalized = trim().lowercase()
-    if (!normalized.startsWith("wss://")) return false
-    val host = normalized.removePrefix("wss://").substringBefore('/').substringBefore(':')
-    return host.contains('.') &&
-        !host.startsWith('.') &&
-        !host.endsWith('.') &&
-        host.none { it.isWhitespace() }
 }
 
 @Composable

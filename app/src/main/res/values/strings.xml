@@ -784,8 +784,12 @@
 
     <string name="settings_network_title">Manage relays</string>
     <string name="settings_tor_title">Tor</string>
-    <string name="settings_tor_enable_title">Route traffic through Tor</string>
-    <string name="settings_tor_enable_description">Connect to relays, media, and uploads through Tor instead of directly.</string>
+    <string name="settings_tor_mode_direct_title">Direct</string>
+    <string name="settings_tor_mode_direct_description">No Tor. Fastest, but the networks and servers you connect to can see your IP address.</string>
+    <string name="settings_tor_mode_tor_title">Tor for everything</string>
+    <string name="settings_tor_mode_tor_description">Relays, media, uploads and web pages all go through Tor. If Tor isn\'t working, connections fail instead of going out directly.</string>
+    <string name="settings_tor_mode_onion_only_title">Only .onion addresses</string>
+    <string name="settings_tor_mode_onion_only_description">Only .onion addresses go through Tor. Everything else connects directly and is not hidden.</string>
     <string name="settings_tor_port_title">Orbot SOCKS port</string>
     <string name="settings_tor_port_error">Enter a valid port number (1–65535).</string>
     <string name="settings_tor_engine_built_in_title">Built-in Tor</string>
@@ -799,7 +803,6 @@
     <string name="settings_tor_status_failed">Couldn\'t start. Retrying automatically.</string>
     <string name="settings_tor_status_unavailable">Built-in Tor isn\'t part of this build.</string>
     <string name="settings_tor_orbot_not_installed">Orbot doesn\'t appear to be installed. Install and start Orbot, or connections will fail while Tor is enabled.</string>
-    <string name="settings_tor_restart_required">Fully close LibreNostr for this to take effect — force-stop it from Android Settings if a signer notification is showing, or restart your device.</string>
     <string name="settings_network_relays_section">Relays</string>
     <string name="settings_network_relays_recommendation">Tip: for most users, 5–6 relays is a good balance between reliability and speed. More relays can increase connection and battery usage.</string>
     <string name="settings_network_add_a_relay_section">Add a relay</string>

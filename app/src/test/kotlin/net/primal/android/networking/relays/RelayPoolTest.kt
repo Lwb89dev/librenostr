@@ -634,6 +634,18 @@ class RelayPoolTest {
     }
 
     @Test
+    fun isValidRelayUrl_acceptsCleartextOnlyForOnionServices() {
+        "ws://abcdefghijklmnop.onion".isValidRelayUrl() shouldBe true
+        "ws://abcdefghijklmnop.onion:8080/".isValidRelayUrl() shouldBe true
+        "WS://ABCDEFGHIJKLMNOP.ONION".isValidRelayUrl() shouldBe true
+        "wss://abcdefghijklmnop.onion".isValidRelayUrl() shouldBe true
+        // A clearnet host that merely contains the word is not an onion service.
+        "ws://abcdefghijklmnop.onion.example.com".isValidRelayUrl() shouldBe false
+        "ws://onion".isValidRelayUrl() shouldBe false
+        "ws://relay.damus.io".isValidRelayUrl() shouldBe false
+    }
+
+    @Test
     fun changeRelays_capsPoolAndDropsInvalidUrls() =
         runTest {
             val factory = mockk<NostrSocketClientFactory>(relaxed = true)

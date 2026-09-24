@@ -48,6 +48,9 @@ fun NoteEmbeddedWebPagePreview(
     domStorageEnabled: Boolean = false,
     fullScreenSupported: Boolean = false,
 ) {
+    // Nothing is created, let alone loaded, when the WebView cannot be kept inside Tor.
+    if (!WebViewProxyConfigurer.mayLoadPages()) return
+
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
 
@@ -58,7 +61,7 @@ fun NoteEmbeddedWebPagePreview(
     val activity = LocalActivity.current
     val context = LocalContext.current
     val webView = remember {
-        WebViewProxyConfigurer.ensureConfigured(context)
+        WebViewProxyConfigurer.ensureConfigured()
         WebView(context)
     }
 

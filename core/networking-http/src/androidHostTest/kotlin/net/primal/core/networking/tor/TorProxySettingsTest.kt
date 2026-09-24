@@ -1,8 +1,6 @@
 package net.primal.core.networking.tor
 
 import io.kotest.matchers.shouldBe
-import java.net.Proxy
-import okhttp3.OkHttpClient
 import org.junit.Test
 
 class TorProxySettingsTest {
@@ -26,27 +24,5 @@ class TorProxySettingsTest {
         0.isValidSocksPort() shouldBe false
         (-1).isValidSocksPort() shouldBe false
         (MAX_SOCKS_PORT + 1).isValidSocksPort() shouldBe false
-    }
-
-    @Test
-    fun `applyTorProxyIfEnabled is a no-op when Tor is disabled`() {
-        val client = OkHttpClient.Builder()
-            .applyTorProxyIfEnabled(TorProxySettings(enabled = false))
-            .build()
-
-        client.proxy shouldBe null
-    }
-
-    @Test
-    fun `applyTorProxyIfEnabled sets a SOCKS proxy at 127-0-0-1 when enabled`() {
-        val port = 9150
-        val client = OkHttpClient.Builder()
-            .applyTorProxyIfEnabled(TorProxySettings(enabled = true, socksPort = port))
-            .build()
-
-        val proxy = client.proxy
-        checkNotNull(proxy)
-        proxy.type() shouldBe Proxy.Type.SOCKS
-        proxy.address().toString() shouldBe "/127.0.0.1:$port"
     }
 }

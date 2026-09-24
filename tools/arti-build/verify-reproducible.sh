@@ -3,7 +3,7 @@
 # Builds libnostr_arti.so twice from scratch and compares the two, then compares the result with the
 # library committed in app/src/main/jniLibs. Prints REPRODUCIBLE only when both builds are identical.
 #
-# Same prerequisites and same caveat as build-arti.sh: not yet run in this repository.
+# Same prerequisites as build-arti.sh. Run on 2026-09-24: two clean builds were byte-identical.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

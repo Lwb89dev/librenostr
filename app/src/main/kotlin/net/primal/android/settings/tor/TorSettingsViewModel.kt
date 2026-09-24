@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import net.primal.android.settings.tor.TorSettingsContract.UiEvent
 import net.primal.android.settings.tor.TorSettingsContract.UiState
+import net.primal.core.networking.tor.NetworkMode
 import net.primal.core.networking.tor.TorEngineType
 import net.primal.core.networking.tor.engine.BuiltInTor
 import net.primal.core.networking.tor.isValidSocksPort
@@ -44,10 +45,9 @@ class TorSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             events.collect {
                 when (it) {
-                    is UiEvent.ToggleTor -> toggleTor(enabled = it.enabled)
+                    is UiEvent.SelectNetworkMode -> selectNetworkMode(mode = it.mode)
                     is UiEvent.UpdateTorPort -> updateTorPort(rawPort = it.rawPort)
                     is UiEvent.SelectTorEngine -> selectTorEngine(engine = it.engine)
-                    UiEvent.DismissRestartNotice -> setState { copy(showRestartNotice = false) }
                     UiEvent.RecheckOrbotInstalled -> recheckOrbotInstalled()
                 }
             }
@@ -58,7 +58,7 @@ class TorSettingsViewModel @Inject constructor(
             torProxySettingsRepository.settings.collect { settings ->
                 setState {
                     copy(
-                        torEnabled = settings.enabled,
+                        networkMode = settings.effectiveMode,
                         torEngine = settings.engine,
                         torSocksPortText = settings.socksPort.toString(),
                     )
@@ -82,32 +82,13 @@ class TorSettingsViewModel @Inject constructor(
         setState { copy(orbotInstalled = isOrbotInstalled(context)) }
     }
 
-    private fun toggleTor(enabled: Boolean) =
-        viewModelScope.launch {
-            torProxySettingsRepository.setEnabled(enabled)
-            applyEngineChoice(enabled = enabled, engine = uiState.value.torEngine)
-            setState { copy(showRestartNotice = true) }
-        }
+    // The route and the built-in engine follow the saved settings on their own (see BuiltInTor), so
+    // changing a setting is all these do.
+    private fun selectNetworkMode(mode: NetworkMode) =
+        viewModelScope.launch { torProxySettingsRepository.setMode(mode) }
 
     private fun selectTorEngine(engine: TorEngineType) =
-        viewModelScope.launch {
-            torProxySettingsRepository.setEngine(engine)
-            applyEngineChoice(enabled = uiState.value.torEnabled, engine = engine)
-            setState { copy(showRestartNotice = true) }
-        }
-
-    /**
-     * Starts the built-in client as soon as it is chosen, and stops it when it is not wanted, so its
-     * status shows up here and its first download is already done by the time the app is restarted.
-     * Traffic only starts flowing through it after that restart, like every other Tor setting.
-     */
-    private fun applyEngineChoice(enabled: Boolean, engine: TorEngineType) {
-        if (enabled && engine == TorEngineType.BUILT_IN) {
-            BuiltInTor.startAsync(context)
-        } else {
-            BuiltInTor.stopAsync()
-        }
-    }
+        viewModelScope.launch { torProxySettingsRepository.setEngine(engine) }
 
     private fun updateTorPort(rawPort: String) =
         viewModelScope.launch {
@@ -115,7 +96,7 @@ class TorSettingsViewModel @Inject constructor(
             val port = rawPort.toIntOrNull()
             if (port != null && port.isValidSocksPort()) {
                 torProxySettingsRepository.setPort(port)
-                setState { copy(torPortInvalid = false, showRestartNotice = true) }
+                setState { copy(torPortInvalid = false) }
             } else {
                 setState { copy(torPortInvalid = true) }
             }

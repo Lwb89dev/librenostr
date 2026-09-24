@@ -220,14 +220,15 @@ design lessons; if any file is copied verbatim its MIT header must be kept.
 
 | Need | State on this dev machine | Notes |
 |---|---|---|
-| `rustc`/`cargo` ≥ 1.91 (Arti MSRV) | `/usr/bin` **1.95.0** (distro package) | enough for a **host** build |
-| `rustup` + the Android target's `rust-std` | **not installed** | the distro rustc has no `aarch64-linux-android` std; needs `rustup target add aarch64-linux-android` (installs under `~/.rustup`) |
-| `cargo-ndk` | **not installed** | `cargo install cargo-ndk --locked` (installs under `~/.cargo`) |
-| Android NDK | **not checked** (lives under the SDK, outside the repo) | pin one revision in a file read by both the build script and `app/build.gradle.kts` (`ndkVersion`); AGP's default NDK would otherwise drift with every AGP bump |
+| `rustc`/`cargo` ≥ 1.91 (Arti MSRV) | `rustup` toolchain **1.95.0** under `~/.rustup` (pinned by `rust-toolchain.toml`) | the distro's 1.95.0 also builds the host tests |
+| Android target's `rust-std` | `aarch64-linux-android` installed by rustup | |
+| `cargo-ndk` | **4.1.2** under `~/.cargo` | `PATH="$HOME/.cargo/bin:$PATH"`; no shell profile was edited |
+| Android NDK | **28.2.13676358**, already installed for the app's builds | pinned in `tools/arti-build/ANDROID_NDK_VERSION`; AGP's default NDK would otherwise drift with every AGP bump |
 | Network to crates.io and `gitlab.torproject.org` | available | ~400 crates to fetch on first build |
 
-Installing anything in the user's home is deliberately **not** done without an explicit yes; the
-host-side work below uses a scratch `CARGO_HOME`/`CARGO_TARGET_DIR` outside `~`.
+The toolchain was installed on 2026-09-24 **with the user's explicit permission** for that purpose;
+it is outside the project directory, which the project's rules otherwise forbid touching without
+asking. Host-side test work uses a scratch `CARGO_HOME`/`CARGO_TARGET_DIR` outside `~`.
 
 Decisions:
 
@@ -284,43 +285,86 @@ Keep Amethyst's decisions from §2.3 and fix §2.7:
   require rebuilding every client. It must stay fail-closed: while the engine is not `Ready` the
   selector still returns the loopback SOCKS address, so calls wait or fail, never go direct.
 
-### 4.4 Integration points and the leak surface
+### 4.4 Network modes, and the egress audit
 
-Everything that talks to the network must go through the proxy, and the list is long; each is a
-place a "Tor is on" claim can silently be false:
+**Decision (2026-09-24, the user).** Three modes and no more: **Direct**, **Tor** (strict) and
+**Only .onion**. There is deliberately no "Tor unless it is inconvenient" mode: without a policy
+that names exactly which traffic is covered it is a fail-open switch, which is the leak a Tor mode
+exists to prevent. Engine choice (built-in or Orbot) is a separate setting that applies to both Tor
+modes.
 
-| Traffic | Where | Note |
-|---|---|---|
-| Relay WebSockets, NIP-05, Blossom, generic Ktor | `ClientEngine.android.kt` | already goes through `applyTorProxyIfEnabled` |
-| Hilt `OkHttpClient` | `NetworkingModule` | same |
-| Images | `PrimalImageLoaderFactory` (Coil) | same |
-| Video | `MediaOkHttpClientProvider`, `NoteAttachmentVideoPreview` | ExoPlayer has its own data source |
-| Downloads, frame extraction | `MediaDownloader`, `VideoFrameExtractor` | same |
-| **WebView** | `WebViewProxyConfigurer` | uses the port at configuration time; must be re-applied when the engine's port changes and must not load before `Ready` |
-| Link previews, crash reporter, language packs | raw OkHttp sites | audit needed; the store's KDoc says "standalone raw-OkHttp sites" exist |
-| DNS | — | with `Proxy.Type.SOCKS` OkHttp passes the hostname to the proxy (no local resolution); verify on device with a packet capture, do not assume |
+| Mode | What goes through Tor | Fallback to direct | Honest description for the UI |
+|---|---|---|---|
+| Direct | nothing (`.onion` names are refused, never sent to a resolver) | n/a | "The networks and servers you connect to can see your IP address." |
+| Tor | every connection: relays, media, uploads, web pages | **never**: if Tor is starting, restarting or failed, calls wait or fail | "If Tor isn't working, connections fail instead of going out directly." |
+| Only .onion | `.onion` destinations only | clearnet is direct **by design** | "Everything else connects directly and is not hidden." |
 
-Behavioural requirements:
+**How it is enforced** (`core/networking-http`, package `...tor`). Every OkHttp client is built through
+`applyNetworkRoute()`; the mode is read **on every connection**, so a switch takes effect with no app
+restart (the old "fully close the app" notice is gone: it left a user who had just turned Tor on
+browsing directly).
 
-- **Turning Tor on must drop every already-open direct socket** (relay pool, pooled HTTP
-  connections), otherwise the app keeps talking directly until each connection happens to reconnect.
-  Today the answer is "restart the app"; keep that for the first version and design the reconnect
-  path later.
-- The engine must start **early** (Application, before the first client is built) when mode is
-  `BUILT_IN`, and the first dial must not race it.
-- Fail-closed at cold start: relays will time out for 10–30 s on a fresh install while the directory
-  downloads. The UI needs a "Tor is starting" state instead of "relays offline".
-- First login is much slower over Tor (Amethyst measured feed on screen at login+18 s vs login+11 s,
-  and half the relays open at 20 s, on a fresh install; their planned fix is not to Tor-route the
-  bootstrap relays until the user's own relay list is known). Relevant to our "bootstrap relays".
+- `RouteProxySelector`: per connection, direct or the Tor SOCKS proxy. A Tor route **never** answers
+  `NO_PROXY`: with no port it points at a dead port so the call fails. The name is handed to the proxy
+  unresolved, so a Tor route makes no local DNS query.
+- `RouteDns`: refuses `.onion` in every mode and refuses *everything* in Tor mode. OkHttp only asks
+  its `Dns` for connections that would go out directly, so a lookup arriving here means something is
+  trying to bypass the proxy; failing it is the safe answer.
+- `RouteController`: the live route plus an epoch; on a change it evicts idle pooled connections and
+  **closes every socket the app opened directly** (via `TrackingSocketFactory`). That is what reaches
+  relay WebSockets, which can stay up for days: OkHttp runs neither network interceptors nor event
+  listeners for WebSocket calls, so the socket factory is the only hook that sees them. It covers the
+  relay pools, the NIP-46 remote signer and anything added later without each having to watch the mode.
+- `RouteGuardInterceptor`: refuses to reuse a pooled connection whose route no longer matches the mode
+  (a connection busy during the switch returns to the pool afterwards).
+- `RouteTimeoutInterceptor`: Tor's wider timeouts (30 s) only on calls that go through Tor.
+- `RelaysSocketManager` additionally reconnects its pools on an epoch change (clean close, status reset,
+  immediate reconnect by the new route).
+- `NetworkClientConstructionGuardTest` fails the build if any source file builds an `OkHttpClient`
+  without `applyNetworkRoute`, so a future client cannot silently bypass the mode.
+
+**Audit of every path that can leave the device** (grep of the whole repository for
+`OkHttpClient`, `HttpClient(`, `HttpURLConnection`, `openConnection`, `Socket`, `DownloadManager`,
+`InetAddress`; no Firebase, analytics or push SDK is present):
+
+| Path | Where | Class | Status |
+|---|---|---|---|
+| Relay WebSockets, NIP-05, Blossom, LNURL, GIF API, app config, remote-signer account API | Ktor via `ClientEngine.android.kt` | follows the mode | tested (fake SOCKS server sees the name, unresolved) |
+| NIP-46 remote signer relay socket | `RemoteSignerClient`, `BunkerSignerClient` (own socket clients, same engine) | follows the mode | new sockets follow it; existing ones are closed on a switch |
+| Hilt `OkHttpClient` / Retrofit | `NetworkingModule` | follows the mode | source guard |
+| Images | `PrimalImageLoaderFactory` (Coil) | follows the mode | source guard |
+| Video and audio, media session | `MediaOkHttpClientProvider`, used by both ExoPlayer builders | follows the mode | source guard |
+| Downloads | `MediaDownloader` | follows the mode | source guard |
+| Native video thumbnail | `MediaMetadataRetriever` in `VideoFrameExtractor` (opens its own connection) | **skipped** unless the URL is allowed to go direct | `NetworkRoute.canFetchDirectly` |
+| WebView (embedded web pages) | `WebViewProxyConfigurer` | follows the mode | Tor: SOCKS5 override, and **nothing loads** if the override is unsupported; Only .onion: reverse-bypass rule for `*.onion`, no override where unsupported. **Not yet checked on a device** |
+| Connections opened before a switch | pool, WebSockets | dropped | tested, mutation-checked |
+| DNS | `RouteDns` | never local for Tor traffic | tested with a sentinel resolver |
+| Links opened in the browser, wallet deep links, Amber signer | `UriHandler`, `Intent.ACTION_VIEW`, `AmberLauncher`, `AndroidLightningWallet` | **direct by design**: the request is made by another app | must be stated in the UI; not enforceable |
+| Tor's own bootstrap (directory and guard traffic) | Arti / Orbot | direct by nature | inherent to Tor |
+
+Behavioural notes:
+
+- The engine starts early (`Application.onCreate`, before the first client) when a Tor mode with the
+  built-in engine is saved, and the first dial waits for its port (up to 20 s) instead of failing.
+- Fail-closed at cold start: relays time out for 10-30 s on a fresh install while the directory
+  downloads. The settings screen shows the engine state; the rest of the UI still says "offline".
+- First login is much slower over Tor (Amethyst measured feed on screen at login+18 s vs login+11 s on
+  a fresh install; their planned fix is to not Tor-route the bootstrap relays until the user's own
+  relay list is known). Relevant to our "bootstrap relays".
+- **`.onion` relays** are accepted as `ws://` (Tor already encrypts and authenticates the path; such
+  hosts rarely have a certificate). Cleartext stays refused for every other host: the validator
+  (`isValidRelayUrl`) and `network_security_config.xml` (domain `onion` only) both carry the
+  exception. The `network_security_config` exception is **not yet verified on a device**.
 
 ### 4.5 UI and settings
 
-- Three-way mode selector in `settings/tor/` (Off / Built-in / Orbot), a status line
-  (`Starting 42 %`, `Connected`, `Not available in this build`), the port field only for Orbot.
-- Onboarding screen: offer built-in Tor first; keep the Orbot path.
-- No per-traffic-class policy in the first cut (see §2.5, independent work).
-- Strings in `values/` and `values-it/` at minimum.
+- `settings/tor/`: a three-option network-mode selector (Direct / Tor for everything / Only .onion),
+  then, when a Tor mode is chosen, the engine choice (Built-in / Orbot) with the built-in engine's
+  status line, and the port field for Orbot only.
+- The engine follows the saved settings (`BuiltInTor.initialize`): one place turns a setting into
+  behaviour, and start/stop requests are serialized so "on" then "off" cannot end as "on".
+- Still to do: onboarding text (`OrbotOnboardingScreen` talks only about Orbot), Italian strings, and
+  saying in the UI that links opened in the browser are not covered.
 
 ### 4.6 Size, battery, data
 
@@ -355,15 +399,15 @@ Behavioural requirements:
 
 ## 5. Open questions and risks
 
-1. **Process model.** In-process (Amethyst's choice, simplest) vs a separate `:tor` Android process.
-   A Rust panic with `panic = "abort"` kills the whole app in-process; a separate process isolates
-   crashes and memory, and killing it is the cleanest way to release Arti's state lock — at the cost
-   of a second `Application` init to guard against and a Binder/Messenger for status. Plan: start
-   in-process behind the `TorEngine` interface, decide after measuring memory and crash behaviour.
-2. **Permission to install the Android toolchain** (`rustup`, the target, `cargo-ndk`, the pinned NDK)
-   in the user's home. Until then the Android `.so` cannot be produced or tested; only the host build
-   can.
-3. **Which NDK revision** to pin (the SDK on this machine was not inspected).
+1. **Process model. Decided (2026-09-24): a single process**, the engine in-process behind the
+   `TorEngine` interface. A Rust panic with `panic = "abort"` kills the whole app in that model; if
+   the field shows that is a problem, the interface allows moving it to a `:tor` process later.
+2. **Toolchain. Done (2026-09-24), with the user's explicit permission** to install it in their home:
+   `rustup` 1.95.0, target `aarch64-linux-android`, `cargo-ndk` 4.1.2, under `~/.cargo` and
+   `~/.rustup` (no shell profile was edited).
+3. **NDK revision. Pinned to `28.2.13676358`**, the one already installed for the app builds; the
+   earlier guess of `30.0.16248370` (copied from Amethyst) was not on this machine. The library links
+   to `libdl`, `libm` and `libc` only and is 16 KB aligned.
 4. **Committed binary vs CI build.** Recommended above; revisit if a store that forbids binaries is
    ever targeted.
 5. **Maintenance load.** Arti security releases, Rust and NDK bumps, re-verifying reproducibility.
@@ -377,74 +421,77 @@ Behavioural requirements:
 
 ## 6. Plan
 
-1. **Native crate** (`tools/arti-build/`): wrapper + pins + build/verify scripts; builds and passes a
-   host round-trip test.
-2. **Kotlin engine** + settings model + proxy selector, unit tested with fakes.
-3. **Gradle wiring**: `jniLibs`, `keepDebugSymbols`, `verifyNativeLibs`, R8 rules, `ndkVersion` pin.
-4. **Android build** (needs §5.2): produce and commit the arm64 `.so`, verify 16 KB alignment and
-   reproducibility.
-5. **UI**: mode selector, status, onboarding.
-6. **On-device validation** (§4.8.3), then a field trial before any release; only then decide about the
-   traffic-class policy layer and dormant/battery tuning.
+1. **Native crate** (`tools/arti-build/`): wrapper + pins + build/verify scripts. **Done.**
+2. **Kotlin engine** + settings model + proxy selector, unit tested with fakes. **Done.**
+3. **Gradle wiring**: `jniLibs`, `keepDebugSymbols`, `verifyBuiltInTorLibrary`, R8 rules. **Done.**
+4. **Android build**: arm64 `.so` built and reproducible (two clean builds identical). **Done**; committing
+   it and `-Plibrenostr.requireBuiltInTor=true` in the release workflow are pending.
+5. **Network modes and leak enforcement** (§4.4). **Done, host-tested.**
+6. **UI**: mode selector and engine status **done**; onboarding and Italian strings pending.
+7. **On-device validation** (§4.8.3), then a field trial before any release; only then decide about a
+   traffic-class policy layer and battery tuning (stop-on-idle).
 
 ---
 
 ## 7. Status on this branch
 
-Branch `feature/built-in-tor`. Everything below is committed; `git log feature/built-in-tor` has the
-detail. **The Android library has not been built**, so a build of this branch reports built-in Tor as
-"not part of this build" and behaves exactly like `main` otherwise.
+Branch `feature/built-in-tor`; `git log feature/built-in-tor` has the detail.
 
 ### 7.1 Done and how it was verified
 
 | Piece | Verification |
 |---|---|
-| `tools/arti-build`: the Rust wrapper (`src/lib.rs`), `Cargo.lock`, toolchain/NDK/Arti pins | `cargo test`: 9 protocol/mapping tests pass. 4 engine tests against the real Arti client pass on this machine (`--ignored`): `destroy()` releases the state-file lock over 4 cycles on one directory; stop/restart keeps the client; a SOCKS greeting sent one byte at a time is accepted; a TLS request through the tunnel to check.torproject.org returns `{"IsTor":true}` |
-| Kotlin engine (`core/networking-http`, `...tor.engine`): `ArtiBridge`, `ArtiTorEngine`, `ArtiGuardState`, `TorSupervisor` | 34 unit tests with a fake bridge and virtual time, plus an opt-in JVM test (`-Pnostr.arti.hostLib=<dir>`) that loads the real library through JNI: the Kotlin `external` declarations match the exported symbols, a request through OkHttp exits via Tor, a gentle restart comes back and works again, stop returns to Off |
+| `tools/arti-build`: the Rust wrapper (`src/lib.rs`), `Cargo.lock`, toolchain/NDK/Arti pins | `cargo test`: 9 protocol/mapping tests pass. 4 engine tests against the real Arti client pass on the host (`--ignored`): `destroy()` releases the state-file lock over 4 cycles on one directory; stop/restart keeps the client; a SOCKS greeting sent one byte at a time is accepted; a TLS request through the tunnel to check.torproject.org returns `{"IsTor":true}` |
+| **Android build** (`build-arti.sh`) | arm64-v8a, NDK 28.2.13676358, `libnostr_arti.so` **5.4 MB**, 10 exported JNI symbols, first `LOAD` segment aligned to `0x4000` (16 KB), depends on `libdl`/`libm`/`libc` only. **`verify-reproducible.sh`: two clean builds are byte-identical** (`sha256 d6b532cb...cb1c1`). Build time about 1 minute |
+| Kotlin engine (`...tor.engine`): `ArtiBridge`, `ArtiTorEngine`, `ArtiGuardState`, `TorSupervisor`, `BuiltInTor` | 36 unit tests with a fake bridge and virtual time, plus an opt-in JVM test (`-Pnostr.arti.hostLib=<dir>`) that loads the real library through JNI: the `external` declarations match the exported symbols, a request through OkHttp exits via Tor, a gentle restart comes back and works, stop returns to Off |
 | `guards.json` heuristic | tested against a **real** file captured from Arti 2.6.0, and against synthetic wedged samples including the 59-of-60-disabled field failure |
-| Settings model, `TorPortProxySelector`, WebView proxy, app wiring, settings UI | unit tests for JSON backward compatibility (a file written before the option existed decodes as Orbot; an unknown engine name falls back to Orbot), for the selector's fail-closed behaviour (never `NO_PROXY`), and for which proxy each engine installs. UI compiled but **not seen on a device** |
+| Network modes (§4.4) | `NetworkRouteLeakTest` and `NetworkRouteWebSocketTest` use real OkHttp clients against a fake SOCKS5 proxy and a fake HTTP/WebSocket server and assert **from the proxy's side** (it received the name, as a domain, not an address) and **from the direct server's side** (it received nothing). Covered: Tor with a dead proxy fails instead of going direct; onion goes through Tor and clearnet stays direct in Only .onion; Direct refuses an onion name; one client follows a switch with no restart; a switch closes idle pooled connections and direct WebSockets; a pooled direct connection that survives the switch is refused. Each guarantee was **mutation-checked** (remove the interceptor / socket tracking / eviction / relay observer: exactly the matching test fails). `RouteDnsTest` uses a sentinel resolver and proves nothing reaches it in Tor mode or for `.onion`. `NetworkClientConstructionGuardTest` fails on an unrouted `OkHttpClient` anywhere in the repository (mutation-checked; the module declares the scanned sources as Gradle inputs so the test cannot report a stale pass) |
+| Settings model | JSON backward compatibility: a file from before engines existed is Orbot, one from before modes existed maps `enabled` to Tor (its old meaning: everything through Tor, no fallback) and `disabled` to Direct, unknown engine or mode values fall back instead of failing to load |
+| Relays | `RelaysSocketManagerTest`: a mode change closes every open relay socket, a repeated identical write does not (mutation-checked). `isValidRelayUrl` accepts `ws://` only for onion hosts and rejects `abc.onion.example.com` |
 | Gradle: `keepDebugSymbols`, R8 keep rules, `verifyBuiltInTorLibrary` | R8 run on `altRelease`: the JNI class and all its native methods appear in `seeds.txt`. The task was exercised against a missing file (warns; fails with `-Plibrenostr.requireBuiltInTor=true`), an x86_64 library (fails, `e_machine=62`) and a 10-byte file (fails) |
-| App checks | `:app:testDebugUnitTest` 402 pass; `:core:networking-http` 53 tests, 1 skipped (the opt-in one); app detekt at its baseline of 93 findings; the module's detekt is clean |
+| Checks | `:app:testDebugUnitTest` 405 pass; `:core:networking-http` 91 tests, 1 skipped (the opt-in one), detekt clean; app detekt at its baseline of 93 findings; `debug`, `release` and `altRelease` compile |
 
-### 7.2 Numbers measured here (x86_64 Linux host, distro rustc 1.95.0)
+### 7.2 Numbers measured here
 
-- Release library: **6.25 MB** for x86_64 (`opt-level = "z"`, LTO, stripped). The arm64 figure is not
-  measured; Amethyst reports 5–6 MB for its equivalent, which the x86_64 number is consistent with.
-- Release build time: about **1 minute** from a warm dependency cache, 7.5 minutes of CPU time.
+x86_64 Linux host, distro rustc 1.95.0, for the engine; the Android figures are in the table above.
+
+- Host release library: **6.25 MB** for x86_64 (`opt-level = "z"`, LTO, stripped); arm64 is **5.4 MB**.
+- Release build time: about **1 minute** from a warm dependency cache.
 - **Cold bootstrap to "ready for traffic": 12.5 to 27 s** across five runs, with monotonic progress
-  (0 → 1000 permille) that the supervisor can watch.
+  (0 to 1000 permille) that the supervisor can watch.
 - Arti persists the guard sample lazily: `state/state/guards.json` exists after the first stream but
   holds an empty sample; a **confirmed guard appeared on disk about 31 s after** the first successful
   stream (measured once). So "Tor has worked on this install" is not known for the first half minute,
   and a process killed earlier loses it; the supervisor degrades to the first-start behaviour then,
   which is the safe direction.
-- Real-Tor test of the whole Kotlin → JNI → Rust chain: 15–28 s including a restart.
+- Real-Tor test of the whole Kotlin, JNI, Rust chain: 15-28 s including a restart.
+- **OkHttp is 5.3.2 at runtime**, although the version catalog says 4.12.0 (other dependencies resolve it
+  up). Some OkHttp internals differ between the two, which is why the behaviours above are pinned by
+  tests against the real client instead of relying on documentation of 4.x.
 
 ### 7.3 Not done, and what each needs
 
-1. **Android build of the library.** Needs `rustup`, the `aarch64-linux-android` target, `cargo-ndk`
-   and the pinned NDK (§4.1). Installing them writes to the user's home directory, so it waits for an
-   explicit yes. `build-arti.sh` and `verify-reproducible.sh` are written but have **never been run**.
-   The NDK (`30.0.16248370`) and cargo-ndk (`4.1.2`) pins were copied from Amethyst's verified build
-   and are unconfirmed here.
-2. **Committing the library**, `-Plibrenostr.requireBuiltInTor=true` in the release workflow, and
-   the reproducibility check. Depends on 1.
-3. **Device validation** (§4.8.3): cold/warm bootstrap on the Pixel, airplane mode and Wi-Fi↔cellular,
-   a packet capture to confirm there is no DNS leak, WebView and ExoPlayer paths, battery over hours.
+1. **Committing the library** and `-Plibrenostr.requireBuiltInTor=true` in the release workflow.
+2. **Device validation** (§4.8.3): cold/warm bootstrap on the Pixel, airplane mode and Wi-Fi to cellular,
+   a packet capture to confirm there is no DNS leak, the WebView and ExoPlayer paths, the
+   `network_security_config` exception for `ws://*.onion`, battery. **Nothing here has run on a device.**
+3. **Battery lifecycle.** Decided: the engine is **always on while a Tor mode is chosen, and dormant
+   (Arti `DormantMode::Soft`) while the app is in the background**; no stop-on-idle or warm-grace
+   states for now. Measure first (direct idle, Tor ready and dormant, Tor active over a few hours),
+   then decide whether more is worth its complexity.
 4. **Onboarding screen** (`OrbotOnboardingScreen`) still talks only about Orbot.
-5. **Turning Tor on still needs an app restart**, as today. Already-open direct sockets are not
-   dropped by the toggle; designing that is separate work.
-6. **Leak audit of the raw-OkHttp call sites** the store's KDoc mentions (crash reporter, language
-   packs): they use `applyTorProxyIfEnabled`, so they follow the engine, but nobody has checked that
-   list is complete.
-7. **Process model** (§5.1) is undecided; the engine sits behind the `TorEngine` interface so it can
-   move to a `:tor` process later.
-8. **Italian strings**: the Italian locale has no Tor strings at all (the whole screen falls back to
+5. **UI honesty**: say that links opened in the browser and wallet/signer hand-offs are not covered.
+6. **Italian strings**: the Italian locale has no Tor strings at all (the whole screen falls back to
    English), so the new ones are English only.
+7. **Only .onion in a WebView** needs a WebView with reverse-bypass support; older ones get no override.
 
 ### 7.4 How to run what exists
 
 ```bash
+# Build the Android library (toolchain lives in ~/.cargo and ~/.rustup; PATH is not edited)
+PATH="$HOME/.cargo/bin:$PATH" ANDROID_HOME=$HOME/Android/Sdk tools/arti-build/build-arti.sh --out app/src/main/jniLibs
+PATH="$HOME/.cargo/bin:$PATH" ANDROID_HOME=$HOME/Android/Sdk tools/arti-build/verify-reproducible.sh
+
 # Rust: protocol tests, then the engine tests against the real Tor network (needs outbound access)
 CARGO_HOME=/scratch/cargo-home CARGO_TARGET_DIR=/scratch/target tools/arti-build/run-host-tests.sh
 

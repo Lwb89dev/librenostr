@@ -7,8 +7,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -26,6 +29,7 @@ import net.primal.android.user.domain.Relay
 import net.primal.android.user.domain.RelayKind
 import net.primal.android.user.domain.mapToRelayDO
 import net.primal.core.networking.sockets.NostrSocketClientFactory
+import net.primal.core.networking.tor.RouteController
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -43,6 +47,7 @@ class RelaysSocketManager @Inject constructor(
     private val activeAccountStore: ActiveAccountStore,
     private val usersDatabase: UsersDatabase,
     private val nostrNotary: NostrNotary,
+    private val routeController: RouteController,
 ) : RelayEventSubscriber {
 
     private val scope = CoroutineScope(dispatchers.io())
@@ -69,6 +74,34 @@ class RelaysSocketManager @Inject constructor(
     init {
         initFallbackRelaysPool()
         observeActiveUserId()
+        observeNetworkRoute()
+    }
+
+    /**
+     * Reconnects every relay when the network mode changes.
+     *
+     * The transport already closes every socket opened the old way (see `RouteController`), so no
+     * relay can keep talking over the route the user just turned off. This makes the pools react
+     * deliberately rather than by noticing a dropped connection: sockets are closed cleanly, the
+     * status shown in the relay list is reset, and the relays come back at once by the new route
+     * instead of on their next use.
+     */
+    private fun observeNetworkRoute() =
+        scope.launch {
+            routeController.state
+                .map { it.epoch }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { resetAllConnections() }
+        }
+
+    private suspend fun resetAllConnections() {
+        relayPoolsMutex.withLock {
+            userRelaysPool.resetConnections()
+            fallbackRelaysPool.resetConnections()
+        }
+        connectPool(userRelaysPool)
+        connectPool(fallbackRelaysPool)
     }
 
     private fun initFallbackRelaysPool() {

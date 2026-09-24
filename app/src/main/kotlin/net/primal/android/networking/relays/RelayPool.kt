@@ -192,6 +192,21 @@ class RelayPool(
     }
 
     /**
+     * Drops every open socket but keeps the relays, so each one reconnects on its next use.
+     *
+     * For when the way connections leave the device changes (the network mode was switched): every
+     * relay is closed cleanly and reconnects on its next use, by the new route. Unlike [closePool] the
+     * relay list is untouched, and the clients are not replaced, so subscribers keep their references
+     * and only see a reconnect.
+     */
+    fun resetConnections() {
+        socketClients.forEach { client ->
+            updateRelayStatus(url = client.socketUrl, connected = false)
+            scope.launch { client.close() }
+        }
+    }
+
+    /**
      * Terminates this pool for good: closes every socket directly (awaited, not fire-and-forget)
      * and cancels the pool's internal scope. Unlike [closePool] — which leaves the scope alive so
      * a long-lived pool can be repopulated later via [changeRelays], e.g. on re-login — a

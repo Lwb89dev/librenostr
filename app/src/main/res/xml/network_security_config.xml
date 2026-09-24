@@ -5,6 +5,14 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+    <!--
+        Onion services only. Their relays are usually plain ws:// because Tor already encrypts and
+        authenticates the whole path to them. The exception cannot be used on a normal network: a
+        .onion name is never resolved outside Tor (see RouteDns), and anything else stays cleartext-free.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">onion</domain>
+    </domain-config>
     <debug-overrides>
         <trust-anchors>
             <certificates src="system" />

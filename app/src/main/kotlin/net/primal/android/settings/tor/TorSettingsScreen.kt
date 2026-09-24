@@ -9,14 +9,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,15 +25,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.primal.android.R
 import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.PrimalScaffold
-import net.primal.android.core.compose.PrimalSwitch
 import net.primal.android.core.compose.PrimalTopAppBar
-import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.ArrowBack
 import net.primal.android.core.compose.icons.primaliconpack.Key
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.settings.SettingsItem
 import net.primal.android.theme.AppTheme
+import net.primal.core.networking.tor.NetworkMode
 import net.primal.core.networking.tor.TorEngineType
 import net.primal.core.networking.tor.engine.TorEngineState
 
@@ -63,14 +59,6 @@ fun TorSettingsScreen(
     embedded: Boolean = false,
     eventPublisher: (TorSettingsContract.UiEvent) -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    SnackbarErrorHandler(
-        error = if (state.showRestartNotice) Unit else null,
-        snackbarHostState = snackbarHostState,
-        errorMessageResolver = { stringResource(id = R.string.settings_tor_restart_required) },
-        onErrorDismiss = { eventPublisher(TorSettingsContract.UiEvent.DismissRestartNotice) },
-    )
-
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -108,9 +96,6 @@ fun TorSettingsScreen(
                     eventPublisher = eventPublisher,
                 )
             },
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
-            },
         )
     }
 }
@@ -126,31 +111,16 @@ private fun TorSettingsContent(
             .background(color = AppTheme.colorScheme.surfaceVariant)
             .fillMaxWidth()
             // The engine options, port field and the "Orbot not installed" warning below only show once
-            // torEnabled/orbotInstalled settle (async DataStore reads that can land after the
+            // networkMode/orbotInstalled settle (async DataStore reads that can land after the
             // enclosing AnimatedVisibility's own enter animation already measured a shorter
             // first pass) — animateContentSize keeps this column's real height in sync with
             // whichever of those is actually showing right now, instead of leaving the
             // surrounding accordion frozen at whatever height it first measured.
             .animateContentSize(),
     ) {
-        SettingsItem(
-            headlineText = stringResource(id = R.string.settings_tor_enable_title),
-            supportText = stringResource(id = R.string.settings_tor_enable_description),
-            leadingIcon = PrimalIcons.Key,
-            trailingContent = {
-                PrimalSwitch(
-                    checked = state.torEnabled,
-                    onCheckedChange = {
-                        eventPublisher(TorSettingsContract.UiEvent.ToggleTor(enabled = it))
-                    },
-                )
-            },
-            onClick = {
-                eventPublisher(TorSettingsContract.UiEvent.ToggleTor(enabled = !state.torEnabled))
-            },
-        )
+        NetworkModeOptions(state = state, eventPublisher = eventPublisher)
 
-        if (state.torEnabled) {
+        if (state.networkMode != NetworkMode.DIRECT) {
             TorEngineOptions(state = state, eventPublisher = eventPublisher)
 
             if (state.torEngine == TorEngineType.ORBOT) {
@@ -158,6 +128,50 @@ private fun TorSettingsContent(
             }
         }
     }
+}
+
+@Composable
+private fun NetworkModeOptions(
+    state: TorSettingsContract.UiState,
+    eventPublisher: (TorSettingsContract.UiEvent) -> Unit,
+) {
+    NetworkModeItem(
+        mode = NetworkMode.DIRECT,
+        selected = state.networkMode == NetworkMode.DIRECT,
+        title = stringResource(id = R.string.settings_tor_mode_direct_title),
+        description = stringResource(id = R.string.settings_tor_mode_direct_description),
+        eventPublisher = eventPublisher,
+    )
+    NetworkModeItem(
+        mode = NetworkMode.TOR,
+        selected = state.networkMode == NetworkMode.TOR,
+        title = stringResource(id = R.string.settings_tor_mode_tor_title),
+        description = stringResource(id = R.string.settings_tor_mode_tor_description),
+        eventPublisher = eventPublisher,
+    )
+    NetworkModeItem(
+        mode = NetworkMode.ONION_ONLY,
+        selected = state.networkMode == NetworkMode.ONION_ONLY,
+        title = stringResource(id = R.string.settings_tor_mode_onion_only_title),
+        description = stringResource(id = R.string.settings_tor_mode_onion_only_description),
+        eventPublisher = eventPublisher,
+    )
+}
+
+@Composable
+private fun NetworkModeItem(
+    mode: NetworkMode,
+    selected: Boolean,
+    title: String,
+    description: String,
+    eventPublisher: (TorSettingsContract.UiEvent) -> Unit,
+) {
+    SettingsItem(
+        headlineText = title,
+        supportText = description,
+        trailingContent = { RadioButton(selected = selected, onClick = null) },
+        onClick = { eventPublisher(TorSettingsContract.UiEvent.SelectNetworkMode(mode)) },
+    )
 }
 
 @Composable
@@ -244,7 +258,7 @@ private const val PERMILLE_PER_PERCENT = 10
 private fun PreviewTorSettingsScreen() {
     PrimalPreview(primalTheme = net.primal.android.theme.domain.PrimalTheme.Midnight) {
         TorSettingsScreen(
-            state = TorSettingsContract.UiState(torEnabled = true, orbotInstalled = false),
+            state = TorSettingsContract.UiState(networkMode = NetworkMode.TOR, orbotInstalled = false),
             onClose = {},
             eventPublisher = {},
         )

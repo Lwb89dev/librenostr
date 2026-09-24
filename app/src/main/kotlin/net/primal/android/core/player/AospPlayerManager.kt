@@ -41,7 +41,7 @@ class AospPlayerManager @Inject constructor(
 
         val upstreamDataSourceFactory = DefaultDataSource.Factory(
             context,
-            OkHttpDataSource.Factory(MediaOkHttpClientProvider.get(context)),
+            OkHttpDataSource.Factory(MediaOkHttpClientProvider.get()),
         )
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(simpleCache)

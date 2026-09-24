@@ -159,6 +159,8 @@ fn initialize(data_dir: &str) -> i32 {
 
     log("INFO", format!("creating the Tor client in {data_dir}"));
     let created = runtime.block_on(async {
+        // `mut` is only needed by the host-only block below, which is compiled out on Android.
+        #[cfg_attr(target_os = "android", allow(unused_mut))]
         let mut builder = TorClientConfigBuilder::from_directories(state_dir, cache_dir);
 
         // Arti's fs-mistrust walks every parent of the state directory and rejects one with an

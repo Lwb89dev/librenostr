@@ -28,6 +28,10 @@ import net.primal.android.nostr.notary.NostrNotary
 import net.primal.core.networking.sockets.NostrIncomingMessage
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
+import net.primal.core.networking.tor.NetworkMode
+import net.primal.core.networking.tor.RouteConfig
+import net.primal.core.networking.tor.RouteController
+import net.primal.core.networking.tor.TorEngineType
 import net.primal.core.testing.CoroutinesTestRule
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
@@ -103,6 +107,7 @@ class RelaysSocketManagerTest {
         activeAccountStore: ActiveAccountStore = buildActiveAccountStore(),
         usersDatabase: UsersDatabase = buildUsersDatabase(),
         nostrNotary: NostrNotary = mockk(relaxed = true),
+        routeController: RouteController = directRouteController(),
     ): RelaysSocketManager {
         return RelaysSocketManager(
             dispatchers = coroutinesTestRule.dispatcherProvider,
@@ -110,8 +115,12 @@ class RelaysSocketManagerTest {
             activeAccountStore = activeAccountStore,
             usersDatabase = usersDatabase,
             nostrNotary = nostrNotary,
+            routeController = routeController,
         )
     }
+
+    private fun directRouteController() =
+        RouteController(RouteConfig(mode = NetworkMode.DIRECT, engine = TorEngineType.ORBOT, orbotPort = 9050))
 
     @Test
     fun `constructor with empty userId does not crash`() =
@@ -153,6 +162,78 @@ class RelaysSocketManagerTest {
                 activeAccountStore = buildActiveAccountStore(userId = ""),
             )
             manager.userRelayPoolStatus.value shouldBe emptyMap()
+        }
+
+    @Test
+    fun `switching the network mode drops every open relay socket so they reconnect the new way`() =
+        runTest {
+            val client = mockk<NostrSocketClient>(relaxed = true)
+            every {
+                NostrSocketClientFactory.create(
+                    wssUrl = any(),
+                    incomingCompressionEnabled = any(),
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            } returns client
+            every {
+                NostrSocketClientFactory.create(
+                    wssUrl = any(),
+                    httpClient = any(),
+                    incomingCompressionEnabled = any(),
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            } returns client
+            val routeController = directRouteController()
+            buildRelaysSocketManager(
+                activeAccountStore = buildActiveAccountStore(userId = ""),
+                routeController = routeController,
+            )
+            advanceUntilIdle()
+            coVerify(exactly = 0) { client.close() }
+
+            // A socket opened directly would otherwise stay up, and keep carrying traffic, after Tor was chosen.
+            routeController.update(
+                RouteConfig(mode = NetworkMode.TOR, engine = TorEngineType.ORBOT, orbotPort = 9050),
+            )
+            advanceUntilIdle()
+
+            coVerify(atLeast = 1) { client.close() }
+        }
+
+    @Test
+    fun `writing the same network mode again leaves the relay sockets alone`() =
+        runTest {
+            val client = mockk<NostrSocketClient>(relaxed = true)
+            every {
+                NostrSocketClientFactory.create(
+                    wssUrl = any(),
+                    incomingCompressionEnabled = any(),
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            } returns client
+            every {
+                NostrSocketClientFactory.create(
+                    wssUrl = any(),
+                    httpClient = any(),
+                    incomingCompressionEnabled = any(),
+                    onSocketConnectionOpened = any(),
+                    onSocketConnectionClosed = any(),
+                )
+            } returns client
+            val routeController = directRouteController()
+            buildRelaysSocketManager(
+                activeAccountStore = buildActiveAccountStore(userId = ""),
+                routeController = routeController,
+            )
+            advanceUntilIdle()
+
+            routeController.update(routeController.config)
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { client.close() }
         }
 
     @Test

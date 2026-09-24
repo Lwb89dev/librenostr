@@ -5,6 +5,7 @@ import io.github.aakira.napier.Napier
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,8 +14,10 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import net.primal.core.networking.tor.TorEngineType
+import net.primal.core.networking.tor.NetworkRoute
+import net.primal.core.networking.tor.TorProxySettings
 import net.primal.core.networking.tor.TorProxySettingsStore
+import net.primal.core.networking.tor.toRouteConfig
 import net.primal.core.utils.coroutines.createDispatcherProvider
 
 /**
@@ -39,41 +42,55 @@ object BuiltInTor {
     /** The state of the built-in client: what the settings screen shows and the proxy selector reads. */
     val state: StateFlow<TorEngineState> = mutableState.asStateFlow()
 
+    /**
+     * Start/stop requests, run one at a time and in order by the loop in [initialize]. A conflated
+     * channel keeps only the latest: with several requests racing on separate coroutines, "on" then
+     * "off" could finish as "off" then "on", leaving the engine running while the mode says direct.
+     */
+    private val engineCommands = Channel<Boolean>(Channel.CONFLATED)
+
     private var probed = false
     private var bridge: ArtiBridge? = null
     private var engine: ArtiTorEngine? = null
     private var supervisor: TorSupervisor? = null
 
     /**
-     * Starts the engine if the saved settings ask for it. Called once, early in `Application.onCreate`,
-     * before the first HTTP client is built, so the port is usually known by the time it is needed.
-     * Reads the settings synchronously, like every other Tor-aware call site at startup.
+     * Puts the saved network mode in force and keeps it in force as the settings change. Called once,
+     * early in `Application.onCreate`, before the first HTTP client is built, so the mode and the
+     * engine's port are usually known by the time the first connection needs them. The first read is
+     * synchronous, like every other Tor-aware call site at startup.
+     *
+     * This is the one place where a settings change becomes behavior: it updates the route every
+     * client consults and starts or stops the engine. Nothing else starts or stops the engine, so what
+     * the settings say and what the app does cannot drift apart.
      */
     fun initialize(context: Context) {
-        val settings = TorProxySettingsStore.readBlocking(context)
-        if (settings.enabled && settings.engine == TorEngineType.BUILT_IN) startAsync(context)
+        val appContext = context.applicationContext
+        scope.launch { for (wanted in engineCommands) runEngineCommand(wanted, appContext) }
+        apply(TorProxySettingsStore.readBlocking(appContext))
+        scope.launch { TorProxySettingsStore.dataStore(appContext).data.collect(::apply) }
+    }
+
+    private fun apply(settings: TorProxySettings) {
+        NetworkRoute.controller.update(settings.toRouteConfig())
+        engineCommands.trySend(settings.wantsBuiltInEngine)
+    }
+
+    private suspend fun runEngineCommand(wanted: Boolean, context: Context) {
+        if (!wanted) {
+            engine?.stop()
+            return
+        }
+        val created = engineOrCreate(context)
+        if (created == null) {
+            mutableState.value = TorEngineState.Unavailable
+            return
+        }
+        created.start()
     }
 
     /** Whether this build can run the built-in engine at all (the native library is packaged and loads). */
     fun isLibraryAvailable(): Boolean = bridgeOrNull() != null
-
-    /** Starts the engine without blocking the caller. Safe to call when it is already running. */
-    fun startAsync(context: Context) {
-        val appContext = context.applicationContext
-        scope.launch {
-            val created = engineOrCreate(appContext)
-            if (created == null) {
-                mutableState.value = TorEngineState.Unavailable
-                return@launch
-            }
-            created.start()
-        }
-    }
-
-    /** Stops the proxy. The client stays alive, so turning it back on is cheap. */
-    fun stopAsync() {
-        scope.launch { engine?.stop() }
-    }
 
     fun setBackgrounded(backgrounded: Boolean) {
         engine?.setBackgrounded(backgrounded)

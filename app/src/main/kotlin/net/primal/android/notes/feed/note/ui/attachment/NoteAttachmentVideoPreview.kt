@@ -1,6 +1,5 @@
 package net.primal.android.notes.feed.note.ui.attachment
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -67,7 +66,7 @@ import net.primal.android.core.video.rememberPrimalExoPlayer
 import net.primal.android.stream.player.LocalStreamState
 import net.primal.android.theme.AppTheme
 import net.primal.android.user.domain.ContentDisplaySettings
-import net.primal.core.networking.tor.TorProxySettingsStore
+import net.primal.core.networking.tor.NetworkRoute
 
 private const val POSITION_POLL_INTERVAL_MS = 500L
 private const val BADGE_AUTO_HIDE_DELAY_MS = 3_000L
@@ -315,7 +314,7 @@ private fun VideoThumbnailImagePreview(
     // actually needs to come from the video itself, since a server-provided thumbnail is cheaper
     // still. This intentionally never runs while Tor is on — see VideoFrameExtractor's own doc.
     val nativeFrame = if (useVideoFrame) {
-        rememberNativeVideoFrame(context = context, url = previewSource)
+        rememberNativeVideoFrame(url = previewSource)
     } else {
         NativeFrameResult.Unavailable
     }
@@ -377,21 +376,17 @@ private fun VideoThumbnailImagePreview(
 }
 
 @Composable
-private fun rememberNativeVideoFrame(context: Context, url: String?): NativeFrameResult {
+private fun rememberNativeVideoFrame(url: String?): NativeFrameResult {
     val state by produceState<NativeFrameResult>(initialValue = NativeFrameResult.Pending, url) {
-        value = if (url == null) {
-            NativeFrameResult.Unavailable
+        // The native extractor opens its own connection, so it can only be used for a URL that is
+        // allowed to go out directly under the current network mode.
+        val extractable = url != null && withContext(Dispatchers.IO) { NetworkRoute.canFetchDirectly(url) }
+        value = if (url != null && extractable) {
+            VideoFrameExtractor.extractFrame(url = url, atTimeMs = THUMBNAIL_FRAME_TIME_MS)
+                ?.let { NativeFrameResult.Extracted(it) }
+                ?: NativeFrameResult.Unavailable
         } else {
-            val torEnabled = withContext(Dispatchers.IO) {
-                TorProxySettingsStore.readBlocking(context).enabled
-            }
-            if (torEnabled) {
-                NativeFrameResult.Unavailable
-            } else {
-                VideoFrameExtractor.extractFrame(url = url, atTimeMs = THUMBNAIL_FRAME_TIME_MS)
-                    ?.let { NativeFrameResult.Extracted(it) }
-                    ?: NativeFrameResult.Unavailable
-            }
+            NativeFrameResult.Unavailable
         }
     }
     return state

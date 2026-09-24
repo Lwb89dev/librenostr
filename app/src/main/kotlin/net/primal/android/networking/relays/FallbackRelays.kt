@@ -1,6 +1,7 @@
 package net.primal.android.networking.relays
 
 import net.primal.android.user.domain.toRelay
+import net.primal.core.networking.tor.isOnionHost
 
 /**
  * Relays used when the account has none of its own configured.
@@ -73,11 +74,21 @@ enum class RelayNote {
 
 val FALLBACK_RELAYS = FALLBACK_RELAY_URLS.map { it.toRelay() }
 
+/**
+ * Whether this is a relay address the app will connect to: a `wss://` host, or a `ws://` one when it
+ * is an onion service.
+ *
+ * Cleartext WebSocket is refused everywhere else. It is accepted for `.onion` because those relays
+ * rarely have a TLS certificate and do not need one: Tor already encrypts and authenticates the whole
+ * path to an onion service. Such an address can only be reached through Tor (see `RouteDns`), so
+ * accepting it cannot expose anything on a normal network.
+ */
 internal fun String.isValidRelayUrl(): Boolean {
     val url = trim().lowercase()
-    if (!url.startsWith("wss://")) return false
-    val host = url.removePrefix("wss://").substringBefore("/").substringBefore(":")
-    return host.contains('.') &&
+    val host = url.substringAfter("://", "").substringBefore("/").substringBefore(":")
+    val schemeAllowed = url.startsWith("wss://") || (url.startsWith("ws://") && host.isOnionHost())
+    return schemeAllowed &&
+        host.contains('.') &&
         !host.startsWith('.') &&
         !host.endsWith('.') &&
         host.none { it.isWhitespace() }

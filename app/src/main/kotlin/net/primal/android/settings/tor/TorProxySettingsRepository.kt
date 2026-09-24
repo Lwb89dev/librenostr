@@ -10,9 +10,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
+import net.primal.core.networking.tor.NetworkMode
+import net.primal.core.networking.tor.NetworkRoute
 import net.primal.core.networking.tor.TorEngineType
 import net.primal.core.networking.tor.TorProxySettings
 import net.primal.core.networking.tor.TorProxySettingsStore
+import net.primal.core.networking.tor.toRouteConfig
 import net.primal.core.utils.coroutines.DispatcherProvider
 
 @Singleton
@@ -29,15 +32,19 @@ class TorProxySettingsRepository @Inject constructor(
         initialValue = runBlocking { persistence.data.first() },
     )
 
-    suspend fun setEnabled(enabled: Boolean) {
-        persistence.updateData { it.copy(enabled = enabled) }
-    }
+    suspend fun setMode(mode: NetworkMode) = update { it.withMode(mode) }
 
-    suspend fun setPort(port: Int) {
-        persistence.updateData { it.copy(socksPort = port) }
-    }
+    suspend fun setPort(port: Int) = update { it.copy(socksPort = port) }
 
-    suspend fun setEngine(engine: TorEngineType) {
-        persistence.updateData { it.copy(engine = engine) }
+    suspend fun setEngine(engine: TorEngineType) = update { it.copy(engine = engine) }
+
+    /**
+     * Saves the change and puts it in force before returning. `BuiltInTor` also follows the saved
+     * settings, but on its own coroutine; updating the route here as well means that by the time the
+     * user sees the switch flip, no new connection can still take the old route.
+     */
+    private suspend fun update(transform: (TorProxySettings) -> TorProxySettings) {
+        val saved = persistence.updateData(transform)
+        NetworkRoute.controller.update(saved.toRouteConfig())
     }
 }

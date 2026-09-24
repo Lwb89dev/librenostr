@@ -18,8 +18,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import net.primal.android.core.files.error.UnableToSaveContent
 import net.primal.android.core.files.error.UnsuccessfulFileDownload
-import net.primal.core.networking.tor.TorProxySettingsStore
-import net.primal.core.networking.tor.applyTorProxyIfEnabled
+import net.primal.core.networking.tor.applyNetworkRoute
 import net.primal.core.utils.extractExtensionFromUrl
 import net.primal.core.utils.getOrElse
 import net.primal.core.utils.runCatching
@@ -41,7 +40,7 @@ class MediaDownloader @Inject constructor(
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .followRedirects(true)
-            .applyTorProxyIfEnabled(TorProxySettingsStore.readBlocking(context))
+            .applyNetworkRoute()
             .build()
     }
 

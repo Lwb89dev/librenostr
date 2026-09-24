@@ -100,3 +100,17 @@ providers.gradleProperty("nostr.arti.hostLib").orNull?.let { libraryDir ->
         systemProperty("nostr.arti.hostLib", libraryDir)
     }
 }
+
+// NetworkClientConstructionGuardTest reads source files across the whole repository. Gradle only
+// re-runs a test when its declared inputs change, so without this the guard would keep reporting an
+// old pass after someone adds an unrouted client in another module.
+tasks.withType<Test>().configureEach {
+    inputs.files(
+        rootProject.fileTree(rootProject.projectDir) {
+            include("**/src/**/*.kt")
+            exclude("**/build/**", "**/bin/**", "shelved/**", "**/test/**", "**/androidHostTest/**")
+        },
+    )
+        .withPropertyName("sourcesScannedByClientGuard")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}

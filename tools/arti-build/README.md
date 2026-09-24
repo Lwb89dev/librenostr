@@ -11,9 +11,9 @@ repository root; this file is about building and testing the crate.
 |---|---|
 | Crate builds and its tests pass on the **Linux host** | done, see "Host tests" |
 | Real Tor bootstrap and a request through the proxy, on the host | done (`{"IsTor":true}` from check.torproject.org) |
-| Cross-compiled for `aarch64-linux-android` | **not yet**: needs `rustup`, the Android target, `cargo-ndk` and the pinned NDK, none of which is installed on the development machine |
-| `build-arti.sh` / `verify-reproducible.sh` | written, **never run** (syntax-checked only) |
-| Prebuilt library committed under `app/src/main/jniLibs` | no |
+| Cross-compiled for `aarch64-linux-android` | done (2026-09-24, NDK `28.2.13676358`): 5.4 MB, 10 JNI symbols, 16 KB aligned, links `libdl`/`libm`/`libc` only |
+| `build-arti.sh` / `verify-reproducible.sh` | run; two clean builds are byte-identical. `build-arti.sh` worked on its first run without changes |
+| Prebuilt library committed under `app/src/main/jniLibs` | see `git log -- app/src/main/jniLibs` |
 
 ## Layout
 
