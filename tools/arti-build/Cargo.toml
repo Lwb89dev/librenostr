@@ -1,0 +1,47 @@
+[package]
+name = "nostr-arti"
+version = "0.1.0"
+edition = "2021"
+description = "Thin JNI wrapper that embeds Arti (Tor in Rust) into LibreNostr as a loopback SOCKS5 proxy."
+license = "MIT"
+# Arti 2.6.0 (arti-client 0.46) declares rust-version 1.91.
+rust-version = "1.91"
+
+[lib]
+# The Android library is loaded as `System.loadLibrary("nostr_arti")` -> libnostr_arti.so.
+name = "nostr_arti"
+crate-type = ["cdylib"]
+
+# Keep this crate out of any parent workspace: it is built on its own, by the scripts next to it.
+[workspace]
+
+[dependencies]
+# Default features are off to keep the binary small: no native-tls (rustls instead), no bridges or
+# pluggable transports (the app does not expose them), no onion-service *hosting* (we only connect).
+arti-client = { version = "0.46", default-features = false, features = [
+    "tokio",
+    "rustls",
+    "compression",
+    "onion-service-client",
+    "static-sqlite",
+] }
+tor-rtcompat = { version = "0.46", default-features = false, features = ["tokio", "rustls"] }
+# Since arti-v2.3.0 tor-rtcompat no longer installs a rustls crypto provider implicitly, so this
+# crate does it itself. `ring` is used rather than Arti's default `aws-lc-rs`, which is painful to
+# cross-compile for Android; `default-features = false` keeps aws-lc-rs out of the build entirely.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+jni = "0.21"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "sync"] }
+
+[dev-dependencies]
+# Only the host tests use these: they speak TLS through the tunnel to prove the exit really is Tor.
+webpki-roots = "1"
+
+[profile.release]
+# Optimize for size: this library ships inside every APK.
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+# A panic cannot unwind across the JNI boundary anyway, and abort is smaller.
+panic = "abort"

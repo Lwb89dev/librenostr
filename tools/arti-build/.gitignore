@@ -1,0 +1,4 @@
+# Cargo build output and scratch state; the shipped binary is copied to app/src/main/jniLibs by the
+# build script, never committed from here.
+/target/
+/.cargo-home/

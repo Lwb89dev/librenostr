@@ -1,0 +1,13 @@
+# The exact Rust toolchain used to build libnostr_arti.so.
+#
+# rustc output is only stable for a fixed compiler version, so everyone who rebuilds the shipped
+# library (us, an independent verifier) must use this exact toolchain. rustup reads this file
+# automatically; a distro-packaged cargo without rustup ignores it, which is fine for host builds
+# as long as its version satisfies the MSRV in Cargo.toml (1.91).
+#
+# Bump in lockstep with ARTI_VERSION and Cargo.lock, then re-verify (README.md, "Reproducible builds").
+[toolchain]
+channel = "1.95.0"
+profile = "minimal"
+components = ["rustc", "cargo", "rust-std"]
+targets = ["aarch64-linux-android"]
