@@ -7,6 +7,25 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.6.1] - 2026-09-25
+
+### Changed
+
+- Redesigned onboarding: a new welcome screen, a relay-selection step that asks for at least three
+  relays and shows your NIP-65 list when available, a privacy step that describes the built-in Tor
+  engine and Orbot, and a step indicator across the flow. The gestures screen is gone.
+- Redesigned bottom navigation: every destination now has a label, the selected one is highlighted with
+  an animated pill, the compose button is labelled "Post", and Reads and Explore keep Home highlighted.
+- Home now has Algorithms, Long reads and Bookmarks buttons under the top bar. They replace the swipe
+  from the edges of Home and the long-reads overlay; the algorithm drawer opens from its button.
+- Note actions animate when tapped. A like also gives a haptic tick and a short, quiet chime (skipped
+  when the system's touch sounds are off).
+- The zap sheets were restyled and give haptic feedback when you pick an amount and when you confirm.
+
+### Removed
+
+- The edge-swipe gestures on Home (right for algorithms, left for long reads); use the new buttons.
+
 ## [0.6.0] - 2026-09-24
 
 ### Added
