@@ -1,24 +1,36 @@
 package net.primal.android.notes.feed.note.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import net.primal.android.R
 import net.primal.android.core.compose.IconText
 import net.primal.android.core.compose.bubble.AnchorHandle
@@ -34,6 +46,8 @@ import net.primal.android.core.compose.icons.primaliconpack.FeedRepostsOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewRepostsFilled
 import net.primal.android.core.compose.icons.primaliconpack.FeedZapOutline
 import net.primal.android.core.compose.icons.primaliconpack.FeedNewZapFilled
+import net.primal.android.core.feedback.LikeChimePlayer
+import net.primal.android.core.feedback.performConfirmHaptic
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostAction
 import net.primal.android.theme.AppTheme
@@ -63,6 +77,7 @@ fun FeedNoteActionsRow(
 ) {
     val iconSize = iconSizeOverride ?: if (highlightedNote) 26.sp else 17.sp
     val numberFormat = remember { NumberFormat.getNumberInstance() }
+    val likeFeedback = rememberLikeFeedback()
 
     Row(
         modifier = modifier,
@@ -121,6 +136,8 @@ fun FeedNoteActionsRow(
             onLongClick = onPostLongPressAction?.let {
                 { onPostLongPressAction(FeedPostAction.Like) }
             },
+            celebrateOnClick = true,
+            onActivated = likeFeedback,
             iconContentDescription = stringResource(id = R.string.accessibility_likes_count),
         )
 
@@ -178,13 +195,24 @@ fun SingleEventStat(
     iconContentDescription: String? = null,
     textStyle: TextStyle = AppTheme.typography.bodySmall,
     unhighlightedColor: Color = AppTheme.extraColorScheme.onSurfaceVariantAlt4,
+    celebrateOnClick: Boolean = false,
+    onActivated: (() -> Unit)? = null,
 ) {
+    val motionState = rememberEventStatMotionState(celebrate = celebrateOnClick)
+
     IconText(
         modifier = modifier
+            .eventStatMotion(motionState)
             .animateContentSize()
             .combinedClickable(
                 enabled = onClick != null || onLongClick != null,
-                onClick = { onClick?.invoke() },
+                onClick = {
+                    if (onClick != null) {
+                        motionState.start()
+                        onActivated?.invoke()
+                        onClick()
+                    }
+                },
                 onLongClick = onLongClick,
             ),
         leadingIcon = if (!highlighted) iconVector else iconVectorHighlight,
@@ -202,6 +230,88 @@ fun SingleEventStat(
         color = if (!highlighted) unhighlightedColor else colorHighlight,
     )
 }
+
+@Suppress("MagicNumber")
+@Composable
+private fun rememberEventStatMotionState(celebrate: Boolean): EventStatMotionState {
+    val state = remember { EventStatMotionState() }
+    LaunchedEffect(state.sequence, celebrate) {
+        if (state.sequence == 0) return@LaunchedEffect
+
+        if (celebrate) {
+            coroutineScope {
+                launch {
+                    state.scale.animateTo(
+                        targetValue = 1f,
+                        animationSpec = keyframes {
+                            durationMillis = LIKE_ANIMATION_DURATION_MILLIS
+                            1f at 0
+                            0.78f at 55
+                            1.38f at 175 using FastOutSlowInEasing
+                            0.96f at 310
+                            1f at LIKE_ANIMATION_DURATION_MILLIS
+                        },
+                    )
+                }
+                launch {
+                    state.rotation.animateTo(
+                        targetValue = 0f,
+                        animationSpec = keyframes {
+                            durationMillis = LIKE_ANIMATION_DURATION_MILLIS
+                            0f at 0
+                            -12f at 70
+                            10f at 185
+                            0f at 340
+                        },
+                    )
+                }
+            }
+        } else {
+            state.scale.snapTo(0.88f)
+            state.scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessHigh,
+                ),
+            )
+        }
+    }
+    return state
+}
+
+private fun Modifier.eventStatMotion(state: EventStatMotionState): Modifier =
+    graphicsLayer {
+        scaleX = state.scale.value
+        scaleY = state.scale.value
+        rotationZ = state.rotation.value
+    }
+
+private class EventStatMotionState {
+    val scale = Animatable(1f)
+    val rotation = Animatable(0f)
+    var sequence by mutableIntStateOf(0)
+        private set
+
+    fun start() {
+        sequence++
+    }
+}
+
+@Composable
+private fun rememberLikeFeedback(): () -> Unit {
+    val applicationContext = LocalContext.current.applicationContext
+    val view = LocalView.current
+    val scope = rememberCoroutineScope()
+    return remember(applicationContext, view, scope) {
+        {
+            view.performConfirmHaptic()
+            scope.launch { LikeChimePlayer.play(applicationContext) }
+        }
+    }
+}
+
+private const val LIKE_ANIMATION_DURATION_MILLIS = 420
 
 private fun Long.toPostStatString(numberFormat: NumberFormat): String {
     return if (this > 0) {

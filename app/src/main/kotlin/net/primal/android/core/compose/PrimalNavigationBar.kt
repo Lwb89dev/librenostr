@@ -1,8 +1,9 @@
 package net.primal.android.core.compose
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,22 +18,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.primal.android.R
@@ -49,7 +51,7 @@ import net.primal.android.user.domain.Badges
 val NavigationBarFullHeightDp = 8.dp + LibreNostrTokens.DEFAULT_DOCK_HEIGHT_DP.dp
 
 /** A detached, accent-aware navigation dock that preserves the existing navigation callbacks. */
-@Suppress("UnusedParameter")
+@Suppress("LongMethod", "UnusedParameter")
 @Composable
 fun PrimalNavigationBar(
     modifier: Modifier = Modifier,
@@ -66,7 +68,12 @@ fun PrimalNavigationBar(
     composeAction: (@Composable () -> Unit)? = null,
 ) {
     val tokens = AppTheme.libreNostrTokens
-    val visualSelected = if (settingsSelected) PrimalTopLevelDestination.Settings else activeDestination
+    val visualSelected = when {
+        settingsSelected -> PrimalTopLevelDestination.Settings
+        activeDestination == PrimalTopLevelDestination.Reads -> PrimalTopLevelDestination.Feeds
+        activeDestination == PrimalTopLevelDestination.Explore -> PrimalTopLevelDestination.Feeds
+        else -> activeDestination
+    }
     val navigationInset = with(LocalDensity.current) { WindowInsets.navigationBars.getBottom(this).toDp() }
 
     Surface(color = AppTheme.colorScheme.background) {
@@ -112,8 +119,18 @@ fun PrimalNavigationBar(
                         onClick = onMessagesClick,
                     )
 
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
                         composeAction?.invoke()
+                        Text(
+                            text = stringResource(id = R.string.primary_destination_post_label),
+                            style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = tokens.accent,
+                            maxLines = 1,
+                        )
                     }
 
                     DockDestinationItem(
@@ -143,6 +160,7 @@ fun PrimalNavigationBar(
 }
 
 @Composable
+@Suppress("MagicNumber")
 private fun DockDestinationItem(
     modifier: Modifier = Modifier,
     destination: PrimalTopLevelDestination,
@@ -151,41 +169,69 @@ private fun DockDestinationItem(
     onClick: () -> Unit,
 ) {
     val tokens = AppTheme.libreNostrTokens
-    // Messages intentionally remains neutral: a direct-message inbox is not a selected tab.
-    val tint = when {
-        destination == PrimalTopLevelDestination.Messages -> AppTheme.colorScheme.onSurface
+    val targetTint = when {
         selected -> tokens.accent
         else -> AppTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     }
-    val selectionOffset by animateDpAsState(
-        targetValue = if (selected) 0.dp else 3.dp,
-        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-        label = "DockDestinationOffset",
+    val tint by animateColorAsState(targetValue = targetTint, label = "DockItemTint")
+    val iconContainerColor by animateColorAsState(
+        targetValue = if (selected) tokens.accentSoft else AppTheme.colorScheme.surface,
+        label = "DockItemContainer",
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "DockItemScale",
     )
 
-    Box(
+    Column(
         modifier = modifier
-            .height(52.dp)
+            .height(60.dp)
             .padding(horizontal = 2.dp)
-            .clip(CircleShape)
-            .background(if (selected) tokens.accentSoft else Color.Transparent, CircleShape)
-            .clickable(indication = null, interactionSource = null, onClick = onClick),
-        contentAlignment = Alignment.Center,
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        BadgedBox(
-            badge = {
-                if (badge > 0) Badge(containerColor = tokens.accent, contentColor = AppTheme.colorScheme.onPrimary)
-            },
+        Box(
+            modifier = Modifier
+                .size(width = 38.dp, height = 32.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
+                .background(
+                    color = iconContainerColor,
+                    shape = RoundedCornerShape(13.dp),
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                modifier = Modifier
-                    .size(24.dp)
-                    .padding(bottom = selectionOffset),
-                imageVector = destination.imageVector(),
-                contentDescription = destination.label(),
-                tint = tint,
-            )
+            BadgedBox(
+                badge = {
+                    if (badge > 0) {
+                        Badge(containerColor = tokens.accent, contentColor = AppTheme.colorScheme.onPrimary)
+                    }
+                },
+            ) {
+                Icon(
+                    modifier = Modifier.size(23.dp),
+                    imageVector = destination.imageVector(),
+                    contentDescription = destination.label(),
+                    tint = tint,
+                )
+            }
         }
+        Text(
+            text = destination.shortLabel(),
+            style = AppTheme.typography.labelSmall.copy(
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            ),
+            color = tint,
+            maxLines = 1,
+        )
     }
 }
 
@@ -216,6 +262,16 @@ private fun PrimalTopLevelDestination.label(): String =
         PrimalTopLevelDestination.Messages -> stringResource(id = R.string.primary_destination_messages_label)
         PrimalTopLevelDestination.Explore -> stringResource(id = R.string.primary_destination_explore_label)
         PrimalTopLevelDestination.Settings -> stringResource(id = R.string.drawer_destination_settings)
+    }
+
+@Composable
+private fun PrimalTopLevelDestination.shortLabel(): String =
+    when (this) {
+        PrimalTopLevelDestination.Messages ->
+            stringResource(id = R.string.primary_destination_messages_short_label)
+        PrimalTopLevelDestination.Alerts ->
+            stringResource(id = R.string.primary_destination_notifications_short_label)
+        else -> label()
     }
 
 @Preview

@@ -52,7 +52,6 @@ import net.primal.android.auth.onboarding.account.OnboardingContract
 import net.primal.android.auth.onboarding.account.OnboardingViewModel
 import net.primal.android.auth.onboarding.account.ui.OnboardingScreen
 import net.primal.android.auth.welcome.WelcomeContract
-import net.primal.android.auth.welcome.GesturesOnboardingScreen
 import net.primal.android.auth.welcome.OrbotOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingViewModel
@@ -66,6 +65,7 @@ import net.primal.android.core.compose.PrimalNavigationBar
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.core.compose.UnlockScreenOrientation
+import net.primal.android.core.compose.fab.NewPostFloatingActionButton
 import net.primal.android.core.pip.PiPManagerProvider
 import net.primal.android.drawer.DrawerScreenDestination
 import net.primal.android.drawer.multiaccount.events.AccountSwitcherCallbacks
@@ -163,8 +163,6 @@ private fun NavController.navigateToWelcome() =
 fun NavController.navigateToLogin() = navigate(route = "login")
 
 private fun NavController.navigateToRelayOnboarding() = navigate(route = "relayOnboarding")
-
-private fun NavController.navigateToGesturesOnboarding() = navigate(route = "gesturesOnboarding")
 
 private fun NavController.navigateToOrbotOnboarding() = navigate(route = "orbotOnboarding")
 
@@ -454,6 +452,11 @@ private fun PrimalAppNavigation(
                     },
                     settingsSelected = isSettings,
                     badges = mainState.badges,
+                    composeAction = {
+                        NewPostFloatingActionButton(
+                            onNewPostClick = { navController.navigateToNoteEditor(null) },
+                        )
+                    },
                 )
             }
         } else {
@@ -482,8 +485,6 @@ private fun PrimalAppNavigation(
         login(route = "login", navController = navController)
 
         relayOnboarding(route = "relayOnboarding", navController = navController)
-
-        gesturesOnboarding(route = "gesturesOnboarding", navController = navController)
 
         orbotOnboarding(route = "orbotOnboarding", navController = navController)
 
@@ -981,21 +982,8 @@ private fun NavGraphBuilder.relayOnboarding(route: String, navController: NavCon
             ApplyEdgeToEdge(isDarkTheme = false)
             RelayOnboardingScreen(
                 viewModel = viewModel,
-                onComplete = { navController.navigateToGesturesOnboarding() },
+                onComplete = { navController.navigateToOrbotOnboarding() },
             )
-        }
-    }
-
-private fun NavGraphBuilder.gesturesOnboarding(route: String, navController: NavController) =
-    composable(
-        route = route,
-        enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
-        exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) },
-    ) {
-        LockToOrientationPortrait()
-        PrimalTheme(PrimalTheme.Midnight) {
-            ApplyEdgeToEdge(isDarkTheme = false)
-            GesturesOnboardingScreen(onComplete = { navController.navigateToOrbotOnboarding() })
         }
     }
 

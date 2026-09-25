@@ -1,5 +1,16 @@
 package net.primal.android.notes.feed.zaps
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,7 +49,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -58,6 +71,8 @@ import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.core.utils.shortened
+import net.primal.android.core.feedback.performConfirmHaptic
+import net.primal.android.core.feedback.performSelectionHaptic
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.domain.PrimalTheme
 import net.primal.core.utils.generateAmountChips
@@ -269,6 +284,7 @@ private fun ZapPollVoteButton(
     isEnabled: Boolean,
     onVote: () -> Unit,
 ) {
+    val view = LocalView.current
     PrimalLoadingButton(
         modifier = Modifier
             .fillMaxWidth()
@@ -276,7 +292,12 @@ private fun ZapPollVoteButton(
             .padding(horizontal = 24.dp),
         enabled = isEnabled,
         text = stringResource(id = R.string.zap_poll_vote_button),
-        onClick = { if (isEnabled) onVote() },
+        onClick = {
+            if (isEnabled) {
+                view.performConfirmHaptic()
+                onVote()
+            }
+        },
     )
 }
 
@@ -286,24 +307,33 @@ private fun ZapPollHeader(amount: Long, exchangeRate: Double) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(top = 35.dp),
     ) {
-        Text(
-            text = buildAnnotatedString {
-                append(stringResource(R.string.zap_poll_header_zap) + " ")
-                withStyle(
-                    SpanStyle(
-                        color = AppTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                    ),
-                ) {
-                    append("%,d".format(amount) + " ")
-                }
-                append(stringResource(R.string.zap_poll_header_sats))
+        AnimatedContent(
+            targetState = amount,
+            transitionSpec = {
+                (slideInVertically(initialOffsetY = { it / 2 }) + fadeIn()) togetherWith
+                    (slideOutVertically(targetOffsetY = { -it / 2 }) + fadeOut())
             },
-            textAlign = TextAlign.Center,
-            style = AppTheme.typography.bodyLarge,
-            color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
-        )
+            label = "ZapPollAmount",
+        ) { animatedAmount ->
+            Text(
+                text = buildAnnotatedString {
+                    append(stringResource(R.string.zap_poll_header_zap) + " ")
+                    withStyle(
+                        SpanStyle(
+                            color = AppTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
+                        ),
+                    ) {
+                        append("%,d".format(animatedAmount) + " ")
+                    }
+                    append(stringResource(R.string.zap_poll_header_sats))
+                },
+                textAlign = TextAlign.Center,
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
+            )
+        }
 
         if (exchangeRate > 0) {
             val usdAmount = amount.toString().parseSatsToUsd(exchangeRate)
@@ -354,22 +384,45 @@ private fun ZapPollAmountChips(
 }
 
 @Composable
+@Suppress("MagicNumber")
 private fun ZapPollAmountChip(
     modifier: Modifier = Modifier,
     amount: Long,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val backgroundColor = if (selected) {
-        AppTheme.colorScheme.surface
-    } else {
-        AppTheme.extraColorScheme.surfaceVariantAlt2
-    }
-    val borderWidth = if (selected) 1.dp else 0.dp
-    val borderColor = if (selected) AppTheme.colorScheme.tertiary else AppTheme.colorScheme.outline
+    val view = LocalView.current
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) {
+            AppTheme.colorScheme.surface
+        } else {
+            AppTheme.extraColorScheme.surfaceVariantAlt2
+        },
+        label = "ZapPollChipBackground",
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (selected) 1.dp else 0.dp,
+        label = "ZapPollChipBorder",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) AppTheme.colorScheme.tertiary else AppTheme.colorScheme.outline,
+        label = "ZapPollChipBorderColor",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.04f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "ZapPollChipScale",
+    )
 
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(AppTheme.shapes.extraLarge)
             .border(
                 width = borderWidth,
@@ -380,7 +433,10 @@ private fun ZapPollAmountChip(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onClick,
+                onClick = {
+                    view.performSelectionHaptic()
+                    onClick()
+                },
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center,

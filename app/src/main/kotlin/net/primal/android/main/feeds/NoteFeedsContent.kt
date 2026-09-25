@@ -42,7 +42,6 @@ internal fun NoteFeedsContent(
     eventPublisher: (UiEvent) -> Unit,
     onActiveFeedChanged: (FeedUi?) -> Unit,
     selectedFeed: FeedUi? = null,
-    topAppBarCollapsedFraction: Float,
     shouldAnimateScrollToTop: MutableState<Boolean>,
     scrollToFeed: MutableState<FeedUi?> = remember { mutableStateOf(null) },
     snackbarHostState: SnackbarHostState,
@@ -130,7 +129,6 @@ internal fun NoteFeedsContent(
 internal fun NoteFeedTopAppBar(
     title: String,
     pagerState: PagerState,
-    feeds: List<FeedUi>,
     avatarCdnImage: CdnImage?,
     onAvatarClick: () -> Unit,
     onMenuClick: (() -> Unit)? = null,
@@ -145,6 +143,7 @@ internal fun NoteFeedTopAppBar(
     showAvatar: Boolean = true,
     onSearchSubmit: ((String) -> Unit)? = null,
     onSearchProfileClick: ((String) -> Unit)? = null,
+    homeActions: (@Composable () -> Unit)? = null,
 ) {
     PrimalTopLevelAppBar(
         title = title,
@@ -166,5 +165,6 @@ internal fun NoteFeedTopAppBar(
         showAvatar = showAvatar,
         onSearchSubmit = onSearchSubmit,
         onSearchProfileClick = onSearchProfileClick,
+        homeActions = homeActions,
     )
 }

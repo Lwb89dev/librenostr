@@ -1,5 +1,16 @@
 package net.primal.android.notes.feed.zaps
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,8 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.SpanStyle
@@ -57,6 +70,8 @@ import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.core.compose.zaps.ZAP_ACTION_DELAY
 import net.primal.android.core.utils.shortened
+import net.primal.android.core.feedback.performConfirmHaptic
+import net.primal.android.core.feedback.performSelectionHaptic
 import net.primal.android.settings.zaps.PRESETS_COUNT
 import net.primal.android.theme.AppTheme
 import net.primal.domain.notifications.ContentZapConfigItem
@@ -106,6 +121,7 @@ private fun ZapBottomSheetContent(
     var selectedZapAmount by remember { mutableLongStateOf(zapConfig.first().amount) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    val view = LocalView.current
 
     var isZapCooldownActive by remember { mutableStateOf(false) }
     LaunchedEffect(isZapCooldownActive) {
@@ -171,6 +187,7 @@ private fun ZapBottomSheetContent(
             onClick = {
                 if (!isZapCooldownActive) {
                     isZapCooldownActive = true
+                    view.performConfirmHaptic()
                     onDismissRequest()
                     onZap(selectedZapAmount, selectedZapComment)
                 }
@@ -275,26 +292,52 @@ private fun ZapOptions(
 }
 
 @Composable
+@Suppress("MagicNumber")
 private fun ZapOption(
     defaultAmount: Long,
     defaultEmoji: String,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val backgroundColor = if (selected) AppTheme.colorScheme.surface else AppTheme.extraColorScheme.surfaceVariantAlt1
-    val borderWidth = if (selected) 1.dp else 0.dp
-    val borderColor = if (selected) AppTheme.colorScheme.tertiary else Color.Transparent
+    val view = LocalView.current
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) AppTheme.colorScheme.surface else AppTheme.extraColorScheme.surfaceVariantAlt1,
+        label = "ZapOptionBackground",
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (selected) 1.dp else 0.dp,
+        label = "ZapOptionBorder",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) AppTheme.colorScheme.tertiary else Color.Transparent,
+        label = "ZapOptionBorderColor",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.07f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "ZapOptionScale",
+    )
 
     Box(
         modifier = Modifier
             .padding(all = 8.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(AppTheme.shapes.small)
             .border(width = borderWidth, shape = AppTheme.shapes.small, color = borderColor)
             .background(color = backgroundColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onClick,
+                onClick = {
+                    view.performSelectionHaptic()
+                    onClick()
+                },
             )
             .requiredSize(72.dp)
             .aspectRatio(1f),
@@ -332,39 +375,53 @@ private fun ZapTitle(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = buildAnnotatedString {
-                withStyle(
-                    style = SpanStyle(
-                        color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                    ),
-                ) {
-                    append("ZAP ${receiverName.uppercase()} ")
-                }
-                withStyle(
-                    style = SpanStyle(
-                        color = AppTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 20.sp,
-                    ),
-                ) {
-                    append("${amount.shortened()} ")
-                }
-                withStyle(
-                    style = SpanStyle(
-                        color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    ),
-                ) {
-                    append("SATS")
-                }
+        AnimatedContent(
+            targetState = amount,
+            transitionSpec = {
+                (slideInVertically(initialOffsetY = { it / 2 }) + fadeIn()) togetherWith
+                    (slideOutVertically(targetOffsetY = { -it / 2 }) + fadeOut())
             },
-            textAlign = TextAlign.Center,
-        )
+            label = "ZapAmount",
+        ) { animatedAmount ->
+            ZapTitleText(receiverName = receiverName, amount = animatedAmount)
+        }
     }
+}
+
+@Composable
+private fun ZapTitleText(receiverName: String, amount: Long) {
+    Text(
+        text = buildAnnotatedString {
+            withStyle(
+                style = SpanStyle(
+                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                ),
+            ) {
+                append("ZAP ${receiverName.uppercase()} ")
+            }
+            withStyle(
+                style = SpanStyle(
+                    color = AppTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp,
+                ),
+            ) {
+                append("${amount.shortened()} ")
+            }
+            withStyle(
+                style = SpanStyle(
+                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt1,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                ),
+            ) {
+                append("SATS")
+            }
+        },
+        textAlign = TextAlign.Center,
+    )
 }
 
 private fun ZappingState.ensureZapConfig(): List<ContentZapConfigItem> {

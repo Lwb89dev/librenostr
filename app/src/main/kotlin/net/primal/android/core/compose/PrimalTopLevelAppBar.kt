@@ -133,6 +133,7 @@ fun PrimalTopLevelAppBar(
     showAvatar: Boolean = true,
     onSearchSubmit: ((String) -> Unit)? = null,
     onSearchProfileClick: ((String) -> Unit)? = null,
+    homeActions: (@Composable () -> Unit)? = null,
 ) {
     if (onSearchClick != null && titleOverride == null) {
         LibreNostrHomeHeader(
@@ -147,6 +148,7 @@ fun PrimalTopLevelAppBar(
             showAvatar = showAvatar,
             scrollBehavior = scrollBehavior,
             modifier = modifier,
+            homeActions = homeActions,
         )
         return
     }
@@ -237,6 +239,7 @@ private fun LibreNostrHomeHeader(
     showAvatar: Boolean,
     scrollBehavior: TopAppBarScrollBehavior?,
     modifier: Modifier = Modifier,
+    homeActions: (@Composable () -> Unit)? = null,
 ) {
     val headerOffset = scrollBehavior?.state?.heightOffset?.toInt() ?: 0
     var headerHeightPx by remember { mutableIntStateOf(0) }
@@ -272,6 +275,7 @@ private fun LibreNostrHomeHeader(
                 onSearchProfileClick = onSearchProfileClick,
                 showAvatar = showAvatar,
                 onHeightMeasured = { headerHeightPx = it },
+                homeActions = homeActions,
             )
         }.first().measure(constraints.copy(minHeight = 0))
 
@@ -294,6 +298,7 @@ private fun HomeHeaderContent(
     onSearchProfileClick: ((String) -> Unit)?,
     showAvatar: Boolean,
     onHeightMeasured: (Int) -> Unit,
+    homeActions: (@Composable () -> Unit)? = null,
 ) {
     val tokens = AppTheme.libreNostrTokens
     Column(
@@ -338,6 +343,10 @@ private fun HomeHeaderContent(
             onSubmit = onSearchSubmit,
             onProfileClick = onSearchProfileClick,
         )
+        if (homeActions != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            homeActions()
+        }
     }
 }
 

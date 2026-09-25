@@ -1,5 +1,9 @@
+@file:Suppress("MagicNumber")
+
 package net.primal.android.auth.welcome
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,10 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -24,18 +30,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import net.primal.android.R
+import net.primal.android.auth.compose.OnboardingButton
 import net.primal.android.core.compose.ColumnWithBackground
 import net.primal.android.core.compose.PrimalDarkTextColor
 import net.primal.android.core.compose.PrimalGradientAlpha
 import net.primal.android.core.compose.PrimalGradientBackgroundColor
 import net.primal.android.core.compose.primalGradientBrush
-import androidx.compose.ui.focus.onFocusChanged
 import net.primal.android.networking.relays.ONBOARDING_RELAY_OPTIONS
 import net.primal.android.networking.relays.RelayNote
-import androidx.compose.ui.res.stringResource
-import net.primal.android.R
 import net.primal.android.theme.AppTheme
 
 @Composable
@@ -44,6 +54,21 @@ fun RelayOnboardingScreen(
     onComplete: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    RelayOnboardingScreen(
+        state = state,
+        onAddRelay = viewModel::addRelay,
+        onToggleRelay = viewModel::toggleRelay,
+        onContinue = { viewModel.save(onComplete) },
+    )
+}
+
+@Composable
+private fun RelayOnboardingScreen(
+    state: RelayOnboardingState,
+    onAddRelay: (String) -> Unit,
+    onToggleRelay: (String) -> Unit,
+    onContinue: () -> Unit,
+) {
     ColumnWithBackground(
         backgroundBrushProvider = ::primalGradientBrush,
         brushAlpha = PrimalGradientAlpha,
@@ -52,126 +77,210 @@ fun RelayOnboardingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp, vertical = 36.dp),
+                .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "Connect to Nostr",
-                style = AppTheme.typography.headlineMedium,
-                color = PrimalDarkTextColor,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "Choose a few relays. LibreNostr connects directly to them; no caching server is involved.",
-                style = AppTheme.typography.bodyLarge,
-                color = PrimalDarkTextColor.copy(alpha = 0.86f),
-            )
-            Spacer(Modifier.height(18.dp))
+            RelayOnboardingHeader()
+            Spacer(modifier = Modifier.height(22.dp))
             if (state.loading) {
-                CircularProgressIndicator(color = AppTheme.colorScheme.primary)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    CircularProgressIndicator(color = Color(0xFF6B3FE8))
+                }
             } else {
-                var customRelay by remember { mutableStateOf("") }
-                Text(
-                    text = "Your NIP-65 relay list is used when available. Start with at least three.",
-                    style = AppTheme.typography.bodyMedium,
-                    color = PrimalDarkTextColor.copy(alpha = 0.72f),
+                RelaySelectionContent(
+                    modifier = Modifier.weight(1f),
+                    state = state,
+                    onAddRelay = onAddRelay,
+                    onToggleRelay = onToggleRelay,
                 )
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        modifier = Modifier
-                            .weight(1f)
-                            // Every relay address starts the same way, so the scheme is filled in
-                            // on focus and the user only types the host.
-                            .onFocusChanged { focus ->
-                                if (focus.isFocused && customRelay.isEmpty()) {
-                                    customRelay = RELAY_URL_SCHEME
-                                }
-                            },
-                        value = customRelay,
-                        onValueChange = { typed ->
-                            // Keep the scheme pinned: deleting into it would otherwise leave a
-                            // half-scheme that never validates.
-                            customRelay = if (typed.startsWith(RELAY_URL_SCHEME)) {
-                                typed
-                            } else {
-                                RELAY_URL_SCHEME + typed.removePrefix(RELAY_URL_SCHEME.take(typed.length))
-                            }
-                        },
-                        singleLine = true,
-                        placeholder = { Text("wss://your-relay.example") },
+                Spacer(modifier = Modifier.height(18.dp))
+                OnboardingButton(
+                    text = if (state.saving) {
+                        stringResource(id = R.string.onboarding_relay_saving)
+                    } else {
+                        stringResource(id = R.string.onboarding_relay_continue)
+                    },
+                    enabled = state.selected.size >= MINIMUM_RELAY_COUNT && !state.saving,
+                    loading = state.saving,
+                    onClick = onContinue,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RelayOnboardingHeader() {
+    Text(
+        text = stringResource(id = R.string.onboarding_relay_eyebrow),
+        style = AppTheme.typography.labelMedium.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.5.sp,
+        ),
+        color = PrimalDarkTextColor.copy(alpha = 0.58f),
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = stringResource(id = R.string.onboarding_relay_title),
+        style = AppTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+        color = PrimalDarkTextColor,
+        textAlign = TextAlign.Center,
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+    Text(
+        text = stringResource(id = R.string.onboarding_relay_description),
+        style = AppTheme.typography.bodyLarge,
+        color = PrimalDarkTextColor.copy(alpha = 0.76f),
+        textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
+private fun RelaySelectionContent(
+    modifier: Modifier = Modifier,
+    state: RelayOnboardingState,
+    onAddRelay: (String) -> Unit,
+    onToggleRelay: (String) -> Unit,
+) {
+    var customRelay by remember { mutableStateOf("") }
+    Column(modifier = modifier.fillMaxWidth()) {
+        CustomRelayField(
+            value = customRelay,
+            onValueChange = { customRelay = it },
+            onAdd = {
+                onAddRelay(customRelay)
+                customRelay = ""
+            },
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(id = R.string.onboarding_relay_hint),
+                style = AppTheme.typography.bodySmall,
+                color = PrimalDarkTextColor.copy(alpha = 0.65f),
+            )
+            Text(
+                text = stringResource(
+                    id = R.string.onboarding_relay_count,
+                    state.selected.size,
+                    state.suggestions.size,
+                ),
+                style = AppTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = PrimalDarkTextColor,
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(items = state.suggestions, key = { it }) { relay ->
+                RelayOption(
+                    relay = relay,
+                    selected = relay in state.selected,
+                    onClick = { onToggleRelay(relay) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomRelayField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            modifier = Modifier
+                .weight(1f)
+                .onFocusChanged { focus ->
+                    if (focus.isFocused && value.isEmpty()) onValueChange(RELAY_URL_SCHEME)
+                },
+            value = value,
+            onValueChange = { typed ->
+                onValueChange(
+                    if (typed.startsWith(RELAY_URL_SCHEME)) {
+                        typed
+                    } else {
+                        RELAY_URL_SCHEME + typed.removePrefix(RELAY_URL_SCHEME.take(typed.length))
+                    },
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            placeholder = { Text(stringResource(id = R.string.onboarding_relay_custom_placeholder)) },
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Button(
+            enabled = value.length > RELAY_URL_SCHEME.length,
+            onClick = onAdd,
+        ) {
+            Text(text = stringResource(id = R.string.onboarding_relay_add))
+        }
+    }
+}
+
+@Composable
+private fun RelayOption(
+    relay: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = if (selected) 0.26f else 0.14f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) Color(0xFF6B3FE8).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.26f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = selected, onCheckedChange = { onClick() })
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = relay.removePrefix(RELAY_URL_SCHEME),
+                    style = AppTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = PrimalDarkTextColor,
+                )
+                relayNoteStringRes(relay)?.let { noteStringRes ->
+                    Text(
+                        text = stringResource(id = noteStringRes),
+                        style = AppTheme.typography.labelMedium,
+                        color = PrimalDarkTextColor.copy(alpha = 0.62f),
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        enabled = customRelay.length > RELAY_URL_SCHEME.length,
-                        onClick = {
-                            viewModel.addRelay(customRelay)
-                            customRelay = ""
-                        },
-                    ) {
-                        Text("Add")
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "${state.selected.size} of ${state.suggestions.size} selected",
-                    style = AppTheme.typography.labelMedium,
-                    color = PrimalDarkTextColor.copy(alpha = 0.72f),
-                )
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    items(state.suggestions, key = { it }) { relay ->
-                        val note = ONBOARDING_RELAY_OPTIONS.find { it.url == relay }?.note
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = relay in state.selected,
-                                onCheckedChange = { viewModel.toggleRelay(relay) },
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = relay.removePrefix(RELAY_URL_SCHEME),
-                                    color = PrimalDarkTextColor,
-                                    style = AppTheme.typography.bodyLarge,
-                                )
-                                // What the probe found, said up front rather than discovered
-                                // after picking it.
-                                val caption = when (note) {
-                                    RelayNote.Paid -> stringResource(id = R.string.onboarding_relay_note_paid)
-                                    RelayNote.ProfilesOnly ->
-                                        stringResource(id = R.string.onboarding_relay_note_profiles)
-                                    else -> null
-                                }
-                                if (caption != null) {
-                                    Text(
-                                        text = caption,
-                                        color = PrimalDarkTextColor.copy(alpha = 0.62f),
-                                        style = AppTheme.typography.labelMedium,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = state.selected.size >= 3 && !state.saving,
-                    onClick = { viewModel.save(onComplete) },
-                ) {
-                    Text(if (state.saving) "Saving…" else "Continue")
                 }
             }
         }
     }
 }
 
+private fun relayNoteStringRes(relay: String): Int? =
+    when (ONBOARDING_RELAY_OPTIONS.find { it.url == relay }?.note) {
+        RelayNote.Paid -> R.string.onboarding_relay_note_paid
+        RelayNote.ProfilesOnly -> R.string.onboarding_relay_note_profiles
+        else -> null
+    }
+
+private const val MINIMUM_RELAY_COUNT = 3
 private const val RELAY_URL_SCHEME = "wss://"

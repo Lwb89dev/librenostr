@@ -3,7 +3,6 @@ package net.primal.android.main
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -13,13 +12,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,11 +29,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarState
@@ -54,13 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -74,10 +68,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import net.primal.android.R
-import net.primal.android.articles.feed.ArticleFeedList
 import net.primal.android.bookmarks.drawer.BookmarksDrawerSection
 import net.primal.android.core.compose.PrimalDivider
-import net.primal.android.core.compose.AppBarPage
 import net.primal.android.core.compose.PrimalOverlay
 import net.primal.android.core.compose.PrimalTopLevelAppBar
 import net.primal.android.core.compose.PrimalTopLevelDestination
@@ -87,7 +79,7 @@ import net.primal.android.core.compose.bubble.AnchoredBubble
 import net.primal.android.core.compose.bubble.BubblePlacement
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.LibreNavigationIcons
-import net.primal.android.core.compose.icons.primaliconpack.Close
+import net.primal.android.core.compose.icons.primaliconpack.Bookmarks
 import net.primal.android.core.compose.fab.NewPostFloatingActionButton
 import net.primal.android.core.compose.runtime.DisposableLifecycleObserverEffect
 import net.primal.android.core.errors.resolveUiErrorMessage
@@ -98,8 +90,6 @@ import net.primal.android.drawer.multiaccount.events.AccountSwitcherCallbacks
 import net.primal.android.explore.search.ui.SearchScope
 import net.primal.android.feeds.list.FeedListOverlayContent
 import net.primal.android.feeds.list.ui.model.FeedUi
-import net.primal.android.main.explore.ExploreHomeContent
-import net.primal.android.main.explore.ExploreTopAppBar
 import net.primal.android.main.explore.section.ExploreSection
 import net.primal.android.main.explore.section.ExploreSectionListOverlayContent
 import net.primal.android.main.feeds.NoteFeedTopAppBar
@@ -122,9 +112,6 @@ import net.primal.android.navigation.primalSlideInHorizontallyFromStart
 import net.primal.android.navigation.primalSlideOutHorizontallyToEnd
 import net.primal.android.navigation.primalSlideOutHorizontallyToStart
 import net.primal.android.navigation.navigateToAdvancedSearch
-import net.primal.android.navigation.navigateToArticleDetails
-import net.primal.android.navigation.navigateToExploreFeed
-import net.primal.android.navigation.navigateToFollowPack
 import net.primal.android.navigation.navigateToHome
 import net.primal.android.navigation.navigateToNoteEditor
 import net.primal.android.navigation.navigateToMessages
@@ -138,8 +125,6 @@ import net.primal.android.zaps.AndroidLightningWallet
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.notifications.list.ui.NotificationUi
 import net.primal.domain.feeds.FeedSpecKind
-import net.primal.domain.feeds.buildAdvancedSearchNotesFeedSpec
-import net.primal.domain.feeds.buildAdvancedSearchReadsFeedSpec
 import net.primal.domain.feeds.defaultLibreNostrNoteFeeds
 import net.primal.android.feeds.list.ui.model.asFeedUi
 import net.primal.domain.links.CdnImage
@@ -251,7 +236,6 @@ fun MainScreen(
             )
             mainViewModel.setEvent(MainContract.UiEvent.NotificationsViewed)
         },
-        homeTopAppBarState = homeTopAppBarState,
         currentTopAppBarState = currentTopAppBarState,
         sharedState = sharedState,
         noteCallbacks = noteCallbacks,
@@ -274,7 +258,8 @@ private fun MainScreenTopAppBar(
     onAvatarClick: () -> Unit,
     onAvatarSwipeDown: (() -> Unit)? = null,
     onAlgorithmMenuClick: (() -> Unit)? = null,
-    onFeedPickerRequest: () -> Unit,
+    onLongReadsClick: () -> Unit,
+    onBookmarksClick: () -> Unit,
     onReadPickerRequest: () -> Unit,
     titleOverride: String? = null,
     subtitleOverride: String? = null,
@@ -285,16 +270,9 @@ private fun MainScreenTopAppBar(
     readsActiveFeed: FeedUi?,
     homePagerState: PagerState,
     readsPagerState: PagerState,
-    explorePagerState: PagerState,
-    notificationsPagerState: PagerState,
-    notificationsPages: List<AppBarPage>,
-    exploreActiveSection: ExploreSection,
-    onExploreSectionPickerRequest: () -> Unit,
     onExploreSearchClick: () -> Unit,
     onExploreSearchSubmit: (String) -> Unit,
     onExploreSearchProfileClick: (String) -> Unit,
-    onExploreAdvancedSearchClick: () -> Unit,
-    homeFeeds: List<FeedUi>,
     readsFeeds: List<FeedUi>,
 ) {
     when (activeTab) {
@@ -302,7 +280,6 @@ private fun MainScreenTopAppBar(
             NoteFeedTopAppBar(
                 title = homeActiveFeed?.title ?: "",
                 pagerState = homePagerState,
-                feeds = homeFeeds,
                 activeFeed = homeActiveFeed,
                 avatarCdnImage = avatarCdnImage,
                 avatarBlossoms = avatarBlossoms,
@@ -317,6 +294,13 @@ private fun MainScreenTopAppBar(
                 showAvatar = true,
                 onSearchSubmit = onExploreSearchSubmit,
                 onSearchProfileClick = onExploreSearchProfileClick,
+                homeActions = {
+                    HomeQuickAccessRow(
+                        onAlgorithmsClick = { onAlgorithmMenuClick?.invoke() },
+                        onLongReadsClick = onLongReadsClick,
+                        onBookmarksClick = onBookmarksClick,
+                    )
+                },
             )
         }
 
@@ -379,6 +363,72 @@ private fun MainScreenTopAppBar(
     }
 }
 
+@Composable
+private fun HomeQuickAccessRow(
+    onAlgorithmsClick: () -> Unit,
+    onLongReadsClick: () -> Unit,
+    onBookmarksClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+    ) {
+        HomeQuickAccessButton(
+            modifier = Modifier.weight(1f),
+            icon = LibreNavigationIcons.Algorithm,
+            label = stringResource(id = R.string.home_quick_algorithms),
+            onClick = onAlgorithmsClick,
+        )
+        HomeQuickAccessButton(
+            modifier = Modifier.weight(1f),
+            icon = LibreNavigationIcons.LongReads,
+            label = stringResource(id = R.string.home_quick_reads),
+            onClick = onLongReadsClick,
+        )
+        HomeQuickAccessButton(
+            modifier = Modifier.weight(1f),
+            icon = PrimalIcons.Bookmarks,
+            label = stringResource(id = R.string.home_quick_bookmarks),
+            onClick = onBookmarksClick,
+        )
+    }
+}
+
+@Composable
+private fun HomeQuickAccessButton(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val tokens = AppTheme.libreNostrTokens
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = tokens.accentSubtle,
+        contentColor = tokens.accent,
+        border = BorderStroke(1.dp, tokens.softOutline),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                modifier = Modifier.size(21.dp),
+                imageVector = icon,
+                contentDescription = null,
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            Text(
+                text = label,
+                style = AppTheme.typography.labelSmall,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScaffoldTopAppBar(
@@ -387,18 +437,15 @@ private fun ScaffoldTopAppBar(
     mainState: MainContract.UiState,
     mainEventPublisher: (MainContract.UiEvent) -> Unit,
     accountDrawerVisible: Boolean,
-    feedPickerVisible: Boolean,
     readPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
     sharedState: MainScreenSharedState,
     toggleOverlay: (ActiveOverlay) -> Unit,
     onAlgorithmMenuClick: () -> Unit,
+    onLongReadsClick: () -> Unit,
+    onBookmarksClick: () -> Unit,
     onExploreSearchClick: () -> Unit,
-    onExploreSearchSubmit: (String) -> Unit,
     onExploreSearchProfileClick: (String) -> Unit,
-    onExploreAdvancedSearchClick: () -> Unit,
-    exploreActiveSection: ExploreSection,
-    homeFeeds: List<FeedUi>,
     readsFeeds: List<FeedUi>,
     navController: NavController,
 ) {
@@ -408,8 +455,6 @@ private fun ScaffoldTopAppBar(
     } else {
         null
     }
-    val notificationsPages = emptyList<AppBarPage>()
-
     MainScreenTopAppBar(
         activeTab = activeTab,
         scrollBehavior = scrollBehavior,
@@ -424,12 +469,12 @@ private fun ScaffoldTopAppBar(
             null
         },
         onAlgorithmMenuClick = onAlgorithmMenuClick,
-        onFeedPickerRequest = { toggleOverlay(ActiveOverlay.FeedPicker) },
+        onLongReadsClick = onLongReadsClick,
+        onBookmarksClick = onBookmarksClick,
         onReadPickerRequest = { toggleOverlay(ActiveOverlay.ReadPicker) },
         titleOverride = drawerTitle,
         subtitleOverride = drawerSubtitle,
-        chevronExpanded = feedPickerVisible ||
-            readPickerVisible ||
+        chevronExpanded = readPickerVisible ||
             exploreSectionPickerVisible,
         avatarCdnImage = mainState.activeAccountAvatarCdnImage,
         avatarBlossoms = mainState.activeAccountBlossoms,
@@ -437,16 +482,14 @@ private fun ScaffoldTopAppBar(
         readsActiveFeed = sharedState.readsActiveFeed.value,
         homePagerState = sharedState.homePagerState,
         readsPagerState = sharedState.readsPagerState,
-        explorePagerState = sharedState.explorePagerState,
-        notificationsPagerState = sharedState.notificationsPagerState,
-        notificationsPages = notificationsPages,
-        exploreActiveSection = exploreActiveSection,
-        onExploreSectionPickerRequest = { toggleOverlay(ActiveOverlay.ExploreSectionPicker) },
         onExploreSearchClick = onExploreSearchClick,
-        onExploreSearchSubmit = { query -> navController.navigateToSearch(searchScope = SearchScope.Notes, initialQuery = query) },
+        onExploreSearchSubmit = { query ->
+            navController.navigateToSearch(
+                searchScope = SearchScope.Notes,
+                initialQuery = query,
+            )
+        },
         onExploreSearchProfileClick = onExploreSearchProfileClick,
-        onExploreAdvancedSearchClick = onExploreAdvancedSearchClick,
-        homeFeeds = homeFeeds,
         readsFeeds = readsFeeds,
     )
 }
@@ -486,7 +529,6 @@ private fun MainScreenContent(
     notificationsSeenProvider: (NotificationGroup) -> Flow<PagingData<NotificationUi>>,
     notificationsUnseenProvider: (NotificationGroup) -> Flow<List<List<NotificationUi>>>,
     onNotificationsSeen: (NotificationGroup) -> Unit,
-    homeTopAppBarState: TopAppBarState,
     navController: NavController,
     onTabChanged: (PrimalTopLevelDestination) -> Unit,
     onHomeNewNotesChanged: (Boolean) -> Unit,
@@ -510,7 +552,6 @@ private fun MainScreenContent(
                         eventPublisher = homeEventPublisher,
                         onActiveFeedChanged = { sharedState.homeActiveFeed.value = it },
                         selectedFeed = sharedState.homeActiveFeed.value,
-                        topAppBarCollapsedFraction = homeTopAppBarState.collapsedFraction,
                         shouldAnimateScrollToTop = sharedState.homeShouldAnimateScrollToTop,
                         scrollToFeed = sharedState.homeScrollToFeed,
                         snackbarHostState = sharedState.snackbarHostState,
@@ -583,7 +624,6 @@ private fun MainScreenScaffold(
     notificationsSeenProvider: (NotificationGroup) -> Flow<PagingData<NotificationUi>>,
     notificationsUnseenProvider: (NotificationGroup) -> Flow<List<List<NotificationUi>>>,
     onNotificationsSeen: (NotificationGroup) -> Unit,
-    homeTopAppBarState: TopAppBarState,
     currentTopAppBarState: TopAppBarState,
     sharedState: MainScreenSharedState,
     noteCallbacks: NoteCallbacks,
@@ -599,9 +639,7 @@ private fun MainScreenScaffold(
     val exploreAnchor = remember { AnchorHandle() }
     var activeOverlay by rememberSaveable { mutableStateOf<ActiveOverlay?>(null) }
     var algorithmDrawerVisible by rememberSaveable { mutableStateOf(false) }
-    var longReadVisible by rememberSaveable { mutableStateOf(false) }
     var homeHasNewNotes by rememberSaveable { mutableStateOf(false) }
-    val feedPickerVisible = activeOverlay == ActiveOverlay.FeedPicker
     val readPickerVisible = activeOverlay == ActiveOverlay.ReadPicker
     val exploreSectionPickerVisible = activeOverlay == ActiveOverlay.ExploreSectionPicker
     val accountDrawerVisible = activeOverlay == ActiveOverlay.AccountDrawer
@@ -617,10 +655,7 @@ private fun MainScreenScaffold(
         targetValue = if (algorithmDrawerVisible) ALGORITHM_DRAWER_WIDTH else 0.dp,
         label = "AlgorithmDrawerHomeOffset",
     )
-    BackHandler(enabled = longReadVisible) {
-        longReadVisible = false
-    }
-    BackHandler(enabled = algorithmDrawerVisible && !longReadVisible) {
+    BackHandler(enabled = algorithmDrawerVisible) {
         algorithmDrawerVisible = false
     }
 
@@ -631,50 +666,7 @@ private fun MainScreenScaffold(
     PrimalMainScaffold(
         modifier = Modifier
             .offset(x = drawerOffset)
-            .semantics { testTagsAsResourceId = true }
-            .pointerInput(activeTab) {
-                var trackingEdgeSwipe = false
-                var dragDistance = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { start ->
-                        // The drawer is a home affordance. Keep the gesture zone wide
-                        // enough for a real finger (raw px vary with device density),
-                        // while leaving the rest of the timeline available for normal
-                        // horizontal interactions. Android's system-back edge still
-                        // takes precedence when the gesture starts at the very edge.
-                        val centerStart = size.width * 0.25f
-                        val centerEnd = size.width * 0.75f
-                        trackingEdgeSwipe = activeTab == PrimalTopLevelDestination.Feeds &&
-                            (start.x <= 280f || start.x in centerStart..centerEnd)
-                        dragDistance = 0f
-                    },
-                    onHorizontalDrag = { change, amount ->
-                        if (trackingEdgeSwipe) {
-                            val opensAlgorithm = amount > 0f
-                            val opensLongReads = amount < 0f && !algorithmDrawerVisible
-                            if (opensAlgorithm || opensLongReads) {
-                                dragDistance += kotlin.math.abs(amount)
-                                if (dragDistance >= 56f) {
-                                    if (opensAlgorithm) {
-                                        algorithmDrawerVisible = true
-                                    } else {
-                                        longReadVisible = true
-                                    }
-                                    trackingEdgeSwipe = false
-                                }
-                            }
-                        }
-                    },
-                    onDragEnd = {
-                        trackingEdgeSwipe = false
-                        dragDistance = 0f
-                    },
-                    onDragCancel = {
-                        trackingEdgeSwipe = false
-                        dragDistance = 0f
-                    },
-                )
-            },
+            .semantics { testTagsAsResourceId = true },
         activeDestination = activeTab,
         onActiveDestinationClick = onActiveDestinationClick,
         onMessagesClick = onMessagesClick,
@@ -694,18 +686,21 @@ private fun MainScreenScaffold(
                 mainState = mainState,
                 mainEventPublisher = mainEventPublisher,
                 accountDrawerVisible = accountDrawerVisible,
-                feedPickerVisible = feedPickerVisible,
                 readPickerVisible = readPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
                 sharedState = sharedState,
                 toggleOverlay = ::toggleOverlay,
                 onAlgorithmMenuClick = { algorithmDrawerVisible = true },
+                onLongReadsClick = { onTabChanged(PrimalTopLevelDestination.Reads) },
+                onBookmarksClick = {
+                    onDrawerDestinationClick(
+                        DrawerScreenDestination.Bookmarks(userId = mainState.activeAccountId),
+                    )
+                },
                 onExploreSearchClick = {},
-                onExploreSearchSubmit = { query -> navController.navigateToSearch(searchScope = SearchScope.Notes, initialQuery = query) },
-                onExploreSearchProfileClick = { profileId -> navController.navigateToProfile(profileId = profileId) },
-                onExploreAdvancedSearchClick = { navController.navigateToAdvancedSearch() },
-                exploreActiveSection = exploreActiveSection,
-                homeFeeds = homeState.feeds,
+                onExploreSearchProfileClick = { profileId ->
+                    navController.navigateToProfile(profileId = profileId)
+                },
                 readsFeeds = readsState.feeds,
                 navController = navController,
             )
@@ -725,7 +720,6 @@ private fun MainScreenScaffold(
                 notificationsSeenProvider = notificationsSeenProvider,
                 notificationsUnseenProvider = notificationsUnseenProvider,
                 onNotificationsSeen = onNotificationsSeen,
-                homeTopAppBarState = homeTopAppBarState,
                 navController = navController,
                 onTabChanged = onTabChanged,
                 onHomeNewNotesChanged = { homeHasNewNotes = it },
@@ -734,11 +728,9 @@ private fun MainScreenScaffold(
         overlay = {
             MainScreenOverlays(
                 accountDrawerVisible = accountDrawerVisible,
-                feedPickerVisible = feedPickerVisible,
                 readPickerVisible = readPickerVisible,
                 exploreSectionPickerVisible = exploreSectionPickerVisible,
                 algorithmDrawerVisible = algorithmDrawerVisible,
-                longReadVisible = longReadVisible,
                 exploreActiveSection = exploreActiveSection,
                 sharedState = sharedState,
                 homeFeeds = homeState.feeds,
@@ -746,11 +738,9 @@ private fun MainScreenScaffold(
                 activeAccountId = mainState.activeAccountId,
                 onDismissOverlay = { activeOverlay = null },
                 onDismissAlgorithmDrawer = { algorithmDrawerVisible = false },
-                onDismissLongRead = { longReadVisible = false },
                 onDrawerDestinationClick = onDrawerDestinationClick,
                 accountSwitcherCallbacks = accountSwitcherCallbacks,
                 navController = navController,
-                onTabChanged = onTabChanged,
             )
 
 
@@ -762,8 +752,8 @@ private fun MainScreenScaffold(
                 placement = BubblePlacement.Above,
             )
         },
-        overlayCoversTopBar = algorithmDrawerVisible || longReadVisible,
-        floatingActionButton = { MainScreenFab(activeTab = activeTab, navController = navController) },
+        overlayCoversTopBar = algorithmDrawerVisible,
+        floatingActionButton = { MainScreenFab(navController = navController) },
         snackbarHost = {
             SnackbarHost(hostState = sharedState.snackbarHostState)
         },
@@ -771,90 +761,21 @@ private fun MainScreenScaffold(
 }
 
 private val ALGORITHM_DRAWER_WIDTH = 320.dp
-private val LONG_READS_FEED_SPEC = buildAdvancedSearchReadsFeedSpec(query = "")
 
 @Composable
-private fun LongReadOverlay(
-    visible: Boolean,
-    onDismiss: () -> Unit,
-    onArticleClick: (String) -> Unit,
-) {
-    AnimatedVisibility(
-        visible = visible,
-        modifier = Modifier.fillMaxSize(),
-        enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
-        exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut(),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(AppTheme.colorScheme.background),
-        ) {
-            ArticleFeedList(
-                feedSpec = LONG_READS_FEED_SPEC,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 72.dp),
-                noContentText = stringResource(id = R.string.long_reads_no_content),
-                onArticleClick = onArticleClick,
-                onGetPremiumClick = {},
-                pullToRefreshEnabled = true,
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .background(AppTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = PrimalIcons.Close,
-                        contentDescription = stringResource(id = R.string.accessibility_close),
-                        tint = AppTheme.colorScheme.onSurface,
-                    )
-                }
-                Icon(
-                    modifier = Modifier.size(25.dp),
-                    imageVector = LibreNavigationIcons.LongReads,
-                    contentDescription = stringResource(id = R.string.accessibility_long_reads),
-                    tint = AppTheme.colorScheme.primary,
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(id = R.string.long_reads_title),
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colorScheme.onSurface,
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun MainScreenFab(activeTab: PrimalTopLevelDestination, navController: NavController) {
-    when (activeTab) {
-        PrimalTopLevelDestination.Feeds,
-        PrimalTopLevelDestination.Alerts,
-        -> NewPostFloatingActionButton(
-            onNewPostClick = { navController.navigateToNoteEditor(null) },
-        )
-
-        else -> {}
-    }
+private fun MainScreenFab(navController: NavController) {
+    NewPostFloatingActionButton(
+        onNewPostClick = { navController.navigateToNoteEditor(null) },
+    )
 }
 
 @Suppress("LongMethod")
 @Composable
 private fun MainScreenOverlays(
     accountDrawerVisible: Boolean,
-    feedPickerVisible: Boolean,
     readPickerVisible: Boolean,
     exploreSectionPickerVisible: Boolean,
     algorithmDrawerVisible: Boolean,
-    longReadVisible: Boolean,
     exploreActiveSection: ExploreSection,
     sharedState: MainScreenSharedState,
     homeFeeds: List<FeedUi>,
@@ -862,11 +783,9 @@ private fun MainScreenOverlays(
     activeAccountId: String,
     onDismissOverlay: () -> Unit,
     onDismissAlgorithmDrawer: () -> Unit,
-    onDismissLongRead: () -> Unit,
     onDrawerDestinationClick: (DrawerScreenDestination) -> Unit,
     accountSwitcherCallbacks: AccountSwitcherCallbacks,
     navController: NavController,
-    onTabChanged: (PrimalTopLevelDestination) -> Unit,
 ) {
     PrimalOverlay(
         visible = accountDrawerVisible,
@@ -878,28 +797,6 @@ private fun MainScreenOverlays(
             onQrCodeClick = { navController.navigateToProfileQrCodeViewer() },
             accountSwitcherCallbacks = accountSwitcherCallbacks,
         )
-    }
-
-    val homeActiveFeed = sharedState.homeActiveFeed.value
-    if (homeActiveFeed != null) {
-        PrimalOverlay(
-            visible = feedPickerVisible,
-            onDismiss = onDismissOverlay,
-        ) {
-            FeedListOverlayContent(
-                activeFeed = homeActiveFeed,
-                feedSpecKind = FeedSpecKind.Notes,
-                onFeedClick = { feed ->
-                    onDismissOverlay()
-                    sharedState.homeScrollToFeed.value = feed
-                },
-                onDismiss = onDismissOverlay,
-                onEditAdvancedSearchFeedClick = { feedSpec ->
-                    onDismissOverlay()
-                    navController.navigateToAdvancedSearch(editingFeedSpec = feedSpec)
-                },
-            )
-        }
     }
 
     val readsActiveFeed = sharedState.readsActiveFeed.value
@@ -959,11 +856,6 @@ private fun MainScreenOverlays(
         },
     )
 
-    LongReadOverlay(
-        visible = longReadVisible,
-        onDismiss = onDismissLongRead,
-        onArticleClick = { naddr -> navController.navigateToArticleDetails(naddr) },
-    )
 }
 
 @Composable
@@ -1142,7 +1034,6 @@ private fun handleActiveDestinationClick(
 
 private enum class ActiveOverlay {
     AccountDrawer,
-    FeedPicker,
     ReadPicker,
     ExploreSectionPicker,
 }
