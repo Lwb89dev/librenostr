@@ -258,6 +258,20 @@
                 android:value="Run a foreground service to keep remote signer operational." />
         </service>
 
+        <!--
+            CameraX's manifest-based auto-discovery of its Camera2 backend. It is a disabled,
+            non-exported placeholder that carries no code and no data of its own: CameraX reads its
+            <meta-data> through the PackageManager to find which CameraXConfig.Provider to
+            instantiate when nothing in the app supplies one directly. PrimalApp now implements
+            CameraXConfig.Provider itself, so this discovery step never runs and the placeholder can
+            be dropped from the merged manifest instead of showing up as an unexplained service.
+        -->
+        <service
+            android:name="androidx.camera.core.impl.MetadataHolderService"
+            android:enabled="false"
+            android:exported="false"
+            tools:node="remove" />
+
         <provider
             android:name=".signer.provider.LocalSignerContentProvider"
             android:authorities="${applicationId}.PING;${applicationId}.SIGN_MESSAGE;${applicationId}.SIGN_EVENT;${applicationId}.NIP04_ENCRYPT;${applicationId}.NIP04_DECRYPT;${applicationId}.NIP44_ENCRYPT;${applicationId}.NIP44_DECRYPT;${applicationId}.GET_PUBLIC_KEY;${applicationId}.DECRYPT_ZAP_EVENT"

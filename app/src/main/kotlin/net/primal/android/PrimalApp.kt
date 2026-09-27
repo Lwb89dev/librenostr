@@ -1,6 +1,8 @@
 package net.primal.android
 
 import android.app.Application
+import androidx.camera.camera2.Camera2Config
+import androidx.camera.core.CameraXConfig
 import coil3.SingletonImageLoader
 import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
@@ -16,7 +18,7 @@ import net.primal.data.account.repository.repository.factory.AccountRepositoryFa
 import net.primal.data.repository.factory.PrimalRepositoryFactory
 
 @HiltAndroidApp
-class PrimalApp : Application() {
+class PrimalApp : Application(), CameraXConfig.Provider {
 
     @Inject
     lateinit var antilog: Set<@JvmSuppressWildcards Antilog>
@@ -58,4 +60,12 @@ class PrimalApp : Application() {
         // that PrimalRepositoryFactory.init() above has already run — see the field's own comment.
         outboxRelayCoordinatorLazy.get()
     }
+
+    // Supplies CameraX's configuration directly instead of letting it discover one at runtime by
+    // querying the PackageManager for androidx.camera.core.impl.MetadataHolderService, a disabled
+    // placeholder <service> that camera-camera2 merges into the manifest for exactly that lookup.
+    // Providing it here (called lazily, only when something actually initializes CameraX, i.e. when
+    // the QR scanner opens) lets AndroidManifest.xml drop that placeholder instead of shipping a
+    // service that does nothing and reads as unexplained to anyone auditing the manifest.
+    override fun getCameraXConfig(): CameraXConfig = Camera2Config.defaultConfig()
 }
