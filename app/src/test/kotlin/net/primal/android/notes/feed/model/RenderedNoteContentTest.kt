@@ -41,10 +41,15 @@ class RenderedNoteContentTest {
 
         val result = content.toAnnotatedString(seeMoreText = "see more", highlightColor = color)
 
-        result.text shouldBe "stacking #Bitcoin 🟠 daily"
+        result.text shouldBe "stacking #Bitcoin ₿ daily"
         // The suffix sits after the annotation's own end, so tapping/copying the hashtag itself is unaffected.
         val hashtagAnnotation = result.getStringAnnotations(HASHTAG_ANNOTATION_TAG, 0, result.length).single()
         result.text.substring(hashtagAnnotation.start, hashtagAnnotation.end) shouldBe "#Bitcoin"
+        // Unlike the hashtag body (highlightColor) and unlike the purple circle (already a colored
+        // glyph), the bitcoin sign needs its own explicit style to render in Bitcoin's brand orange.
+        val signIndex = result.text.indexOf('₿')
+        result.spanStyles.single { signIndex in it.start until it.end }.item shouldBe
+            SpanStyle(color = Color(0xFFF7931A))
     }
 
     @Test
@@ -88,8 +93,9 @@ class RenderedNoteContentTest {
 
         val result = content.toAnnotatedString(seeMoreText = "see more", highlightColor = color)
 
-        result.text shouldBe "#bitcoin 🟠 then more #bitcoin 🟠 talk"
+        result.text shouldBe "#bitcoin ₿ then more #bitcoin ₿ talk"
         result.spanStyles.count { it.item == SpanStyle(color = color) } shouldBe 2
+        result.spanStyles.count { it.item == SpanStyle(color = Color(0xFFF7931A)) } shouldBe 2
     }
 
     @Test

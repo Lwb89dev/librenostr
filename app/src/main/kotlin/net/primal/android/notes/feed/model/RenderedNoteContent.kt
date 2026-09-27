@@ -167,17 +167,23 @@ private fun buildContentAnnotations(
  * color for that topic (the same idea as X's colored cashtags). Purely cosmetic: it is plain text
  * appended after the clickable span, never part of it, so tapping the hashtag is unaffected and a
  * copy-paste of the note carries it along like any other character.
+ *
+ * [color] is only needed for a glyph Unicode does not already render in color: the circle emoji
+ * below is a full-color glyph on its own, but U+20BF BITCOIN SIGN is a plain text character that
+ * takes whatever color its span is given, so bitcoin's needs one and the circle does not.
  */
-private val HASHTAG_SUFFIXES: Map<String, String> = mapOf(
-    "bitcoin" to " 🟠", // U+1F7E0 large orange circle: Bitcoin's own brand color
+private data class HashtagSuffix(val glyph: String, val color: Color? = null)
+
+private val HASHTAG_SUFFIXES: Map<String, HashtagSuffix> = mapOf(
+    "bitcoin" to HashtagSuffix(glyph = " ₿", color = Color(0xFFF7931A)), // Bitcoin's own brand orange
     // Unicode has no ostrich emoji (Nostr's own mascot); a purple circle matches the bitcoin
     // treatment above with the community's purple instead of drawing a custom inline icon.
-    "nostr" to " 🟣", // U+1F7E3 large purple circle
-    "grownostr" to " 🟣",
-    "asknostr" to " 🟣",
+    "nostr" to HashtagSuffix(glyph = " 🟣"), // U+1F7E3 large purple circle
+    "grownostr" to HashtagSuffix(glyph = " 🟣"),
+    "asknostr" to HashtagSuffix(glyph = " 🟣"),
 )
 
-private fun hashtagSuffix(hashtagText: String): String? =
+private fun hashtagSuffix(hashtagText: String): HashtagSuffix? =
     HASHTAG_SUFFIXES[hashtagText.removePrefix("#").lowercase()]
 
 fun RenderedNoteContent.toAnnotatedString(seeMoreText: String, highlightColor: Color): AnnotatedString {
@@ -195,7 +201,13 @@ fun RenderedNoteContent.toAnnotatedString(seeMoreText: String, highlightColor: C
             addStyle(style = SpanStyle(color = highlightColor), start = spanStart, end = length)
             addStringAnnotation(tag = annotation.tag, annotation = annotation.item, start = spanStart, end = length)
             if (annotation.tag == HASHTAG_ANNOTATION_TAG) {
-                hashtagSuffix(annotation.item)?.let(::append)
+                hashtagSuffix(annotation.item)?.let { suffix ->
+                    val suffixStart = length
+                    append(suffix.glyph)
+                    if (suffix.color != null) {
+                        addStyle(style = SpanStyle(color = suffix.color), start = suffixStart, end = length)
+                    }
+                }
             }
             cursor = annotation.end
         }
