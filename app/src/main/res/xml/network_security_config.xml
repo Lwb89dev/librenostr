@@ -13,6 +13,19 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">onion</domain>
     </domain-config>
+    <!--
+        Loopback and mDNS names only, for a self-hosted relay reachable exclusively from this
+        device's own network (see FallbackRelays.kt's isValidRelayUrl, which accepts the same two
+        cases and no others). A bare private IP literal is deliberately not covered: this format has
+        no wildcard for an address range, only for a name, so there is no way to allow one generic
+        "any local IP" exception here.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">::1</domain>
+        <domain includeSubdomains="true">local</domain>
+    </domain-config>
     <debug-overrides>
         <trust-anchors>
             <certificates src="system" />

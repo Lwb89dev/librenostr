@@ -162,30 +162,50 @@ private fun buildContentAnnotations(
             }
     }
 
+/**
+ * A short, decorative glyph appended right after specific hashtags, in the community's own brand
+ * color for that topic (the same idea as X's colored cashtags). Purely cosmetic: it is plain text
+ * appended after the clickable span, never part of it, so tapping the hashtag is unaffected and a
+ * copy-paste of the note carries it along like any other character.
+ */
+private val HASHTAG_SUFFIXES: Map<String, String> = mapOf(
+    "bitcoin" to " 🟠", // U+1F7E0 large orange circle: Bitcoin's own brand color
+    // Unicode has no ostrich emoji (Nostr's own mascot); a purple circle matches the bitcoin
+    // treatment above with the community's purple instead of drawing a custom inline icon.
+    "nostr" to " 🟣", // U+1F7E3 large purple circle
+    "grownostr" to " 🟣",
+    "asknostr" to " 🟣",
+)
+
+private fun hashtagSuffix(hashtagText: String): String? =
+    HASHTAG_SUFFIXES[hashtagText.removePrefix("#").lowercase()]
+
 fun RenderedNoteContent.toAnnotatedString(seeMoreText: String, highlightColor: Color): AnnotatedString {
     val fullText = if (shouldEllipsize) "$refinedText $seeMoreText" else refinedText
     return buildAnnotatedString {
-        append(fullText)
+        // Built by walking the annotations in order and appending text between them, rather than
+        // appending fullText once and styling ranges of it, because a hashtag suffix inserts
+        // characters that are not in fullText at all: every offset below is the builder's own
+        // running length, tracked as text is added, not an index into the original string.
+        var cursor = 0
+        annotations.sortedBy { it.start }.forEach { annotation ->
+            append(fullText.substring(cursor, annotation.start))
+            val spanStart = length
+            append(fullText.substring(annotation.start, annotation.end))
+            addStyle(style = SpanStyle(color = highlightColor), start = spanStart, end = length)
+            addStringAnnotation(tag = annotation.tag, annotation = annotation.item, start = spanStart, end = length)
+            if (annotation.tag == HASHTAG_ANNOTATION_TAG) {
+                hashtagSuffix(annotation.item)?.let(::append)
+            }
+            cursor = annotation.end
+        }
+        append(fullText.substring(cursor))
 
         if (fullText.endsWith(seeMoreText)) {
             addStyle(
                 style = SpanStyle(color = highlightColor),
-                start = fullText.length - seeMoreText.length,
-                end = fullText.length,
-            )
-        }
-
-        annotations.forEach {
-            addStyle(
-                style = SpanStyle(color = highlightColor),
-                start = it.start,
-                end = it.end,
-            )
-            addStringAnnotation(
-                tag = it.tag,
-                annotation = it.item,
-                start = it.start,
-                end = it.end,
+                start = length - seeMoreText.length,
+                end = length,
             )
         }
     }

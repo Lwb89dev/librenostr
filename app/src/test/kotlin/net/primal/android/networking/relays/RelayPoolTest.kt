@@ -646,6 +646,23 @@ class RelayPoolTest {
     }
 
     @Test
+    fun isValidRelayUrl_acceptsCleartextForLoopbackAndMdnsNamesOnly() {
+        "ws://localhost".isValidRelayUrl() shouldBe true
+        "ws://localhost:4848".isValidRelayUrl() shouldBe true
+        "ws://127.0.0.1:4848".isValidRelayUrl() shouldBe true
+        "ws://[::1]:4848".isValidRelayUrl() shouldBe true
+        "ws://my-relay.local".isValidRelayUrl() shouldBe true
+        "WS://MY-RELAY.LOCAL:4848/".isValidRelayUrl() shouldBe true
+        // A bare private IP has no name network_security_config.xml can allow cleartext for, so it
+        // would validate here and then never actually connect; rejecting it here is the honest answer.
+        "ws://192.168.1.50:4848".isValidRelayUrl() shouldBe false
+        "ws://10.0.0.5".isValidRelayUrl() shouldBe false
+        // A clearnet host that merely ends in something similar is not a local name.
+        "ws://notlocal.example.com".isValidRelayUrl() shouldBe false
+        "ws://local".isValidRelayUrl() shouldBe false
+    }
+
+    @Test
     fun changeRelays_capsPoolAndDropsInvalidUrls() =
         runTest {
             val factory = mockk<NostrSocketClientFactory>(relaxed = true)

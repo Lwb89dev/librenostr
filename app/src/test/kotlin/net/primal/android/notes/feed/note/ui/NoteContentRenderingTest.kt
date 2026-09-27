@@ -197,12 +197,14 @@ class NoteContentRenderingTest {
 
     @Test
     fun `hashtag gets a span and annotation`() {
-        val result = render(noteContent(content = "hello #nostr world", hashtags = listOf("#nostr")))
+        // Not #nostr/#bitcoin/etc.: those get a decorative brand-color suffix appended after the
+        // span (see RenderedNoteContentTest), which would make the plain shouldBe below wrong here.
+        val result = render(noteContent(content = "hello #friends world", hashtags = listOf("#friends")))
 
-        result.text shouldBe "hello #nostr world"
-        result.spanStyles shouldBe listOf(highlightSpan(start = 6, end = 12))
+        result.text shouldBe "hello #friends world"
+        result.spanStyles shouldBe listOf(highlightSpan(start = 6, end = 14))
         result.getStringAnnotations("hashtag", 0, result.length) shouldBe
-            listOf(AnnotatedString.Range("#nostr", 6, 12, "hashtag"))
+            listOf(AnnotatedString.Range("#friends", 6, 14, "hashtag"))
     }
 
     @Test

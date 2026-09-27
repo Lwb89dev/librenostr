@@ -75,21 +75,38 @@ enum class RelayNote {
 val FALLBACK_RELAYS = FALLBACK_RELAY_URLS.map { it.toRelay() }
 
 /**
- * Whether this is a relay address the app will connect to: a `wss://` host, or a `ws://` one when it
- * is an onion service.
+ * Whether this is a relay address the app will connect to: a `wss://` host, or a `ws://` one that
+ * can only mean a relay on this device's own network.
  *
- * Cleartext WebSocket is refused everywhere else. It is accepted for `.onion` because those relays
- * rarely have a TLS certificate and do not need one: Tor already encrypts and authenticates the whole
- * path to an onion service. Such an address can only be reached through Tor (see `RouteDns`), so
- * accepting it cannot expose anything on a normal network.
+ * Cleartext WebSocket is refused everywhere else, and the two exceptions both need a matching entry
+ * in `network_security_config.xml` or they would validate here and then simply never connect:
+ *
+ * - `.onion`: these relays rarely have a TLS certificate and do not need one, because Tor already
+ *   encrypts and authenticates the whole path to an onion service. Such an address can only be
+ *   reached through Tor (see `RouteDns`), so accepting it cannot expose anything on a normal network.
+ * - the loopback address/name, or an `.local` mDNS name: a self-hosted relay run for personal or
+ *   private use, reachable only from this device's own network. Any other cleartext host —
+ *   including a bare private IP literal such as `192.168.1.50` — is rejected on purpose: Android's
+ *   network security config cannot allow cleartext for a whole private address range, only for
+ *   specific names, so accepting an arbitrary IP here would look configured but never connect.
  */
 internal fun String.isValidRelayUrl(): Boolean {
     val url = trim().lowercase()
-    val host = url.substringAfter("://", "").substringBefore("/").substringBefore(":")
-    val schemeAllowed = url.startsWith("wss://") || (url.startsWith("ws://") && host.isOnionHost())
-    return schemeAllowed &&
-        host.contains('.') &&
-        !host.startsWith('.') &&
-        !host.endsWith('.') &&
-        host.none { it.isWhitespace() }
+    val host = url.substringAfter("://", "").extractHost()
+    if (host.isEmpty() || host.any { it.isWhitespace() }) return false
+
+    return when {
+        url.startsWith("wss://") -> host.isWellFormedHost()
+        url.startsWith("ws://") -> host.isOnionHost() || host.isLocalRelayHost()
+        else -> false
+    }
 }
+
+/** The host in `host[:port][/path]`, handling a bracketed IPv6 literal such as `[::1]` correctly. */
+private fun String.extractHost(): String =
+    if (startsWith("[")) substringAfter("[").substringBefore("]") else substringBefore("/").substringBefore(":")
+
+private fun String.isWellFormedHost() = contains('.') && !startsWith('.') && !endsWith('.')
+
+private fun String.isLocalRelayHost(): Boolean =
+    this == "localhost" || this == "127.0.0.1" || this == "::1" || endsWith(".local")
