@@ -118,6 +118,29 @@ class RenderedNoteContentTest {
     }
 
     @Test
+    fun `an annotation nested inside an earlier one is skipped instead of crashing`() {
+        // Regression test: a hashtag/mention match found inside the text of an already-claimed URL
+        // span used to leave `cursor` past that later annotation's own start, crashing the
+        // fullText.substring(cursor, annotation.start) call outright (begin greater than end).
+        val text = "0123456789"
+        val content = rendered(
+            text = text,
+            annotations = listOf(
+                ContentAnnotation(tag = URL_ANNOTATION_TAG, item = "url", start = 0, end = 10),
+                ContentAnnotation(tag = HASHTAG_ANNOTATION_TAG, item = "#tag", start = 5, end = 8),
+            ),
+        )
+
+        val result = content.toAnnotatedString(seeMoreText = "see more", highlightColor = color)
+
+        result.text shouldBe text
+        result.getStringAnnotations(HASHTAG_ANNOTATION_TAG, 0, result.length) shouldBe emptyList()
+        val urlAnnotation = result.getStringAnnotations(URL_ANNOTATION_TAG, 0, result.length).single()
+        urlAnnotation.start shouldBe 0
+        urlAnnotation.end shouldBe 10
+    }
+
+    @Test
     fun `the see-more highlight still lands on the trailing text after a suffix shifted everything`() {
         val content = rendered(
             text = "#bitcoin " + "x".repeat(ELLIPSIZE_THRESHOLD),

@@ -195,6 +195,13 @@ fun RenderedNoteContent.toAnnotatedString(seeMoreText: String, highlightColor: C
         // running length, tracked as text is added, not an index into the original string.
         var cursor = 0
         annotations.sortedBy { it.start }.forEach { annotation ->
+            // Annotations are found independently (a URL scan, a hashtag scan, a mention scan…),
+            // so one can start inside a span an earlier match already claimed — a hashtag-looking
+            // fragment inside a URL's own text, say. Sorting by start alone does not prevent that:
+            // skip whatever overlaps what has already been appended instead of building a
+            // substring(cursor, annotation.start) with annotation.start behind cursor, which
+            // crashed outright.
+            if (annotation.start < cursor) return@forEach
             append(fullText.substring(cursor, annotation.start))
             val spanStart = length
             append(fullText.substring(annotation.start, annotation.end))
