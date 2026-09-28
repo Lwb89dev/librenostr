@@ -7,6 +7,25 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.7.0] - 2026-09-28
+
+### Changed
+
+- The note feed, notifications and DM conversations now show content noticeably faster: opening a
+  reply's parent note, refreshing the feed, and loading notifications no longer wait on profile
+  pictures/names or on interaction counts before showing anything — the note or notification itself
+  appears first, names and counters fill in moments later.
+- Opening a DM conversation no longer re-decrypts the whole inbox every time; it also runs off the
+  main thread now, instead of occasionally freezing the app while it worked.
+- Relay queries no longer wait far longer than intended when a relay is slow or unreachable: a
+  single stuck query could previously hold up the screen for well over ten seconds; it's now capped
+  consistently across the app.
+
+### Fixed
+
+- Some notes crashed the feed outright when their content matched more than one highlighted piece
+  at the same spot (a hashtag inside a link, for instance).
+
 ## [0.6.2] - 2026-09-28
 
 ### Added
