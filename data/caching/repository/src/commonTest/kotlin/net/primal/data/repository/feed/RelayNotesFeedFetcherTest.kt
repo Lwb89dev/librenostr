@@ -180,6 +180,43 @@ class RelayNotesFeedFetcherTest {
             querier.requestedMetadataAuthors() shouldBe setOf("alice", "carol")
         }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun fetchPage_neverQueriesMetadata_onlyFetchMetadataForDoes() =
+        runTest {
+            val quotedId = "b".repeat(64)
+            val quoted = event(quotedId, "carol", NostrEventKind.ShortTextNote.value, 5)
+            val page = event(
+                id = "n1",
+                pubkey = "alice",
+                kind = NostrEventKind.ShortTextNote.value,
+                createdAt = 20,
+            ).copy(content = "check this out nostr:${quotedId.hexToNoteHrp()}")
+
+            val querier = FakeQuerier(listOf(page, quoted))
+            val dispatcher = UnconfinedTestDispatcher(testScheduler)
+            val coordinator = FetchCoordinator(
+                dispatcherProvider = mockk<DispatcherProvider> {
+                    every { io() } returns dispatcher
+                    every { main() } returns dispatcher
+                },
+            )
+            val fetcher = RelayNotesFeedFetcher(querier = querier, coordinator = coordinator)
+
+            val feedPage = fetcher.fetchPage(
+                userId = "alice",
+                feedSpec = """{"id":"feed","kind":"notes","notes":"authored","pubkey":"alice"}""",
+                includeReplies = false,
+                limit = 20,
+            )
+            feedPage.page.map { it.id } shouldBe listOf("n1")
+            feedPage.referencedNotes.map { it.id } shouldBe listOf(quotedId)
+            querier.requestedMetadataAuthors() shouldBe emptySet()
+
+            fetcher.fetchMetadataFor(feedPage)
+            querier.requestedMetadataAuthors() shouldBe setOf("alice", "carol")
+        }
+
     /** A database whose posts table is empty, for [LocalEventCache]'s cold-lookup fallback. */
     private fun emptyPostsDatabase(): CachingDatabase {
         val postDao = mockk<PostDao> { coEvery { findPosts(any()) } returns emptyList() }

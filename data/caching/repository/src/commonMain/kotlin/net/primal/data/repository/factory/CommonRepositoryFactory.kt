@@ -19,6 +19,7 @@ import net.primal.data.repository.feed.FeedRepositoryImpl
 import net.primal.data.repository.feed.paging.FeedSpecInvalidationTracker
 import net.primal.data.repository.feeds.FeedsRepositoryImpl
 import net.primal.data.repository.fetch.FetchCoordinator
+import net.primal.data.repository.fetch.SessionSyncRelayGate
 import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.data.repository.messages.ChatRepositoryImpl
 import net.primal.data.repository.messages.processors.MessagesProcessor
@@ -75,6 +76,9 @@ abstract class CommonRepositoryFactory {
      * the same time.
      */
     private val fetchCoordinator by lazy { FetchCoordinator(dispatcherProvider = dispatcherProvider) }
+
+    /** One background-sync concurrency budget for the whole app — see [SessionSyncRelayGate]. */
+    private val sessionSyncRelayGate by lazy { SessionSyncRelayGate() }
 
     abstract fun resolveCachingDatabase(): CachingDatabase
 
@@ -139,6 +143,7 @@ abstract class CommonRepositoryFactory {
             relayEventQuerier = relayEventQuerier,
             fetchCoordinator = fetchCoordinator,
             nip17Transport = nip17Transport,
+            sessionSyncRelayGate = sessionSyncRelayGate,
         )
     }
 
@@ -246,6 +251,7 @@ abstract class CommonRepositoryFactory {
             mediaCacher = mediaCacher,
             relayEventQuerier = relayEventQuerier,
             localEventCache = localEventCache,
+            sessionSyncRelayGate = sessionSyncRelayGate,
         )
     }
 

@@ -12,10 +12,19 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -26,6 +35,7 @@ import net.primal.android.networking.relays.RelaysSocketManager
 import net.primal.android.nostr.notary.NostrNotary
 import net.primal.android.user.domain.Relay
 import net.primal.android.user.domain.cleanWebSocketUrl
+import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.runCatching
 import net.primal.domain.messages.Nip17Message
@@ -44,6 +54,7 @@ import net.primal.domain.nostr.relay.RelayFilter
 class Nip17TransportImpl @Inject constructor(
     private val relays: RelaysSocketManager,
     private val notary: NostrNotary,
+    private val dispatcherProvider: DispatcherProvider,
 ) : Nip17Transport {
 
     /**
@@ -61,6 +72,22 @@ class Nip17TransportImpl @Inject constructor(
 
     /** Accounts whose kind-10050 announcement this process has already handled. */
     private val announcedInboxes = ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * Outer Gift Wrap ids already unwrapped this process lifetime.
+     *
+     * Only opaque NIP-01 event ids — the same ones any relay already holds for a wrap it
+     * accepted, never a key or a decrypted payload. Without this, every single poll re-ran two
+     * NIP-44 operations per wrap for the whole inbox, even for messages seen and persisted on a
+     * previous poll; `ChatViewModel.subscribeToTotalUnreadCountChanges` triggers exactly this on
+     * every chat screen open, via `SubscriptionsManager.badges`' `replay = 1`. Session-scoped by
+     * design — in-memory only, never persisted, gone on process death — so a decrypt failure
+     * never survives past the process that produced it. Left unbounded for the same reason
+     * [deliveryRelayCache]/[inboxCache]/[announcedInboxes] above are: nothing in this class is
+     * cleared on logout today, and realistic Gift Wrap volume per process lifetime does not
+     * warrant adding eviction here alone.
+     */
+    private val seenGiftWrapIds = ConcurrentHashMap.newKeySet<String>()
 
     override suspend fun sendMessage(
         userId: String,
@@ -166,23 +193,48 @@ class Nip17TransportImpl @Inject constructor(
     override suspend fun resolveInboxRelays(userId: String): List<String> =
         findDeliveryRelays(userId).map { it.url }
 
-    override suspend fun fetchMessages(userId: String, limit: Int): List<Nip17Message> {
-        val dmRelays = ownInboxRelays(userId)
-        Napier.i { "NIP-17 inbox poll on ${dmRelays.joinToString { it.url }}" }
-        // Announcing after resolving, not before: a sender can only find this inbox once the
-        // kind-10050 exists, and until then they deliver to the bootstrap pool that
-        // ownInboxRelays already covers. Best effort — it must never fail an inbox poll.
-        announceOwnDmRelaysIfMissing(userId = userId, resolved = announceableInbox(userId))
-        return relays.queryEvents(
-            filter = RelayFilter(
-                kinds = listOf(NostrEventKind.GiftWrap.value),
-                pubkeyTags = listOf(userId),
-                limit = limit,
-            ),
-            relays = dmRelays,
-        ).events.distinctBy { it.id }.mapNotNull { unwrap(userId = userId, outer = it) }
-    }
+    /**
+     * Both the fetch and the decrypt happen off the caller's dispatcher, unconditionally.
+     *
+     * `ChatViewModel.subscribeToTotalUnreadCountChanges` calls this from a bare
+     * `viewModelScope.launch { }` (Main.immediate), on every chat screen open —
+     * `SubscriptionsManager.badges` has `replay = 1`, so a brand-new collector fires immediately.
+     * Before this fix, `unwrap()` (two NIP-44 operations plus signature checks per wrap) ran
+     * sequentially — `.mapNotNull`, no fan-out — for up to [limit] wraps, all on the caller's
+     * dispatcher: opening any single chat could block the main thread decrypting the entire
+     * inbox. Pinning to IO and fanning the decrypt out here means every caller is protected, not
+     * just the ones that remember to wrap this call themselves.
+     */
+    override suspend fun fetchMessages(userId: String, limit: Int): List<Nip17Message> =
+        withContext(dispatcherProvider.io()) {
+            val dmRelays = ownInboxRelays(userId)
+            Napier.i { "NIP-17 inbox poll on ${dmRelays.joinToString { it.url }}" }
+            // Announcing after resolving, not before: a sender can only find this inbox once the
+            // kind-10050 exists, and until then they deliver to the bootstrap pool that
+            // ownInboxRelays already covers. Best effort — it must never fail an inbox poll.
+            announceOwnDmRelaysIfMissing(userId = userId, resolved = announceableInbox(userId))
+            val events = relays.queryEvents(
+                filter = RelayFilter(
+                    kinds = listOf(NostrEventKind.GiftWrap.value),
+                    pubkeyTags = listOf(userId),
+                    limit = limit,
+                ),
+                relays = dmRelays,
+            ).events.distinctBy { it.id }
+            // Already-decrypted wraps are skipped outright: re-decrypting the same up-to-[limit]
+            // events on every poll (every chat open, per the doc comment above) was the dominant
+            // cost, bigger than the sequential-vs-parallel gap below on its own.
+            val unseen = events.filterNot { it.id in seenGiftWrapIds }
+            val decrypted = coroutineScope {
+                unseen.map { event -> async { event.id to unwrap(userId = userId, outer = event) } }.awaitAll()
+            }
+            // Only ids that actually decrypted are remembered: a transient failure (e.g. the
+            // signer not ready yet) is retried on the next poll instead of being hidden forever.
+            seenGiftWrapIds.addAll(decrypted.filter { (_, msg) -> msg != null }.map { (id, _) -> id })
+            decrypted.mapNotNull { (_, msg) -> msg }
+        }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun subscribeMessages(userId: String): Flow<Nip17Message> =
         flow {
             val dmRelays = ownInboxRelays(userId)
@@ -197,7 +249,14 @@ class Nip17TransportImpl @Inject constructor(
                     relays = dmRelays,
                 ),
             )
-        }.mapNotNull { unwrap(userId = userId, outer = it) }
+        }
+            .filterNot { it.id in seenGiftWrapIds }
+            .flatMapMerge(concurrency = SUBSCRIBE_DECRYPT_CONCURRENCY) { event ->
+                flow { emit(event.id to unwrap(userId = userId, outer = event)) }
+            }
+            .onEach { (id, msg) -> if (msg != null) seenGiftWrapIds.add(id) }
+            .mapNotNull { (_, msg) -> msg }
+            .flowOn(dispatcherProvider.io())
 
     private suspend fun unwrap(userId: String, outer: NostrEvent): Nip17Message? =
         runCatching {
@@ -394,6 +453,15 @@ class Nip17TransportImpl @Inject constructor(
          * only has to find an envelope somebody else already chose where to put.
          */
         const val MAX_INBOX_POLL_RELAYS = 8
+
+        /**
+         * How many Gift Wraps [subscribeMessages] decrypts at once. Bounded, unlike
+         * [fetchMessages]'s unlimited fan-out: a live subscription only ever delivers a small
+         * burst per relay round, not up to [Nip17Transport.DEFAULT_FETCH_LIMIT] at once, so a cap
+         * this size is headroom, not a real limit — it exists to bound CPU fan-out on a
+         * reconnect burst, not to throttle typical traffic.
+         */
+        const val SUBSCRIBE_DECRYPT_CONCURRENCY = 8
 
         /** Rumor kinds this transport understands: NIP-17 chat, NIP-17 file, gift-wrapped note. */
         val SUPPORTED_RUMOR_KINDS = setOf(

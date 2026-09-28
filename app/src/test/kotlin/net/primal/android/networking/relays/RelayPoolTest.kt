@@ -5,6 +5,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -568,6 +569,90 @@ class RelayPoolTest {
 
             val result = deferred.await()
             result.events.map { it.id }.sorted() shouldBe listOf("fast", "second", "third")
+        }
+
+    @Test
+    fun query_settleSignalReturnsWhatWasCollectedInsteadOfWaitingForTheQuorum() =
+        runTest {
+            // A supplementary pool used to be cancelled from outside when the caller stopped
+            // waiting for it, and everything it had already collected was thrown away with it.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-settle" }
+            val incoming = (1..5).map { MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16) }
+            relayPool.socketClients = incoming.mapIndexed { index, flow -> buildQuerySocket("wss://relay$index", flow) }
+            val settle = CompletableDeferred<Unit>()
+
+            val deferred = async {
+                relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 50), settleSignal = settle)
+            }
+            runCurrent()
+
+            // One relay answers; the quorum of three is nowhere near.
+            incoming[0].emit(
+                NostrIncomingMessage.EventMessage(subscriptionId = "sub-settle", nostrEvent = buildNostrEvent("early")),
+            )
+            incoming[0].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-settle"))
+            runCurrent()
+            deferred.isCompleted shouldBe false
+
+            settle.complete(Unit)
+            runCurrent()
+
+            deferred.isCompleted shouldBe true
+            deferred.await().events.map { it.id } shouldBe listOf("early")
+        }
+
+    @Test
+    fun query_neverRunsPastItsOwnDeadline() =
+        runTest {
+            // The first-EOSE, quorum and empty-result waits each used to get a fresh timeout of
+            // their own, so a late first EOSE could make one query run for twice its nominal
+            // timeout or more.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-deadline" }
+            val incoming = (1..5).map { MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16) }
+            relayPool.socketClients = incoming.mapIndexed { index, flow -> buildQuerySocket("wss://relay$index", flow) }
+            val timeoutMs = 2_000L
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 50), timeoutMs = timeoutMs) }
+            runCurrent()
+
+            // First EOSE arrives just before the deadline; the quorum never comes.
+            testScheduler.advanceTimeBy(timeoutMs - 100)
+            incoming[0].emit(
+                NostrIncomingMessage.EventMessage(subscriptionId = "sub-deadline", nostrEvent = buildNostrEvent("late")),
+            )
+            incoming[0].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-deadline"))
+            runCurrent()
+
+            testScheduler.advanceTimeBy(200)
+            runCurrent()
+
+            deferred.isCompleted shouldBe true
+            deferred.await().events.map { it.id } shouldBe listOf("late")
+        }
+
+    @Test
+    fun query_emptyTagQueryDoesNotWaitForTheSlowestRelayOnceAQuorumAnswered() =
+        runTest {
+            // "This note has no reposts" is a normal answer. Waiting for every relay on an empty
+            // tag query held a query slot for a timing-out relay's full timeout.
+            val relayPool = buildRelayPool()
+            relayPool.subscriptionIdFactory = { "sub-empty-tag" }
+            val incoming = (1..5).map { MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 16) }
+            relayPool.socketClients = incoming.mapIndexed { index, flow -> buildQuerySocket("wss://relay$index", flow) }
+
+            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(6), limit = 50)) }
+            runCurrent()
+
+            // A quorum of three answers with nothing; the other two never answer.
+            (0..2).forEach { incoming[it].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-empty-tag")) }
+            runCurrent()
+            testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS + 50)
+            runCurrent()
+
+            deferred.isCompleted shouldBe true
+            deferred.await().events shouldBe emptyList()
         }
 
     @Test

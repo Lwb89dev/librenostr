@@ -21,12 +21,18 @@ import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.notifications.NotificationsApi
 import net.primal.data.remote.api.notifications.model.NotificationsRequestBody
 import net.primal.data.remote.api.notifications.model.wireToken
+import net.primal.data.repository.feed.asReferencedPrimalEvent
 import net.primal.data.repository.feed.processors.persistToDatabaseAsTransaction
+import net.primal.data.repository.feed.toFeedResponse
 import net.primal.data.repository.mappers.remote.mapNotNullAsNotificationPO
 import net.primal.data.repository.mappers.remote.mapNotNullAsProfileStatsPO
+import net.primal.data.repository.notifications.NotificationEvents
+import net.primal.data.repository.notifications.RelayNotificationsResult
 import net.primal.data.repository.notifications.persist
 import net.primal.data.repository.utils.cacheAvatarUrls
+import net.primal.domain.common.PrimalEvent
 import net.primal.domain.common.exception.NetworkException
+import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.shared.data.local.db.withTransaction
@@ -205,9 +211,9 @@ internal class NotificationsRemoteMediator(
             LoadType.APPEND -> state.lastItemOrNull()?.data?.createdAt
         }
         val fetcher = net.primal.data.repository.notifications.RelayNotificationsFetcher(querier, localEventCache)
-        val result = try {
+        val events = try {
             withContext(dispatcherProvider.io()) {
-                var attempt = fetcher.fetch(
+                var attempt = fetcher.fetchEvents(
                     userId = userId,
                     group = group,
                     limit = maxOf(state.config.pageSize, RELAY_PAGE_SIZE),
@@ -220,7 +226,7 @@ internal class NotificationsRemoteMediator(
                 var retriesLeft = COLD_START_RETRIES
                 while (loadType == LoadType.REFRESH && attempt.notifications.isEmpty() && retriesLeft > 0) {
                     delay(COLD_START_RETRY_DELAY_MS)
-                    attempt = fetcher.fetch(
+                    attempt = fetcher.fetchEvents(
                         userId = userId,
                         group = group,
                         limit = maxOf(state.config.pageSize, RELAY_PAGE_SIZE),
@@ -235,17 +241,47 @@ internal class NotificationsRemoteMediator(
             Napier.w(error) { "Failed to get notifications from relays." }
             return MediatorResult.Error(error)
         }
-        if (result.notifications.isEmpty()) {
+        if (events.notifications.isEmpty()) {
             return MediatorResult.Success(endOfPaginationReached = true)
         }
-        withContext(dispatcherProvider.io()) {
-            result.persist(userId = userId, group = group, database = database)
+
+        // First pass: persist the notification rows and the note content they need — the quoted
+        // notes' own bodies included, just not their authors' kind 0 yet — so the tab shows
+        // something the moment content is known, instead of waiting for a second live round trip
+        // (actor and quoted-author profiles) to land first. Room's own reactive query picks up
+        // the second pass's `profiles` write on its own, the same split RelayThreadFetcher and
+        // RelayNotesFeedFetcher already use for the same reason.
+        val referencedEvents = events.quotedNotes.map { it.asReferencedPrimalEvent() }
+        events.toResult(metadata = emptyList(), referencedEvents = referencedEvents).let { eventsOnlyResult ->
+            withContext(dispatcherProvider.io()) {
+                eventsOnlyResult.persist(userId = userId, group = group, database = database)
+            }
         }
+
+        val metadata = withContext(dispatcherProvider.io()) { fetcher.fetchMetadataFor(events) }
+        if (metadata.isNotEmpty()) {
+            val fullResult = events.toResult(metadata = metadata, referencedEvents = referencedEvents)
+            withContext(dispatcherProvider.io()) {
+                fullResult.persist(userId = userId, group = group, database = database)
+            }
+        }
+
         // End of list is decided by what the relays returned, not by how many rows survived the
         // group filter. Judging by the filtered count stopped a sparse tab — Zaps especially —
         // after its first page even when older events were still available.
-        return MediatorResult.Success(endOfPaginationReached = result.relayEventCount < RELAY_PAGE_SIZE)
+        return MediatorResult.Success(endOfPaginationReached = events.relayEventCount < RELAY_PAGE_SIZE)
     }
+
+    private fun NotificationEvents.toResult(
+        metadata: List<NostrEvent>,
+        referencedEvents: List<PrimalEvent>,
+    ): RelayNotificationsResult =
+        RelayNotificationsResult(
+            notifications = notifications,
+            feedResponse = (contentEvents + metadata).distinctBy { it.id }
+                .toFeedResponse(metadata, referencedEvents = referencedEvents),
+            relayEventCount = relayEventCount,
+        )
 
     private fun List<NotificationData>.mapWithSeenAtTimestamps(): List<NotificationData> {
         return this.map {

@@ -28,6 +28,12 @@ import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 
+/** The flat event set [RelayNotesFeedFetcher.fetchPage] resolves for one feed page. */
+internal data class NotesFeedPage(
+    val page: List<NostrEvent>,
+    val referencedNotes: List<NostrEvent>,
+)
+
 internal class RelayNotesFeedFetcher(
     private val querier: RelayEventQuerier,
     private val coordinator: FetchCoordinator,
@@ -48,11 +54,37 @@ internal class RelayNotesFeedFetcher(
         limit: Int,
         until: Long? = null,
         since: Long? = null,
-    ): FeedResponse =
+    ): FeedResponse {
+        val feedPage = fetchPage(
+            userId = userId,
+            feedSpec = feedSpec,
+            includeReplies = includeReplies,
+            limit = limit,
+            until = until,
+            since = since,
+        )
+        return feedPage.page.toFeedResponse(
+            metadata = fetchMetadataFor(feedPage),
+            referencedEvents = feedPage.referencedNotes.map { it.asReferencedPrimalEvent() },
+        )
+    }
+
+    /**
+     * The events a page needs, before profile metadata is resolved for them — see
+     * [fetchMetadataFor]. A caller that wants the whole thing in one shot should use [fetch].
+     */
+    suspend fun fetchPage(
+        userId: String,
+        feedSpec: String,
+        includeReplies: Boolean,
+        limit: Int,
+        until: Long? = null,
+        since: Long? = null,
+    ): NotesFeedPage =
         if (feedSpec.isNotesBookmarkFeedSpec()) {
-            fetchBookmarkedNotes(userId = userId, limit = limit, until = until, since = since)
+            fetchBookmarkedNotesPage(userId = userId, limit = limit, until = until, since = since)
         } else {
-            fetchAuthoredNotes(
+            fetchAuthoredNotesPage(
                 userId = userId,
                 feedSpec = feedSpec,
                 includeReplies = includeReplies,
@@ -63,16 +95,16 @@ internal class RelayNotesFeedFetcher(
         }
 
     /** Every feed whose scope is a set of authors: following, a follow set, or one profile. */
-    private suspend fun fetchAuthoredNotes(
+    private suspend fun fetchAuthoredNotesPage(
         userId: String,
         feedSpec: String,
         includeReplies: Boolean,
         limit: Int,
         until: Long? = null,
         since: Long? = null,
-    ): FeedResponse {
+    ): NotesFeedPage {
         val authors = loadAuthors(userId, feedSpec)
-        if (authors.isEmpty()) return emptyFeedResponse()
+        if (authors.isEmpty()) return NotesFeedPage(page = emptyList(), referencedNotes = emptyList())
 
         val noteEvents = queryInChunks(
             authors = authors,
@@ -90,39 +122,38 @@ internal class RelayNotesFeedFetcher(
             .filter { includeReplies || !it.tags.hasEventIdTag() }
         val reposts = unique.filter { it.kind == NostrEventKind.ShortTextNoteRepost.value }
         val page = (notes + reposts).sortedByDescending { it.createdAt }.take(limit)
-        return buildPageResponse(page)
+        return buildPageEvents(page)
     }
 
     /**
-     * Everything a page of notes needs around it: the notes it quotes, and a kind 0 for its
-     * authors and mentions. Shared by every feed this fetcher serves, whatever picked the page.
+     * The notes a page needs around it, before profile metadata is resolved for them.
+     *
+     * Split from the old `buildPageResponse` so a caller (the REFRESH branch of
+     * [net.primal.data.repository.feed.paging.NoteFeedRemoteMediator]) can persist this alone —
+     * the note bodies and the quotes they need to render — without waiting for kind 0 to also
+     * land first, the same split [RelayThreadFetcher] already uses for the same reason.
      */
-    private suspend fun buildPageResponse(page: List<NostrEvent>): FeedResponse {
+    private suspend fun buildPageEvents(page: List<NostrEvent>): NotesFeedPage {
         val pageIds = page.map { it.id }.toSet()
-        val pageAuthorCandidates = page.metadataAuthorCandidates()
+        val referencedNotes = fetchReferencedNotes(
+            referencedIds = page.referencedNoteIds().filterNot { it in pageIds },
+        )
+        return NotesFeedPage(page = page, referencedNotes = referencedNotes)
+    }
 
-        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) and the
-        // page's own authors/mentions both depend only on `page`, not on each other, so both
-        // round trips run at once instead of the mention metadata waiting behind the quotes —
-        // the same pattern RelayNotificationsFetcher already uses for the same reason.
-        val (referencedNotes, pageMetadata) = coroutineScope {
-            val referenced = async {
-                fetchReferencedNotes(referencedIds = page.referencedNoteIds().filterNot { it in pageIds })
-            }
-            val metadata = async { fetchMetadataFor(pubkeys = pageAuthorCandidates) }
-            referenced.await() to metadata.await()
-        }
+    /** Everyone a page's content renderer needs a kind 0 for: authors, mentions, and quotes. */
+    suspend fun fetchMetadataFor(feedPage: NotesFeedPage): List<NostrEvent> {
+        val pageAuthorCandidates = feedPage.page.metadataAuthorCandidates()
+        val pageMetadata = fetchMetadataFor(pubkeys = pageAuthorCandidates)
 
         // A quoted note can introduce an author the page itself never mentioned. Everyone else
         // was already covered by the query above, so this is a small, often-empty top-up rather
         // than a third full round trip.
-        val extraAuthorCandidates = referencedNotes.metadataAuthorCandidates() - pageAuthorCandidates.toSet()
+        val extraAuthorCandidates =
+            feedPage.referencedNotes.metadataAuthorCandidates() - pageAuthorCandidates.toSet()
         val extraMetadata = fetchMetadataFor(pubkeys = extraAuthorCandidates)
 
-        return page.toFeedResponse(
-            metadata = pageMetadata + extraMetadata,
-            referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() },
-        )
+        return pageMetadata + extraMetadata
     }
 
     /**
@@ -136,14 +167,14 @@ internal class RelayNotesFeedFetcher(
      * posts with their content intact. A bookmark that points at anything else is left out rather
      * than shown as an empty card.
      */
-    private suspend fun fetchBookmarkedNotes(
+    private suspend fun fetchBookmarkedNotesPage(
         userId: String,
         limit: Int,
         until: Long?,
         since: Long?,
-    ): FeedResponse {
+    ): NotesFeedPage {
         val bookmarkedIds = loadBookmarkedNoteIds(userId)
-        if (bookmarkedIds.isEmpty()) return emptyFeedResponse()
+        if (bookmarkedIds.isEmpty()) return NotesFeedPage(page = emptyList(), referencedNotes = emptyList())
 
         val page = fetchReferencedNotes(referencedIds = bookmarkedIds)
             .distinctBy { it.id }
@@ -152,7 +183,7 @@ internal class RelayNotesFeedFetcher(
             .filter { since == null || it.createdAt >= since }
             .sortedByDescending { it.createdAt }
             .take(limit)
-        return buildPageResponse(page)
+        return buildPageEvents(page)
     }
 
     private suspend fun loadBookmarkedNoteIds(userId: String): List<String> {

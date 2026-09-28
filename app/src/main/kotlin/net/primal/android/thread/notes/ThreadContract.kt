@@ -18,7 +18,11 @@ interface ThreadContract {
     )
 
     sealed class UiEvent {
+        /** Pull-to-refresh and the no-content retry button: always forces a real fetch. */
         data object UpdateConversation : UiEvent()
+
+        /** The screen becoming visible (`ON_START`): skippable when already fetched recently. */
+        data object ScreenStarted : UiEvent()
         data object DismissError : UiEvent()
     }
 

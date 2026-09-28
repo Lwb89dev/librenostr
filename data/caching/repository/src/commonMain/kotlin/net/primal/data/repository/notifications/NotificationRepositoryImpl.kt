@@ -19,6 +19,7 @@ import net.primal.data.local.dao.notifications.Notification as NotificationPO
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.remote.api.notifications.NotificationsApi
 import net.primal.data.repository.cache.LocalEventCache
+import net.primal.data.repository.fetch.SessionSyncRelayGate
 import net.primal.data.repository.mappers.local.asNotificationDO
 import net.primal.data.repository.notifications.paging.NotificationsRemoteMediator
 import net.primal.domain.nostr.NostrEvent
@@ -36,6 +37,7 @@ internal class NotificationRepositoryImpl(
     private val relayEventQuerier: RelayEventQuerier? = null,
     /** Shared with every other repository, so the dedupe spans the app and not one object. */
     private val localEventCache: LocalEventCache,
+    private val sessionSyncRelayGate: SessionSyncRelayGate = SessionSyncRelayGate(),
 ) : NotificationRepository {
 
     /** Session-scoped, so the session-start sync does not re-request what a page just fetched. */
@@ -69,9 +71,15 @@ internal class NotificationRepositoryImpl(
         }
     }
 
+    /**
+     * Only ever called from [net.primal.android.core.updater.SessionSyncCoordinator] at session
+     * start, so the querier is always throttled here — unlike [constructRemoteMediator]'s
+     * interactive paging, which keeps the plain, full-priority [relayEventQuerier] because a user
+     * actively scrolling the notifications tab must not be slowed down by this gate.
+     */
     override suspend fun syncNotifications(userId: String, backfillPages: Int) =
         withContext(dispatcherProvider.io()) {
-            val querier = relayEventQuerier ?: return@withContext
+            val querier = relayEventQuerier?.let { sessionSyncRelayGate.wrap(it) } ?: return@withContext
             val fetcher = RelayNotificationsFetcher(querier, localEventCache)
 
             // Only the ALL group is walked. Every other tab is a filter over the same events, so

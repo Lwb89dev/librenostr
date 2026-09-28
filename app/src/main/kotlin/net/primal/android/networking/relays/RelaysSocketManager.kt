@@ -2,10 +2,12 @@ package net.primal.android.networking.relays
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
@@ -260,27 +263,69 @@ class RelaysSocketManager @Inject constructor(
             // public notes are often replicated only on fallback relays. Returning the first
             // non-empty pool made a single matching event suppress the rest of the network and
             // left the home feed empty after the Primal cache was removed.
+            val userHasRelays = userRelaysPool.hasRelays()
+            // Measured on-device: the account relays answer in about half a second, while the
+            // public pool — the same REQ, fanned out to more sockets, behind its own 4-slot gate —
+            // routinely sat queued long enough to hit its 4s cap. The cap then cancelled it and
+            // threw away everything it had collected, so every sequential stage of a feed or
+            // notifications load cost a flat 4s for nothing. The account pool is now the answer;
+            // the public pool only supplements it for a short grace after that answer lands, and
+            // keeps whatever it collected by then instead of losing it.
+            val settleFallback = CompletableDeferred<Unit>()
+            val giveUpOnFallback = CompletableDeferred<Unit>()
+            // A hard cap on the public pool measured from right now — time spent queued for one
+            // of its gate permits included. Without it, a query whose account-relay answer was
+            // empty waited on the public pool with no bound at all: measured at up to 17s, which
+            // stalled the session-start notification sync on a single missing quoted note.
+            val fallbackCap = launch {
+                delay(FALLBACK_QUERY_TIMEOUT_MS)
+                settleFallback.complete(Unit)
+                delay(FALLBACK_SETTLE_MARGIN_MS)
+                giveUpOnFallback.complete(Unit)
+            }
             val fallback = async {
                 if (skipFallback) {
                     RelayPoolQueryResult()
                 } else {
-                    withTimeoutOrNull(FALLBACK_QUERY_TIMEOUT_MS) {
-                        fallbackRelaysPool.query(filter)
-                    } ?: RelayPoolQueryResult()
+                    fallbackRelaysPool.query(
+                        filter = filter,
+                        timeoutMs = FALLBACK_QUERY_TIMEOUT_MS,
+                        settleSignal = settleFallback,
+                    )
                 }
             }
-            val userResult = async {
-                userRelaysPool
-                    .takeIf { it.hasRelays() }
-                    ?.let { pool ->
-                        // RelayPool itself waits up to eight seconds for EOSE; bound that wait.
-                        withTimeoutOrNull(USER_QUERY_TIMEOUT_MS) { pool.query(filter) }
-                    }
-                    ?: RelayPoolQueryResult()
+            val account = if (userHasRelays) {
+                // The pool's own deadline returns a partial result; this outer bound only guards
+                // against a query stuck waiting for a gate permit.
+                withTimeoutOrNull(RelayPool.SUBSCRIBE_TIMEOUT.toLong()) {
+                    userRelaysPool.query(filter = filter, timeoutMs = USER_QUERY_TIMEOUT_MS)
+                } ?: RelayPoolQueryResult()
+            } else {
+                RelayPoolQueryResult()
             }
 
-            val account = userResult.await()
-            val public = fallback.await()
+            // Only cut the public pool short early when the account relays actually produced
+            // something: content they do not hold at all still gets the public pool's full cap,
+            // and an account with no relays configured relies on it entirely.
+            val graceTimer = if (account.events.isNotEmpty()) {
+                launch {
+                    delay(FALLBACK_GRACE_AFTER_USER_MS)
+                    settleFallback.complete(Unit)
+                    delay(FALLBACK_SETTLE_MARGIN_MS)
+                    giveUpOnFallback.complete(Unit)
+                }
+            } else {
+                null
+            }
+            // Settling makes a running public query hand back what it has; one still queued for a
+            // gate permit by then has collected nothing, so it is dropped instead of waited for.
+            val public = select {
+                fallback.onAwait { it }
+                giveUpOnFallback.onAwait { null }
+            } ?: RelayPoolQueryResult().also { fallback.cancel() }
+            // coroutineScope waits for its children: the timers must not keep this call open.
+            fallbackCap.cancel()
+            graceTimer?.cancel()
             RelayPoolQueryResult(
                 events = (account.events + public.events).distinctBy { it.id },
                 eoseRelays = account.eoseRelays + public.eoseRelays,
@@ -350,6 +395,16 @@ class RelaysSocketManager @Inject constructor(
         // These bounds are intentionally distinct so a slow account relay cannot cancel fallback.
         const val USER_QUERY_TIMEOUT_MS = 3_500L
         const val FALLBACK_QUERY_TIMEOUT_MS = 4_000L
+
+        /**
+         * How long the public pool may keep adding events after the account relays have answered.
+         * The two start together, so by then it has already had as long as the account relays
+         * took (about half a second, measured) plus this.
+         */
+        const val FALLBACK_GRACE_AFTER_USER_MS = 500L
+
+        /** Time for a settled public query to hand back what it collected. */
+        const val FALLBACK_SETTLE_MARGIN_MS = 300L
 
         // Kinds where the request itself is sensitive, not just the payload: direct messages and
         // mute lists reveal who the user talks to and who they block.

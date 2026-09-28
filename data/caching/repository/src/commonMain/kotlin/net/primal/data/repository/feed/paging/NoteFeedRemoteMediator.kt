@@ -29,7 +29,9 @@ import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.feed.RelayAdvancedSearchFeedFetcher
 import net.primal.data.repository.feed.RelayEventStatsFetcher
 import net.primal.data.repository.feed.RelayNotesFeedFetcher
+import net.primal.data.repository.feed.asReferencedPrimalEvent
 import net.primal.data.repository.feed.processors.FeedProcessor
+import net.primal.data.repository.feed.toFeedResponse
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.utils.cacheAvatarUrls
 import net.primal.domain.common.exception.NetworkException
@@ -268,7 +270,7 @@ internal class NoteFeedRemoteMediator(
         } else {
             pagingState.config.pageSize
         }
-        val (request, response) = if (isAppendRetryRefresh) {
+        val syncResult = if (isAppendRetryRefresh) {
             // Exactly what a real LoadType.APPEND would run: remoteKey is null because this IS a
             // REFRESH call (no PagingState "last item" to resolve one from), so syncAppend falls
             // back to the watermark itself and steps back from it — the boundary the mediator
@@ -282,13 +284,20 @@ internal class NoteFeedRemoteMediator(
             }
         }
 
-        feedProcessor.processAndPersistToDatabase(
-            userId = userId,
-            response = response,
-            // Never wipe the feed for an append-retry REFRESH: the whole point of the retry is to
-            // extend what's already cached further back, not replace it with just the newest page.
-            clearFeed = isRealRefresh,
-        )
+        // A real REFRESH persists its own two passes (events, then profile metadata) inside
+        // syncRefresh itself, so the note bodies land — and the PagingSource picks them up —
+        // without waiting for kind 0 to also resolve first. Every other load type still persists
+        // here, unchanged.
+        if (!syncResult.alreadyPersisted) {
+            feedProcessor.processAndPersistToDatabase(
+                userId = userId,
+                response = syncResult.response,
+                // Never wipe the feed for an append-retry REFRESH: the whole point of the retry
+                // is to extend what's already cached further back, not replace it with just the
+                // newest page.
+                clearFeed = isRealRefresh,
+            )
+        }
         // Only a real REFRESH's page is guaranteed to be what the user is actually looking at the
         // moment it lands; APPEND pages (and append-retry-REFRESH pages, which are really the
         // same thing) are prefetched ahead of scroll (Paging3's own prefetchDistance) and may not
@@ -297,11 +306,23 @@ internal class NoteFeedRemoteMediator(
         // the viewport-visibility trigger in NoteFeedViewModel / NoteFeedList instead
         // (EventRepository.fetchAndCacheEventStats), once a note actually scrolls into view.
         if (isRealRefresh) {
-            refreshRelayEventStats(response = response)
+            refreshRelayEventStats(response = syncResult.response)
         }
 
-        lastRequests[loadType] = request to Clock.System.now().epochSeconds
+        lastRequests[loadType] = syncResult.request to Clock.System.now().epochSeconds
     }
+
+    /**
+     * One load's outcome: the request that was sent (for [lastRequests]' repeat-body guard) and
+     * the response it got. [alreadyPersisted] is true only for the REFRESH branch that writes its
+     * own two passes inside [syncRefresh] — every other branch is written once, by [syncFeed],
+     * exactly as before this split existed.
+     */
+    private data class SyncResult(
+        val request: MultiKindFeedBySpecRequestBody,
+        val response: FeedResponse,
+        val alreadyPersisted: Boolean = false,
+    )
 
     private suspend fun refreshRelayEventStats(response: FeedResponse) {
         val statsFetcher = relayEventStatsFetcher ?: return
@@ -323,21 +344,55 @@ internal class NoteFeedRemoteMediator(
         invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
     }
 
-    private suspend fun syncRefresh(pageSize: Int): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
+    /**
+     * REFRESH is the one load type guaranteed to be what the user is looking at the moment it
+     * lands (see the comment in [syncFeed] about why APPEND/PREPEND don't get this same
+     * treatment), so — only for a relay-served following feed — this persists its own two passes:
+     * the note bodies first, with no profile metadata attached yet, then a second pass once kind 0
+     * resolves. Room's own reactive query picks up the second pass's `profiles` write on its own;
+     * nothing here needs to trigger it explicitly, the same way the thread screen's equivalent
+     * split doesn't either.
+     */
+    private suspend fun syncRefresh(pageSize: Int): SyncResult {
         val requestBody = MultiKindFeedBySpecRequestBody(
             spec = feedSpec,
             userPubKey = userId,
             kinds = kinds,
             limit = pageSize,
         )
+        val fetcher = relayFeedFetcher
+        if (useRelayFollowingFeed && fetcher != null) {
+            val feedPage = fetcher.fetchPage(
+                userId = userId,
+                feedSpec = feedSpec,
+                includeReplies = feedSpec.isUserNotesLwrFeedSpec() || feedSpec.isProfileAuthoredNoteRepliesFeedSpec(),
+                limit = requestBody.limit ?: FeedRepository.DEFAULT_PAGE_SIZE,
+            )
+            val referencedEvents = feedPage.referencedNotes.map { it.asReferencedPrimalEvent() }
+            val eventsOnlyResponse = feedPage.page.toFeedResponse(
+                metadata = emptyList(),
+                referencedEvents = referencedEvents,
+            )
+            feedProcessor.processAndPersistToDatabase(userId = userId, response = eventsOnlyResponse, clearFeed = true)
+
+            val metadata = fetcher.fetchMetadataFor(feedPage)
+            val response = if (metadata.isEmpty()) {
+                eventsOnlyResponse
+            } else {
+                val fullResponse = feedPage.page.toFeedResponse(metadata = metadata, referencedEvents = referencedEvents)
+                feedProcessor.processAndPersistToDatabase(userId = userId, response = fullResponse, clearFeed = false)
+                fullResponse
+            }
+            return SyncResult(request = requestBody, response = response, alreadyPersisted = true)
+        }
         val response = fetchFeedPage(requestBody)
-        return requestBody to response
+        return SyncResult(request = requestBody, response = response)
     }
 
     private suspend fun syncPrepend(
         remoteKey: FeedPostRemoteKey?,
         pageSize: Int,
-    ): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
+    ): SyncResult {
         val requestBody = MultiKindFeedBySpecRequestBody(
             spec = feedSpec,
             userPubKey = userId,
@@ -354,13 +409,13 @@ internal class NoteFeedRemoteMediator(
         }
 
         val feedResponse = fetchFeedPage(requestBody)
-        return requestBody to feedResponse
+        return SyncResult(request = requestBody, response = feedResponse)
     }
 
     private suspend fun syncAppend(
         remoteKey: FeedPostRemoteKey?,
         pageSize: Int,
-    ): Pair<MultiKindFeedBySpecRequestBody, FeedResponse> {
+    ): SyncResult {
         // An empty batch writes no FeedPostRemoteKey (see FeedProcessor.processRemoteKeys), so
         // candidateUntil can resolve to the exact same boundary a previous attempt already
         // queried. When it hasn't advanced past the furthest point already probed, step back by
@@ -408,7 +463,7 @@ internal class NoteFeedRemoteMediator(
         val returnedCount = feedResponse.notes.size + feedResponse.polls.size + feedResponse.reposts.size
         consecutiveEmptyAppendBatches.store(if (returnedCount == 0) consecutiveEmptyAppendBatches.load() + 1 else 0)
 
-        return requestBody to feedResponse
+        return SyncResult(request = requestBody, response = feedResponse)
     }
 
     private suspend fun fetchFeedPage(requestBody: MultiKindFeedBySpecRequestBody): FeedResponse {

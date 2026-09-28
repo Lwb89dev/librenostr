@@ -36,21 +36,37 @@ import net.primal.domain.nostr.relay.RelayFilter
  *  2. the ancestors named by its tags, and the replies of the whole thread;
  *  3. profile metadata for everyone involved.
  */
+
+/** The flat event set [RelayThreadFetcher.fetchEvents] resolves for one thread. */
+internal data class ThreadEvents(
+    val all: List<NostrEvent>,
+    val referencedNotes: List<NostrEvent>,
+)
+
 internal class RelayThreadFetcher(
     private val querier: RelayEventQuerier,
     private val cache: LocalEventCache? = null,
 ) {
 
-    suspend fun fetch(noteId: String, kinds: List<Int>, limit: Int): FeedResponse {
-        // Round one. The opened note and its direct replies are what the screen renders first,
-        // so they are asked for together rather than one behind the other.
-        val (openedResult, directReplies) = coroutineScope {
-            val opened = async { queryByIds(listOf(noteId)) }
-            val replies = async { queryEventTags(listOf(noteId), kinds, limit) }
-            listOf(opened, replies).awaitAll()
-            opened.await() to replies.await()
-        }
-        val opened = openedResult.firstOrNull { it.id == noteId }
+    /**
+     * The flat event set a thread needs, before profile metadata is resolved for it.
+     *
+     * Split out from [fetch] so a caller can overlap [fetchMetadataFor] with an unrelated fetch
+     * that only needs this same event list (event-stats, in [FeedRepositoryImpl]) instead of
+     * paying for metadata first and starting that other fetch only once it lands.
+     */
+    suspend fun fetchEvents(noteId: String, kinds: List<Int>, limit: Int): ThreadEvents = coroutineScope {
+        // The opened note is almost always a cache hit — the screen was opened from something
+        // that had just rendered it (a feed card, a notification) — while its direct replies
+        // always need a live query, since new ones are exactly what a re-open is trying to learn
+        // about. The two used to be awaited together, which meant knowing the root (round two
+        // below only needs `opened`, never `directRepliesAsync`) waited on that live query for no
+        // reason: on a comment opened straight from something already on screen, this alone used
+        // to cost a whole extra relay round trip before the root note could even be asked for.
+        val openedAsync = async { queryByIds(listOf(noteId)) }
+        val directRepliesAsync = async { queryEventTags(listOf(noteId), kinds, limit) }
+
+        val opened = openedAsync.await().firstOrNull { it.id == noteId }
 
         // Every ancestor the opened note references, in one filter instead of one hop at a time.
         val ancestorIds = buildSet {
@@ -63,15 +79,16 @@ internal class RelayThreadFetcher(
             ?: opened?.tags?.findReplyTargetId()
             ?: noteId
 
-        // Round two. Ancestors and the rest of the thread are independent of each other.
-        val (ancestors, threadReplies) = coroutineScope {
-            val ancestorsAsync = async { queryByIds(ancestorIds) }
-            val threadAsync = async {
-                if (rootId == noteId) emptyList() else queryEventTags(listOf(rootId), kinds, limit)
-            }
-            listOf(ancestorsAsync, threadAsync).awaitAll()
-            ancestorsAsync.await() to threadAsync.await()
+        // Round two starts the moment `opened` is known, running alongside round one's still
+        // in-flight directRepliesAsync rather than behind it.
+        val ancestorsAsync = async { queryByIds(ancestorIds) }
+        val threadAsync = async {
+            if (rootId == noteId) emptyList() else queryEventTags(listOf(rootId), kinds, limit)
         }
+
+        val directReplies = directRepliesAsync.await()
+        val ancestors = ancestorsAsync.await()
+        val threadReplies = threadAsync.await()
 
         val known = (listOfNotNull(opened) + ancestors + directReplies + threadReplies)
             .distinctBy { it.id }
@@ -88,17 +105,24 @@ internal class RelayThreadFetcher(
         val knownIds = all.map { it.id }.toSet()
         val referencedNotes = queryByIds(all.referencedNoteIds().filterNot { it in knownIds })
 
-        // Authors plus everyone the thread mentions, so a `nostr:` mention renders as the name
-        // its owner chose rather than as an ellipsized npub.
-        val metadataSubjects = all + referencedNotes
-        val metadata = loadMetadata(
+        Napier.d("Relay thread note=$noteId events=${all.size} ancestors=${ancestors.size}")
+        ThreadEvents(all = all, referencedNotes = referencedNotes)
+    }
+
+    /** Authors plus everyone the thread mentions, so a `nostr:` mention renders as the name its
+     * owner chose rather than as an ellipsized npub. */
+    suspend fun fetchMetadataFor(events: ThreadEvents): List<NostrEvent> {
+        val metadataSubjects = events.all + events.referencedNotes
+        return loadMetadata(
             (metadataSubjects.map { it.pubKey } + metadataSubjects.flatMap { it.tags.pubkeyTagValues() }).distinct(),
         )
+    }
 
-        Napier.d("Relay thread note=$noteId events=${all.size} ancestors=${ancestors.size}")
-        return all.toThreadFeedResponse(
-            metadata = metadata,
-            referencedEvents = referencedNotes.map { it.asReferencedPrimalEvent() },
+    suspend fun fetch(noteId: String, kinds: List<Int>, limit: Int): FeedResponse {
+        val events = fetchEvents(noteId = noteId, kinds = kinds, limit = limit)
+        return events.all.toThreadFeedResponse(
+            metadata = fetchMetadataFor(events),
+            referencedEvents = events.referencedNotes.map { it.asReferencedPrimalEvent() },
         )
     }
 

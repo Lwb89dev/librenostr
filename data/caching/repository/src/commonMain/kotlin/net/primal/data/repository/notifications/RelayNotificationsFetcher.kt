@@ -2,7 +2,6 @@ package net.primal.data.repository.notifications
 
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
@@ -25,6 +24,19 @@ import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.nostr.utils.LnInvoiceUtils
 import net.primal.domain.notifications.NotificationGroup
 import net.primal.domain.notifications.NotificationType
+
+/** The flat event set [RelayNotificationsFetcher.fetchEvents] resolves for one page. */
+internal data class NotificationEvents(
+    val notifications: List<NotificationData>,
+    /** Events + their referenced notes + quoted notes — content, no kind-0. */
+    val contentEvents: List<NostrEvent>,
+    val actors: List<String>,
+    /** Quoted-note authors, already excluding anyone already in [actors]. */
+    val quotedAuthors: List<String>,
+    /** The quoted notes specifically, for the `referencedEvents` field of a [FeedResponse]. */
+    val quotedNotes: List<NostrEvent>,
+    val relayEventCount: Int,
+)
 
 /**
  * Builds the notification stream from standard Nostr events.
@@ -50,6 +62,29 @@ internal class RelayNotificationsFetcher(
         limit: Int,
         until: Long? = null,
     ): RelayNotificationsResult {
+        val events = fetchEvents(userId = userId, group = group, limit = limit, until = until)
+        val metadata = fetchMetadataFor(events)
+        return RelayNotificationsResult(
+            notifications = events.notifications,
+            feedResponse = (events.contentEvents + metadata).distinctBy { it.id }
+                .toFeedResponse(metadata, referencedEvents = events.quotedNotes.map { it.asReferencedPrimalEvent() }),
+            relayEventCount = events.relayEventCount,
+        )
+    }
+
+    /**
+     * The notifications and the note content they need to render, before profile metadata is
+     * resolved for any of it — see [fetchMetadataFor]. Split from the old [fetch] the same way
+     * [RelayThreadFetcher]/[net.primal.data.repository.feed.RelayNotesFeedFetcher] split theirs:
+     * so a caller can persist notification rows and note bodies the moment they're known, instead
+     * of waiting for kind 0 (actors, and the authors of anything quoted) to also land first.
+     */
+    suspend fun fetchEvents(
+        userId: String,
+        group: NotificationGroup,
+        limit: Int,
+        until: Long? = null,
+    ): NotificationEvents {
         val page = fetchPageEvents(userId = userId, group = group, limit = limit, until = until)
         val events = page.events
 
@@ -66,59 +101,39 @@ internal class RelayNotificationsFetcher(
 
         // Interaction events point at the original note through their `e` tag. Fetch those
         // referenced events as well, otherwise a relay-only notification row has no note body
-        // to render as a useful preview (likes/zaps/reposts especially).
-        //
-        // The referenced notes are the user's own, so their authors add nothing to the actor
-        // set: both queries can run at once instead of chaining metadata behind the notes.
+        // to render as a useful preview (likes/zaps/reposts especially). The referenced notes are
+        // the user's own, so their authors add nothing to the actor set.
         val referencedEventIds = notifications.mapNotNull { it.actionPostId }.distinct()
         val actors = notifications.mapNotNull { it.actionUserId }.distinct()
 
-        val (referencedEvents, metadata) = coroutineScope {
-            val referenced = async {
-                // The notes a notification points at are usually already stored by the feed.
-                // The cached ones are folded back in, not dropped: they still have to reach the
-                // response so the row renders its preview.
-                val cached = cache?.partitionKnownEventIds(referencedEventIds)
-                val missing = cached?.missing ?: referencedEventIds
-                val known = cached?.known.orEmpty()
-                if (missing.isEmpty()) {
-                    known
-                } else {
-                    known + query(
-                        RelayFilter(
-                            ids = missing,
-                            kinds = CONTENT_KINDS,
-                            limit = missing.size,
-                        ),
-                    )
-                }
-            }
-            val profiles = async {
-                val wanted = cache?.claimMetadataPubkeys(actors) ?: actors
-                if (wanted.isEmpty()) {
-                    emptyList()
-                } else {
-                    fetchMetadata(wanted)
-                }
-            }
-            listOf(referenced, profiles).awaitAll()
-            referenced.await() to profiles.await()
+        // The notes a notification points at are usually already stored by the feed. The cached
+        // ones are folded back in, not dropped: they still have to reach the response so the row
+        // renders its preview.
+        val cached = cache?.partitionKnownEventIds(referencedEventIds)
+        val missing = cached?.missing ?: referencedEventIds
+        val known = cached?.known.orEmpty()
+        val referencedEvents = if (missing.isEmpty()) {
+            known
+        } else {
+            known + query(RelayFilter(ids = missing, kinds = CONTENT_KINDS, limit = missing.size))
         }
 
-        val contentEvents = (events + referencedEvents)
+        val contentEventsBeforeQuotes = (events + referencedEvents)
             .filter { it.kind in CONTENT_KINDS || it.kind == NostrEventKind.Zap.value }
 
         // A mention/reply notification's target note can itself quote or mention a further note
         // (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in its content) — one level deeper than
         // actionPostId reaches, so without this that nested reference showed "Mentioned event not
         // found" here even when it rendered fine in the note feed/thread.
-        val quoted = fetchQuotedNotes(contentEvents = contentEvents, alreadyFetchedAuthors = actors)
-        val allMetadata = metadata + quoted.authorsMetadata
+        val quotedNotes = fetchQuotedNoteContent(contentEventsBeforeQuotes)
+        val quotedAuthors = quotedNotes.map { it.pubKey }.distinct().filterNot { it in actors }
 
-        return RelayNotificationsResult(
+        return NotificationEvents(
             notifications = notifications,
-            feedResponse = (contentEvents + allMetadata).distinctBy { it.id }
-                .toFeedResponse(allMetadata, referencedEvents = quoted.notes.map { it.asReferencedPrimalEvent() }),
+            contentEvents = (contentEventsBeforeQuotes + quotedNotes).distinctBy { it.id },
+            actors = actors,
+            quotedAuthors = quotedAuthors,
+            quotedNotes = quotedNotes,
             // Pagination must key off what the relays returned, not off the group-filtered rows.
             // Judging by the filtered count declared the end of the list as soon as a tab was
             // sparse — the Zaps tab stopped after its first page even with older zaps available.
@@ -126,29 +141,33 @@ internal class RelayNotificationsFetcher(
         )
     }
 
-    /**
-     * The notes that the ones a page shows quote, and a kind 0 for each of their authors.
-     *
-     * Without the authors the quoted note is stored but cannot be shown: a quote card needs the
-     * name to head it, so it stayed "Mentioned event not found" although the note itself had
-     * been downloaded. The page's own actors were the only profiles this fetcher ever asked for.
-     */
-    private suspend fun fetchQuotedNotes(
-        contentEvents: List<NostrEvent>,
-        alreadyFetchedAuthors: List<String>,
-    ): QuotedNotes {
-        val knownIds = contentEvents.map { it.id }.toSet()
-        val missingQuotedIds = contentEvents.referencedNoteIds().filterNot { it in knownIds }
-        if (missingQuotedIds.isEmpty()) return QuotedNotes(notes = emptyList(), authorsMetadata = emptyList())
-
-        val notes = query(RelayFilter(ids = missingQuotedIds, kinds = CONTENT_KINDS, limit = missingQuotedIds.size))
-        val authors = notes.map { it.pubKey }.distinct().filterNot { it in alreadyFetchedAuthors }
-        val wanted = cache?.claimMetadataPubkeys(authors) ?: authors
-        val authorsMetadata = if (wanted.isEmpty()) emptyList() else fetchMetadata(wanted)
-        return QuotedNotes(notes = notes, authorsMetadata = authorsMetadata)
+    /** Kind 0 for every actor and every quoted note's author, run concurrently. */
+    suspend fun fetchMetadataFor(events: NotificationEvents): List<NostrEvent> {
+        val (actorMetadata, quotedMetadata) = coroutineScope {
+            val actorAsync = async { fetchMetadataFor(pubkeys = events.actors) }
+            val quotedAsync = async { fetchMetadataFor(pubkeys = events.quotedAuthors) }
+            actorAsync.await() to quotedAsync.await()
+        }
+        return actorMetadata + quotedMetadata
     }
 
-    private class QuotedNotes(val notes: List<NostrEvent>, val authorsMetadata: List<NostrEvent>)
+    private suspend fun fetchMetadataFor(pubkeys: List<String>): List<NostrEvent> {
+        val wanted = cache?.claimMetadataPubkeys(pubkeys) ?: pubkeys
+        return if (wanted.isEmpty()) emptyList() else fetchMetadata(wanted)
+    }
+
+    /**
+     * Just the notes a page's content quotes — without the authors the quoted note is stored but
+     * cannot be shown: a quote card needs the name to head it, so it stayed "Mentioned event not
+     * found" although the note itself had been downloaded. Author resolution is
+     * [fetchMetadataFor]'s job now, not this function's.
+     */
+    private suspend fun fetchQuotedNoteContent(contentEvents: List<NostrEvent>): List<NostrEvent> {
+        val knownIds = contentEvents.map { it.id }.toSet()
+        val missingQuotedIds = contentEvents.referencedNoteIds().filterNot { it in knownIds }
+        if (missingQuotedIds.isEmpty()) return emptyList()
+        return query(RelayFilter(ids = missingQuotedIds, kinds = CONTENT_KINDS, limit = missingQuotedIds.size))
+    }
 
     /**
      * The raw events one page of notifications is derived from, and whether the relays filled it.

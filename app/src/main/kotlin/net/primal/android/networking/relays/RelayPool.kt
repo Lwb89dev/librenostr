@@ -8,6 +8,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
@@ -318,9 +319,18 @@ class RelayPool(
         return result is NostrIncomingMessage.OkMessage && result.success
     }
 
+    /**
+     * @param timeoutMs one deadline for the whole query, counted from when it gets a [queryGate]
+     *   permit — never several back-to-back waits of this length. Whatever arrived by then is
+     *   returned; a query is never thrown away just for running long.
+     * @param settleSignal completing it makes the query stop waiting and return what it has
+     *   collected so far. Used when another pool has already produced the answer and this one is
+     *   only supplementing it.
+     */
     suspend fun query(
         filter: JsonObject,
         timeoutMs: Long = SUBSCRIBE_TIMEOUT.toLong(),
+        settleSignal: Deferred<Unit>? = null,
     ): RelayPoolQueryResult {
         val safeFilter = filter.withSafeLimit()
         val requestedCount = safeFilter["limit"]?.jsonPrimitive?.intOrNull ?: MAX_EVENTS_PER_QUERY
@@ -342,6 +352,7 @@ class RelayPool(
                         filter = safeFilter,
                         timeoutMs = safeTimeoutMs,
                         requestedCount = requestedCount,
+                        settleSignal = settleSignal,
                     )
                     publishQueryStats(requested = clients.size, result = result)
                     result
@@ -436,6 +447,7 @@ class RelayPool(
         filter: JsonObject,
         timeoutMs: Long,
         requestedCount: Int,
+        settleSignal: Deferred<Unit>? = null,
     ): RelayPoolQueryResult {
         val eventsById = LinkedHashMap<String, NostrEvent>()
         val eoseRelays = mutableSetOf<String>()
@@ -455,6 +467,7 @@ class RelayPool(
         // this the query kept paying the EOSE grace and, on an empty first EOSE, waited for the
         // slowest relay — on every request, even when the first relay had already delivered.
         val pageFull = CompletableDeferred<Unit>()
+        val settledEarly = CompletableDeferred<Unit>()
 
         supervisorScope {
             clients.forEach { client ->
@@ -480,21 +493,43 @@ class RelayPool(
                     )
                 }
             }
-            val hadEose = withTimeoutOrNull(timeoutMs) { firstEoseOrAllFailed.await() } ?: false
-            if (hadEose && !pageFull.isCompleted) {
-                // Give the rest of the pool its turn before settling, unless the page is already
-                // full. Bounded by the same timeout, so a dead relay cannot hold the screen.
-                withTimeoutOrNull(timeoutMs) { quorumReached.await() }
+            if (settleSignal != null) {
+                launch {
+                    settleSignal.await()
+                    // The caller has its answer from elsewhere and this pool is only adding to
+                    // it: release every wait below at once so what arrived so far is returned,
+                    // instead of the whole result being cancelled and thrown away from outside.
+                    settledEarly.complete(Unit)
+                    firstEoseOrAllFailed.complete(true)
+                    quorumReached.complete(true)
+                    allRelaysCompleted.complete(Unit)
+                }
             }
-            if (hadEose && !pageFull.isCompleted) {
-                // EOSE with zero events is valid. Keep slower relays alive in that case;
-                // otherwise the first empty relay could hide events available elsewhere.
-                delay(FIRST_EOSE_GRACE_MS)
-                val hasEvents = mutex.withLock { eventsById.isNotEmpty() }
-                if (!hasEvents) {
-                    // The outer timeout still bounds this wait. Callers can apply a tighter
-                    // timeout when a UI operation must return sooner.
-                    withTimeoutOrNull(timeoutMs) { allRelaysCompleted.await() }
+            // One deadline for every wait below. Each used to take a fresh `timeoutMs` of its own —
+            // first EOSE, then quorum, then the empty-result wait — so a query could run for
+            // several times its nominal timeout.
+            withTimeoutOrNull(timeoutMs) {
+                val hadEose = firstEoseOrAllFailed.await()
+                if (hadEose && !pageFull.isCompleted && !settledEarly.isCompleted) {
+                    // Give the rest of the pool its turn before settling, unless the page is
+                    // already full.
+                    quorumReached.await()
+                }
+                if (hadEose && !pageFull.isCompleted && !settledEarly.isCompleted) {
+                    // EOSE with zero events is valid. Keep slower relays alive in that case;
+                    // otherwise the first empty relay could hide events available elsewhere.
+                    withTimeoutOrNull(FIRST_EOSE_GRACE_MS) { settledEarly.await() }
+                    val hasEvents = mutex.withLock { eventsById.isNotEmpty() }
+                    // Only a lookup by id is worth waiting on every relay for: a specific note
+                    // that a quorum has not seen may well exist on one of the others. For a tag
+                    // or author query, a quorum answering "nothing" is the answer — measured
+                    // on-device, 32 of 38 empty-result waits were interaction counts ("this note
+                    // has no reposts") that sat out a timing-out relay for 3.5s, holding one of
+                    // the pool's four query slots the whole time.
+                    val isIdLookup = filter["ids"] != null
+                    if (!hasEvents && isIdLookup && !settledEarly.isCompleted) {
+                        allRelaysCompleted.await()
+                    }
                 }
             }
             coroutineContext.cancelChildren()

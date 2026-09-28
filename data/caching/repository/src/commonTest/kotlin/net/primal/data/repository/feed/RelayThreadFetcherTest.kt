@@ -107,6 +107,21 @@ class RelayThreadFetcherTest {
     }
 
     @Test
+    fun fetchEvents_neverQueriesMetadata_onlyFetchMetadataForDoes() = runTest {
+        val root = note("root", "alice", 10)
+        val reply = replyTo("r1", "bob", 20, rootId = "root")
+        val querier = RecordingQuerier(listOf(root, reply))
+        val fetcher = RelayThreadFetcher(querier)
+
+        val events = fetcher.fetchEvents(noteId = "root", kinds = noteKind, limit = 50)
+        events.all.map { it.id } shouldContainExactlyInAnyOrder listOf("root", "r1")
+        querier.sentFilters.none { it.kinds?.contains(NostrEventKind.Metadata.value) == true } shouldBe true
+
+        fetcher.fetchMetadataFor(events)
+        querier.sentFilters.any { it.kinds?.contains(NostrEventKind.Metadata.value) == true } shouldBe true
+    }
+
+    @Test
     fun findRootEventId_prefersRootMarker() {
         val tags = listOf(
             eTag("mention", marker = "mention"),
@@ -185,6 +200,17 @@ class RelayThreadFetcherTest {
             val until = filter.until
             if (until != null && event.createdAt > until) return false
             return true
+        }
+    }
+
+    /** [FakeQuerier] plus a record of every filter it was asked, for assertions on *what* was sent. */
+    private class RecordingQuerier(events: List<NostrEvent>) : RelayEventQuerier {
+        private val delegate = FakeQuerier(events)
+        val sentFilters = mutableListOf<RelayFilter>()
+
+        override suspend fun query(filter: RelayFilter): List<NostrEvent> {
+            sentFilters.add(filter)
+            return delegate.query(filter)
         }
     }
 }

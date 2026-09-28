@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +59,13 @@ class ThreadViewModel @Inject constructor(
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
+    /**
+     * When [fetchNoteReplies] last completed, successfully or not. Survives `ON_STOP`/`ON_START`
+     * because the ViewModel instance does — only process death or leaving the screen for good
+     * clears it, at which point a fresh instance starts `null` and fetches unconditionally.
+     */
+    private var lastFetchCompletedAt: Instant? = null
+
     init {
         observeEvents()
         observeConversationChanges()
@@ -65,7 +75,8 @@ class ThreadViewModel @Inject constructor(
         viewModelScope.launch {
             events.collect {
                 when (it) {
-                    UiEvent.UpdateConversation -> fetchData()
+                    UiEvent.UpdateConversation -> fetchData(force = true)
+                    UiEvent.ScreenStarted -> fetchData(force = false)
                     UiEvent.DismissError -> setState { copy(error = null) }
                 }
             }
@@ -116,13 +127,26 @@ class ThreadViewModel @Inject constructor(
                 }
         }
 
-    private fun fetchData() {
-        fetchNoteReplies()
+    private fun fetchData(force: Boolean) {
+        fetchNoteReplies(force = force)
         fetchTopNoteZaps()
     }
 
-    private fun fetchNoteReplies() =
+    /**
+     * [force] = false (a plain `ON_START`) skips the network round trip when the thread was
+     * already fetched within [THREAD_REFRESH_FRESHNESS_WINDOW] — returning to a thread you just
+     * left used to repeat the same relay chain it took to open it the first time. Pull-to-refresh
+     * and the retry button always pass `force = true`, so an explicit user action is never
+     * swallowed by this check. The UI stays reactive either way: `observeConversationChanges`
+     * reads from Room independently of what triggered the fetch.
+     */
+    private fun fetchNoteReplies(force: Boolean) =
         viewModelScope.launch {
+            val fresh = !force && lastFetchCompletedAt?.let {
+                Clock.System.now() - it < THREAD_REFRESH_FRESHNESS_WINDOW
+            } == true
+            if (fresh) return@launch
+
             setState { copy(fetching = true) }
             try {
                 withContext(dispatcherProvider.io()) {
@@ -131,6 +155,7 @@ class ThreadViewModel @Inject constructor(
                         noteId = highlightPostId,
                     )
                 }
+                lastFetchCompletedAt = Clock.System.now()
             } catch (error: NetworkException) {
                 Napier.w(throwable = error) { "Failed to fetch note replies for noteId=$highlightPostId" }
             } finally {
@@ -159,4 +184,9 @@ class ThreadViewModel @Inject constructor(
             this.startsWith("nevent1") -> Nip19TLV.parseUriAsNeventOrNull(this)?.eventId
             else -> this
         }.toString()
+
+    private companion object {
+        /** How long a successful fetch is trusted before a plain `ON_START` re-asks relays. */
+        val THREAD_REFRESH_FRESHNESS_WINDOW = 20.seconds
+    }
 }

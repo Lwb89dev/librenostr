@@ -27,6 +27,7 @@ import net.primal.data.remote.api.messages.model.MarkMessagesReadRequestBody
 import net.primal.data.remote.api.messages.model.MessagesRequestBody
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.data.repository.fetch.FetchKey
+import net.primal.data.repository.fetch.SessionSyncRelayGate
 import net.primal.data.repository.mappers.local.asDMConversation
 import net.primal.data.repository.mappers.local.asDirectMessageDO
 import net.primal.data.repository.mappers.remote.isPrivateThreadReply
@@ -66,6 +67,7 @@ internal class ChatRepositoryImpl(
     private val relayEventQuerier: RelayEventQuerier? = null,
     private val fetchCoordinator: FetchCoordinator,
     private val nip17Transport: Nip17Transport? = null,
+    private val sessionSyncRelayGate: SessionSyncRelayGate = SessionSyncRelayGate(),
 ) : ChatRepository {
 
     override fun newestConversations(userId: String, relation: ConversationRelation) =
@@ -95,12 +97,15 @@ internal class ChatRepositoryImpl(
         relation: ConversationRelation,
         limit: Int? = null,
         until: Long? = null,
+        querierOverride: RelayEventQuerier? = relayEventQuerier,
     ): List<NostrEvent> {
         // Session start pulls the newest page and so does the messages tab, so opening messages
         // right after launching runs both at once. Sharing means one set of kind 4 requests, and
         // one pass of decrypting and storing what comes back, instead of two.
         val key = FetchKey.Conversations(ownerId = userId, until = until)
-        return fetchCoordinator.coalesce(key) { fetchConversationsPage(userId, relation, limit, until) }
+        return fetchCoordinator.coalesce(key) {
+            fetchConversationsPage(userId, relation, limit, until, querierOverride)
+        }
     }
 
     /**
@@ -115,7 +120,11 @@ internal class ChatRepositoryImpl(
      * The follow list comes through the coordinator, so on a screen that opens after the feed it
      * costs nothing.
      */
-    private suspend fun acceptedParticipants(userId: String, currentPage: List<NostrEvent>): Set<String> {
+    private suspend fun acceptedParticipants(
+        userId: String,
+        currentPage: List<NostrEvent>,
+        querierOverride: RelayEventQuerier? = relayEventQuerier,
+    ): Set<String> {
         val writtenTo = withContext(dispatcherProvider.io()) {
             database.messages().participantsWrittenTo(ownerId = userId)
         }
@@ -125,7 +134,7 @@ internal class ChatRepositoryImpl(
         // reply, and a conversation whose reply and first-seen message land in the same page never
         // gets another chance: nothing revisits it once it falls outside later, narrower windows.
         val writtenToInThisPage = currentPage.participantsWrittenToBy(userId)
-        val follows = relayEventQuerier?.let { querier ->
+        val follows = querierOverride?.let { querier ->
             runCatching { fetchCoordinator.fetchFollowList(querier = querier, pubkey = userId) }
                 .getOrDefault(emptyList())
                 .maxByOrNull { it.createdAt }
@@ -141,6 +150,7 @@ internal class ChatRepositoryImpl(
         relation: ConversationRelation,
         limit: Int?,
         until: Long?,
+        querierOverride: RelayEventQuerier? = relayEventQuerier,
     ): List<NostrEvent> {
         // A relay has no notion of Primal's Follows/Other conversation relation: both
         // requests query the same kind-4 event set. The list screen requests both
@@ -178,14 +188,18 @@ internal class ChatRepositoryImpl(
             }
             ?: response.messages.asConversationIndex(
                 userId = userId,
-                accepted = acceptedParticipants(userId = userId, currentPage = response.messages),
+                accepted = acceptedParticipants(
+                    userId = userId,
+                    currentPage = response.messages,
+                    querierOverride = querierOverride,
+                ),
             )
 
         // A relay hands back kind 4 events and nothing else, so this response carries no profiles
         // and the conversation list rendered raw npubs for anyone the database had not already
         // met through the feed. The people you have talked to are the last ones who should be
         // showing up as an npub.
-        val participantMetadata = relayEventQuerier?.let { querier ->
+        val participantMetadata = querierOverride?.let { querier ->
             runCatching {
                 fetchCoordinator.fetchMetadata(
                     querier = querier,
@@ -213,15 +227,27 @@ internal class ChatRepositoryImpl(
         return response.messages
     }
 
-    override suspend fun syncConversations(userId: String, backfillPages: Int) {
+    override suspend fun syncConversations(userId: String, backfillPages: Int, background: Boolean) {
+        // Only a session-start sync narrows its relay-query concurrency — a user-triggered refresh
+        // (MessageConversationListViewModel) always keeps the plain, full-priority querier. Note
+        // this has no effect on the NIP-17 fetch just below: Nip17TransportImpl resolves its own
+        // relay pool internally and never reads this querier at all (a NIP-59 Gift Wrap carries no
+        // author/recipient a relay can filter on, so there is nothing here to scope down anyway).
+        val querier = if (background) {
+            relayEventQuerier?.let { sessionSyncRelayGate.wrap(it) }
+        } else {
+            relayEventQuerier
+        }
+
         // Not exclusive with the legacy path below: NIP-17 is new enough that a conversation can
         // easily have one side on it and the other still only reachable over the legacy encrypted
         // DM kind, so both are always fetched and merged — same as Amethyst and Damus do. Best
         // effort: a NIP-17 fetch failing here (relay down, this account genuinely has no NIP-17
         // relay list of its own yet) must not stop legacy conversations from refreshing.
         nip17Transport?.let { transport ->
-            runCatching { syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId)) }
-                .onFailure { error -> Napier.w(throwable = error) { "NIP-17 conversation sync failed." } }
+            runCatching {
+                syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId), querierOverride = querier)
+            }.onFailure { error -> Napier.w(throwable = error) { "NIP-17 conversation sync failed." } }
         }
         // Accumulated independently of persistence: reclassification below must not depend on
         // whether processMessageEventsAndSave has actually written this sync's messages to disk
@@ -233,6 +259,7 @@ internal class ChatRepositoryImpl(
             userId = userId,
             relation = ConversationRelation.Follows,
             limit = SYNC_PAGE_SIZE,
+            querierOverride = querier,
         )
         writtenToThisSync += messages.participantsWrittenToBy(userId)
         var page = 0
@@ -250,13 +277,14 @@ internal class ChatRepositoryImpl(
                     relation = ConversationRelation.Follows,
                     limit = SYNC_PAGE_SIZE,
                     until = until,
+                    querierOverride = querier,
                 )
             }.getOrNull().orEmpty()
             writtenToThisSync += messages.participantsWrittenToBy(userId)
             page++
             Napier.d { "DM backfill page $page: ${messages.size} events." }
         }
-        reclassifyStoredConversations(userId = userId, alsoAccepted = writtenToThisSync)
+        reclassifyStoredConversations(userId = userId, alsoAccepted = writtenToThisSync, querierOverride = querier)
     }
 
     /**
@@ -273,8 +301,16 @@ internal class ChatRepositoryImpl(
      * [alsoAccepted] folds in this sync's own pages directly, rather than trusting that whatever
      * they discovered has already landed in the database by the time this runs.
      */
-    private suspend fun reclassifyStoredConversations(userId: String, alsoAccepted: Set<String>) {
-        val accepted = acceptedParticipants(userId = userId, currentPage = emptyList()) + alsoAccepted
+    private suspend fun reclassifyStoredConversations(
+        userId: String,
+        alsoAccepted: Set<String>,
+        querierOverride: RelayEventQuerier? = relayEventQuerier,
+    ) {
+        val accepted = acceptedParticipants(
+            userId = userId,
+            currentPage = emptyList(),
+            querierOverride = querierOverride,
+        ) + alsoAccepted
         val stored = withContext(dispatcherProvider.io()) {
             database.messageConversations().findAllByOwnerId(ownerId = userId)
         }
@@ -478,7 +514,11 @@ internal class ChatRepositoryImpl(
         }
     }
 
-    private suspend fun syncNip17Messages(userId: String, messages: List<Nip17Message>) {
+    private suspend fun syncNip17Messages(
+        userId: String,
+        messages: List<Nip17Message>,
+        querierOverride: RelayEventQuerier? = relayEventQuerier,
+    ) {
         if (messages.isEmpty()) return
         withContext(dispatcherProvider.io()) {
             messagesProcessor.processNip17MessagesAndSave(userId = userId, messages = messages)
@@ -487,8 +527,12 @@ internal class ChatRepositoryImpl(
             // notification naming its author, and without their kind 0 that notification says
             // "npub1abc… replied privately to your note" — which reads as spam, not as a reply
             // from somebody you know.
-            cacheNip17ParticipantMetadata(userId = userId, messages = messages)
-            val accepted = acceptedParticipants(userId = userId, currentPage = emptyList())
+            cacheNip17ParticipantMetadata(userId = userId, messages = messages, querierOverride = querierOverride)
+            val accepted = acceptedParticipants(
+                userId = userId,
+                currentPage = emptyList(),
+                querierOverride = querierOverride,
+            )
             database.messageConversations().persistConversationIndex(
                 userId = userId,
                 updates = directMessages.asNip17ConversationIndex(userId = userId, accepted = accepted),
@@ -496,7 +540,11 @@ internal class ChatRepositoryImpl(
         }
     }
 
-    private suspend fun cacheNip17ParticipantMetadata(userId: String, messages: List<Nip17Message>) {
+    private suspend fun cacheNip17ParticipantMetadata(
+        userId: String,
+        messages: List<Nip17Message>,
+        querierOverride: RelayEventQuerier? = relayEventQuerier,
+    ) {
         val participantIds = messages.mapNotNull { message ->
             if (message.senderId == userId) {
                 message.recipientIds.firstOrNull { it != userId }
@@ -508,7 +556,7 @@ internal class ChatRepositoryImpl(
         val missingIds = participantIds.filterNot { it in cachedIds }
         if (missingIds.isEmpty()) return
 
-        val metadata = relayEventQuerier?.let { querier ->
+        val metadata = querierOverride?.let { querier ->
             runCatching { fetchCoordinator.fetchMetadata(querier = querier, pubkeys = missingIds) }
                 .getOrDefault(emptyList())
         }.orEmpty().latestMetadataByPubkey()

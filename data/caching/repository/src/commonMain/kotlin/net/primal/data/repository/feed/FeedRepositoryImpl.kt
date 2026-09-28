@@ -8,6 +8,8 @@ import androidx.paging.PagingSource
 import androidx.paging.map
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
@@ -32,6 +34,7 @@ import net.primal.data.local.queries.ChronologicalFeedWithRepostsQueryBuilder
 import net.primal.data.local.queries.ExploreFeedQueryBuilder
 import net.primal.data.local.queries.FeedQueryBuilder
 import net.primal.data.remote.api.feed.FeedApi
+import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
 import net.primal.data.repository.cache.LocalEventCache
@@ -192,6 +195,20 @@ internal class FeedRepositoryImpl(
             database.feedPosts().findAllPostsByIds(listOf(postId)).firstOrNull()?.mapAsFeedPostDO()
         }
 
+    /**
+     * Two passes, so a comment opened straight from something already on screen renders on the
+     * first one alone instead of waiting for the second.
+     *
+     * Pass one persists the thread's events with no profile metadata of their own attached.
+     * That is not a gap for anyone already known: Room's `profiles` table already holds them from
+     * wherever they were first seen, and the screen's own reactive query joins against its
+     * *current* state regardless of what this particular write contained — only a genuinely new
+     * author renders as a raw npub until pass two. Metadata and event-stats — like/reply/repost/
+     * zap counters, which relay responses never carry — both need their own live relay round trip
+     * that pass one's events do not, so tying the very first write to them used to mean the root
+     * note stayed invisible for as long as that second round trip took, even when it was already
+     * fully known and cached.
+     */
     override suspend fun fetchConversation(
         userId: String,
         noteId: String,
@@ -199,59 +216,81 @@ internal class FeedRepositoryImpl(
         kinds: List<Int>,
     ) {
         withContext(dispatcherProvider.io()) {
-            val response = fetchConversationResponse(
-                userId = userId,
-                noteId = noteId,
-                limit = limit,
-                kinds = kinds,
-            )
-            mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
-            response.persistToDatabaseAsTransaction(userId = userId, database = database)
-            response.persistNoteRepliesAndArticleCommentsToDatabase(noteId = noteId, database = database)
-
-            // Relay responses do not contain Primal's synthetic stats payload. Resolve
-            // interaction events directly from the configured relays so the note and its
-            // replies display current like/reply/repost/zap counters immediately when a
-            // thread is opened.
-            relayEventQuerier?.let { querier ->
-                val eventIds = (response.notes + response.articles + response.reposts)
-                    .map { it.id }
-                    .distinct()
-                if (eventIds.isNotEmpty()) {
-                    val stats = RelayEventStatsFetcher(querier = querier, coordinator = fetchCoordinator).fetch(
-                        eventIds = eventIds,
-                        userId = userId,
+            val querier = relayEventQuerier
+            if (querier == null) {
+                val response = try {
+                    feedApi.getMultiKindThread(
+                        MultiKindThreadRequestBody(
+                            eventId = noteId,
+                            userPubKey = userId,
+                            kinds = kinds,
+                            limit = limit,
+                        ),
                     )
-                    database.withTransaction {
-                        database.eventStats().upsertAll(stats.eventStats)
-                        if (stats.userStats.isNotEmpty()) {
-                            database.eventUserStats().upsertAll(stats.userStats)
-                        }
+                } catch (error: NetworkException) {
+                    throw NetworkException(message = error.message, cause = error)
+                }
+                mediaCacher?.cacheAvatarUrls(metadata = response.metadata, cdnResources = response.cdnResources)
+                response.persistToDatabaseAsTransaction(userId = userId, database = database)
+                response.persistNoteRepliesAndArticleCommentsToDatabase(noteId = noteId, database = database)
+                return@withContext
+            }
+
+            val fetcher = RelayThreadFetcher(querier, localEventCache)
+            val events = fetcher.fetchEvents(noteId = noteId, kinds = kinds, limit = limit)
+
+            events.all.toThreadFeedResponse(
+                metadata = emptyList(),
+                referencedEvents = events.referencedNotes.map { it.asReferencedPrimalEvent() },
+            ).let { eventsOnlyResponse ->
+                eventsOnlyResponse.persistToDatabaseAsTransaction(userId = userId, database = database)
+                eventsOnlyResponse.persistNoteRepliesAndArticleCommentsToDatabase(noteId = noteId, database = database)
+            }
+
+            // Relay responses do not contain Primal's synthetic stats payload. `events.all` mirrors
+            // what `response.notes + response.articles + response.reposts` used to filter down to —
+            // articles are never part of a thread response (see toThreadFeedResponse). Neither of
+            // these depends on the other, so both are fetched together.
+            val eventIds = events.all
+                .filter { it.kind == NostrEventKind.ShortTextNote.value || it.kind == NostrEventKind.ShortTextNoteRepost.value }
+                .map { it.id }
+                .distinct()
+
+            val (metadata, stats) = coroutineScope {
+                val metadataAsync = async { fetcher.fetchMetadataFor(events) }
+                val statsAsync = async {
+                    if (eventIds.isEmpty()) {
+                        null
+                    } else {
+                        RelayEventStatsFetcher(querier = querier, coordinator = fetchCoordinator).fetch(
+                            eventIds = eventIds,
+                            userId = userId,
+                        )
+                    }
+                }
+                metadataAsync.await() to statsAsync.await()
+            }
+
+            // Pass two: only worth repeating when it actually adds something. A thread where every
+            // author was already known resolves an empty list here and skips straight to stats.
+            if (metadata.isNotEmpty()) {
+                val fullResponse = events.all.toThreadFeedResponse(
+                    metadata = metadata,
+                    referencedEvents = events.referencedNotes.map { it.asReferencedPrimalEvent() },
+                )
+                mediaCacher?.cacheAvatarUrls(metadata = fullResponse.metadata, cdnResources = fullResponse.cdnResources)
+                fullResponse.persistToDatabaseAsTransaction(userId = userId, database = database)
+                fullResponse.persistNoteRepliesAndArticleCommentsToDatabase(noteId = noteId, database = database)
+            }
+
+            if (stats != null) {
+                database.withTransaction {
+                    database.eventStats().upsertAll(stats.eventStats)
+                    if (stats.userStats.isNotEmpty()) {
+                        database.eventUserStats().upsertAll(stats.userStats)
                     }
                 }
             }
-        }
-    }
-
-    private suspend fun fetchConversationResponse(
-        userId: String,
-        noteId: String,
-        limit: Int,
-        kinds: List<Int>,
-    ) = relayEventQuerier?.let { querier ->
-        RelayThreadFetcher(querier, localEventCache).fetch(noteId = noteId, kinds = kinds, limit = limit)
-    } ?: run {
-        try {
-            feedApi.getMultiKindThread(
-                MultiKindThreadRequestBody(
-                    eventId = noteId,
-                    userPubKey = userId,
-                    kinds = kinds,
-                    limit = limit,
-                ),
-            )
-        } catch (error: NetworkException) {
-            throw NetworkException(message = error.message, cause = error)
         }
     }
 

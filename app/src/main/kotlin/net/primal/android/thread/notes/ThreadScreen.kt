@@ -136,7 +136,7 @@ fun ThreadScreen(
     DisposableLifecycleObserverEffect(viewModel) {
         when (it) {
             Lifecycle.Event.ON_START -> viewModel.setEvent(
-                ThreadContract.UiEvent.UpdateConversation,
+                ThreadContract.UiEvent.ScreenStarted,
             )
 
             else -> Unit

@@ -27,9 +27,17 @@ interface ChatRepository {
      *
      * The first page is the one the caller asked for and its failure is thrown; a backfill page
      * failing only means there is no more history to be had right now.
+     *
+     * [background] narrows the relay-query concurrency this call uses to leave headroom for
+     * whatever screen the user opens right after a cold start — pass it only from a session-start
+     * sync, never from a user-triggered refresh, which must stay at full priority.
      */
     @Throws(NetworkException::class, CancellationException::class)
-    suspend fun syncConversations(userId: String, backfillPages: Int = DEFAULT_BACKFILL_PAGES)
+    suspend fun syncConversations(
+        userId: String,
+        backfillPages: Int = DEFAULT_BACKFILL_PAGES,
+        background: Boolean = false,
+    )
 
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun fetchNonFollowsConversations(userId: String)
