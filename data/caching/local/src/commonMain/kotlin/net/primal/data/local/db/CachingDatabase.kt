@@ -84,6 +84,9 @@ import net.primal.data.local.dao.streams.StreamFollowsCrossRefDao
 import net.primal.data.local.dao.threads.ArticleCommentCrossRef
 import net.primal.data.local.dao.threads.NoteConversationCrossRef
 import net.primal.data.local.dao.threads.ThreadConversationDao
+import net.primal.data.local.dao.wot.WotDao
+import net.primal.data.local.dao.wot.WotNetworkStateData
+import net.primal.data.local.dao.wot.WotQualifiedPubkeyData
 import net.primal.data.local.serialization.CdnTypeConverters
 import net.primal.data.local.serialization.Nip05TypeConverters
 import net.primal.data.local.serialization.NostrReferenceTypeConverters
@@ -137,9 +140,11 @@ import net.primal.shared.data.local.serialization.ListsTypeConverters
         DvmFeedData::class,
         RecommendedDvmFeedCrossRef::class,
         DvmFeedFeaturedUserCrossRef::class,
+        WotNetworkStateData::class,
+        WotQualifiedPubkeyData::class,
     ],
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -235,6 +240,8 @@ abstract class CachingDatabase : RoomDatabase() {
     abstract fun explorePopularUsers(): ExplorePopularUserDao
 
     abstract fun dvmFeeds(): DvmFeedDao
+
+    abstract fun webOfTrust(): WotDao
 
     companion object {
         /**

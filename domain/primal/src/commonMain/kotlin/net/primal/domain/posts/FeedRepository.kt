@@ -16,12 +16,15 @@ interface FeedRepository {
         feedSpec: String,
         kinds: List<Int> = DEFAULT_FEED_KINDS,
         allowMutedThreads: Boolean = false,
+        /** See `WebOfTrustRepository` (`:domain:primal`'s `net.primal.domain.wot` package). */
+        wotFilterActive: Boolean = false,
     ): Flow<PagingData<FeedPost>>
 
     suspend fun findNewestPosts(
         userId: String,
         feedDirective: String,
         allowMutedThreads: Boolean = false,
+        wotFilterActive: Boolean = false,
         limit: Int,
     ): List<FeedPost>
 

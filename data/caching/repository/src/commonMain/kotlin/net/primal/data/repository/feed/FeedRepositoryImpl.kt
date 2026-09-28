@@ -96,6 +96,7 @@ internal class FeedRepositoryImpl(
         feedSpec: String,
         kinds: List<Int>,
         allowMutedThreads: Boolean,
+        wotFilterActive: Boolean,
     ): Flow<PagingData<FeedPostDO>> {
         return createPager(userId = userId, feedSpec = feedSpec, kinds = kinds) {
             database.feedPosts().feedQuery(
@@ -103,6 +104,7 @@ internal class FeedRepositoryImpl(
                     userId = userId,
                     feedSpec = feedSpec,
                     allowMutedThreads = allowMutedThreads,
+                    wotFilterActive = wotFilterActive,
                 ).feedQuery(),
             )
         }.flow.map { it.map { feedPostPO -> feedPostPO.mapAsFeedPostDO() } }
@@ -113,6 +115,7 @@ internal class FeedRepositoryImpl(
         userId: String,
         feedDirective: String,
         allowMutedThreads: Boolean,
+        wotFilterActive: Boolean,
         limit: Int,
     ) = withContext(dispatcherProvider.io()) {
         database.feedPosts().newestFeedPosts(
@@ -120,6 +123,7 @@ internal class FeedRepositoryImpl(
                 userId = userId,
                 feedSpec = feedDirective,
                 allowMutedThreads = allowMutedThreads,
+                wotFilterActive = wotFilterActive,
             ).newestFeedPostsQuery(limit = limit),
         ).map { it.mapAsFeedPostDO() }
     }
@@ -499,12 +503,17 @@ internal class FeedRepositoryImpl(
         userId: String,
         feedSpec: String,
         allowMutedThreads: Boolean,
+        wotFilterActive: Boolean = false,
     ): FeedQueryBuilder =
         when {
+            // Web-of-trust filtering only makes sense for the feed of people the user actually
+            // follows (plus their reposts) — it is not applied to explore/hashtag/trending feeds,
+            // whose whole purpose is surfacing accounts the user does not already know.
             feedSpec.supportsNoteReposts() -> ChronologicalFeedWithRepostsQueryBuilder(
                 feedSpec = feedSpec,
                 userPubkey = userId,
                 allowMutedThreads = allowMutedThreads,
+                wotFilterActive = wotFilterActive,
             )
 
             else -> ExploreFeedQueryBuilder(

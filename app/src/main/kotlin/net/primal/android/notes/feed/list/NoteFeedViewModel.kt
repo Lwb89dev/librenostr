@@ -60,6 +60,7 @@ import net.primal.domain.posts.FeedPageSnapshot
 import net.primal.domain.posts.FeedPost
 import net.primal.domain.posts.FeedRepository
 import net.primal.domain.posts.FeedRepository.Companion.INITIAL_PAGE_SIZE
+import net.primal.domain.wot.WebOfTrustRepository
 
 @OptIn(FlowPreview::class)
 @HiltViewModel(assistedFactory = NoteFeedViewModel.Factory::class)
@@ -69,6 +70,7 @@ class NoteFeedViewModel @AssistedInject constructor(
     private val feedRepository: FeedRepository,
     private val activeAccountStore: ActiveAccountStore,
     private val mutedItemRepository: MutedItemRepository,
+    private val webOfTrustRepository: WebOfTrustRepository,
     private val eventRepository: EventRepository,
     private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
@@ -86,11 +88,18 @@ class NoteFeedViewModel @AssistedInject constructor(
         activeAccountStore.activeUserId
             .filter { it.isNotBlank() }
             .flatMapLatest { userId ->
-                feedRepository.feedBySpec(
-                    userId = userId,
-                    feedSpec = feedSpec,
-                    allowMutedThreads = allowMutedThreads,
-                )
+                // A second flatMapLatest, not a one-shot read: unlike allowMutedThreads (fixed per
+                // screen), whether web-of-trust filtering applies can change any time — the user
+                // flips the setting, or a network finishes computing for the first time — and the
+                // feed has to rebuild against the new query rather than wait for the screen to reopen.
+                webOfTrustRepository.observeFilteringActive(ownerId = userId).flatMapLatest { wotFilterActive ->
+                    feedRepository.feedBySpec(
+                        userId = userId,
+                        feedSpec = feedSpec,
+                        allowMutedThreads = allowMutedThreads,
+                        wotFilterActive = wotFilterActive,
+                    )
+                }
             }
             .map { paging -> paging.map { feedNote -> feedNote.asFeedPostUi() } }
             .cachedIn(viewModelScope + dispatcherProvider.io())

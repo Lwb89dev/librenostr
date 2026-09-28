@@ -34,6 +34,7 @@ import net.primal.domain.publisher.PrimalPublisher
 import net.primal.domain.reads.ArticleRepository
 import net.primal.domain.reads.HighlightRepository
 import net.primal.domain.user.UserDataCleanupRepository
+import net.primal.domain.wot.WebOfTrustRepository
 
 @Suppress("TooManyFunctions")
 @Module
@@ -162,6 +163,10 @@ object CachingRepositoriesModule {
             primalPublisher = primalPublisher,
             relayEventQuerier = relayEventQuerier,
         )
+
+    @Provides
+    fun provideWebOfTrustRepository(relayEventQuerier: RelayEventQuerier): WebOfTrustRepository =
+        PrimalRepositoryFactory.createWebOfTrustRepository(relayEventQuerier = relayEventQuerier)
 
     @Provides
     fun provideNotificationRepository(

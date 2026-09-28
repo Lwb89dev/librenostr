@@ -9,6 +9,8 @@ import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
 import net.primal.data.local.dao.bookmarks.PublicBookmark
 import net.primal.data.local.dao.events.EventUserStats
 import net.primal.data.local.dao.mutes.MutedItemData
+import net.primal.data.local.dao.wot.WotNetworkStateData
+import net.primal.data.local.dao.wot.WotQualifiedPubkeyData
 
 /**
  * A [PagingSource] return-type converter for the feed DAO that narrows the observed-table set.
@@ -27,6 +29,11 @@ import net.primal.data.local.dao.mutes.MutedItemData
  *  - `PublicBookmark` — the card's bookmark state; the bookmark toggle has no optimistic UI
  *    state, so this write is the only signal that flips the indicator. Low-churn table
  *    (bookmark actions + bookmark-list sync only), so observing it is cheap.
+ *  - `WotNetworkStateData` — the web-of-trust filter's on/off switch (and whether a network has
+ *    ever been computed), which the query bakes into a bound bypass flag rather than reading live,
+ *    so a toggle needs its own invalidation the same way a mute change does.
+ *  - `WotQualifiedPubkeyData` — the computed set itself; a (re)computed network must reach an
+ *    already-open feed the same way muting someone does.
  *
  * `FeedPostDataCrossRef` (feed membership/order) is deliberately NOT observed: the table is
  * spec-blind, so one feed's page persists invalidated every other live feed (opening a profile
@@ -63,6 +70,8 @@ class FeedPagingSourceDaoReturnTypeConverter {
                 MutedItemData::class,
                 EventUserStats::class,
                 PublicBookmark::class,
+                WotNetworkStateData::class,
+                WotQualifiedPubkeyData::class,
             )
                 .map { requireNotNull(it.simpleName) }
                 .toTypedArray()

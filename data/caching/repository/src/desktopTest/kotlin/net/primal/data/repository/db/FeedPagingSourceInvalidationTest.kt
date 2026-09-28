@@ -18,6 +18,8 @@ import net.primal.data.local.dao.notes.FeedPost
 import net.primal.data.local.dao.notes.FeedPostDataCrossRef
 import net.primal.data.local.dao.notes.PostData
 import net.primal.data.local.dao.profiles.ProfileData
+import net.primal.data.local.dao.wot.WotNetworkStateData
+import net.primal.data.local.dao.wot.WotQualifiedPubkeyData
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.local.queries.ChronologicalFeedWithRepostsQueryBuilder
 import net.primal.domain.bookmarks.BookmarkType
@@ -33,6 +35,8 @@ import net.primal.shared.data.local.db.LocalDatabaseFactory
  *  - [MutedItemData] — mute filtering changes,
  *  - [EventUserStats] — the user's own interaction flags rendered live on feed items,
  *  - [PublicBookmark] — the card's bookmark indicator (the bookmark toggle has no optimistic UI state),
+ *  - [WotNetworkStateData] — the web-of-trust filter's on/off switch,
+ *  - [WotQualifiedPubkeyData] — the web-of-trust network itself, once (re)computed,
  * and must NOT invalidate on writes to any other table the query or its relations read — including
  * [FeedPostDataCrossRef]: the table is spec-blind, so Room-observing it regenerated every live feed
  * on any other feed's page persist. Feed membership changes are routed per `(ownerId, feedSpec)` by
@@ -95,6 +99,30 @@ class FeedPagingSourceInvalidationTest {
             pagingSource.awaitInvalidation(
                 reason = "PublicBookmark write (bookmark toggle must update the card's bookmark state)",
             )
+        }
+
+    @Test
+    fun feedPagingSource_invalidates_on_WotQualifiedPubkeyData_write() =
+        withFeedPagingSource { database, pagingSource ->
+            database.webOfTrust().insertQualifiedPubkeys(
+                data = listOf(WotQualifiedPubkeyData(ownerId = USER_ID, pubkey = AUTHOR_ID)),
+            )
+            pagingSource.awaitInvalidation(reason = "WotQualifiedPubkeyData write (a network was (re)computed)")
+        }
+
+    @Test
+    fun feedPagingSource_invalidates_on_WotNetworkStateData_write() =
+        withFeedPagingSource { database, pagingSource ->
+            database.webOfTrust().upsertState(
+                WotNetworkStateData(
+                    ownerId = USER_ID,
+                    filterEnabled = true,
+                    computedAtSeconds = 1_700_000_000L,
+                    firstDegreeCount = 1,
+                    qualifiedCount = 0,
+                ),
+            )
+            pagingSource.awaitInvalidation(reason = "WotNetworkStateData write (the filter's on/off switch changed)")
         }
 
     @Test

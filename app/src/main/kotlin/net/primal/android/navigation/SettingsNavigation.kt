@@ -76,6 +76,8 @@ import net.primal.android.settings.network.NetworkSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsViewModel
 import net.primal.android.settings.tor.TorSettingsScreen
 import net.primal.android.settings.tor.TorSettingsViewModel
+import net.primal.android.settings.wot.WebOfTrustSettingsScreen
+import net.primal.android.settings.wot.WebOfTrustSettingsViewModel
 import net.primal.android.settings.notifications.NotificationsSettingsScreen
 import net.primal.android.settings.notifications.NotificationsSettingsViewModel
 import net.primal.android.settings.zaps.ZapSettingsScreen
@@ -89,6 +91,7 @@ private fun NavController.navigateToContentDisplaySettings() = navigate(route = 
 fun NavController.navigateToNotificationsSettings() = navigate(route = "notifications_settings")
 private fun NavController.navigateToZapsSettings() = navigate(route = "zaps_settings")
 private fun NavController.navigateToMutedAccounts() = navigate(route = "muted_accounts_settings")
+private fun NavController.navigateToWebOfTrustSettings() = navigate(route = "web_of_trust_settings")
 private fun NavController.navigateToMediaUploads() = navigate(route = "media_uploads_settings")
 fun NavController.navigateToConnectedApps() = navigate(route = "connected_apps")
 private fun NavController.navigateToDeveloperTools() = navigate(route = "developer_tools")
@@ -138,6 +141,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
                     PrimalSettingsSection.Notifications -> navController.navigateToNotificationsSettings()
                     PrimalSettingsSection.Zaps -> navController.navigateToZapsSettings()
                     PrimalSettingsSection.MutedAccounts -> navController.navigateToMutedAccounts()
+                    PrimalSettingsSection.WebOfTrust -> navController.navigateToWebOfTrustSettings()
                     PrimalSettingsSection.MediaUploads -> navController.navigateToMediaUploads()
                     PrimalSettingsSection.ConnectedApps -> navController.navigateToConnectedApps()
                     PrimalSettingsSection.Language -> Unit
@@ -149,6 +153,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
         account(route = "account_settings", navController = navController)
         network(route = "network", navController = navController)
         tor(route = "tor_settings", navController = navController)
+        webOfTrust(route = "web_of_trust_settings", navController = navController)
         appearance(route = "appearance_settings", navController = navController)
         contentDisplay(route = "content_display", navController = navController)
         mutedAccounts(route = "muted_accounts_settings", navController = navController)
@@ -317,6 +322,11 @@ private fun EmbeddedSettingsSection(
             onClose = {},
             embedded = true,
         )
+        PrimalSettingsSection.WebOfTrust -> WebOfTrustSettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
         PrimalSettingsSection.MediaUploads -> MediaUploadsSettingsScreen(
             viewModel = hiltViewModel(),
             onClose = {},
@@ -432,6 +442,22 @@ private fun NavGraphBuilder.tor(route: String, navController: NavController) =
         val viewModel = hiltViewModel<TorSettingsViewModel>(it)
         LockToOrientationPortrait()
         TorSettingsScreen(
+            viewModel = viewModel,
+            onClose = { navController.navigateUp() },
+        )
+    }
+
+private fun NavGraphBuilder.webOfTrust(route: String, navController: NavController) =
+    composable(
+        route = route,
+        enterTransition = { primalSlideInHorizontallyFromEnd },
+        exitTransition = { primalScaleOut },
+        popEnterTransition = { primalScaleIn },
+        popExitTransition = { primalSlideOutHorizontallyToEnd },
+    ) {
+        val viewModel = hiltViewModel<WebOfTrustSettingsViewModel>(it)
+        LockToOrientationPortrait()
+        WebOfTrustSettingsScreen(
             viewModel = viewModel,
             onClose = { navController.navigateUp() },
         )

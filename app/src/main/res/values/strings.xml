@@ -108,6 +108,11 @@
         <item quantity="other">%d users</item>
     </plurals>
 
+    <plurals name="settings_wot_status_complete">
+        <item quantity="one">Network ready: %1$d follows directly, %2$d more qualified as a friend of a friend.</item>
+        <item quantity="other">Network ready: %1$d follows directly, %2$d more qualified as friends of friends.</item>
+    </plurals>
+
     <string name="login_title">Sign In</string>
     <string name="login_with_amber_button">Login with Amber</string>
     <string name="login_amber_primary_hint">Amber keeps your private key in a dedicated signer and approves access securely.</string>
@@ -819,6 +824,14 @@
     <string name="settings_tor_status_failed">Couldn\'t start. Retrying automatically.</string>
     <string name="settings_tor_status_unavailable">Built-in Tor isn\'t part of this build.</string>
     <string name="settings_tor_orbot_not_installed">Orbot doesn\'t appear to be installed. Install and start Orbot, or connections will fail while Tor is enabled.</string>
+
+    <string name="settings_wot_title">Web of Trust</string>
+    <string name="settings_wot_enable_title">Filter your following feed by web of trust</string>
+    <string name="settings_wot_enable_description">Hide notes and reposts from accounts you don\'t follow and that aren\'t followed by enough people you do follow. A local, on-device check — nothing is sent to any server.</string>
+    <string name="settings_wot_refresh_button">Refresh network now</string>
+    <string name="settings_wot_status_idle">Not computed yet. Turn the filter on, or refresh, to build your network.</string>
+    <string name="settings_wot_status_discovering">Checking who your follows follow… %1$d of %2$d</string>
+    <string name="settings_wot_status_failed">Couldn\'t compute a network: %1$s</string>
     <string name="settings_network_relays_section">Relays</string>
     <string name="settings_network_relays_recommendation">Tip: for most users, 5–6 relays is a good balance between reliability and speed. More relays can increase connection and battery usage.</string>
     <string name="settings_network_add_a_relay_section">Add a relay</string>

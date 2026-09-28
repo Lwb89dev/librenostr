@@ -9,6 +9,7 @@ enum class PrimalSettingsSection {
     ConnectedApps,
     ContentDisplay,
     MutedAccounts,
+    WebOfTrust,
     MediaUploads,
     Notifications,
     Zaps,

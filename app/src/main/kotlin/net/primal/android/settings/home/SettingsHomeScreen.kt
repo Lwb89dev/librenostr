@@ -272,6 +272,7 @@ private fun PrimalSettingsSection.icon(): ImageVector {
         PrimalSettingsSection.ConnectedApps -> PrimalIcons.NostrConnectSession
         PrimalSettingsSection.ContentDisplay -> PrimalIcons.FontSize
         PrimalSettingsSection.MutedAccounts -> PrimalIcons.MuteUser
+        PrimalSettingsSection.WebOfTrust -> PrimalIcons.MuteUser
         PrimalSettingsSection.MediaUploads -> PrimalIcons.ImportPhotoFromGallery
         PrimalSettingsSection.Notifications -> PrimalIcons.Notifications
         PrimalSettingsSection.Zaps -> PrimalIcons.Zap
@@ -291,6 +292,7 @@ private fun PrimalSettingsSection.title(): String {
         PrimalSettingsSection.Notifications -> stringResource(id = R.string.settings_notifications_title)
         PrimalSettingsSection.Zaps -> stringResource(id = R.string.settings_zaps_title)
         PrimalSettingsSection.MutedAccounts -> stringResource(id = R.string.settings_muted_content_title)
+        PrimalSettingsSection.WebOfTrust -> stringResource(id = R.string.settings_wot_title)
         PrimalSettingsSection.MediaUploads -> stringResource(id = R.string.settings_media_uploads_title)
         PrimalSettingsSection.ConnectedApps -> stringResource(id = R.string.settings_connected_apps_title)
         PrimalSettingsSection.Language -> stringResource(id = R.string.settings_language_title)

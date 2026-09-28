@@ -23,6 +23,7 @@ import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.data.repository.messages.ChatRepositoryImpl
 import net.primal.data.repository.messages.processors.MessagesProcessor
 import net.primal.data.repository.mute.MutedItemRepositoryImpl
+import net.primal.data.repository.wot.WebOfTrustRepositoryImpl
 import net.primal.data.repository.nip05.Nip05HttpClient
 import net.primal.data.repository.nip05.Nip05VerificationServiceImpl
 import net.primal.data.repository.notifications.NotificationRepositoryImpl
@@ -50,6 +51,7 @@ import net.primal.domain.publisher.PrimalPublisher
 import net.primal.domain.reads.ArticleRepository
 import net.primal.domain.reads.HighlightRepository
 import net.primal.domain.user.UserDataCleanupRepository
+import net.primal.domain.wot.WebOfTrustRepository
 
 abstract class CommonRepositoryFactory {
 
@@ -220,6 +222,14 @@ abstract class CommonRepositoryFactory {
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
             primalPublisher = primalPublisher,
+            relayEventQuerier = relayEventQuerier,
+        )
+    }
+
+    fun createWebOfTrustRepository(relayEventQuerier: RelayEventQuerier): WebOfTrustRepository {
+        return WebOfTrustRepositoryImpl(
+            dispatcherProvider = dispatcherProvider,
+            database = resolveCachingDatabase(),
             relayEventQuerier = relayEventQuerier,
         )
     }
