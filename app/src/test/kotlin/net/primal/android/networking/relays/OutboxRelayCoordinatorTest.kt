@@ -20,7 +20,7 @@ import org.junit.Test
 class OutboxRelayCoordinatorTest {
 
     @Test
-    fun `most common write relay across authors is returned first`() {
+    fun `the relay covering the most authors is picked first`() {
         val userRelays = listOf(
             UserRelays(
                 pubkey = "author1",
@@ -46,10 +46,55 @@ class OutboxRelayCoordinatorTest {
 
         val result = userRelays.topWriteRelays(maxRelays = 8)
 
+        // "rare" is author1's relay too, but author1 is already reached through "popular" — adding
+        // it would spend a slot on zero new coverage, so set cover stops after the one pick that
+        // already reaches every author with any write relay at all.
+        result shouldBe listOf(Relay(url = "wss://popular.example.com", read = true, write = false))
+    }
+
+    @Test
+    fun `a relay unique to one otherwise-uncovered author is picked over a merely popular one`() {
+        // Authors 1-8 all share both "popular" and "second" — either alone already reaches all
+        // eight. Author 9 is reachable only through "niche". Picking by raw popularity ("popular"
+        // and "second" are each used 8 times, "niche" once) fills a 2-relay budget with "popular"
+        // and "second" and never reaches author9 at all.
+        val sharedByEight = (1..8).map { i ->
+            UserRelays(
+                pubkey = "author$i",
+                relays = listOf(
+                    Relay(url = "wss://popular.example.com", read = true, write = true),
+                    Relay(url = "wss://second.example.com", read = true, write = true),
+                ),
+            )
+        }
+        val niche = UserRelays(
+            pubkey = "author9",
+            relays = listOf(Relay(url = "wss://niche.example.com", read = true, write = true)),
+        )
+
+        val result = (sharedByEight + niche).topWriteRelays(maxRelays = 2)
+
         result shouldBe listOf(
             Relay(url = "wss://popular.example.com", read = true, write = false),
-            Relay(url = "wss://rare.example.com", read = true, write = false),
+            Relay(url = "wss://niche.example.com", read = true, write = false),
         )
+    }
+
+    @Test
+    fun `a tie in new coverage is broken by URL, so the result is deterministic`() {
+        val userRelays = listOf(
+            UserRelays(
+                pubkey = "author1",
+                relays = listOf(Relay(url = "wss://z.example.com", read = true, write = true)),
+            ),
+            UserRelays(
+                pubkey = "author2",
+                relays = listOf(Relay(url = "wss://a.example.com", read = true, write = true)),
+            ),
+        )
+
+        userRelays.topWriteRelays(maxRelays = 1) shouldBe
+            listOf(Relay(url = "wss://a.example.com", read = true, write = false))
     }
 
     @Test

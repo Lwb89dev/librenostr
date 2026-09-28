@@ -90,18 +90,56 @@ class OutboxRelayCoordinator @Inject constructor(
 }
 
 /**
- * The most common declared write relays across [this] batch of authors' NIP-65 lists, most-used
- * first, capped at [maxRelays] and always returned as read-only (`write = false`) — this function
- * decides *coverage*, never a publish target. A plain top-level function (no coroutines, no
+ * Selects up to [maxRelays] declared write relays from [this] batch of authors' NIP-65 lists by
+ * greedy set cover, always returned read-only (`write = false`) — this function decides
+ * *coverage*, never a publish target. A plain top-level function (no coroutines, no
  * `RelayRepository`/`RelaysSocketManager` dependency) so the actual selection logic is directly
  * unit-testable without touching a dispatcher, a mock relay pool, or [OutboxRelayCoordinator]'s
  * own long-lived loop.
+ *
+ * Repeatedly picks the relay that still covers the most authors nobody selected so far covers yet,
+ * instead of the relay used by the most authors overall. The two agree when one relay dominates,
+ * but diverge exactly where it matters: eight authors who all happen to share both a common relay
+ * and a second, almost-as-common one, plus a ninth author reachable only through a relay nobody
+ * else uses, is a realistic follow-list shape — picking by raw popularity spends the whole budget
+ * on the first two and never reaches the ninth author at all, while set cover picks the widely
+ * shared relay once and then spends its next pick on the one relay that actually adds someone new.
+ * For the same [maxRelays] budget this can only match or beat plain popularity on how many authors
+ * end up reachable through *some* selected relay, which is the only thing this list is for.
+ *
+ * Stops as soon as no remaining relay would add anyone new, even under budget: a relay that only
+ * repeats authors already covered by an earlier pick is not worth a slot, so this can return fewer
+ * than [maxRelays] entries when the sample is already fully covered by fewer relays than that.
  */
-internal fun List<UserRelays>.topWriteRelays(maxRelays: Int): List<Relay> =
-    flatMap { it.relays.filter { relay -> relay.write } }
-        .groupingBy { it.url }
-        .eachCount()
-        .entries
-        .sortedByDescending { it.value }
-        .take(maxRelays)
-        .map { Relay(url = it.key, read = true, write = false) }
+internal fun List<UserRelays>.topWriteRelays(maxRelays: Int): List<Relay> {
+    val authorsByRelay: Map<String, Set<String>> = buildMap<String, MutableSet<String>> {
+        this@topWriteRelays.forEach { userRelays ->
+            userRelays.relays.filter { it.write }.forEach { relay ->
+                getOrPut(relay.url) { mutableSetOf() }.add(userRelays.pubkey)
+            }
+        }
+    }
+
+    val covered = mutableSetOf<String>()
+    val remainingRelays = authorsByRelay.keys.toMutableSet()
+    val selected = mutableListOf<String>()
+
+    while (selected.size < maxRelays) {
+        // Ties are broken by URL purely so the result is deterministic and testable; nothing about
+        // one relay over the other makes it a better pick once they cover the same new authors.
+        val next = remainingRelays
+            .associateWith { (authorsByRelay.getValue(it) - covered).size }
+            .filterValues { it > 0 }
+            .entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .firstOrNull()
+            ?.key
+            ?: break
+
+        selected += next
+        covered += authorsByRelay.getValue(next)
+        remainingRelays -= next
+    }
+
+    return selected.map { Relay(url = it, read = true, write = false) }
+}
