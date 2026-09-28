@@ -7,6 +7,31 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [0.6.2] - 2026-09-28
+
+### Added
+
+- A local web of trust filter for the following feed (Settings > Web of Trust): hides notes and
+  reposts from accounts you don't follow and that aren't followed by enough of the people you do
+  follow. Entirely on-device — it reads only public follow lists already published to relays, no
+  server involved.
+- Relay addresses can now be plain `ws://` when they point at your own network: `localhost`,
+  `127.0.0.1`, `::1`, or a `.local` name, for a self-hosted relay with no certificate.
+- `#bitcoin` renders as ₿ in Bitcoin's own orange; `#nostr`, `#grownostr` and `#asknostr` get a
+  purple circle.
+
+### Changed
+
+- The relays LibreNostr adds on top of your own, to reach people you follow who don't publish to
+  any of your configured relays, are now chosen by how many additional people they actually reach,
+  not by how often a relay shows up overall — the same fixed number of relays now covers more of
+  your follow list.
+
+### Fixed
+
+- Removed an unused CameraX manifest placeholder service that had no function but showed up as an
+  unexplained entry to anyone inspecting the app's manifest.
+
 ## [0.6.1] - 2026-09-25
 
 ### Changed
