@@ -24,7 +24,7 @@ client  <->  Nostr relays  +  local Room/DataStore
 
 The imported codebase still contains upstream namespaces and compatibility services. Those are being removed incrementally, path by path, instead of hiding the remaining dependencies behind a rebrand.
 
-The current release is [`v0.7.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v0.7.0). Release APKs
+The current release is [`v1.0.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v1.0.0). Release APKs
 are signed, `arm64-v8a` only, and published from the [`altRelease`](https://github.com/Lwb89dev/librenostr/releases)
 build variant.
 
@@ -50,6 +50,7 @@ and [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
 - inline search: profile results appear below the search field and note/read results render in the same screen, without an intermediate results page;
 - persistent recent searches and recent profiles, capped at five entries per group and shown with profile images;
 - note composer attachments, camera/gallery selection, polls and a GIF picker backed by Wikimedia Commons previews.
+- deck mode on tablets held in landscape: several named decks of drag-and-drop columns (feeds, hashtags, profiles, Reads, notifications, messages), with notes, profiles and DMs opening inside their column; phones and portrait tablets keep the tabbed layout.
 
 The app name and launcher icon are LibreNostr. The Android application ID is
 `com.librenostr.android`; the internal Kotlin/Java package namespace is still
@@ -144,7 +145,7 @@ The APK is written to
 
 Signed release APKs (`altRelease`, `arm64-v8a` only) are published on the
 [GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page. The latest release is
-[`v0.7.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v0.7.0). Verify the APK signature
+[`v1.0.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v1.0.0). Verify the APK signature
 before installing:
 
 ```bash
