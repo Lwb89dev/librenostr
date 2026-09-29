@@ -24,7 +24,7 @@ client  <->  Nostr relays  +  local Room/DataStore
 
 The imported codebase still contains upstream namespaces and compatibility services. Those are being removed incrementally, path by path, instead of hiding the remaining dependencies behind a rebrand.
 
-The current release is [`v1.0.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v1.0.0). Release APKs
+The current release is [`v1.0.1`](https://github.com/Lwb89dev/librenostr/releases/tag/v1.0.1). Release APKs
 are signed, `arm64-v8a` only, and published from the [`altRelease`](https://github.com/Lwb89dev/librenostr/releases)
 build variant.
 
@@ -145,7 +145,7 @@ The APK is written to
 
 Signed release APKs (`altRelease`, `arm64-v8a` only) are published on the
 [GitHub Releases](https://github.com/Lwb89dev/librenostr/releases) page. The latest release is
-[`v1.0.0`](https://github.com/Lwb89dev/librenostr/releases/tag/v1.0.0). Verify the APK signature
+[`v1.0.1`](https://github.com/Lwb89dev/librenostr/releases/tag/v1.0.1). Verify the APK signature
 before installing:
 
 ```bash
