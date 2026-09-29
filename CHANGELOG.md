@@ -7,6 +7,77 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [1.0.0] - 2026-09-29
+
+LibreNostr's first stable release. Every data path in the app — feeds, profiles, threads,
+notifications, DMs, search, bookmarks, mute lists — has run directly against Nostr relays since the
+0.x series; this release adds a tablet layout on top of that and closes a long list of bugs found in
+a full review of the app, several of which could silently lose data.
+
+### Added
+
+- **Deck mode for tablets.** Hold a tablet in landscape and LibreNostr switches to a multi-column
+  layout in the style of notedeck; rotate back to portrait and you get the usual tabbed app. Phones
+  never switch, in either orientation.
+  - Several named decks, switched from a sidebar; each can be renamed, reordered or deleted.
+  - Columns for any of your feeds, a hashtag, a profile, Reads, notifications and messages. A
+    profile column can be picked by name, NIP-05 address, npub or hex key.
+  - Columns can be rearranged by drag and drop (or with the arrow buttons in the column header).
+  - Opening a note, a profile or a DM conversation from a column opens it inside that same column,
+    with a back button to return to the column's feed, instead of leaving the deck.
+  - The deck layout is saved on the device, separately for each of your profiles.
+- Advanced search now understands `OR` between words, `-word` to exclude a word,
+  `filter:image`/`filter:video`/`filter:audio`, and the custom date range from the date picker (which
+  was previously ignored).
+
+### Changed
+
+- **Search is much faster.** Many relays answer a full-text search request by refusing it; the app
+  used to miss that refusal and wait out a timeout of several seconds before trying the fallback,
+  on every step of every search. It now moves on immediately.
+- Profile search shows matches already stored on the device straight away and refines them as
+  relays answer; typing a new query cancels the previous search instead of letting its results
+  arrive late and overwrite the new ones.
+- Hashtag feeds and hashtag columns are in chronological order, newest first. Searching `#bitcoin`
+  could previously show posts from years ago at the top.
+- Loading more notes no longer skips newer notes held only by slower relays: a page is closed only
+  once enough of your relays have answered, not as soon as the fastest one fills it.
+- Feeds you are not looking at (another tab, a removed deck column) no longer keep a live relay
+  subscription open in the background, saving battery and data.
+
+### Fixed
+
+- **Mute list and bookmarks could be wiped.** Muting, unmuting or bookmarking while relays were slow
+  to answer could publish a list containing only that one change, replacing everything else on
+  your relays. Private (encrypted) entries and entries written by other clients were also dropped
+  on every edit. Edits now always start from your latest published list and keep everything they
+  don't change.
+- With more than one profile in the app, bookmarks and notifications of one profile could overwrite
+  those of another when both had bookmarked the same note or received the same notification.
+- The extra relays LibreNostr adds to reach people you follow who publish elsewhere were also sent
+  your relay login (NIP-42 AUTH) and your private requests (DMs, private lists). They are now
+  read-only helpers used for public content only.
+- Profile names and pictures could flip back to an older version when a relay holding an outdated
+  copy answered last.
+- An author could stay shown as a raw npub for the rest of the session if a screen was closed while
+  their profile was still loading.
+- Loading older notifications could skip some between one page and the next.
+- The notification badge never came back after you had opened the notifications once, until the
+  app was restarted.
+- Tapping the "new notes" pill replaced the feed with just the new notes, dropping everything
+  already loaded below them.
+- Replying from inside a thread with the undo timer enabled showed no countdown, so the reply
+  seemed to do nothing for several seconds, and leaving the thread in that window discarded it.
+  The countdown now appears there too.
+- A note could be published twice when "post now" was tapped as the undo countdown ran out.
+- The media gallery failed to open images and videos whose address contains a query string.
+- Unread message counts could come back after a conversation had been marked as read.
+- Searching for text containing quotes or a backslash broke the search.
+- Profile search no longer matches almost every profile on short queries (it used to match the
+  profile data's field names and fragments of picture URLs).
+- `bitcoin OR lightning` required both words instead of either, and a `since:`/`until:` date could
+  be misread as a `kind:` filter that matched nothing.
+
 ## [0.7.0] - 2026-09-28
 
 ### Changed
