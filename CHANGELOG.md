@@ -7,6 +7,15 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [1.0.1] - 2026-09-29
+
+### Fixed
+
+- Deck mode crashed immediately on any tablet, as soon as it activated (opening the app in
+  landscape, or rotating into it). Each column sets up its own view-model store so closing it
+  frees what it opened, but that store wasn't wired to Hilt's dependency injection, so the very
+  first view model a column tried to create — its feed — crashed instead.
+
 ## [1.0.0] - 2026-09-29
 
 LibreNostr's first stable release. Every data path in the app — feeds, profiles, threads,
