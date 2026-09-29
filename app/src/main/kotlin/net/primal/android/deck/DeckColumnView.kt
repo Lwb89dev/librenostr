@@ -29,8 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -82,9 +85,21 @@ fun ReorderableCollectionItemScope.DeckColumnView(
     // away, it does not get removed from a ViewModelStore that outlives the whole app session.
     // Clearing on dispose means opening N different threads over a session costs O(1) live
     // ViewModels per column, not O(N).
-    val columnViewModelStoreOwner = remember {
-        object : ViewModelStoreOwner {
+    //
+    // A bare ViewModelStoreOwner is not enough: hiltViewModel() builds its Hilt-aware factory
+    // from HasDefaultViewModelProviderFactory on the owner, and without it silently falls back to
+    // ViewModelProvider.NewInstanceFactory, which tries every ViewModel's no-arg constructor —
+    // fatal for one built by @AssistedInject, such as NoteFeedViewModel. The store stays local to
+    // the column; only the factory (and the extras it needs to build with) is borrowed from the
+    // real owner outside the deck.
+    val realViewModelStoreOwner = LocalViewModelStoreOwner.current as HasDefaultViewModelProviderFactory
+    val columnViewModelStoreOwner = remember(realViewModelStoreOwner) {
+        object : ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
             override val viewModelStore = ViewModelStore()
+            override val defaultViewModelProviderFactory: ViewModelProvider.Factory
+                get() = realViewModelStoreOwner.defaultViewModelProviderFactory
+            override val defaultViewModelCreationExtras: CreationExtras
+                get() = realViewModelStoreOwner.defaultViewModelCreationExtras
         }
     }
     DisposableEffect(columnViewModelStoreOwner) {
