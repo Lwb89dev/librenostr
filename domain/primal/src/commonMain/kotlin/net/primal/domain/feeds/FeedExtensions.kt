@@ -1,6 +1,10 @@
 package net.primal.domain.feeds
 
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import net.primal.core.utils.runCatching
+import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
 
 fun String.isUserNotesFeedSpec(): Boolean {
@@ -135,6 +139,15 @@ fun buildArticleBookmarksFeedSpec(userId: String): String =
 
 fun buildLatestNotesUserFeedSpec(userId: String) = """{"id":"feed","kind":"notes","pubkey":"$userId"}"""
 
+/**
+ * Same shape `ProfileFeedSpec.AuthoredNotes.buildSpec()` produces for the profile screen's Notes
+ * tab. Unlike [buildLatestNotesUserFeedSpec] — which nothing actually fetches with, it only marks
+ * a saved feed shortcut's identity — relays *do* know how to answer this one, because it matches
+ * [isProfileAuthoredNotesFeedSpec].
+ */
+fun buildProfileAuthoredNotesFeedSpec(userId: String) =
+    """{"id":"feed","kind":"notes","notes":"authored","pubkey":"$userId"}"""
+
 fun String.resolveFeedSpecKind(): FeedSpecKind? {
     return when {
         this.isNotesFeedSpec() -> FeedSpecKind.Notes
@@ -156,14 +169,23 @@ fun String.isAudioSpec() = this.contains("\"query\":\"filter:audio")
 
 fun String.isReadsFeedSpec() = this.contains("\"kind\":\"reads\"") || this.contains("kind:30023")
 
-fun String?.buildAdvancedSearchFeedSpec() = """{"id":"advsearch","query":"$this"}"""
+/**
+ * The user's search text goes inside a JSON string: an unescaped `"` in it (searching for an exact
+ * phrase) produced an invalid spec, and [extractAdvancedSearchQuery] then cut the query short at
+ * that quote.
+ */
+private fun String.escapeForJsonString(): String = replace("\\", "\\\\").replace("\"", "\\\"")
 
-fun buildAdvancedSearchNotesFeedSpec(query: String) = """{"id":"advsearch","query":"kind:1 $query"}"""
+fun String?.buildAdvancedSearchFeedSpec() = """{"id":"advsearch","query":"${this.toString().escapeForJsonString()}"}"""
 
-fun buildAdvancedSearchReadsFeedSpec(query: String) = """{"id":"advsearch","query":"kind:30023 $query"}"""
+fun buildAdvancedSearchNotesFeedSpec(query: String) =
+    """{"id":"advsearch","query":"kind:1 ${query.escapeForJsonString()}"}"""
+
+fun buildAdvancedSearchReadsFeedSpec(query: String) =
+    """{"id":"advsearch","query":"kind:30023 ${query.escapeForJsonString()}"}"""
 
 fun buildAdvancedSearchNotificationsFeedSpec(query: String) =
-    """{"id":"advsearch","query":"kind:1 scope:mynotifications $query"}"""
+    """{"id":"advsearch","query":"kind:1 scope:mynotifications ${query.escapeForJsonString()}"}"""
 
 fun buildReadsTopicFeedSpec(hashtag: String) = """{"kind":"reads","topic":"${hashtag.substring(startIndex = 1)}"}"""
 
@@ -192,6 +214,11 @@ fun String.extractTopicFromFeedSpec(): String? {
 }
 
 fun String.extractAdvancedSearchQuery(): String? {
+    // A properly parsed spec handles escaped quotes inside the query; the substring scan below is
+    // only a fallback for specs that are not valid JSON at all.
+    decodeFromJsonStringOrNull<JsonObject>()?.get("query")?.let { element ->
+        return (element as? JsonPrimitive)?.contentOrNull
+    }
     val queryField = "\"query\":\""
     val queryFieldStartIndex = this.indexOf(queryField)
 

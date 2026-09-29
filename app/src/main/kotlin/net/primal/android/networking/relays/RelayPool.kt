@@ -2,11 +2,13 @@ package net.primal.android.networking.relays
 
 import androidx.annotation.VisibleForTesting
 import io.github.aakira.napier.Napier
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.FlowPreview
@@ -140,6 +142,10 @@ class RelayPool(
     @VisibleForTesting
     var socketClients = listOf<NostrSocketClient>()
 
+    // One AUTH collector per client, cancelled when the client leaves the pool — they used to run
+    // for the pool's whole lifetime, piling up with every account switch and enrichment refresh.
+    private val authChallengeJobs = ConcurrentHashMap<NostrSocketClient, Job>()
+
     private val _relayPoolStatus = MutableStateFlow(mapOf<String, Boolean>())
     val relayPoolStatus = _relayPoolStatus.asStateFlow()
     private fun updateRelayStatus(url: String, connected: Boolean) =
@@ -178,6 +184,7 @@ class RelayPool(
         socketClients = newSocketClients
         toRemoveSocketClients.forEach { client ->
             updateRelayStatus(url = client.socketUrl, connected = false)
+            authChallengeJobs.remove(client)?.cancel()
             scope.launch { client.close() }
         }
         this.relays = sanitized
@@ -186,6 +193,7 @@ class RelayPool(
     fun closePool() {
         socketClients.forEach { client ->
             updateRelayStatus(url = client.socketUrl, connected = false)
+            authChallengeJobs.remove(client)?.cancel()
             scope.launch { client.close() }
         }
         socketClients = emptyList()
@@ -254,7 +262,7 @@ class RelayPool(
      */
     private fun observeAuthChallenges(client: NostrSocketClient) {
         val sign = signAuthEvent ?: return
-        scope.launch {
+        authChallengeJobs[client] = scope.launch {
             client.incomingMessages
                 .filterIsInstance<NostrIncomingMessage.AuthMessage>()
                 .collect { challenge ->
@@ -510,9 +518,13 @@ class RelayPool(
             // several times its nominal timeout.
             withTimeoutOrNull(timeoutMs) {
                 val hadEose = firstEoseOrAllFailed.await()
-                if (hadEose && !pageFull.isCompleted && !settledEarly.isCompleted) {
-                    // Give the rest of the pool its turn before settling, unless the page is
-                    // already full.
+                if (hadEose && !settledEarly.isCompleted) {
+                    // Give the rest of the pool its turn before settling — even when the page is
+                    // already full. A full page from the single fastest relay used to close the
+                    // query on the spot, and the caller's next cursor (`until` = oldest note on
+                    // that page) then skipped for good every newer note only other relays held.
+                    // A full page still skips the grace below; a relay that CLOSEs or fails
+                    // counts towards the quorum, so this rarely waits long.
                     quorumReached.await()
                 }
                 if (hadEose && !pageFull.isCompleted && !settledEarly.isCompleted) {
@@ -563,20 +575,30 @@ class RelayPool(
         pageFull: CompletableDeferred<Unit>,
         onDuplicate: () -> Unit,
     ) {
+        // Events this one relay delivered, duplicates included. Callbacks for a single relay run
+        // sequentially, so a plain counter is enough.
+        var deliveredByThisRelay = 0
         queryOneRelay(
             client = client,
             subscriptionId = subscriptionId,
             filter = filter,
             timeoutMs = timeoutMs,
             onEvent = { event ->
-                val reachedTarget = mutex.withLock {
+                deliveredByThisRelay += 1
+                val (reachedTarget, reachedQuorum) = mutex.withLock {
                     when {
                         eventsById.containsKey(event.id) -> onDuplicate()
                         eventsById.size >= MAX_EVENTS_PER_QUERY -> Unit
                         else -> eventsById[event.id] = event
                     }
-                    eventsById.size >= requestedCount
+                    // A relay that has on its own delivered a whole page has answered as fully
+                    // as an EOSE would say, so it counts towards the quorum. Small pools then
+                    // settle as soon as the page is full, while larger ones still hear from more
+                    // than just their fastest member before the caller moves its cursor on.
+                    if (deliveredByThisRelay >= requestedCount) completedRelays += client.socketUrl
+                    (eventsById.size >= requestedCount) to (completedRelays.size >= quorum)
                 }
+                if (reachedQuorum) quorumReached.complete(true)
                 if (reachedTarget) {
                     pageFull.complete(Unit)
                     firstEoseOrAllFailed.complete(true)
@@ -680,8 +702,15 @@ class RelayPool(
             is NostrIncomingMessage.NoticeMessage -> {
                 Napier.w { "NOTICE from ${client.socketUrl}: ${message.message}" }
                 val notice = message.message
-                if (notice != null && notice.isRelayRejectionNotice()) {
-                    throw RelayRejectedRequestException(notice)
+                // An addressed notice here is always for this very subscription (the flow is
+                // already filtered by id), and in practice it is NIP-01 `CLOSED`: the relay has
+                // ended the REQ and will never send its EOSE. Most relays answer a NIP-50
+                // `search` filter exactly that way ("unrecognised filter item: search"), so not
+                // treating it as final made every search wait out the full timeout on each of
+                // them — about four seconds per search stage, for nothing.
+                val closedByRelay = message.subscriptionId != null
+                if (closedByRelay || (notice != null && notice.isRelayRejectionNotice())) {
+                    throw RelayRejectedRequestException(notice ?: "closed")
                 }
             }
             else -> Unit

@@ -1,10 +1,12 @@
 package net.primal.data.repository.feed
 
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
@@ -12,8 +14,6 @@ import net.primal.data.repository.cache.LocalEventCache
 import net.primal.data.repository.fetch.FetchCoordinator
 import net.primal.domain.common.ContentPrimalPaging
 import net.primal.domain.common.PrimalEvent
-import net.primal.domain.nostr.NostrEvent
-import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.feeds.extractFollowSetDTag
 import net.primal.domain.feeds.extractFollowSetPubkey
 import net.primal.domain.feeds.extractPubkeyFromFeedSpec
@@ -21,6 +21,8 @@ import net.primal.domain.feeds.isFollowSetFeedSpec
 import net.primal.domain.feeds.isNotesBookmarkFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNoteRepliesFeedSpec
 import net.primal.domain.feeds.isProfileAuthoredNotesFeedSpec
+import net.primal.domain.nostr.NostrEvent
+import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.eventIdTagValues
 import net.primal.domain.nostr.findFirstIdentifier
 import net.primal.domain.nostr.hasEventIdTag
@@ -237,12 +239,20 @@ internal class RelayNotesFeedFetcher(
         val distinct = pubkeys.distinct().take(MAX_METADATA_AUTHORS)
         val wanted = cache?.claimMetadataPubkeys(distinct) ?: distinct
         if (wanted.isEmpty()) return emptyList()
-        val metadata = queryInChunks(
-            authors = wanted,
-            kinds = listOf(NostrEventKind.Metadata.value),
-            limit = wanted.size,
-        )
-        cache?.releaseMetadataPubkeys(wanted - metadata.map { it.pubKey }.toSet())
+        var metadata: List<NostrEvent> = emptyList()
+        try {
+            metadata = queryInChunks(
+                authors = wanted,
+                kinds = listOf(NostrEventKind.Metadata.value),
+                limit = wanted.size,
+            )
+        } finally {
+            // Also on cancellation (pull-to-refresh, leaving the screen mid-load): a claim never
+            // given back leaves the author a raw npub for the rest of the session.
+            withContext(NonCancellable) {
+                cache?.releaseMetadataPubkeys(wanted - metadata.map { it.pubKey }.toSet())
+            }
+        }
         return metadata
     }
 

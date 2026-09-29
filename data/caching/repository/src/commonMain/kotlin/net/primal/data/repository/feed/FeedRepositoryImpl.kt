@@ -34,7 +34,6 @@ import net.primal.data.local.queries.ChronologicalFeedWithRepostsQueryBuilder
 import net.primal.data.local.queries.ExploreFeedQueryBuilder
 import net.primal.data.local.queries.FeedQueryBuilder
 import net.primal.data.remote.api.feed.FeedApi
-import net.primal.data.remote.api.feed.model.FeedResponse
 import net.primal.data.remote.api.feed.model.MultiKindFeedBySpecRequestBody
 import net.primal.data.remote.api.feed.model.MultiKindThreadRequestBody
 import net.primal.data.repository.cache.LocalEventCache
@@ -311,6 +310,25 @@ internal class FeedRepositoryImpl(
         userId: String,
         feedSpec: String,
         snapshot: FeedPageSnapshot,
+    ) = persistSnapshotWithStats(userId = userId, feedSpec = feedSpec, snapshot = snapshot, clearFeed = true)
+
+    override suspend fun mergeNewestIntoFeed(
+        userId: String,
+        feedSpec: String,
+        snapshot: FeedPageSnapshot,
+    ) {
+        persistSnapshotWithStats(userId = userId, feedSpec = feedSpec, snapshot = snapshot, clearFeed = false)
+        // FeedProcessor only invalidates when it clears the feed; merged rows still have to
+        // reach the PagingSource. Only chronological feeds poll for new notes, and those sort by
+        // timestamp, so the merged notes land on top rather than after the cached ones.
+        invalidationTracker.invalidate(ownerId = userId, feedSpec = feedSpec)
+    }
+
+    private suspend fun persistSnapshotWithStats(
+        userId: String,
+        feedSpec: String,
+        snapshot: FeedPageSnapshot,
+        clearFeed: Boolean,
     ) = withContext(dispatcherProvider.io()) {
         FeedProcessor(
             feedSpec = feedSpec,
@@ -319,7 +337,7 @@ internal class FeedRepositoryImpl(
         ).processAndPersistToDatabase(
             userId = userId,
             snapshot = snapshot,
-            clearFeed = true,
+            clearFeed = clearFeed,
         )
 
         relayEventQuerier?.let { querier ->
@@ -545,9 +563,9 @@ internal class FeedRepositoryImpl(
         wotFilterActive: Boolean = false,
     ): FeedQueryBuilder =
         when {
-            // Web-of-trust filtering only makes sense for the feed of people the user actually
-            // follows (plus their reposts) — it is not applied to explore/hashtag/trending feeds,
-            // whose whole purpose is surfacing accounts the user does not already know.
+            // The following feed (plus reposts) hides non-WoT authors outright when the filter is
+            // on — its whole content is people the user already chose to follow, so a stranger
+            // showing up there is more likely spam than discovery.
             feedSpec.supportsNoteReposts() -> ChronologicalFeedWithRepostsQueryBuilder(
                 feedSpec = feedSpec,
                 userPubkey = userId,
@@ -555,6 +573,9 @@ internal class FeedRepositoryImpl(
                 wotFilterActive = wotFilterActive,
             )
 
+            // Explore/hashtag/trending feeds exist to surface strangers, so WoT never applies here
+            // — no filter (like above) and no boost either, since a boost would put a stale WoT
+            // post above a fresh one and desync the remote mediator's append cursor.
             else -> ExploreFeedQueryBuilder(
                 feedSpec = feedSpec,
                 userPubkey = userId,

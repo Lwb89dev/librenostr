@@ -162,7 +162,7 @@ class ArticleViewModel @Inject constructor(
             val userId = activeAccountStore.activeUserId()
             try {
                 setState { copy(shouldApproveBookmark = false) }
-                val isBookmarked = bookmarksRepository.isBookmarked(tagValue = event.articleATag)
+                val isBookmarked = bookmarksRepository.isBookmarked(userId = userId, tagValue = event.articleATag)
                 when (isBookmarked) {
                     true -> bookmarksRepository.removeFromBookmarks(
                         userId = userId,

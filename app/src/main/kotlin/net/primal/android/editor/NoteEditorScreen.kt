@@ -992,7 +992,7 @@ private fun NoteAttachmentsLazyRow(
  * plain `@name` here since they are only rewritten into `nostr:` references at publish time — the
  * wording is what matters for proofreading, not the final encoding.
  */
-private fun NoteEditorContract.UiState.toPreviewNoteContentUi(): NoteContentUi {
+internal fun NoteEditorContract.UiState.toPreviewNoteContentUi(): NoteContentUi {
     val attachmentUris = attachments
         .filter { it.isMediaAttachment }
         .mapIndexed { index, attachment ->

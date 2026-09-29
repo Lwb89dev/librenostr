@@ -1,9 +1,11 @@
 package net.primal.data.repository.feed
 
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.data.remote.api.feed.model.FeedResponse
@@ -55,59 +57,64 @@ internal class RelayThreadFetcher(
      * that only needs this same event list (event-stats, in [FeedRepositoryImpl]) instead of
      * paying for metadata first and starting that other fetch only once it lands.
      */
-    suspend fun fetchEvents(noteId: String, kinds: List<Int>, limit: Int): ThreadEvents = coroutineScope {
-        // The opened note is almost always a cache hit — the screen was opened from something
-        // that had just rendered it (a feed card, a notification) — while its direct replies
-        // always need a live query, since new ones are exactly what a re-open is trying to learn
-        // about. The two used to be awaited together, which meant knowing the root (round two
-        // below only needs `opened`, never `directRepliesAsync`) waited on that live query for no
-        // reason: on a comment opened straight from something already on screen, this alone used
-        // to cost a whole extra relay round trip before the root note could even be asked for.
-        val openedAsync = async { queryByIds(listOf(noteId)) }
-        val directRepliesAsync = async { queryEventTags(listOf(noteId), kinds, limit) }
+    suspend fun fetchEvents(
+        noteId: String,
+        kinds: List<Int>,
+        limit: Int,
+    ): ThreadEvents =
+        coroutineScope {
+            // The opened note is almost always a cache hit — the screen was opened from something
+            // that had just rendered it (a feed card, a notification) — while its direct replies
+            // always need a live query, since new ones are exactly what a re-open is trying to learn
+            // about. The two used to be awaited together, which meant knowing the root (round two
+            // below only needs `opened`, never `directRepliesAsync`) waited on that live query for no
+            // reason: on a comment opened straight from something already on screen, this alone used
+            // to cost a whole extra relay round trip before the root note could even be asked for.
+            val openedAsync = async { queryByIds(listOf(noteId)) }
+            val directRepliesAsync = async { queryEventTags(listOf(noteId), kinds, limit) }
 
-        val opened = openedAsync.await().firstOrNull { it.id == noteId }
+            val opened = openedAsync.await().firstOrNull { it.id == noteId }
 
-        // Every ancestor the opened note references, in one filter instead of one hop at a time.
-        val ancestorIds = buildSet {
-            opened?.tags?.findRootEventId()?.let { add(it) }
-            opened?.tags?.findReplyTargetId()?.let { add(it) }
-            opened?.tags?.eventIdTagValues()?.let { addAll(it) }
-        }.filterNot { it == noteId }
+            // Every ancestor the opened note references, in one filter instead of one hop at a time.
+            val ancestorIds = buildSet {
+                opened?.tags?.findRootEventId()?.let { add(it) }
+                opened?.tags?.findReplyTargetId()?.let { add(it) }
+                opened?.tags?.eventIdTagValues()?.let { addAll(it) }
+            }.filterNot { it == noteId }
 
-        val rootId = opened?.tags?.findRootEventId()
-            ?: opened?.tags?.findReplyTargetId()
-            ?: noteId
+            val rootId = opened?.tags?.findRootEventId()
+                ?: opened?.tags?.findReplyTargetId()
+                ?: noteId
 
-        // Round two starts the moment `opened` is known, running alongside round one's still
-        // in-flight directRepliesAsync rather than behind it.
-        val ancestorsAsync = async { queryByIds(ancestorIds) }
-        val threadAsync = async {
-            if (rootId == noteId) emptyList() else queryEventTags(listOf(rootId), kinds, limit)
+            // Round two starts the moment `opened` is known, running alongside round one's still
+            // in-flight directRepliesAsync rather than behind it.
+            val ancestorsAsync = async { queryByIds(ancestorIds) }
+            val threadAsync = async {
+                if (rootId == noteId) emptyList() else queryEventTags(listOf(rootId), kinds, limit)
+            }
+
+            val directReplies = directRepliesAsync.await()
+            val ancestors = ancestorsAsync.await()
+            val threadReplies = threadAsync.await()
+
+            val known = (listOfNotNull(opened) + ancestors + directReplies + threadReplies)
+                .distinctBy { it.id }
+
+            // A single top-up pass for parents that were referenced but never arrived. Bounded, and
+            // deliberately not recursive: a thread that is still incomplete after this renders with
+            // what it has rather than paying more round trips.
+            val filled = queryByIds(missingParentIds(known))
+            val all = (known + filled).distinctBy { it.id }
+
+            // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) name a
+            // specific note the content renderer needs, same as an ancestor — without this a quote of
+            // anything not already fetched for another reason showed "Mentioned event not found."
+            val knownIds = all.map { it.id }.toSet()
+            val referencedNotes = queryByIds(all.referencedNoteIds().filterNot { it in knownIds })
+
+            Napier.d("Relay thread note=$noteId events=${all.size} ancestors=${ancestors.size}")
+            ThreadEvents(all = all, referencedNotes = referencedNotes)
         }
-
-        val directReplies = directRepliesAsync.await()
-        val ancestors = ancestorsAsync.await()
-        val threadReplies = threadAsync.await()
-
-        val known = (listOfNotNull(opened) + ancestors + directReplies + threadReplies)
-            .distinctBy { it.id }
-
-        // A single top-up pass for parents that were referenced but never arrived. Bounded, and
-        // deliberately not recursive: a thread that is still incomplete after this renders with
-        // what it has rather than paying more round trips.
-        val filled = queryByIds(missingParentIds(known))
-        val all = (known + filled).distinctBy { it.id }
-
-        // Quoted notes (a `q` tag, or a bare `nostr:note1…`/`nevent1…` in the content) name a
-        // specific note the content renderer needs, same as an ancestor — without this a quote of
-        // anything not already fetched for another reason showed "Mentioned event not found."
-        val knownIds = all.map { it.id }.toSet()
-        val referencedNotes = queryByIds(all.referencedNoteIds().filterNot { it in knownIds })
-
-        Napier.d("Relay thread note=$noteId events=${all.size} ancestors=${ancestors.size}")
-        ThreadEvents(all = all, referencedNotes = referencedNotes)
-    }
 
     /** Authors plus everyone the thread mentions, so a `nostr:` mention renders as the name its
      * owner chose rather than as an ellipsized npub. */
@@ -118,7 +125,11 @@ internal class RelayThreadFetcher(
         )
     }
 
-    suspend fun fetch(noteId: String, kinds: List<Int>, limit: Int): FeedResponse {
+    suspend fun fetch(
+        noteId: String,
+        kinds: List<Int>,
+        limit: Int,
+    ): FeedResponse {
         val events = fetchEvents(noteId = noteId, kinds = kinds, limit = limit)
         return events.all.toThreadFeedResponse(
             metadata = fetchMetadataFor(events),
@@ -148,7 +159,11 @@ internal class RelayThreadFetcher(
         }
     }
 
-    private suspend fun queryEventTags(eventTags: List<String>, kinds: List<Int>, limit: Int): List<NostrEvent> {
+    private suspend fun queryEventTags(
+        eventTags: List<String>,
+        kinds: List<Int>,
+        limit: Int,
+    ): List<NostrEvent> {
         if (eventTags.isEmpty()) return emptyList()
         return coroutineScope {
             eventTags.chunked(ID_CHUNK).map { chunk ->
@@ -175,24 +190,31 @@ internal class RelayThreadFetcher(
         // cached permanently.
         val pubkeys = cache?.claimMetadataPubkeys(rawPubkeys) ?: rawPubkeys
         if (pubkeys.isEmpty()) return emptyList()
-        val metadata = coroutineScope {
-            pubkeys.chunked(AUTHOR_CHUNK).map { chunk ->
-                async {
-                    runCatching {
-                        querier.query(
-                            RelayFilter(
-                                kinds = listOf(NostrEventKind.Metadata.value),
-                                authors = chunk,
-                                limit = chunk.size,
-                            ),
-                        )
-                    }.getOrDefault(emptyList())
-                }
-            }.awaitAll().flatten().latestMetadataByPubkey()
+        var metadata: List<NostrEvent> = emptyList()
+        try {
+            metadata = coroutineScope {
+                pubkeys.chunked(AUTHOR_CHUNK).map { chunk ->
+                    async {
+                        runCatching {
+                            querier.query(
+                                RelayFilter(
+                                    kinds = listOf(NostrEventKind.Metadata.value),
+                                    authors = chunk,
+                                    limit = chunk.size,
+                                ),
+                            )
+                        }.getOrDefault(emptyList())
+                    }
+                }.awaitAll().flatten().latestMetadataByPubkey()
+            }
+        } finally {
+            // A claim that is kept after coming back empty — or after the load was cancelled
+            // mid-request, by leaving the screen or pulling to refresh — is how an author stays a
+            // raw npub for the rest of the session: nothing ever asks again.
+            withContext(NonCancellable) {
+                cache?.releaseMetadataPubkeys(pubkeys - metadata.map { it.pubKey }.toSet())
+            }
         }
-        // A claim that is kept after coming back empty is how an author stays a raw npub for the
-        // rest of the session: one timed-out request and nothing ever asks again.
-        cache?.releaseMetadataPubkeys(pubkeys - metadata.map { it.pubKey }.toSet())
         return metadata
     }
 

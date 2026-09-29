@@ -11,7 +11,7 @@ interface PublicBookmarksRepository {
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun fetchAndPersistBookmarks(userId: String)
 
-    suspend fun isBookmarked(tagValue: String): Boolean
+    suspend fun isBookmarked(userId: String, tagValue: String): Boolean
 
     @Throws(
         PublicBookmarksNotFoundException::class,

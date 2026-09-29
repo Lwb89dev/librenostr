@@ -12,6 +12,7 @@ import net.primal.core.caching.MediaCacher
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.data.repository.factory.PrimalRepositoryFactory
 import net.primal.domain.bookmarks.PublicBookmarksRepository
+import net.primal.domain.decks.DeckRepository
 import net.primal.domain.events.EventInteractionRepository
 import net.primal.domain.events.EventRelayHintsRepository
 import net.primal.domain.events.EventRepository
@@ -167,6 +168,10 @@ object CachingRepositoriesModule {
     @Provides
     fun provideWebOfTrustRepository(relayEventQuerier: RelayEventQuerier): WebOfTrustRepository =
         PrimalRepositoryFactory.createWebOfTrustRepository(relayEventQuerier = relayEventQuerier)
+
+    @Provides
+    fun provideDeckRepository(): DeckRepository =
+        PrimalRepositoryFactory.createDeckRepository()
 
     @Provides
     fun provideNotificationRepository(

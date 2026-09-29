@@ -40,5 +40,8 @@ interface ExploreRepository {
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun searchUsers(query: String, limit: Int = 20): List<UserProfileSearchItem>
 
+    /** Profiles already cached on the device only — instant, no relay round-trip. */
+    suspend fun searchUsersLocally(query: String, limit: Int = 20): List<UserProfileSearchItem>
+
     fun observeTrendingTopics(): Flow<List<ExploreTrendingTopic>>
 }

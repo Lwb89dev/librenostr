@@ -34,6 +34,7 @@ import net.primal.core.utils.onFailure
 import net.primal.core.utils.runCatching
 import net.primal.domain.feeds.AdvancedSearchParsedQuery
 import net.primal.domain.feeds.FeedsRepository
+import net.primal.domain.feeds.buildAdvancedSearchFeedSpec
 import net.primal.domain.feeds.extractAdvancedSearchQuery
 import net.primal.domain.nostr.cryptography.utils.assureValidPubKeyHex
 import net.primal.domain.nostr.cryptography.utils.hexToNpubHrp
@@ -225,7 +226,7 @@ class AdvancedSearchViewModel @Inject constructor(
             }
         }
 
-    private fun String.buildFeedSpec(): String = """{"id":"advsearch","query":"$this pas:1"}""".trimIndent()
+    private fun String.buildFeedSpec(): String = "$this pas:1".buildAdvancedSearchFeedSpec()
 
     private fun AdvancedSearchContract.SearchKind.toSearchCommand() =
         when (this) {

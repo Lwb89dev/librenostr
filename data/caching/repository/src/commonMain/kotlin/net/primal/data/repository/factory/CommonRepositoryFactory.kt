@@ -4,12 +4,14 @@ import net.primal.core.caching.MediaCacher
 import net.primal.core.networking.primal.PrimalApiClient
 import net.primal.core.utils.coroutines.createDispatcherProvider
 import net.primal.data.local.db.CachingDatabase
+import net.primal.data.local.db.DeckDatabase
 import net.primal.data.remote.factory.PrimalApiServiceFactory
 import net.primal.data.repository.UserDataCleanupRepositoryImpl
 import net.primal.data.repository.articles.ArticleRepositoryImpl
 import net.primal.data.repository.articles.HighlightRepositoryImpl
 import net.primal.data.repository.bookmarks.PublicBookmarksRepositoryImpl
 import net.primal.data.repository.cache.LocalEventCache
+import net.primal.data.repository.decks.DeckRepositoryImpl
 import net.primal.data.repository.events.EventInteractionRepositoryImpl
 import net.primal.data.repository.events.EventRelayHintsRepositoryImpl
 import net.primal.data.repository.events.EventRepositoryImpl
@@ -24,13 +26,14 @@ import net.primal.data.repository.importer.CachingImportRepositoryImpl
 import net.primal.data.repository.messages.ChatRepositoryImpl
 import net.primal.data.repository.messages.processors.MessagesProcessor
 import net.primal.data.repository.mute.MutedItemRepositoryImpl
-import net.primal.data.repository.wot.WebOfTrustRepositoryImpl
 import net.primal.data.repository.nip05.Nip05HttpClient
 import net.primal.data.repository.nip05.Nip05VerificationServiceImpl
 import net.primal.data.repository.notifications.NotificationRepositoryImpl
 import net.primal.data.repository.polls.PollsRepositoryImpl
 import net.primal.data.repository.profile.ProfileRepositoryImpl
+import net.primal.data.repository.wot.WebOfTrustRepositoryImpl
 import net.primal.domain.bookmarks.PublicBookmarksRepository
+import net.primal.domain.decks.DeckRepository
 import net.primal.domain.events.EventInteractionRepository
 import net.primal.domain.events.EventRelayHintsRepository
 import net.primal.domain.events.EventRepository
@@ -82,6 +85,8 @@ abstract class CommonRepositoryFactory {
 
     abstract fun resolveCachingDatabase(): CachingDatabase
 
+    abstract fun resolveDeckDatabase(): DeckDatabase
+
     fun createArticleRepository(
         mediaCacher: MediaCacher? = null,
         relayEventQuerier: RelayEventQuerier,
@@ -95,9 +100,7 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createArticleHighlightsRepository(
-        primalPublisher: PrimalPublisher,
-    ): HighlightRepository {
+    fun createArticleHighlightsRepository(primalPublisher: PrimalPublisher): HighlightRepository {
         return HighlightRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
@@ -164,9 +167,7 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createFeedsRepository(
-        relayEventQuerier: RelayEventQuerier? = null,
-    ): FeedsRepository {
+    fun createFeedsRepository(relayEventQuerier: RelayEventQuerier? = null): FeedsRepository {
         return FeedsRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
@@ -174,9 +175,7 @@ abstract class CommonRepositoryFactory {
         )
     }
 
-    fun createEventRepository(
-        relayEventQuerier: RelayEventQuerier,
-    ): EventRepository {
+    fun createEventRepository(relayEventQuerier: RelayEventQuerier): EventRepository {
         return EventRepositoryImpl(
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
@@ -236,6 +235,13 @@ abstract class CommonRepositoryFactory {
             dispatcherProvider = dispatcherProvider,
             database = resolveCachingDatabase(),
             relayEventQuerier = relayEventQuerier,
+        )
+    }
+
+    fun createDeckRepository(): DeckRepository {
+        return DeckRepositoryImpl(
+            dispatcherProvider = dispatcherProvider,
+            database = resolveDeckDatabase(),
         )
     }
 
@@ -301,7 +307,6 @@ abstract class CommonRepositoryFactory {
             fetchCoordinator = fetchCoordinator,
         )
     }
-
 
     fun createPollsRepository(
         cachingPrimalApiClient: PrimalApiClient,

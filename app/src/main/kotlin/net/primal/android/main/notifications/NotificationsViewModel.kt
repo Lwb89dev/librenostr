@@ -101,7 +101,6 @@ class NotificationsViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UiState())
     val state = _state.asStateFlow()
-    private var notificationsMarkedSeen = false
     private fun setState(reducer: UiState.() -> UiState) = _state.getAndUpdate { it.reducer() }
 
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
@@ -124,13 +123,15 @@ class NotificationsViewModel @Inject constructor(
     private fun subscribeToBadgesUpdates() =
         viewModelScope.launch {
             subscriptionsManager.badges.collect {
-                setState { copy(badges = if (notificationsMarkedSeen) it.copy(unreadNotificationsCount = 0) else it) }
+                // No sticky "already seen" override: once set it hid every later arrival for the
+                // rest of the session. The flow is distinctUntilChanged, so a count seen and
+                // cleared locally is not re-delivered; a new emission means something changed.
+                setState { copy(badges = it) }
             }
         }
 
     private fun handleNotificationsSeen(group: NotificationGroup) {
         if (group != NotificationGroup.ALL) return
-        notificationsMarkedSeen = true
         viewModelScope.launch(dispatcherProvider.io()) {
             notificationRepository.markAllNotificationsAsSeenLocally(activeAccountStore.activeUserId())
         }

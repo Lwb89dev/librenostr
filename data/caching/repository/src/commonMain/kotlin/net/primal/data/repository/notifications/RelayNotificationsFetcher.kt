@@ -1,8 +1,10 @@
 package net.primal.data.repository.notifications
 
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
 import net.primal.core.utils.toLong
@@ -220,10 +222,19 @@ internal class RelayNotificationsFetcher(
         // notifications tab. Follows therefore get their own small page. When it comes back full
         // there may be older follows that were not fetched, so anything older than its oldest
         // entry is held back too: the next page starts from there instead of skipping the gap.
+        //
+        // The same holds the other way round: when the content page comes back full, a follow
+        // older than its oldest entry has to wait too. Otherwise one months-old follow became the
+        // page's oldest row, the next page's cursor started below it, and everything in between
+        // was never fetched. The page therefore covers only the span both requests fully cover.
         val followsSaturated = followEvents.size >= FOLLOW_LIST_PAGE_LIMIT
-        val followCutoff = if (followsSaturated) followEvents.minOf { it.createdAt } else null
-        val events = mainEvents.filter { followCutoff == null || it.createdAt >= followCutoff } + followEvents
-        val pageIsFull = mainEvents.size >= limit || followsSaturated
+        val contentSaturated = mainEvents.size >= limit
+        val cutoff = listOfNotNull(
+            followEvents.takeIf { followsSaturated }?.minOf { it.createdAt },
+            mainEvents.takeIf { contentSaturated }?.minOf { it.createdAt },
+        ).maxOrNull()
+        val events = (mainEvents + followEvents).filter { cutoff == null || it.createdAt >= cutoff }
+        val pageIsFull = contentSaturated || followsSaturated
         return PageEvents(events = events, isFull = pageIsFull)
     }
 
@@ -347,14 +358,21 @@ internal class RelayNotificationsFetcher(
      * the rest of the session: nothing would ever ask a second time.
      */
     private suspend fun fetchMetadata(wanted: List<String>): List<NostrEvent> {
-        val metadata = query(
-            RelayFilter(
-                kinds = listOf(NostrEventKind.Metadata.value),
-                authors = wanted,
-                limit = wanted.size,
-            ),
-        ).latestMetadataByPubkey()
-        cache?.releaseMetadataPubkeys(wanted - metadata.map { it.pubKey }.toSet())
+        var metadata: List<NostrEvent> = emptyList()
+        try {
+            metadata = query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.Metadata.value),
+                    authors = wanted,
+                    limit = wanted.size,
+                ),
+            ).latestMetadataByPubkey()
+        } finally {
+            // Also on cancellation: see LocalEventCache.releaseMetadataPubkeys.
+            withContext(NonCancellable) {
+                cache?.releaseMetadataPubkeys(wanted - metadata.map { it.pubKey }.toSet())
+            }
+        }
         return metadata
     }
 

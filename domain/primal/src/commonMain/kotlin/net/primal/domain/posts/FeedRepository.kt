@@ -61,6 +61,18 @@ interface FeedRepository {
         snapshot: FeedPageSnapshot,
     )
 
+    /**
+     * Adds the notes of a newer-than-cached [snapshot] on top of the feed that is already stored,
+     * without dropping anything. Meant for the "new notes" pill, whose snapshot is bounded by
+     * `since` and therefore holds only the handful of notes that arrived after the cached head:
+     * replacing the feed with it would throw away every older note already on screen.
+     */
+    suspend fun mergeNewestIntoFeed(
+        userId: String,
+        feedSpec: String,
+        snapshot: FeedPageSnapshot,
+    )
+
     @Throws(NetworkException::class, CancellationException::class)
     suspend fun fetchFeedPageSnapshot(
         userId: String,

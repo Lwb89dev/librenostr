@@ -18,8 +18,19 @@ interface ProfileDataDao {
     @Transaction
     suspend fun insertOrUpdateAll(data: List<ProfileData>) {
         val existingProfiles = findProfileData(data.map { it.ownerId }).associateBy { it.ownerId }
+        // Only the newest kind 0 per profile wins. Relays hold copies of different ages and answer
+        // in any order, so a blind REPLACE flipped names and avatars back to an old version
+        // whenever a lagging relay happened to answer last.
+        val newest = data
+            .groupBy { it.ownerId }
+            .mapNotNull { (_, candidates) -> candidates.maxByOrNull { it.createdAt } }
+            .filter { incoming ->
+                val existing = existingProfiles[incoming.ownerId]
+                existing == null || incoming.createdAt >= existing.createdAt
+            }
+        if (newest.isEmpty()) return
         insertOrReplaceAll(
-            data.map { profileData ->
+            newest.map { profileData ->
                 profileData.combinePremiumInfoIfLegend(existingProfiles[profileData.ownerId])
             },
         )

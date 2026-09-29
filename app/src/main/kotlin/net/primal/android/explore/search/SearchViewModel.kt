@@ -8,6 +8,7 @@ import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,8 @@ class SearchViewModel @Inject constructor(
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
+    private var searchJob: Job? = null
+
     init {
         observeEvents()
         observeDebouncedQueryChanges()
@@ -66,12 +69,15 @@ class SearchViewModel @Inject constructor(
                     }
                     is UiEvent.ProfileSelected -> markProfileInteraction(profileId = it.profileId)
                     is UiEvent.SearchSubmitted -> saveRecentSearch(query = it.query)
-                    UiEvent.ResetSearchQuery -> setState {
-                        copy(
-                            searching = false,
-                            searchQuery = "",
-                            searchResults = emptyList(),
-                        )
+                    UiEvent.ResetSearchQuery -> {
+                        searchJob?.cancel()
+                        setState {
+                            copy(
+                                searching = false,
+                                searchQuery = "",
+                                searchResults = emptyList(),
+                            )
+                        }
                     }
                 }
             }
@@ -101,18 +107,28 @@ class SearchViewModel @Inject constructor(
                 }
         }
 
-    private fun onSearchQueryChanged(query: String) =
-        viewModelScope.launch {
+    /**
+     * Only the latest query may run: each one used to launch independently, so a slow relay answer
+     * for "jack" could land after — and overwrite — the results for "jackdorsey". Local matches are
+     * shown the moment they are read, the relay ones replace them when (and if) they arrive.
+     */
+    private fun onSearchQueryChanged(query: String) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             setState { copy(searching = true) }
             try {
+                val local = exploreRepository.searchUsersLocally(query = query)
+                if (local.isNotEmpty()) setState { copy(searchResults = local.map { it.mapAsUserProfileUi() }) }
+
                 val result = exploreRepository.searchUsers(query = query)
                 setState { copy(searchResults = result.map { it.mapAsUserProfileUi() }) }
             } catch (error: NetworkException) {
                 Napier.w(throwable = error) { "Failed to search users with query: $query" }
             } finally {
-                setState { copy(searching = false) }
+                if (state.value.searchQuery == query) setState { copy(searching = false) }
             }
         }
+    }
 
     private fun observeRecentUsers() =
         viewModelScope.launch {

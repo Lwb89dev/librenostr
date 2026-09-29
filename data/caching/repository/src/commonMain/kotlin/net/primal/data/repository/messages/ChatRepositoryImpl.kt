@@ -50,6 +50,7 @@ import net.primal.domain.nostr.findFirstProfileId
 import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.publisher.PrimalPublisher
+import net.primal.shared.data.local.db.withTransaction
 
 @OptIn(ExperimentalPagingApi::class)
 // A repository holding its collaborators. Folding them into a parameter object would add a type
@@ -219,15 +220,23 @@ internal class ChatRepositoryImpl(
                 primalLegendProfiles = response.primalLegendProfiles,
                 blossomServerEvents = response.blossomServers,
             )
-            database.messageConversations().persistConversationIndex(
-                userId = userId,
-                updates = messageConversation,
-            )
+            // In a transaction: the unread count is read, recomputed and written back, and a
+            // markConversationAsRead landing in between used to be overwritten by the stale count.
+            database.withTransaction {
+                database.messageConversations().persistConversationIndex(
+                    userId = userId,
+                    updates = messageConversation,
+                )
+            }
         }
         return response.messages
     }
 
-    override suspend fun syncConversations(userId: String, backfillPages: Int, background: Boolean) {
+    override suspend fun syncConversations(
+        userId: String,
+        backfillPages: Int,
+        background: Boolean,
+    ) {
         // Only a session-start sync narrows its relay-query concurrency — a user-triggered refresh
         // (MessageConversationListViewModel) always keeps the plain, full-priority querier. Note
         // this has no effect on the NIP-17 fetch just below: Nip17TransportImpl resolves its own
@@ -246,7 +255,11 @@ internal class ChatRepositoryImpl(
         // relay list of its own yet) must not stop legacy conversations from refreshing.
         nip17Transport?.let { transport ->
             runCatching {
-                syncNip17Messages(userId = userId, messages = transport.fetchMessages(userId), querierOverride = querier)
+                syncNip17Messages(
+                    userId = userId,
+                    messages = transport.fetchMessages(userId),
+                    querierOverride = querier,
+                )
             }.onFailure { error -> Napier.w(throwable = error) { "NIP-17 conversation sync failed." } }
         }
         // Accumulated independently of persistence: reclassification below must not depend on
@@ -533,10 +546,10 @@ internal class ChatRepositoryImpl(
                 currentPage = emptyList(),
                 querierOverride = querierOverride,
             )
-            database.messageConversations().persistConversationIndex(
-                userId = userId,
-                updates = directMessages.asNip17ConversationIndex(userId = userId, accepted = accepted),
-            )
+            val updates = directMessages.asNip17ConversationIndex(userId = userId, accepted = accepted)
+            database.withTransaction {
+                database.messageConversations().persistConversationIndex(userId = userId, updates = updates)
+            }
         }
     }
 

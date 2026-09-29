@@ -218,6 +218,10 @@ class NoteFeedViewModel @AssistedInject constructor(
     private fun startPollingIfSupported() {
         if (!feedSpec.supportsUpwardsNotesPagination()) return
 
+        // StartPolling can arrive twice without a StopPolling in between (lifecycle restarts,
+        // recomposition); without cancelling, every extra start left one more live subscription
+        // and safety loop running that nothing could stop any more.
+        pollingJob?.cancel()
         pollingJob = viewModelScope.launch(dispatcherProvider.io()) {
             launch {
                 runCatching {
@@ -393,8 +397,11 @@ class NoteFeedViewModel @AssistedInject constructor(
 
     private fun showLatestNotesAndScrollToTop() =
         viewModelScope.launch {
+            // The snapshot behind the pill is bounded by `since` (only what arrived after the
+            // cached head), so it is merged on top; replacing the feed with it used to leave just
+            // those few notes and drop everything the user had already loaded.
             latestFeedResponse?.let { latestFeed ->
-                feedRepository.replaceFeed(
+                feedRepository.mergeNewestIntoFeed(
                     userId = activeAccountStore.activeUserId(),
                     feedSpec = feedSpec,
                     snapshot = latestFeed,

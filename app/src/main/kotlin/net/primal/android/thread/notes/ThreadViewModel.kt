@@ -1,11 +1,12 @@
 package net.primal.android.thread.notes
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
-import javax.inject.Inject
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.primal.android.articles.feed.ui.mapAsFeedArticleUi
-import net.primal.android.navigation.noteIdOrThrow
 import net.primal.android.thread.notes.ThreadContract.UiEvent
 import net.primal.android.thread.notes.ThreadContract.UiState
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -36,9 +36,9 @@ import net.primal.domain.nostr.cryptography.utils.bech32ToHexOrThrow
 import net.primal.domain.posts.FeedRepository
 import net.primal.domain.reads.ArticleRepository
 
-@HiltViewModel
-class ThreadViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+@HiltViewModel(assistedFactory = ThreadViewModel.Factory::class)
+class ThreadViewModel @AssistedInject constructor(
+    @Assisted noteId: String,
     private val activeAccountStore: ActiveAccountStore,
     private val dispatcherProvider: DispatcherProvider,
     private val feedRepository: FeedRepository,
@@ -46,7 +46,12 @@ class ThreadViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
 ) : ViewModel() {
 
-    private val highlightPostId = savedStateHandle.noteIdOrThrow.resolveNoteIdOrThrow()
+    @AssistedFactory
+    interface Factory {
+        fun create(noteId: String): ThreadViewModel
+    }
+
+    private val highlightPostId = noteId.resolveNoteIdOrThrow()
 
     private val _state = MutableStateFlow(
         UiState(

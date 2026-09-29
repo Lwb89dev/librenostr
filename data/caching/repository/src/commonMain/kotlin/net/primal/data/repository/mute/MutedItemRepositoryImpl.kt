@@ -1,6 +1,8 @@
 package net.primal.data.repository.mute
 
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import net.primal.core.utils.Result
@@ -50,6 +52,8 @@ class MutedItemRepositoryImpl(
     private val primalPublisher: PrimalPublisher,
     private val relayEventQuerier: RelayEventQuerier? = null,
 ) : MutedItemRepository {
+    private val listUpdateMutex = Mutex()
+
     override fun observeMutedUsersByOwnerId(ownerId: String) =
         database.mutedItems().observeMutedUsersByOwnerId(ownerId = ownerId)
             .map { it.mapNotNull { it.profileData?.asProfileDataDO() } }
@@ -226,18 +230,14 @@ class MutedItemRepositoryImpl(
         userId: String,
         reducer: Set<MutedItemData>.() -> Set<MutedItemData>,
     ) = withContext(dispatcherProvider.io()) {
-        val remoteMuteList = fetchMuteListAndPersistProfiles(userId = userId)
-        val newMuteList = remoteMuteList.reducer()
-
-        primalPublisher.signPublishImportNostrEvent(
-            NostrUnsignedEvent(
-                content = "",
-                pubKey = userId,
-                kind = NostrEventKind.MuteList.value,
-                tags = newMuteList.map { it.toTag() },
-            ),
-        )
-        persistList(ownerId = userId, listType = ListType.MuteList, muteList = newMuteList)
+        listUpdateMutex.withLock {
+            updateAndPublishList(
+                userId = userId,
+                kind = NostrEventKind.MuteList,
+                listType = ListType.MuteList,
+                reducer = reducer,
+            ) { fetchMuteListAndPersistProfiles(userId = userId) }
+        }
     }
 
     private suspend fun updateAndPersistStreamMuteList(
@@ -245,20 +245,76 @@ class MutedItemRepositoryImpl(
         reducer: Set<MutedItemData>.() -> Set<MutedItemData>,
     ) = withContext(dispatcherProvider.io()) {
         runCatching {
-            val remoteStreamMuteList = fetchStreamMuteListAndPersistProfiles(userId = userId).getOrThrow()
-            val newMuteList = remoteStreamMuteList.reducer()
-
-            primalPublisher.signPublishImportNostrEvent(
-                unsignedNostrEvent = NostrUnsignedEvent(
-                    content = "",
-                    pubKey = userId,
-                    kind = NostrEventKind.StreamMuteList.value,
-                    tags = newMuteList.map { it.toTag() },
-                ),
-            )
-
-            persistList(ownerId = userId, listType = ListType.StreamMuteList, muteList = newMuteList)
+            listUpdateMutex.withLock {
+                updateAndPublishList(
+                    userId = userId,
+                    kind = NostrEventKind.StreamMuteList,
+                    listType = ListType.StreamMuteList,
+                    reducer = reducer,
+                ) { fetchStreamMuteListAndPersistProfiles(userId = userId).getOrThrow() }
+            }
         }
+    }
+
+    /**
+     * Read-modify-publish of a replaceable list, safe against the two ways it used to destroy data:
+     *
+     * - A relay timeout returns exactly what "this user has no list yet" returns — an empty result —
+     *   so treating an empty read as authoritative published a one-item list over the real one,
+     *   wiping every other entry on every client. When the relays give us nothing, the base is the
+     *   copy we already have locally instead.
+     * - Republishing with `content = ""` and only the tags this app understands threw away NIP-51
+     *   private (encrypted) entries and any tag written by another client. The latest event's own
+     *   content and unrecognized tags are carried over untouched.
+     *
+     * Callers hold [listUpdateMutex], so two quick mutes can't both read the same base and have the
+     * second publish silently drop the first.
+     */
+    private suspend fun updateAndPublishList(
+        userId: String,
+        kind: NostrEventKind,
+        listType: ListType,
+        reducer: Set<MutedItemData>.() -> Set<MutedItemData>,
+        legacyFetch: suspend () -> Set<MutedItemData>,
+    ) {
+        val querier = relayEventQuerier
+        val remoteEvent = querier?.let { queryLatestListEvent(querier = it, userId = userId, kind = kind) }
+
+        val baseItems: Set<MutedItemData>
+        val preservedTags: List<JsonArray>
+        val content: String
+        when {
+            remoteEvent != null && querier != null -> {
+                persistRelayProfiles(event = remoteEvent, querier = querier)
+                val parsed = remoteEvent.tags.map { it to it.toMutedItemData(ownerId = userId, listType = listType) }
+                baseItems = parsed.mapNotNull { it.second }.toSet()
+                preservedTags = parsed.filter { it.second == null }.map { it.first }
+                content = remoteEvent.content
+            }
+
+            querier != null -> {
+                baseItems = database.mutedItems().getListByOwnerId(ownerId = userId, listType = listType).toSet()
+                preservedTags = emptyList()
+                content = ""
+            }
+
+            else -> {
+                baseItems = legacyFetch()
+                preservedTags = emptyList()
+                content = ""
+            }
+        }
+
+        val newItems = baseItems.reducer()
+        primalPublisher.signPublishImportNostrEvent(
+            NostrUnsignedEvent(
+                content = content,
+                pubKey = userId,
+                kind = kind.value,
+                tags = preservedTags + newItems.map { it.toTag() },
+            ),
+        )
+        persistList(ownerId = userId, listType = listType, muteList = newItems)
     }
 
     private suspend fun fetchStreamMuteListAndPersistProfiles(userId: String): Result<Set<MutedItemData>> =
@@ -366,15 +422,16 @@ class MutedItemRepositoryImpl(
         querier: RelayEventQuerier,
         userId: String,
         kind: NostrEventKind,
-    ): NostrEvent? = runCatching {
-        querier.query(
-            RelayFilter(
-                kinds = listOf(kind.value),
-                authors = listOf(userId),
-                limit = 20,
-            ),
-        ).maxByOrNull { it.createdAt }
-    }.getOrNull()
+    ): NostrEvent? =
+        runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = listOf(kind.value),
+                    authors = listOf(userId),
+                    limit = 20,
+                ),
+            ).maxByOrNull { it.createdAt }
+        }.getOrNull()
 
     private suspend fun persistRelayProfiles(event: NostrEvent?, querier: RelayEventQuerier) {
         val profileIds = event?.tags

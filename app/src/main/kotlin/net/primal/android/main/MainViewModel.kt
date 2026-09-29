@@ -48,7 +48,17 @@ class MainViewModel @Inject constructor(
     private fun setState(reducer: UiState.() -> UiState) = _state.getAndUpdate { it.reducer() }
 
     private val events: MutableSharedFlow<UiEvent> = MutableSharedFlow()
-    private var notificationsMarkedSeen = false
+
+    /**
+     * Unseen-notification count at the moment the user opened the notifications, lowered as the
+     * database catches up with marking them seen; null while nothing has been marked seen.
+     *
+     * This used to be a plain flag that, once set, hid the badge for the rest of the session: new
+     * notifications arriving after the user had looked once never showed up again until restart.
+     * Tracking the baseline lets the badge come back as soon as the count rises above it.
+     */
+    private var notificationsSeenBaseline: Int? = null
+    private var lastLocalUnseenCount = 0
     fun setEvent(event: UiEvent) = viewModelScope.launch { events.emit(event) }
 
     private val _effects = Channel<MainContract.SideEffect>()
@@ -71,7 +81,7 @@ class MainViewModel @Inject constructor(
                     UiEvent.SwitchToNextAccount -> switchToNextAccount()
                     UiEvent.DismissExploreHint -> dismissExploreHint()
                     UiEvent.NotificationsViewed -> setState {
-                        notificationsMarkedSeen = true
+                        notificationsSeenBaseline = lastLocalUnseenCount
                         copy(badges = badges.copy(unreadNotificationsCount = 0))
                     }
                 }
@@ -121,7 +131,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             subscriptionsManager.badges.collect {
                 setState {
-                    copy(badges = if (notificationsMarkedSeen) it.copy(unreadNotificationsCount = 0) else it)
+                    copy(badges = if (notificationsSeenBaseline != null) it.copy(unreadNotificationsCount = 0) else it)
                 }
             }
         }
@@ -145,14 +155,25 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .collect { (unreadMessages, unreadNotifications) ->
+                    val visibleNotifications = visibleUnseenNotifications(unreadNotifications)
                     setState {
                         copy(
                             badges = badges.copy(
                                 unreadMessagesCount = unreadMessages,
-                                unreadNotificationsCount = if (notificationsMarkedSeen) 0 else unreadNotifications,
+                                unreadNotificationsCount = visibleNotifications,
                             ),
                         )
                     }
                 }
         }
+
+    private fun visibleUnseenNotifications(unseen: Int): Int {
+        lastLocalUnseenCount = unseen
+        val baseline = notificationsSeenBaseline
+        // Above the baseline, something new arrived after the user last looked: show the badge
+        // again. Otherwise follow the count down as the seen marks are written, so a later
+        // arrival is measured against what is still unseen rather than the pre-visit total.
+        notificationsSeenBaseline = if (baseline == null || unseen > baseline) null else unseen
+        return if (notificationsSeenBaseline == null) unseen else 0
+    }
 }

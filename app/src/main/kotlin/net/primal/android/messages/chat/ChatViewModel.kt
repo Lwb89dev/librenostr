@@ -1,15 +1,16 @@
 package net.primal.android.messages.chat
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aakira.napier.Napier
 import java.time.Instant
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
@@ -30,7 +31,6 @@ import net.primal.android.core.compose.profile.model.asProfileDetailsUi
 import net.primal.android.messages.chat.ChatContract.UiEvent
 import net.primal.android.messages.chat.ChatContract.UiState
 import net.primal.android.messages.chat.model.ChatMessageUi
-import net.primal.android.navigation.profileIdOrThrow
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.notes.feed.model.asNoteNostrUriUi
 import net.primal.android.user.accounts.active.ActiveAccountStore
@@ -46,9 +46,9 @@ import net.primal.domain.nostr.cryptography.SignatureException
 import net.primal.domain.nostr.publisher.MissingRelaysException
 import net.primal.domain.profile.ProfileRepository
 
-@HiltViewModel
-class ChatViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+@HiltViewModel(assistedFactory = ChatViewModel.Factory::class)
+class ChatViewModel @AssistedInject constructor(
+    @Assisted private val participantId: String,
     activeAccountStore: ActiveAccountStore,
     dispatcherProvider: DispatcherProvider,
     private val subscriptionsManager: SubscriptionsManager,
@@ -56,7 +56,11 @@ class ChatViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
 ) : ViewModel() {
 
-    private val participantId = savedStateHandle.profileIdOrThrow
+    @AssistedFactory
+    interface Factory {
+        fun create(participantId: String): ChatViewModel
+    }
+
     private val userId = activeAccountStore.activeUserId()
 
     private val _state = MutableStateFlow(

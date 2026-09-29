@@ -71,6 +71,12 @@ class RelaysSocketManager @Inject constructor(
     private val userRelaysPool: RelayPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
     private val fallbackRelaysPool: RelayPool = buildRelayPool()
 
+    // Relays picked from the follow list's NIP-65 write relays, not by the user. They used to be
+    // merged into userRelaysPool, which meant they answered NIP-42 challenges signed as the user
+    // and received private-scope REQs (DMs, mute lists) meant only for the account's own relays.
+    // Their own pool keeps them to what they are for: reading public notes by the people followed.
+    private val outboxEnrichmentPool: RelayPool = buildRelayPool()
+
     val userRelayPoolStatus = userRelaysPool.relayPoolStatus
     val fallbackRelayPoolStatus = fallbackRelaysPool.relayPoolStatus
 
@@ -102,9 +108,11 @@ class RelaysSocketManager @Inject constructor(
         relayPoolsMutex.withLock {
             userRelaysPool.resetConnections()
             fallbackRelaysPool.resetConnections()
+            outboxEnrichmentPool.resetConnections()
         }
         connectPool(userRelaysPool)
         connectPool(fallbackRelaysPool)
+        connectPool(outboxEnrichmentPool)
     }
 
     private fun initFallbackRelaysPool() {
@@ -144,11 +152,10 @@ class RelaysSocketManager @Inject constructor(
             }
         }
 
-    // The two sources merged into userRelaysPool: the account's own configured relays (from the
-    // DB, editable in Settings > Manage Relays) and a bounded set of the follow list's most
-    // common NIP-65 write relays, added on top by OutboxRelayCoordinator so queries reach relays
-    // that actually carry a given author's content, not just the ones the user chose to connect
-    // to. Kept as two separate fields rather than merging at the write site so either source can
+    // The account's own configured relays (from the DB, editable in Settings > Manage Relays, fed
+    // to userRelaysPool) and a bounded set of the follow list's most common NIP-65 write relays
+    // (added by OutboxRelayCoordinator, fed to outboxEnrichmentPool) so queries reach relays that
+    // actually carry a given author's content. Kept as two separate fields so either source can
     // update independently without the other's most recent value being lost.
     private var latestConfiguredUserRelays: List<Relay> = emptyList()
     private var latestOutboxEnrichmentRelays: List<Relay> = emptyList()
@@ -175,17 +182,17 @@ class RelaysSocketManager @Inject constructor(
 
     /** Call under [relayPoolsMutex]. */
     private fun applyRelayPoolChangeLocked() {
-        val configuredUrls = latestConfiguredUserRelays.map { it.url }.toSet()
-        // Enrichment relays are appended after the user's own, never prepended, so RelayPool's
-        // own MAX_RELAYS cap never evicts a relay the user actually chose in favor of one this
-        // class added on its behalf.
-        val merged = latestConfiguredUserRelays +
-            latestOutboxEnrichmentRelays
-                .filterNot { it.url in configuredUrls }
-                .map { it.copy(read = true, write = false) }
-        if (userRelaysPool.relays != merged) {
-            userRelaysPool.changeRelays(relays = merged)
+        if (userRelaysPool.relays != latestConfiguredUserRelays) {
+            userRelaysPool.changeRelays(relays = latestConfiguredUserRelays)
             connectPool(userRelaysPool)
+        }
+        val configuredUrls = latestConfiguredUserRelays.map { it.url }.toSet()
+        val enrichment = latestOutboxEnrichmentRelays
+            .filterNot { it.url in configuredUrls }
+            .map { it.copy(read = true, write = false) }
+        if (outboxEnrichmentPool.relays != enrichment) {
+            outboxEnrichmentPool.changeRelays(relays = enrichment)
+            connectPool(outboxEnrichmentPool)
         }
     }
 
@@ -193,6 +200,7 @@ class RelaysSocketManager @Inject constructor(
         relayPoolsMutex.withLock {
             latestOutboxEnrichmentRelays = emptyList()
             userRelaysPool.closePool()
+            outboxEnrichmentPool.closePool()
         }
 
     @Throws(NostrPublishException::class)
@@ -294,7 +302,18 @@ class RelaysSocketManager @Inject constructor(
                     )
                 }
             }
-            val account = if (userHasRelays) {
+            // Never for a private-scope REQ — even when the account has no relays of its own, a
+            // relay the user never chose has no business learning who they DM or mute.
+            val enrichmentDeferred = async {
+                if (filter.isPrivateScopeFilter() || !outboxEnrichmentPool.hasRelays()) {
+                    RelayPoolQueryResult()
+                } else {
+                    withTimeoutOrNull(RelayPool.SUBSCRIBE_TIMEOUT.toLong()) {
+                        outboxEnrichmentPool.query(filter = filter, timeoutMs = USER_QUERY_TIMEOUT_MS)
+                    } ?: RelayPoolQueryResult()
+                }
+            }
+            val ownAccount = if (userHasRelays) {
                 // The pool's own deadline returns a partial result; this outer bound only guards
                 // against a query stuck waiting for a gate permit.
                 withTimeoutOrNull(RelayPool.SUBSCRIBE_TIMEOUT.toLong()) {
@@ -303,6 +322,13 @@ class RelaysSocketManager @Inject constructor(
             } else {
                 RelayPoolQueryResult()
             }
+            val enrichment = enrichmentDeferred.await()
+            val account = RelayPoolQueryResult(
+                events = ownAccount.events + enrichment.events,
+                eoseRelays = ownAccount.eoseRelays + enrichment.eoseRelays,
+                failedRelays = ownAccount.failedRelays + enrichment.failedRelays,
+                duplicateCount = ownAccount.duplicateCount + enrichment.duplicateCount,
+            )
 
             // Only cut the public pool short early when the account relays actually produced
             // something: content they do not hold at all still gets the public pool's full cap,
@@ -348,7 +374,8 @@ class RelaysSocketManager @Inject constructor(
 
     fun activeSubscriptionCount(): Int =
         userRelaysPool.activeSubscriptionCount() +
-            fallbackRelaysPool.activeSubscriptionCount()
+            fallbackRelaysPool.activeSubscriptionCount() +
+            outboxEnrichmentPool.activeSubscriptionCount()
 
     /**
      * Signs a relay's NIP-42 challenge as the active account.

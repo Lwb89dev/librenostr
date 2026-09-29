@@ -1,5 +1,7 @@
 package net.primal.data.repository.bookmarks
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.add
@@ -14,6 +16,7 @@ import net.primal.data.remote.api.users.UsersApi
 import net.primal.domain.bookmarks.BookmarkType
 import net.primal.domain.bookmarks.PublicBookmarksRepository
 import net.primal.domain.bookmarks.TagBookmark
+import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.PublicBookmarksNotFoundException
@@ -32,6 +35,8 @@ class PublicBookmarksRepositoryImpl(
 ) : PublicBookmarksRepository {
 
     private val appBuildHelper = createAppBuildHelper()
+
+    private val bookmarksUpdateMutex = Mutex()
 
     private suspend fun fetchLatestPublicBookmarks(userId: String): Set<TagBookmark>? {
         relayEventQuerier?.let { querier ->
@@ -123,9 +128,9 @@ class PublicBookmarksRepositoryImpl(
         return notesBookmarks + articleBookmarks
     }
 
-    override suspend fun isBookmarked(tagValue: String) =
+    override suspend fun isBookmarked(userId: String, tagValue: String) =
         withContext(dispatcherProvider.io()) {
-            database.publicBookmarks().findByTagValue(tagValue = tagValue) != null
+            database.publicBookmarks().findByTagValue(userId = userId, tagValue = tagValue) != null
         }
 
     override suspend fun addToBookmarks(
@@ -165,7 +170,7 @@ class PublicBookmarksRepositoryImpl(
             forceUpdate = forceUpdate,
         )
 
-        database.publicBookmarks().deleteByTagValue(tagValue = tagValue)
+        database.publicBookmarks().deleteByTagValue(userId = userId, tagValue = tagValue)
     }
 
     private fun BookmarkType.toTagType() =
@@ -194,13 +199,44 @@ class PublicBookmarksRepositoryImpl(
         }
     }
 
+    /**
+     * Read-modify-publish of the NIP-51 bookmarks list. See MutedItemRepositoryImpl's
+     * updateAndPublishList for the full story; in short, a relay timeout reads as an empty list,
+     * so an empty read falls back to the local copy instead of publishing a one-item list over
+     * the real one, the latest event's (encrypted, private) content is carried over instead of
+     * blanked, and [bookmarksUpdateMutex] keeps two quick taps from racing on the same base.
+     */
     private suspend fun publishBookmarksList(
         userId: String,
         forceUpdate: Boolean,
         reducer: Set<TagBookmark>.() -> Set<TagBookmark>,
-    ) {
-        val latestBookmarks = fetchLatestPublicBookmarks(userId = userId)
-            ?: if (forceUpdate) emptySet() else throw PublicBookmarksNotFoundException()
+    ) = bookmarksUpdateMutex.withLock {
+        val querier = relayEventQuerier
+        val remoteEvent = querier?.let { fetchLatestBookmarksEvent(querier = it, userId = userId) }
+
+        val latestBookmarks: Set<TagBookmark>
+        val content: String
+        when {
+            remoteEvent != null -> {
+                latestBookmarks = remoteEvent.tags.parseAsPublicBookmarks()
+                content = remoteEvent.content
+            }
+
+            querier != null -> {
+                latestBookmarks = withContext(dispatcherProvider.io()) {
+                    database.publicBookmarks().findAll(userId = userId)
+                        .map { TagBookmark(type = it.tagType, value = it.tagValue) }
+                        .toSet()
+                }
+                content = ""
+            }
+
+            else -> {
+                latestBookmarks = fetchLatestPublicBookmarks(userId = userId)
+                    ?: if (forceUpdate) emptySet() else throw PublicBookmarksNotFoundException()
+                content = ""
+            }
+        }
 
         val updatedBookmarks = latestBookmarks.reducer()
 
@@ -215,7 +251,7 @@ class PublicBookmarksRepositoryImpl(
                 unsignedNostrEvent = NostrUnsignedEvent(
                     pubKey = userId,
                     kind = NostrEventKind.BookmarksList.value,
-                    content = "",
+                    content = content,
                     tags = bookmarksTags + listOf(appBuildHelper.getClientName().asClientTag()),
                 ),
             )
@@ -224,11 +260,24 @@ class PublicBookmarksRepositoryImpl(
         persistUserBookmarks(userId = userId, bookmarks = updatedBookmarks)
     }
 
+    private suspend fun fetchLatestBookmarksEvent(querier: RelayEventQuerier, userId: String): NostrEvent? =
+        runCatching {
+            querier.query(
+                RelayFilter(
+                    kinds = listOf(NostrEventKind.BookmarksList.value),
+                    authors = listOf(userId),
+                    limit = BOOKMARK_EVENT_LIMIT,
+                ),
+            ).maxByOrNull { it.createdAt }
+        }.getOrNull()
+
     private fun List<JsonArray>.parseAsPublicBookmarks(): Set<TagBookmark> {
         return mapNotNull {
             val type = it.getOrNull(0)?.jsonPrimitive?.content
             val value = it.getOrNull(1)?.jsonPrimitive?.content
-            if (type != null && value != null) {
+            // The client tag is re-added fresh on every publish; keeping the old one here would
+            // republish it as a "bookmark" next to the new one.
+            if (type != null && value != null && type != CLIENT_TAG) {
                 TagBookmark(type = type, value = value)
             } else {
                 null
@@ -238,5 +287,6 @@ class PublicBookmarksRepositoryImpl(
 
     private companion object {
         const val BOOKMARK_EVENT_LIMIT = 5
+        const val CLIENT_TAG = "client"
     }
 }

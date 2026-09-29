@@ -109,7 +109,9 @@ import net.primal.android.core.utils.formatToDefaultTimeFormat
 import net.primal.android.editor.NoteEditorContract
 import net.primal.android.editor.di.noteEditorViewModel
 import net.primal.android.editor.domain.NoteEditorArgs
+import net.primal.android.editor.toPreviewNoteContentUi
 import net.primal.android.editor.ui.NoteTagUserLazyColumn
+import net.primal.android.editor.ui.PublishCountdownOverlay
 import net.primal.android.notes.feed.model.EventStatsUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.asNeventString
@@ -192,6 +194,21 @@ fun ThreadScreen(
             }
         },
     )
+
+    if (replyState.undoCountdownSeconds != null) {
+        // The inline reply goes through the same undo timer as the full editor, but the timer
+        // used to run invisibly here: the reply seemed to do nothing for several seconds, and
+        // leaving the thread in that window silently dropped it together with its view model.
+        PublishCountdownOverlay(
+            secondsRemaining = replyState.undoCountdownSeconds ?: 0,
+            totalSeconds = replyState.undoPostTimerSeconds,
+            hasUploadedAttachments = replyState.attachments.isNotEmpty(),
+            notePreview = replyState.toPreviewNoteContentUi(),
+            onCancel = { noteEditorViewModel.setEvent(NoteEditorContract.UiEvent.CancelScheduledPublish) },
+            onConfirmNow = { noteEditorViewModel.setEvent(NoteEditorContract.UiEvent.ConfirmScheduledPublish) },
+        )
+        return
+    }
 
     // Hoisted once instead of `.copy()`-ing inline at the call site below: NoteCallbacks is a
     // large lambda-holding data class, and a fresh `.copy()` every recomposition would break

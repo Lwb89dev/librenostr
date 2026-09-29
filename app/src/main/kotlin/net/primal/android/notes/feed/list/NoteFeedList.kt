@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -118,12 +119,12 @@ fun NoteFeedList(
     }
 
     val isPolling by remember(started, pollingEnabled) { mutableStateOf(started && pollingEnabled) }
-    LaunchedEffect(isPolling) {
-        if (isPolling) {
-            viewModel.setEvent(UiEvent.StartPolling)
-        } else {
-            viewModel.setEvent(UiEvent.StopPolling)
-        }
+    // Keyed on the view model too, and stopped on dispose: the view model outlives this
+    // composable (it is scoped to the navigation entry), so a feed scrolled off in a pager or a
+    // removed deck column otherwise kept its live subscription open with nobody looking at it.
+    DisposableEffect(viewModel, isPolling) {
+        viewModel.setEvent(if (isPolling) UiEvent.StartPolling else UiEvent.StopPolling)
+        onDispose { viewModel.setEvent(UiEvent.StopPolling) }
     }
 
     NoteFeedList(

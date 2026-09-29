@@ -65,7 +65,9 @@ import net.primal.android.core.compose.PrimalNavigationBar
 import net.primal.android.core.compose.PrimalScaffold
 import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.core.compose.UnlockScreenOrientation
+import net.primal.android.core.compose.adaptive.rememberIsDeckModeEligible
 import net.primal.android.core.compose.fab.NewPostFloatingActionButton
+import net.primal.android.deck.DeckScreen
 import net.primal.android.core.pip.PiPManagerProvider
 import net.primal.android.drawer.DrawerScreenDestination
 import net.primal.android.drawer.multiaccount.events.AccountSwitcherCallbacks
@@ -220,7 +222,7 @@ internal fun NavController.navigateToMessages() = navigate(route = "messages")
 
 fun NavController.navigateToChat(profileId: String) = navigate(route = "messages/$profileId")
 
-private fun NavController.navigateToNewMessage() = navigate(route = "messages/new")
+internal fun NavController.navigateToNewMessage() = navigate(route = "messages/new")
 
 fun NavController.navigateToProfile(profileId: String) = navigate(route = "profile?$PROFILE_ID=$profileId")
 
@@ -252,8 +254,10 @@ fun NavController.navigateToMediaGallery(
     mediaUrl: String,
     mediaPositionMs: Long = 0,
 ) = navigate(
+    // Encoded like navigateToMediaItem: a raw URL carrying its own query string ("?", "&", "=")
+    // or a "#" was split by the route parser, opening the gallery on a truncated, unmatched URL.
     route = "media/$noteId" +
-        "?$MEDIA_URL=$mediaUrl" +
+        "?$MEDIA_URL=${mediaUrl.asUrlEncoded()}" +
         "&$MEDIA_POSITION_MS=$mediaPositionMs",
 )
 
@@ -1148,13 +1152,22 @@ private fun NavGraphBuilder.main(
     },
 ) { navBackEntry ->
     ApplyEdgeToEdge()
+    // No-op on tablets (see LockToOrientationPortrait's own doc) — deck mode needs landscape.
     LockToOrientationPortrait()
 
-    MainScreen(
-        navController = navController,
-        navBackStackEntry = navBackEntry,
-        onDrawerDestinationClick = onDrawerDestinationClick,
-    )
+    if (rememberIsDeckModeEligible()) {
+        DeckScreen(
+            navController = navController,
+            navBackStackEntry = navBackEntry,
+            onDrawerDestinationClick = onDrawerDestinationClick,
+        )
+    } else {
+        MainScreen(
+            navController = navController,
+            navBackStackEntry = navBackEntry,
+            onDrawerDestinationClick = onDrawerDestinationClick,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1514,7 +1527,10 @@ private fun NavGraphBuilder.chat(
     popEnterTransition = { primalScaleIn },
     popExitTransition = { primalSlideOutHorizontallyToEnd },
 ) { navBackEntry ->
-    val viewModel = hiltViewModel<ChatViewModel>(navBackEntry)
+    val profileId = navBackEntry.arguments?.getString(PROFILE_ID).orEmpty()
+    val viewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(navBackEntry) { factory ->
+        factory.create(participantId = profileId)
+    }
     ApplyEdgeToEdge()
     LockToOrientationPortrait()
     ChatScreen(
@@ -1561,7 +1577,10 @@ private fun NavGraphBuilder.thread(
     popEnterTransition = { primalScaleIn },
     popExitTransition = { primalSlideOutHorizontallyToEnd },
 ) { navBackEntry ->
-    val viewModel = hiltViewModel<ThreadViewModel>(navBackEntry)
+    val noteId = navBackEntry.arguments?.getString(NOTE_ID).orEmpty()
+    val viewModel = hiltViewModel<ThreadViewModel, ThreadViewModel.Factory>(navBackEntry) { factory ->
+        factory.create(noteId = noteId)
+    }
 
     val gifUrlResult = navBackEntry.savedStateHandle
         .getStateFlow<String?>(GIF_URL_RESULT, null)

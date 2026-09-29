@@ -14,11 +14,11 @@ interface PublicBookmarkDao {
     @Query("DELETE FROM PublicBookmark WHERE ownerId = :userId")
     suspend fun deleteAllBookmarks(userId: String)
 
-    @Query("DELETE FROM PublicBookmark WHERE tagValue = :tagValue")
-    suspend fun deleteByTagValue(tagValue: String)
+    @Query("DELETE FROM PublicBookmark WHERE ownerId = :userId AND tagValue = :tagValue")
+    suspend fun deleteByTagValue(userId: String, tagValue: String)
 
-    @Query("SELECT * FROM PublicBookmark WHERE tagValue = :tagValue")
-    suspend fun findByTagValue(tagValue: String): PublicBookmark?
+    @Query("SELECT * FROM PublicBookmark WHERE ownerId = :userId AND tagValue = :tagValue")
+    suspend fun findByTagValue(userId: String, tagValue: String): PublicBookmark?
 
     @Query("SELECT * FROM PublicBookmark WHERE ownerId = :userId")
     suspend fun findAll(userId: String): List<PublicBookmark>

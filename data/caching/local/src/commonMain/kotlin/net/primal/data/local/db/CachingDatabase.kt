@@ -4,8 +4,10 @@ import androidx.room3.AutoMigration
 import androidx.room3.ColumnTypeConverters
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
+import androidx.room3.DeleteTable
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
+import androidx.room3.migration.AutoMigrationSpec
 import net.primal.data.local.dao.bookmarks.PublicBookmark
 import net.primal.data.local.dao.bookmarks.PublicBookmarkDao
 import net.primal.data.local.dao.events.EventRelayHints
@@ -143,8 +145,14 @@ import net.primal.shared.data.local.serialization.ListsTypeConverters
         WotNetworkStateData::class,
         WotQualifiedPubkeyData::class,
     ],
-    version = 3,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
+    version = 6,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5, spec = DeckTablesRemoved::class),
+        AutoMigration(from = 5, to = 6),
+    ],
     exportSchema = true,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -269,3 +277,10 @@ abstract class CachingDatabase : RoomDatabase() {
 internal expect object AppDatabaseConstructor : RoomDatabaseConstructor<CachingDatabase> {
     override fun initialize(): CachingDatabase
 }
+
+/** DeckData/DeckColumnData moved to their own DeckDatabase — see its own doc for why. */
+@DeleteTable.Entries(
+    DeleteTable(tableName = "DeckData"),
+    DeleteTable(tableName = "DeckColumnData"),
+)
+class DeckTablesRemoved : AutoMigrationSpec

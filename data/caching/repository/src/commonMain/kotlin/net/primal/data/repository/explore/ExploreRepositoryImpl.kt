@@ -14,13 +14,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import net.primal.core.caching.MediaCacher
 import net.primal.core.utils.CurrencyConversionUtils.toSats
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.getOrDefault
 import net.primal.core.utils.runCatching
+import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.data.local.dao.explore.ExplorePopularUserCrossRef
-import net.primal.data.local.dao.explore.FollowPack
 import net.primal.data.local.db.CachingDatabase
 import net.primal.data.repository.mappers.local.asExploreTrendingTopic
 import net.primal.data.repository.mappers.local.asFollowPackDO
@@ -35,13 +38,14 @@ import net.primal.domain.common.UserProfileSearchItem
 import net.primal.domain.explore.ExplorePeopleData
 import net.primal.domain.explore.ExploreRepository
 import net.primal.domain.explore.ExploreZapNoteData
+import net.primal.domain.explore.FollowPack as FollowPackDO
+import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
 import net.primal.domain.nostr.findFirstProfileId
 import net.primal.domain.nostr.pubkeyTagValues
 import net.primal.domain.nostr.relay.RelayEventQuerier
 import net.primal.domain.nostr.relay.RelayFilter
 import net.primal.domain.nostr.utils.parseHashtags
-import net.primal.domain.explore.FollowPack as FollowPackDO
 import net.primal.shared.data.local.db.withTransaction
 
 class ExploreRepositoryImpl(
@@ -135,11 +139,9 @@ class ExploreRepositoryImpl(
         until: Long?,
         limit: Int,
         offset: Int?,
-    ): List<FollowPackDO> =
-        emptyList()
+    ): List<FollowPackDO> = emptyList()
 
-    override suspend fun fetchFollowList(authorId: String, identifier: String): FollowPackDO? =
-        null
+    override suspend fun fetchFollowList(authorId: String, identifier: String): FollowPackDO? = null
 
     override fun observeFollowList(authorId: String, identifier: String): Flow<FollowPackDO?> =
         database.followPacks().observeFollowPack(authorId = authorId, identifier = identifier)
@@ -189,17 +191,23 @@ class ExploreRepositoryImpl(
             }
         }
 
+    override suspend fun searchUsersLocally(query: String, limit: Int): List<UserProfileSearchItem> =
+        withContext(dispatcherProvider.io()) {
+            val normalizedQuery = query.trim().removePrefix("@").removePrefix("#").lowercase()
+            if (normalizedQuery.isBlank()) return@withContext emptyList()
+            database.profiles()
+                .findProfilesByPrefix(prefix = normalizedQuery, limit = limit)
+                .map { UserProfileSearchItem(metadata = it.asProfileDataDO()) }
+        }
+
     override suspend fun searchUsers(query: String, limit: Int): List<UserProfileSearchItem> =
         withContext(dispatcherProvider.io()) {
             val normalizedQuery = query.trim().removePrefix("@").removePrefix("#").lowercase()
             if (normalizedQuery.isBlank()) return@withContext emptyList()
 
             // Profiles already cached locally (followed, seen in the feed, previously fetched)
-            // match instantly and offline. Relays fill in whatever is still missing, so typing
-            // stays responsive even before a single relay round-trip lands.
-            val localMatches = database.profiles()
-                .findProfilesByPrefix(prefix = normalizedQuery, limit = limit)
-                .map { UserProfileSearchItem(metadata = it.asProfileDataDO()) }
+            // match instantly and offline. Relays fill in whatever is still missing.
+            val localMatches = searchUsersLocally(query = normalizedQuery, limit = limit)
 
             val remaining = limit - localMatches.size
             val relayMatches = if (remaining > 0) {
@@ -245,7 +253,10 @@ class ExploreRepositoryImpl(
                 }.getOrDefault(emptyList())
             }
             val nip50Result = runCatching { relayEventQuerier.query(relayQuery) }.getOrDefault(emptyList())
-            if (nip50Result.isNotEmpty()) {
+            // Decided on what actually matches, not on the raw answer: a relay that ignores the
+            // `search` filter returns arbitrary profiles, and trusting that non-empty page skipped
+            // the fallback only for the local filter below to throw every one of them away.
+            if (nip50Result.any { it.matchesProfileQuery(normalizedQuery) }) {
                 fallback.cancel()
                 nip50Result to nip50Result
             } else {
@@ -254,10 +265,7 @@ class ExploreRepositoryImpl(
         }
 
         val profiles = events
-            .filter { event ->
-                event.pubKey.contains(normalizedQuery, ignoreCase = true) ||
-                    event.content.contains(normalizedQuery, ignoreCase = true)
-            }
+            .filter { it.matchesProfileQuery(normalizedQuery) }
             .latestMetadataByPubkey()
             .map { it.asProfileDataPOFromRelay() }
             .take(limit)
@@ -360,5 +368,23 @@ class ExploreRepositoryImpl(
         private const val TOPIC_EVENT_LIMIT = 500
         private const val TOPIC_LIMIT = 30
         private const val TOPIC_LOOKBACK_SECONDS = 7 * 24 * 60 * 60L
+    }
+}
+
+private val PROFILE_NAME_FIELDS = listOf("name", "display_name", "displayName", "username", "nip05")
+private const val MIN_PUBKEY_QUERY_LENGTH = 8
+
+/**
+ * Matches the profile's name-like fields, not the raw kind 0 JSON: a substring search over the raw
+ * content used to match every profile on its own keys ("name", "about", "picture") and on short hex
+ * runs inside picture URLs. A pubkey match only counts for a query long enough to mean it.
+ */
+private fun NostrEvent.matchesProfileQuery(normalizedQuery: String): Boolean {
+    val matchesPubkey = normalizedQuery.length >= MIN_PUBKEY_QUERY_LENGTH &&
+        pubKey.contains(normalizedQuery, ignoreCase = true)
+    if (matchesPubkey) return true
+    val metadata = content.decodeFromJsonStringOrNull<JsonObject>()
+    return PROFILE_NAME_FIELDS.any { field ->
+        (metadata?.get(field) as? JsonPrimitive)?.contentOrNull?.contains(normalizedQuery, ignoreCase = true) == true
     }
 }

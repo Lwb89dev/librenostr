@@ -111,6 +111,7 @@ class NoteEditorViewModel @AssistedInject constructor(
     )
 
     private var countdownJob: Job? = null
+    private var publishJob: Job? = null
 
     private val referencedArticleNaddr = args.referencedArticleNaddr?.let(Nip19TLV::parseUriAsNaddrOrNull)
     private val referencedHighlightNevent = args.referencedHighlightNevent?.let(Nip19TLV::parseUriAsNeventOrNull)
@@ -716,6 +717,9 @@ class NoteEditorViewModel @AssistedInject constructor(
      */
     private fun schedulePublish() =
         viewModelScope.launch {
+            // A second tap on "post" while a countdown or a publish is already running must not
+            // queue another copy of the note.
+            if (countdownJob?.isActive == true || publishJob?.isActive == true) return@launch
             val settings = activeAccountStore.activeUserAccount().contentDisplaySettings
             val isReply = referencedNoteNevent != null
             val timerApplies = settings.undoPostTimerEnabled &&
@@ -761,7 +765,18 @@ class NoteEditorViewModel @AssistedInject constructor(
         publishPost()
     }
 
-    private fun publishPost() =
+    /**
+     * Returns the publish already in flight instead of starting a second one. "Post now" on the
+     * undo overlay can land in the same instant the countdown runs out and starts publishing on
+     * its own; cancelling the countdown does not stop that separately launched publish, so
+     * without this guard the same note went out twice.
+     */
+    private fun publishPost(): Job {
+        publishJob?.takeIf { it.isActive }?.let { return it }
+        return launchPublish().also { publishJob = it }
+    }
+
+    private fun launchPublish() =
         viewModelScope.launch {
             setState { copy(publishing = true) }
             try {

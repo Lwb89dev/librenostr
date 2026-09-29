@@ -379,7 +379,7 @@ class NoteViewModel @AssistedInject constructor(
             val userId = activeAccountStore.activeUserId()
             try {
                 setState { copy(shouldApproveBookmark = false) }
-                val isBookmarked = bookmarksRepository.isBookmarked(tagValue = event.noteId)
+                val isBookmarked = bookmarksRepository.isBookmarked(userId = userId, tagValue = event.noteId)
                 when (isBookmarked) {
                     true -> bookmarksRepository.removeFromBookmarks(
                         userId = userId,

@@ -614,13 +614,18 @@ class RelayPoolTest {
             relayPool.socketClients = incoming.mapIndexed { index, flow -> buildQuerySocket("wss://relay$index", flow) }
             val timeoutMs = 2_000L
 
-            val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 50), timeoutMs = timeoutMs) }
+            val deferred = async {
+                relayPool.query(buildRelayFilter(kinds = listOf(1), limit = 50), timeoutMs = timeoutMs)
+            }
             runCurrent()
 
             // First EOSE arrives just before the deadline; the quorum never comes.
             testScheduler.advanceTimeBy(timeoutMs - 100)
             incoming[0].emit(
-                NostrIncomingMessage.EventMessage(subscriptionId = "sub-deadline", nostrEvent = buildNostrEvent("late")),
+                NostrIncomingMessage.EventMessage(
+                    subscriptionId = "sub-deadline",
+                    nostrEvent = buildNostrEvent("late"),
+                ),
             )
             incoming[0].emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-deadline"))
             runCurrent()
