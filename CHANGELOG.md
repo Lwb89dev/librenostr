@@ -7,6 +7,35 @@ LibreNostr is a fork of [Primal](https://github.com/PrimalHQ/primal-android-app)
 (MIT, Copyright (c) 2023 PRIMAL SYSTEMS INC.); this log covers changes made in
 the LibreNostr fork on top of the imported `3.5.25` baseline.
 
+## [1.1.0] - 2026-10-02
+
+### Added
+
+- **GIFs from nostr.build.** The GIF picker now searches nostr.build's index of GIFs uploaded to its
+  free public pool, replacing the Wikimedia Commons search. It opens with results and one-tap topic
+  chips (gm, lol, bitcoin…), suggests search terms as you type, and posts the GIF by its URL with a
+  NIP-92 `imeta` tag (type, dimensions, size, alt text) instead of downloading and re-uploading it.
+  nostr.build only serves registered clients, and LibreNostr is not registered yet: until it is, the
+  picker answers from GIFverse (the index Ditto uses) and says so in its "Powered by" line. Once the
+  registration is done it switches to nostr.build by itself, with no update needed.
+- **Custom emoji packs (NIP-30).** `:shortcode:` in a note is drawn as the image the note declares.
+  The composer has a new emoji panel with the built-in LibreNostr Ostrich pack and the packs on your
+  emoji list (kind 10030), and published notes carry the matching `emoji` tags. Settings has a new
+  Emoji packs screen to browse packs from your relays, add one from an `naddr` link, and create,
+  edit or delete your own (images are uploaded to your Blossom servers).
+
+### Fixed
+
+- A single failing relay could stall every load in the app — notes, direct messages and
+  notifications alike. Every finished query re-dialled each unreachable relay just to close its
+  subscription while holding one of the few query slots the whole app shares, so a dead relay
+  starved the others until their queries timed out empty. Closing a subscription no longer opens a
+  connection; a relay that fails to connect is now left alone for a growing interval (2 seconds up
+  to 5 minutes, at least a minute when the server refuses outright) and is retried at once when the
+  network changes, when the Tor mode changes, or when you reconnect it by hand; concurrent callers
+  share a single connection attempt; and DM and publish operations no longer connect to their relays
+  one after another before starting.
+
 ## [1.0.1] - 2026-09-29
 
 ### Fixed
