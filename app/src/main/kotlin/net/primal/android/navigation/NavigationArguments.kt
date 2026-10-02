@@ -109,7 +109,8 @@ inline val SavedStateHandle.exploreFeedDescription: String?
 
 const val FEED_SAVED_RESULT = "feedSavedResult"
 
-const val GIF_URL_RESULT = "gifUrlResult"
+/** The GIF picked in the full-screen picker, as a [net.primal.android.gifpicker.domain.GifItem] JSON. */
+const val GIF_RESULT = "gifResult"
 const val PENDING_GIF_REPLY_ARGS = "pendingGifReplyArgs"
 
 const val NOTE_EDITOR_ARGS = "preFillContent"

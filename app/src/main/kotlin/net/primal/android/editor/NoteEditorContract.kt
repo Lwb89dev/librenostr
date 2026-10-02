@@ -9,6 +9,7 @@ import net.primal.android.core.errors.UiError
 import net.primal.android.drawer.multiaccount.model.UserAccountUi
 import net.primal.android.editor.domain.NoteAttachment
 import net.primal.android.editor.domain.NoteTaggedUser
+import net.primal.android.gifpicker.domain.GifItem
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.PollType
 import net.primal.android.profile.mention.UserTaggingState
@@ -51,13 +52,18 @@ interface NoteEditorContract {
         val referencedNostrUris: List<ReferencedUri<*>> = emptyList(),
         val userTaggingState: UserTaggingState = UserTaggingState(),
         val availableAccounts: List<UserAccountUi> = emptyList(),
-        val pendingGifUploads: List<PendingGifUpload> = emptyList(),
+        val attachedGifs: List<AttachedGif> = emptyList(),
         val pollState: PollEditorState? = null,
         val isPrivateReply: Boolean = false,
         val privateReplyRecipientId: String? = null,
         val privateReplyRecipientName: String? = null,
         val privateReplyRecipientPickerVisible: Boolean = false,
         val canSendPrivateReply: Boolean = false,
+        /**
+         * Every NIP-30 custom emoji the account can use, shortcode to URL: what a `:shortcode:` in
+         * the note resolves to when it is published, and what the publish preview draws.
+         */
+        val availableCustomEmojis: Map<String, String> = emptyMap(),
     ) {
         val isReply: Boolean get() = replyToConversation.isNotEmpty()
         val replyToNote: FeedPostUi? = replyToConversation.lastOrNull()
@@ -80,9 +86,8 @@ interface NoteEditorContract {
         data class ToggleSearchUsers(val enabled: Boolean) : UiEvent()
         data class TagUser(val taggedUser: NoteTaggedUser) : UiEvent()
         data class SelectAccount(val accountId: String) : UiEvent()
-        data class InsertGif(val gifUrl: String) : UiEvent()
-        data class RetryGifUpload(val gifId: UUID) : UiEvent()
-        data class RemovePendingGif(val gifId: UUID) : UiEvent()
+        data class InsertGif(val gif: GifItem) : UiEvent()
+        data class RemoveGif(val gifId: UUID) : UiEvent()
         data object DismissError : UiEvent()
         data object TogglePollMode : UiEvent()
         data class UpdatePollChoice(val choiceId: UUID, val text: String) : UiEvent()
@@ -135,16 +140,19 @@ interface NoteEditorContract {
         ) : ReferencedUri<String>
     }
 
-    data class PendingGifUpload(
+    /**
+     * A GIF picked for this note. It is posted by its provider URL, never downloaded and uploaded
+     * again: the picker's GIFs already live on public media hosts (nostr.build's above all), so
+     * there is nothing to wait for and nothing that can fail between picking and publishing.
+     */
+    data class AttachedGif(
         val id: UUID = UUID.randomUUID(),
-        val originalUrl: String,
-        val blossomUrl: String? = null,
-        val uploading: Boolean = true,
-        val uploadFailed: Boolean = false,
+        val gif: GifItem,
     )
 
     data class ScreenCallbacks(
         val onClose: () -> Unit,
         val onGifPickerClick: () -> Unit = {},
+        val onManageEmojiPacks: () -> Unit = {},
     )
 }

@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Опрос по переключению</string>
     <string name="accessibility_poll_remove_choice">Удалить выбор опроса</string>
     <string name="accessibility_poll_add_choice">Добавить выбор опроса</string>
-    <string name="gif_picker_search_placeholder">Поиск по открытым GIF</string>
+    <string name="gif_picker_search_placeholder">Поиск GIF</string>
     <string name="gif_picker_cancel">отменить</string>
     <string name="gif_picker_powered_by">питаемый</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">повторять</string>
     <string name="post_action_missing_lightning_address">Невозможно зацепить этого пользователя, так как у него нет молниеносного адреса.</string>
     <string name="post_action_invalid_zap_request">Не могу заткнуться. Проверьте свой кошелек и попробуйте еще раз.</string>
     <string name="post_action_zap_failed">Не могу заткнуться. Пожалуйста, попробуйте еще раз.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">сатс</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Не может производить оплату. %1$s не имеет молниеносного адреса.</string>
     <string name="wallet_send_payment_this_user_chunk">Этот пользователь</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Наборы эмодзи</string>
+    <string name="emoji_packs_section_yours">Ваши наборы</string>
+    <string name="emoji_packs_section_discover">Найти наборы</string>
+    <string name="emoji_packs_built_in">Встроенный</string>
+    <string name="emoji_packs_add">Добавить</string>
+    <string name="emoji_packs_remove">Убрать</string>
+    <string name="emoji_packs_edit">Изменить</string>
+    <string name="emoji_packs_create">Создать набор</string>
+    <string name="emoji_packs_link_hint">Вставьте ссылку на набор (naddr…)</string>
+    <string name="emoji_packs_discover_empty">На ваших релеях пока не найдено наборов эмодзи.</string>
+    <string name="emoji_pack_editor_name_hint">Название набора</string>
+    <string name="emoji_pack_editor_shortcode_hint">Короткий код (необязательно)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Только буквы, цифры, - и _, ещё не в наборе</string>
+    <string name="emoji_pack_editor_add_image">Добавить изображение</string>
+    <string name="emoji_pack_editor_empty">Выберите изображение, чтобы добавить первый эмодзи.</string>
+    <string name="emoji_pack_editor_save">Сохранить и опубликовать</string>
+    <string name="emoji_pack_editor_delete">Удалить набор</string>
+    <string name="emoji_picker_close">Закрыть панель эмодзи</string>
+    <string name="emoji_picker_manage_packs">Управлять наборами</string>
+    <string name="emoji_picker_my_emoji">Мои эмодзи</string>
+    <string name="accessibility_emoji_picker">Вставить свой эмодзи</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d эмодзи</item>
+        <item quantity="other">%d эмодзи</item>
+    </plurals>
 </resources>

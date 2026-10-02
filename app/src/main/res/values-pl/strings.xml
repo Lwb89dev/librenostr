@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Włączenie / wyłączenie ankiety</string>
     <string name="accessibility_poll_remove_choice">Usuń wybór ankiety</string>
     <string name="accessibility_poll_add_choice">Dodaj wybór ankiety</string>
-    <string name="gif_picker_search_placeholder">Szukaj otwartych GIF</string>
+    <string name="gif_picker_search_placeholder">Szukaj GIF-ów</string>
     <string name="gif_picker_cancel">Anuluj</string>
     <string name="gif_picker_powered_by">Napędzane</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Retry</string>
     <string name="post_action_missing_lightning_address">Nie można zapchać tego użytkownika, ponieważ nie mają ustawionego adresu błyskawicy.</string>
     <string name="post_action_invalid_zap_request">Nie da rady. Sprawdź połączenie z portfelem i spróbuj jeszcze raz.</string>
     <string name="post_action_zap_failed">Nie da rady. Proszę spróbować jeszcze raz.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sat</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Nie mogę zapłacić. %1$s nie ma adresu błyskawicy.</string>
     <string name="wallet_send_payment_this_user_chunk">Ten użytkownik</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Pakiety emoji</string>
+    <string name="emoji_packs_section_yours">Twoje pakiety</string>
+    <string name="emoji_packs_section_discover">Odkryj pakiety</string>
+    <string name="emoji_packs_built_in">Wbudowany</string>
+    <string name="emoji_packs_add">Dodaj</string>
+    <string name="emoji_packs_remove">Usuń</string>
+    <string name="emoji_packs_edit">Edytuj</string>
+    <string name="emoji_packs_create">Utwórz pakiet</string>
+    <string name="emoji_packs_link_hint">Wklej link do pakietu (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Nie znaleziono jeszcze pakietów emoji na Twoich przekaźnikach.</string>
+    <string name="emoji_pack_editor_name_hint">Nazwa pakietu</string>
+    <string name="emoji_pack_editor_shortcode_hint">Skrót (opcjonalnie)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Tylko litery, cyfry, - i _, jeszcze nie w pakiecie</string>
+    <string name="emoji_pack_editor_add_image">Dodaj obraz</string>
+    <string name="emoji_pack_editor_empty">Wybierz obraz, aby dodać pierwsze emoji.</string>
+    <string name="emoji_pack_editor_save">Zapisz i opublikuj</string>
+    <string name="emoji_pack_editor_delete">Usuń pakiet</string>
+    <string name="emoji_picker_close">Zamknij panel emoji</string>
+    <string name="emoji_picker_manage_packs">Zarządzaj pakietami</string>
+    <string name="emoji_picker_my_emoji">Moje emoji</string>
+    <string name="accessibility_emoji_picker">Wstaw własne emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

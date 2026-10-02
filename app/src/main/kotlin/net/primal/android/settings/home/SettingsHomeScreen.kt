@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,8 +53,8 @@ import net.primal.android.core.compose.icons.primaliconpack.ImportPhotoFromGalle
 import net.primal.android.core.compose.icons.primaliconpack.Key
 import net.primal.android.core.compose.icons.primaliconpack.MenuAccount
 import net.primal.android.core.compose.icons.primaliconpack.MuteUser
-import net.primal.android.core.compose.icons.primaliconpack.Notifications
 import net.primal.android.core.compose.icons.primaliconpack.NostrConnectSession
+import net.primal.android.core.compose.icons.primaliconpack.Notifications
 import net.primal.android.core.compose.icons.primaliconpack.Zap
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.theme.AppTheme
@@ -262,6 +263,8 @@ private fun VersionBadge(modifier: Modifier, versionName: String, onClick: () ->
     )
 }
 
+// A flat one-line-per-entry mapping: its "complexity" is just the number of sections.
+@Suppress("CyclomaticComplexMethod")
 private fun PrimalSettingsSection.icon(): ImageVector {
     return when (this) {
         PrimalSettingsSection.Account -> PrimalIcons.MenuAccount
@@ -274,6 +277,7 @@ private fun PrimalSettingsSection.icon(): ImageVector {
         PrimalSettingsSection.MutedAccounts -> PrimalIcons.MuteUser
         PrimalSettingsSection.WebOfTrust -> PrimalIcons.MuteUser
         PrimalSettingsSection.MediaUploads -> PrimalIcons.ImportPhotoFromGallery
+        PrimalSettingsSection.EmojiPacks -> Icons.Outlined.EmojiEmotions
         PrimalSettingsSection.Notifications -> PrimalIcons.Notifications
         PrimalSettingsSection.Zaps -> PrimalIcons.Zap
         PrimalSettingsSection.Language -> Icons.Outlined.Language
@@ -281,6 +285,8 @@ private fun PrimalSettingsSection.icon(): ImageVector {
 }
 
 @Composable
+// A flat one-line-per-entry mapping: its "complexity" is just the number of sections.
+@Suppress("CyclomaticComplexMethod")
 private fun PrimalSettingsSection.title(): String {
     return when (this) {
         PrimalSettingsSection.Account -> stringResource(id = R.string.settings_account_title)
@@ -294,6 +300,7 @@ private fun PrimalSettingsSection.title(): String {
         PrimalSettingsSection.MutedAccounts -> stringResource(id = R.string.settings_muted_content_title)
         PrimalSettingsSection.WebOfTrust -> stringResource(id = R.string.settings_wot_title)
         PrimalSettingsSection.MediaUploads -> stringResource(id = R.string.settings_media_uploads_title)
+        PrimalSettingsSection.EmojiPacks -> stringResource(id = R.string.settings_emoji_packs_title)
         PrimalSettingsSection.ConnectedApps -> stringResource(id = R.string.settings_connected_apps_title)
         PrimalSettingsSection.Language -> stringResource(id = R.string.settings_language_title)
     }

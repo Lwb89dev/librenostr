@@ -19,6 +19,8 @@ data class NoteAttachment(
     val dimensionInPixels: String? = null,
     val durationInSeconds: Double? = null,
     val bitrateInBitsPerSec: Long? = null,
+    /** NIP-92 `alt`: a description of the media for readers who cannot see it. */
+    val altText: String? = null,
     val uploadError: Throwable? = null,
 ) {
     val isImageAttachment: Boolean get() = mimeType?.startsWith("image") == true
@@ -39,5 +41,8 @@ fun NoteAttachment.asIMetaTag(): JsonArray {
         this@asIMetaTag.dimensionInPixels?.let { add("dim $it") }
         this@asIMetaTag.durationInSeconds?.let { add("duration $it") }
         this@asIMetaTag.bitrateInBitsPerSec?.let { add("bitrate $it") }
+        // Collapsed to one line: an imeta entry is a single "key value" string, and a newline in
+        // free text from a provider would make it look like a malformed tag to some parsers.
+        this@asIMetaTag.altText?.let { add("alt ${it.replace(Regex("\\s+"), " ").trim()}") }
     }
 }

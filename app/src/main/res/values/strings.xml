@@ -401,11 +401,11 @@
     <string name="accessibility_poll_remove_choice">Remove poll choice</string>
     <string name="accessibility_poll_add_choice">Add poll choice</string>
 
-    <string name="gif_picker_search_placeholder">Search open GIFs</string>
+    <string name="gif_picker_search_placeholder">Search GIFs</string>
     <string name="gif_picker_cancel">Cancel</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Retry</string>
+    <string name="gif_picker_source_nostr_build" translatable="false">nostr.build</string>
+    <string name="gif_picker_source_gifverse" translatable="false">GIFverse</string>
 
     <string name="post_action_missing_lightning_address">Unable to zap this user since they don\'t have a lightning address set up.</string>
     <string name="post_action_invalid_zap_request">Unable to zap. Check your wallet connection and try again.</string>
@@ -1333,4 +1333,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Cannot make payment. %1$s doesn’t have a lightning address set.</string>
     <string name="wallet_send_payment_this_user_chunk">This user</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emoji packs</string>
+    <string name="emoji_packs_section_yours">Your packs</string>
+    <string name="emoji_packs_section_discover">Discover packs</string>
+    <string name="emoji_packs_built_in">Built in</string>
+    <string name="emoji_packs_add">Add</string>
+    <string name="emoji_packs_remove">Remove</string>
+    <string name="emoji_packs_edit">Edit</string>
+    <string name="emoji_packs_create">Create a pack</string>
+    <string name="emoji_packs_link_hint">Paste a pack link (naddr…)</string>
+    <string name="emoji_packs_discover_empty">No emoji packs found on your relays yet.</string>
+    <string name="emoji_pack_editor_name_hint">Pack name</string>
+    <string name="emoji_pack_editor_shortcode_hint">Shortcode (optional)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Letters, digits, - and _ only, not already in the pack</string>
+    <string name="emoji_pack_editor_add_image">Add image</string>
+    <string name="emoji_pack_editor_empty">Pick an image to add the first emoji.</string>
+    <string name="emoji_pack_editor_save">Save and publish</string>
+    <string name="emoji_pack_editor_delete">Delete pack</string>
+    <string name="emoji_picker_close">Close emoji panel</string>
+    <string name="emoji_picker_manage_packs">Manage packs</string>
+    <string name="emoji_picker_my_emoji">My emoji</string>
+    <string name="accessibility_emoji_picker">Insert a custom emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

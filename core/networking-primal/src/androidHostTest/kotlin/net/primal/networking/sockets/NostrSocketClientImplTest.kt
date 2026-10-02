@@ -3,6 +3,7 @@ package net.primal.networking.sockets
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocketSession
@@ -23,6 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 import kotlin.time.TimeSource
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -36,6 +38,8 @@ import kotlinx.serialization.json.buildJsonObject
 import net.primal.core.networking.primal.BasePrimalApiClient
 import net.primal.core.networking.primal.PrimalCacheFilter
 import net.primal.core.networking.sockets.NostrSocketClientImpl
+import net.primal.core.networking.sockets.RelayBackingOffException
+import net.primal.core.networking.sockets.RelayConnectionBackoff
 import net.primal.core.networking.sockets.subscription
 import net.primal.core.networking.sockets.toPrimalSubscriptionId
 import net.primal.core.testing.CoroutinesTestRule
@@ -74,11 +78,15 @@ class NostrSocketClientImplTest {
     private fun buildNostrSocketClient(
         httpClient: HttpClient = mockHttpClient,
         timeSource: TimeSource.WithComparableMarks = TimeSource.Monotonic,
+        // A fresh tracker per client: the production default is process-wide, and a failure
+        // recorded by one test must not put the same URL into backoff for the next one.
+        connectionBackoff: RelayConnectionBackoff = RelayConnectionBackoff(timeSource),
     ) = NostrSocketClientImpl(
         dispatcherProvider = coroutinesTestRule.dispatcherProvider,
         httpClient = httpClient,
         wssUrl = "wss://relay.primal.net",
         timeSource = timeSource,
+        connectionBackoff = connectionBackoff,
     )
 
     private fun newWebSocketSession(
@@ -535,6 +543,137 @@ class NostrSocketClientImplTest {
 
             sentFrames.reqCountFor(subscriptionId) shouldBe 1
         }
+
+    @Test
+    fun sendCLOSE_withoutOpenSession_neverDialsTheRelay() =
+        runTest {
+            val client = buildNostrSocketClient()
+
+            client.sendCLOSE(subscriptionId = Uuid.random().toPrimalSubscriptionId())
+
+            coVerify(exactly = 0) { mockHttpClient.webSocketSession(urlString = any<String>()) }
+        }
+
+    @Test
+    fun sendCLOSE_doesNotArmTheSilenceWatchdog() =
+        runTest {
+            val timeSource = TestTimeSource()
+            coEvery { mockWebSocketSession.send(any<Frame>()) } just Runs
+            val client = buildNostrSocketClient(timeSource = timeSource)
+
+            client.ensureSocketConnectionOrThrow()
+            // Relays never answer a CLOSE, so it must not make the socket look dead later on.
+            client.sendCLOSE(subscriptionId = Uuid.random().toPrimalSubscriptionId())
+            timeSource += 11.seconds
+            client.ensureSocketConnectionOrThrow()
+
+            coVerify(exactly = 1) { mockHttpClient.webSocketSession(urlString = any<String>()) }
+        }
+
+    @Test
+    fun ensureConnection_afterFailedDial_failsFastUntilBackoffElapses() =
+        runTest {
+            val timeSource = TestTimeSource()
+            val failingHttpClient = mockk<HttpClient>(relaxed = true)
+            coEvery {
+                failingHttpClient.webSocketSession(urlString = any<String>())
+            } throws RuntimeException("Connection refused")
+            val client = buildNostrSocketClient(httpClient = failingHttpClient, timeSource = timeSource)
+
+            shouldThrow<NetworkException> { client.ensureSocketConnectionOrThrow() }
+            // Inside the window: refused on the spot, without touching the network.
+            shouldThrow<RelayBackingOffException> { client.ensureSocketConnectionOrThrow() }
+            coVerify(exactly = 1) { failingHttpClient.webSocketSession(urlString = any<String>()) }
+
+            timeSource += RelayConnectionBackoff.INITIAL_DELAY + 1.seconds
+            shouldThrow<NetworkException> { client.ensureSocketConnectionOrThrow() }
+            coVerify(exactly = 2) { failingHttpClient.webSocketSession(urlString = any<String>()) }
+        }
+
+    @Test
+    fun ensureConnection_whenServerRefusesUpgrade_backsOffForAtLeastAMinute() =
+        runTest {
+            val timeSource = TestTimeSource()
+            val backoff = RelayConnectionBackoff(timeSource)
+            val refusingHttpClient = mockk<HttpClient>(relaxed = true)
+            coEvery {
+                refusingHttpClient.webSocketSession(urlString = any<String>())
+            } throws RuntimeException("Expected HTTP 101 response but was '503 Service Unavailable'")
+            val client = buildNostrSocketClient(
+                httpClient = refusingHttpClient,
+                timeSource = timeSource,
+                connectionBackoff = backoff,
+            )
+
+            shouldThrow<NetworkException> { client.ensureSocketConnectionOrThrow() }
+
+            timeSource += 30.seconds
+            shouldThrow<RelayBackingOffException> { client.ensureSocketConnectionOrThrow() }
+            coVerify(exactly = 1) { refusingHttpClient.webSocketSession(urlString = any<String>()) }
+        }
+
+    @Test
+    fun ensureConnection_concurrentCallers_shareOneDial() =
+        runTest {
+            val handshake = CompletableDeferred<DefaultClientWebSocketSession>()
+            val slowHttpClient = mockk<HttpClient>(relaxed = true)
+            coEvery { slowHttpClient.webSocketSession(urlString = any<String>()) } coAnswers { handshake.await() }
+            val client = buildNostrSocketClient(httpClient = slowHttpClient)
+
+            val callers = List(5) { async { client.ensureSocketConnectionOrThrow() } }
+            runCurrent()
+            handshake.complete(mockWebSocketSession)
+            callers.forEach { it.await() }
+
+            coVerify(exactly = 1) { slowHttpClient.webSocketSession(urlString = any<String>()) }
+        }
+
+    @Test
+    fun ensureConnection_callerGivingUp_doesNotAbortTheSharedDial() =
+        runTest {
+            val handshake = CompletableDeferred<DefaultClientWebSocketSession>()
+            val slowHttpClient = mockk<HttpClient>(relaxed = true)
+            coEvery { slowHttpClient.webSocketSession(urlString = any<String>()) } coAnswers { handshake.await() }
+            val client = buildNostrSocketClient(httpClient = slowHttpClient)
+
+            val impatient = async { client.ensureSocketConnectionOrThrow() }
+            runCurrent()
+            impatient.cancel()
+            runCurrent()
+
+            handshake.complete(mockWebSocketSession)
+            runCurrent()
+            // The dial finished on its own and its session is reused, not dialled again.
+            client.ensureSocketConnectionOrThrow()
+            client.connectionGeneration.value shouldBe 1L
+            coVerify(exactly = 1) { slowHttpClient.webSocketSession(urlString = any<String>()) }
+        }
+
+    @Test
+    fun backoff_resetForgivesTheRelay() {
+        val timeSource = TestTimeSource()
+        val backoff = RelayConnectionBackoff(timeSource)
+
+        backoff.recordFailure(url = "wss://dead", refusedByServer = false)
+        backoff.remainingDelay("wss://dead").shouldBeInstanceOf<kotlin.time.Duration>()
+
+        backoff.reset("wss://dead")
+        backoff.remainingDelay("wss://dead") shouldBe null
+    }
+
+    @Test
+    fun backoff_doublesOnRepeatedFailuresUpToTheCap() {
+        val timeSource = TestTimeSource()
+        val backoff = RelayConnectionBackoff(timeSource)
+
+        repeat(20) {
+            backoff.recordFailure(url = "wss://dead", refusedByServer = false)
+            timeSource += RelayConnectionBackoff.MAX_DELAY
+        }
+        backoff.recordFailure(url = "wss://dead", refusedByServer = false)
+
+        backoff.remainingDelay("wss://dead") shouldBe RelayConnectionBackoff.MAX_DELAY
+    }
 
     private fun List<Frame>.reqCountFor(subscriptionId: String): Int =
         filterIsInstance<Frame.Text>().count { it.readText().contains("\"REQ\",\"$subscriptionId\"") }

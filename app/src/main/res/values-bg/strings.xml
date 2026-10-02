@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Избор</string>
     <string name="accessibility_poll_remove_choice">Премахване на избор на анкета</string>
     <string name="accessibility_poll_add_choice">Добавяне на избор на анкета</string>
-    <string name="gif_picker_search_placeholder">Търсене на отворени GIFs</string>
+    <string name="gif_picker_search_placeholder">Търсене на GIF</string>
     <string name="gif_picker_cancel">Отмяна</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Ретрия</string>
     <string name="post_action_missing_lightning_address">Не могат да запушат този потребител, тъй като нямат светкавица.</string>
     <string name="post_action_invalid_zap_request">Не може да бъде зап. Провери си портфейла и опитай отново.</string>
     <string name="post_action_zap_failed">Не може да бъде зап. Моля опитайте отново.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">Сатурация</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Не мога да платя. %1$s няма светкавица.</string>
     <string name="wallet_send_payment_this_user_chunk">Този потребител</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Пакети с емоджита</string>
+    <string name="emoji_packs_section_yours">Твоите пакети</string>
+    <string name="emoji_packs_section_discover">Открий пакети</string>
+    <string name="emoji_packs_built_in">Вграден</string>
+    <string name="emoji_packs_add">Добави</string>
+    <string name="emoji_packs_remove">Премахни</string>
+    <string name="emoji_packs_edit">Редактирай</string>
+    <string name="emoji_packs_create">Създай пакет</string>
+    <string name="emoji_packs_link_hint">Постави връзка към пакет (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Все още няма намерени пакети с емоджита в твоите релета.</string>
+    <string name="emoji_pack_editor_name_hint">Име на пакета</string>
+    <string name="emoji_pack_editor_shortcode_hint">Кратък код (по избор)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Само букви, цифри, - и _, които още не са в пакета</string>
+    <string name="emoji_pack_editor_add_image">Добави изображение</string>
+    <string name="emoji_pack_editor_empty">Избери изображение, за да добавиш първото емоджи.</string>
+    <string name="emoji_pack_editor_save">Запази и публикувай</string>
+    <string name="emoji_pack_editor_delete">Изтрий пакета</string>
+    <string name="emoji_picker_close">Затвори панела с емоджита</string>
+    <string name="emoji_picker_manage_packs">Управлявай пакетите</string>
+    <string name="emoji_picker_my_emoji">Моите емоджита</string>
+    <string name="accessibility_emoji_picker">Вмъкни персонализирано емоджи</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d емоджи</item>
+        <item quantity="other">%d емоджита</item>
+    </plurals>
 </resources>

@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Slēgt Zvaigznes</string>
     <string name="accessibility_poll_remove_choice">Noņemt aptaujas izvēli</string>
     <string name="accessibility_poll_add_choice">Pievienot aptauju</string>
-    <string name="gif_picker_search_placeholder">Meklēt atvērtos GIF</string>
+    <string name="gif_picker_search_placeholder">Meklēt GIF</string>
     <string name="gif_picker_cancel">Atcelt</string>
     <string name="gif_picker_powered_by">Piedziņas</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Mēģināt vēlreiz</string>
     <string name="post_action_missing_lightning_address">Nevar zap šo lietotāju, jo viņiem nav zibens adrese uzstādīts.</string>
     <string name="post_action_invalid_zap_request">Nevar sakaut. Pārbaudiet maka savienojumu un mēģiniet vēlreiz.</string>
     <string name="post_action_zap_failed">Nevar sakaut. Lūdzu, mēģiniet vēlreiz.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Nevar veikt apmaksu. %1$s nav zibens adreses komplektu.</string>
     <string name="wallet_send_payment_this_user_chunk">Šis lietotājs</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emocijzīmju pakas</string>
+    <string name="emoji_packs_section_yours">Tavas pakas</string>
+    <string name="emoji_packs_section_discover">Atklāt pakas</string>
+    <string name="emoji_packs_built_in">Iebūvēta</string>
+    <string name="emoji_packs_add">Pievienot</string>
+    <string name="emoji_packs_remove">Noņemt</string>
+    <string name="emoji_packs_edit">Rediģēt</string>
+    <string name="emoji_packs_create">Izveidot paku</string>
+    <string name="emoji_packs_link_hint">Ielīmē pakas saiti (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Tavos relejos vēl nav atrasta neviena emocijzīmju paka.</string>
+    <string name="emoji_pack_editor_name_hint">Pakas nosaukums</string>
+    <string name="emoji_pack_editor_shortcode_hint">Īskods (nav obligāts)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Tikai burti, cipari, - un _, kas vēl nav pakā</string>
+    <string name="emoji_pack_editor_add_image">Pievienot attēlu</string>
+    <string name="emoji_pack_editor_empty">Izvēlies attēlu, lai pievienotu pirmo emocijzīmi.</string>
+    <string name="emoji_pack_editor_save">Saglabāt un publicēt</string>
+    <string name="emoji_pack_editor_delete">Dzēst paku</string>
+    <string name="emoji_picker_close">Aizvērt emocijzīmju paneli</string>
+    <string name="emoji_picker_manage_packs">Pārvaldīt pakas</string>
+    <string name="emoji_picker_my_emoji">Manas emocijzīmes</string>
+    <string name="accessibility_emoji_picker">Ievietot pielāgotu emocijzīmi</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emocijzīme</item>
+        <item quantity="other">%d emocijzīmes</item>
+    </plurals>
 </resources>

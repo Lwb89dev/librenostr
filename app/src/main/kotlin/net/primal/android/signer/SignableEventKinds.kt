@@ -48,6 +48,8 @@ val SIGNABLE_EVENT_KINDS: List<NostrEventKind> = listOf(
     NostrEventKind.BlossomUploadBlob,       // BUD-01 upload authorisation
     NostrEventKind.CategorizedPeopleList,   // follow sets
     NostrEventKind.LongFormContent,         // NIP-23 articles
+    NostrEventKind.UserEmojiList,           // NIP-30 emoji packs the user picked (kind 10030)
+    NostrEventKind.EmojiSet,                // NIP-30 emoji packs the user made (kind 30030)
 )
 
 val SIGNABLE_EVENT_KIND_VALUES: Set<Int> = SIGNABLE_EVENT_KINDS.map { it.value }.toSet()

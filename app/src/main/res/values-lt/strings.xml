@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Perjungti apklausą</string>
     <string name="accessibility_poll_remove_choice">Pašalinti apklausos pasirinkimą</string>
     <string name="accessibility_poll_add_choice">Pridėti apklausos pasirinkimą</string>
-    <string name="gif_picker_search_placeholder">Ieškoti atviruose GIF</string>
+    <string name="gif_picker_search_placeholder">Ieškoti GIF</string>
     <string name="gif_picker_cancel">Atšaukti</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Pakartoti</string>
     <string name="post_action_missing_lightning_address">Nepavyksta užtemdyti šio naudotojo, nes jie neturi nustatytas žaibo adresas.</string>
     <string name="post_action_invalid_zap_request">Nepavyksta. Patikrinkite slaptažodinės ryšį ir bandykite dar kartą.</string>
     <string name="post_action_zap_failed">Nepavyksta. Prašau, pabandyk dar kartą.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Nepavyksta sumokėti. %1$s neturi žaibo adreso rinkinys.</string>
     <string name="wallet_send_payment_this_user_chunk">Šis naudotojas</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Jaustukų paketai</string>
+    <string name="emoji_packs_section_yours">Tavo paketai</string>
+    <string name="emoji_packs_section_discover">Atrask paketus</string>
+    <string name="emoji_packs_built_in">Įtaisytas</string>
+    <string name="emoji_packs_add">Pridėti</string>
+    <string name="emoji_packs_remove">Pašalinti</string>
+    <string name="emoji_packs_edit">Redaguoti</string>
+    <string name="emoji_packs_create">Sukurti paketą</string>
+    <string name="emoji_packs_link_hint">Įklijuok paketo nuorodą (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Tavo relėse dar nerasta jaustukų paketų.</string>
+    <string name="emoji_pack_editor_name_hint">Paketo pavadinimas</string>
+    <string name="emoji_pack_editor_shortcode_hint">Trumpasis kodas (nebūtina)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Tik raidės, skaitmenys, - ir _, dar nesantis pakete</string>
+    <string name="emoji_pack_editor_add_image">Pridėti paveikslėlį</string>
+    <string name="emoji_pack_editor_empty">Pasirink paveikslėlį, kad pridėtum pirmą jaustuką.</string>
+    <string name="emoji_pack_editor_save">Išsaugoti ir paskelbti</string>
+    <string name="emoji_pack_editor_delete">Ištrinti paketą</string>
+    <string name="emoji_picker_close">Uždaryti jaustukų skydelį</string>
+    <string name="emoji_picker_manage_packs">Tvarkyti paketus</string>
+    <string name="emoji_picker_my_emoji">Mano jaustukai</string>
+    <string name="accessibility_emoji_picker">Įterpti pasirinktinį jaustuką</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d jaustukas</item>
+        <item quantity="other">%d jaustukai</item>
+    </plurals>
 </resources>

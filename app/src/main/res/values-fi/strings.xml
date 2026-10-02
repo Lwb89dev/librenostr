@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Vaihda kyselyä</string>
     <string name="accessibility_poll_remove_choice">Poista vaalivalinta</string>
     <string name="accessibility_poll_add_choice">Lisää äänestysvalinta</string>
-    <string name="gif_picker_search_placeholder">Etsi avaa GIF:it</string>
+    <string name="gif_picker_search_placeholder">Hae GIF-kuvia</string>
     <string name="gif_picker_cancel">Peruuta</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Uudelleen</string>
     <string name="post_action_missing_lightning_address">Tätä käyttäjää ei voi tappaa, koska heillä ei ole salamaosoitetta.</string>
     <string name="post_action_invalid_zap_request">Ei onnistu. Tarkista lompakkosi yhteys ja yritä uudelleen.</string>
     <string name="post_action_zap_failed">Ei onnistu. Yritä uudestaan.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">En voi maksaa. %1$s ei ole salama osoite asetettu.</string>
     <string name="wallet_send_payment_this_user_chunk">Tämä käyttäjä</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emojipaketit</string>
+    <string name="emoji_packs_section_yours">Omat pakettisi</string>
+    <string name="emoji_packs_section_discover">Löydä paketteja</string>
+    <string name="emoji_packs_built_in">Sisäänrakennettu</string>
+    <string name="emoji_packs_add">Lisää</string>
+    <string name="emoji_packs_remove">Poista</string>
+    <string name="emoji_packs_edit">Muokkaa</string>
+    <string name="emoji_packs_create">Luo paketti</string>
+    <string name="emoji_packs_link_hint">Liitä paketin linkki (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Releistäsi ei vielä löytynyt emojipaketteja.</string>
+    <string name="emoji_pack_editor_name_hint">Paketin nimi</string>
+    <string name="emoji_pack_editor_shortcode_hint">Lyhytkoodi (valinnainen)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Vain kirjaimia, numeroita, - ja _, ei jo paketissa</string>
+    <string name="emoji_pack_editor_add_image">Lisää kuva</string>
+    <string name="emoji_pack_editor_empty">Valitse kuva lisätäksesi ensimmäisen emojin.</string>
+    <string name="emoji_pack_editor_save">Tallenna ja julkaise</string>
+    <string name="emoji_pack_editor_delete">Poista paketti</string>
+    <string name="emoji_picker_close">Sulje emojipaneeli</string>
+    <string name="emoji_picker_manage_packs">Hallitse paketteja</string>
+    <string name="emoji_picker_my_emoji">Omat emojit</string>
+    <string name="accessibility_emoji_picker">Lisää oma emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emojia</item>
+    </plurals>
 </resources>

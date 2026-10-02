@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Slå meningsmåling til og fra</string>
     <string name="accessibility_poll_remove_choice">Fjern valg af meningsmåling</string>
     <string name="accessibility_poll_add_choice">Tilføj meningsvalg</string>
-    <string name="gif_picker_search_placeholder">Søg efter åbne GIF \'er</string>
+    <string name="gif_picker_search_placeholder">Søg efter GIF\'er</string>
     <string name="gif_picker_cancel">Annullér</string>
     <string name="gif_picker_powered_by">Med motor</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Prøv igen</string>
     <string name="post_action_missing_lightning_address">Kan ikke zappe denne bruger, da de ikke har en lynadresse oprettet.</string>
     <string name="post_action_invalid_zap_request">Kan ikke zappe. Tjek din tegnebogsforbindelse og prøv igen.</string>
     <string name="post_action_zap_failed">Kan ikke zappe. Prøv igen.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sæt</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Kan ikke betale. %1$s har ikke en lynadresse.</string>
     <string name="wallet_send_payment_this_user_chunk">Denne bruger</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emojipakker</string>
+    <string name="emoji_packs_section_yours">Dine pakker</string>
+    <string name="emoji_packs_section_discover">Opdag pakker</string>
+    <string name="emoji_packs_built_in">Indbygget</string>
+    <string name="emoji_packs_add">Tilføj</string>
+    <string name="emoji_packs_remove">Fjern</string>
+    <string name="emoji_packs_edit">Rediger</string>
+    <string name="emoji_packs_create">Opret en pakke</string>
+    <string name="emoji_packs_link_hint">Indsæt et pakkelink (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Ingen emojipakker fundet på dine relays endnu.</string>
+    <string name="emoji_pack_editor_name_hint">Pakkenavn</string>
+    <string name="emoji_pack_editor_shortcode_hint">Kortkode (valgfri)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Kun bogstaver, tal, - og _, ikke allerede i pakken</string>
+    <string name="emoji_pack_editor_add_image">Tilføj billede</string>
+    <string name="emoji_pack_editor_empty">Vælg et billede for at tilføje den første emoji.</string>
+    <string name="emoji_pack_editor_save">Gem og udgiv</string>
+    <string name="emoji_pack_editor_delete">Slet pakke</string>
+    <string name="emoji_picker_close">Luk emojipanel</string>
+    <string name="emoji_picker_manage_packs">Administrer pakker</string>
+    <string name="emoji_picker_my_emoji">Mine emojis</string>
+    <string name="accessibility_emoji_picker">Indsæt en tilpasset emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emojis</item>
+    </plurals>
 </resources>

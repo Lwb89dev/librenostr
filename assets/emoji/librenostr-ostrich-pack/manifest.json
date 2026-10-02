@@ -1,0 +1,41 @@
+{
+  "id": "librenostr-ostrich",
+  "name": "LibreNostr Ostrich",
+  "version": "1.0.0",
+  "description": "Minimal purple ostrich face emoji for LibreNostr.",
+  "format": "png",
+  "size": 512,
+  "background": "transparent",
+  "emojis": [
+    {
+      "name": "ostrich_happy",
+      "file": "ostrich-happy.png",
+      "android_resource": "librenostr_ostrich_happy"
+    },
+    {
+      "name": "ostrich_love",
+      "file": "ostrich-love.png",
+      "android_resource": "librenostr_ostrich_love"
+    },
+    {
+      "name": "ostrich_shocked",
+      "file": "ostrich-shocked.png",
+      "android_resource": "librenostr_ostrich_shocked"
+    },
+    {
+      "name": "ostrich_thinking",
+      "file": "ostrich-thinking.png",
+      "android_resource": "librenostr_ostrich_thinking"
+    },
+    {
+      "name": "ostrich_sleepy",
+      "file": "ostrich-sleepy.png",
+      "android_resource": "librenostr_ostrich_sleepy"
+    },
+    {
+      "name": "ostrich_zap",
+      "file": "ostrich-zap.png",
+      "android_resource": "librenostr_ostrich_zap"
+    }
+  ]
+}

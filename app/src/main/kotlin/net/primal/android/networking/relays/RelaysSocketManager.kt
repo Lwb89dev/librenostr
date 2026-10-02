@@ -30,16 +30,18 @@ import net.primal.android.user.accounts.active.ActiveAccountStore
 import net.primal.android.user.db.UsersDatabase
 import net.primal.android.user.domain.Relay
 import net.primal.android.user.domain.RelayKind
+import net.primal.android.user.domain.cleanWebSocketUrl
 import net.primal.android.user.domain.mapToRelayDO
 import net.primal.core.networking.sockets.NostrSocketClientFactory
+import net.primal.core.networking.sockets.RelayConnectionBackoff
 import net.primal.core.networking.tor.RouteController
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.NostrEventKind
-import net.primal.domain.nostr.relay.RelayEventQuerier
-import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.nostr.NostrUnsignedEvent
 import net.primal.domain.nostr.cryptography.SignResult
+import net.primal.domain.nostr.relay.RelayEventQuerier
+import net.primal.domain.nostr.relay.RelayEventSubscriber
 import net.primal.domain.nostr.relay.RelayFilter
 
 @Singleton
@@ -105,6 +107,11 @@ class RelaysSocketManager @Inject constructor(
         }
 
     private suspend fun resetAllConnections() {
+        // A relay that failed over the old route says nothing about the new one: Tor reaches
+        // onion relays a direct connection never can, and a direct connection is not subject to a
+        // flaky exit node. Without this, relays would sit out a backoff earned on a route that is
+        // no longer in use.
+        RelayConnectionBackoff.Shared.resetAll()
         relayPoolsMutex.withLock {
             userRelaysPool.resetConnections()
             fallbackRelaysPool.resetConnections()
@@ -216,8 +223,11 @@ class RelaysSocketManager @Inject constructor(
     suspend fun publishEvent(nostrEvent: NostrEvent, relays: List<Relay>) {
         val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         try {
+            // No connect-everything-first loop here (nor in the two methods below): it dialled the
+            // relays one after another, so a single unreachable relay held up the whole operation
+            // for its full connect timeout before anything was even sent. Every relay leg of a
+            // publish, query or subscription connects itself, in parallel, under its own deadline.
             customPool.changeRelays(relays = relays)
-            customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.publishEvent(nostrEvent = nostrEvent)
         } finally {
             customPool.destroy()
@@ -229,7 +239,6 @@ class RelaysSocketManager @Inject constructor(
         val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         return try {
             customPool.changeRelays(relays)
-            customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             customPool.query(filter.toJsonObject())
         } finally {
             customPool.destroy()
@@ -241,7 +250,6 @@ class RelaysSocketManager @Inject constructor(
         val customPool = buildRelayPool(signAuthEvent = ::signAuthChallenge)
         try {
             customPool.changeRelays(relays)
-            customPool.relays.forEach { customPool.tryConnectingToRelay(it.url) }
             emitAll(customPool.subscribe(filter.toJsonObject()))
         } finally {
             customPool.destroy()
@@ -251,7 +259,13 @@ class RelaysSocketManager @Inject constructor(
     fun configuredUserRelays(userId: String): List<Relay> =
         usersDatabase.relays().findRelays(userId = userId, kind = RelayKind.UserRelay).map { it.mapToRelayDO() }
 
+    /**
+     * The user is looking at their relays and asked for them to be connected (the network settings
+     * screen does this when it opens): every relay gets a fresh attempt now instead of after its
+     * remaining backoff, which could otherwise be minutes for a relay that failed a while ago.
+     */
     fun tryConnectingToAllUserRelays() {
+        RelayConnectionBackoff.Shared.resetAll()
         userRelaysPool.relays.forEach {
             scope.launch {
                 userRelaysPool.tryConnectingToRelay(it.url)
@@ -259,7 +273,12 @@ class RelaysSocketManager @Inject constructor(
         }
     }
 
-    suspend fun tryConnectingToUserRelay(url: String) = userRelaysPool.tryConnectingToRelay(url)
+    /** An explicit retry of one relay: forgives its backoff first, same as above. */
+    suspend fun tryConnectingToUserRelay(url: String) {
+        // Same canonical form the socket client keys its backoff by (see NostrSocketClient.socketUrl).
+        RelayConnectionBackoff.Shared.reset(url.trim().cleanWebSocketUrl())
+        userRelaysPool.tryConnectingToRelay(url)
+    }
 
     suspend fun queryEvents(filter: JsonObject): RelayPoolQueryResult {
         // A REQ for a private kind discloses the user's pubkey and what they are reading to every

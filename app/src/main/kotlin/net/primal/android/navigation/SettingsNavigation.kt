@@ -1,7 +1,6 @@
 package net.primal.android.navigation
 
 import androidx.activity.compose.LocalActivity
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController
 import androidx.navigation.NavDeepLink
@@ -36,7 +36,6 @@ import net.primal.android.drawer.multiaccount.AccountSwitcherContract
 import net.primal.android.drawer.multiaccount.AccountSwitcherViewModel
 import net.primal.android.drawer.multiaccount.ui.AccountSwitcherBottomSheet
 import net.primal.android.settings.account.AccountSettingsScreen
-import net.primal.android.theme.AppTheme
 import net.primal.android.settings.account.AccountSettingsViewModel
 import net.primal.android.settings.appearance.AppearanceSettingsScreen
 import net.primal.android.settings.appearance.di.appearanceSettingsViewModel
@@ -64,24 +63,27 @@ import net.primal.android.settings.developer.DeveloperToolsScreen
 import net.primal.android.settings.developer.DeveloperToolsViewModel
 import net.primal.android.settings.developer.datainspector.DataInspectorScreen
 import net.primal.android.settings.developer.datainspector.DataInspectorViewModel
+import net.primal.android.settings.emoji.EmojiPacksSettingsScreen
+import net.primal.android.settings.emoji.EmojiPacksSettingsViewModel
 import net.primal.android.settings.home.PrimalSettingsSection
 import net.primal.android.settings.home.SettingsHomeScreen
 import net.primal.android.settings.home.SettingsHomeViewModel
+import net.primal.android.settings.language.LanguageSettingsScreen
 import net.primal.android.settings.media.MediaUploadsSettingsScreen
 import net.primal.android.settings.media.MediaUploadsSettingsViewModel
 import net.primal.android.settings.muted.MutedSettingsScreen
 import net.primal.android.settings.muted.MutedSettingsViewModel
-import net.primal.android.settings.language.LanguageSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsScreen
 import net.primal.android.settings.network.NetworkSettingsViewModel
+import net.primal.android.settings.notifications.NotificationsSettingsScreen
+import net.primal.android.settings.notifications.NotificationsSettingsViewModel
 import net.primal.android.settings.tor.TorSettingsScreen
 import net.primal.android.settings.tor.TorSettingsViewModel
 import net.primal.android.settings.wot.WebOfTrustSettingsScreen
 import net.primal.android.settings.wot.WebOfTrustSettingsViewModel
-import net.primal.android.settings.notifications.NotificationsSettingsScreen
-import net.primal.android.settings.notifications.NotificationsSettingsViewModel
 import net.primal.android.settings.zaps.ZapSettingsScreen
 import net.primal.android.settings.zaps.ZapSettingsViewModel
+import net.primal.android.theme.AppTheme
 
 private fun NavController.navigateToAccountSettings() = navigate(route = "account_settings")
 private fun NavController.navigateToNetworkSettings() = navigate(route = "network")
@@ -93,6 +95,7 @@ private fun NavController.navigateToZapsSettings() = navigate(route = "zaps_sett
 private fun NavController.navigateToMutedAccounts() = navigate(route = "muted_accounts_settings")
 private fun NavController.navigateToWebOfTrustSettings() = navigate(route = "web_of_trust_settings")
 private fun NavController.navigateToMediaUploads() = navigate(route = "media_uploads_settings")
+fun NavController.navigateToEmojiPacksSettings() = navigate(route = EMOJI_PACKS_SETTINGS_ROUTE)
 fun NavController.navigateToConnectedApps() = navigate(route = "connected_apps")
 private fun NavController.navigateToDeveloperTools() = navigate(route = "developer_tools")
 private fun NavController.navigateToDataInspector() = navigate(route = "developer_tools_data_inspector")
@@ -121,6 +124,11 @@ private fun NavController.navigateToLocalAppPermissions(identifier: String) =
     navigate(route = "connected_apps/local/$identifier/permissions")
 
 @Suppress("LongMethod")
+/** Reachable from Settings and straight from the composer's emoji panel ("Manage packs"). */
+const val EMOJI_PACKS_SETTINGS_ROUTE = "emoji_packs_settings"
+
+// One branch per settings section in the click handler below: the complexity is the section count.
+@Suppress("CyclomaticComplexMethod")
 fun NavGraphBuilder.settingsNavigation(route: String, navController: NavController) =
     navigation(
         route = route,
@@ -143,6 +151,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
                     PrimalSettingsSection.MutedAccounts -> navController.navigateToMutedAccounts()
                     PrimalSettingsSection.WebOfTrust -> navController.navigateToWebOfTrustSettings()
                     PrimalSettingsSection.MediaUploads -> navController.navigateToMediaUploads()
+                    PrimalSettingsSection.EmojiPacks -> navController.navigateToEmojiPacksSettings()
                     PrimalSettingsSection.ConnectedApps -> navController.navigateToConnectedApps()
                     PrimalSettingsSection.Language -> Unit
                 }
@@ -158,6 +167,7 @@ fun NavGraphBuilder.settingsNavigation(route: String, navController: NavControll
         contentDisplay(route = "content_display", navController = navController)
         mutedAccounts(route = "muted_accounts_settings", navController = navController)
         mediaUploads(route = "media_uploads_settings", navController = navController)
+        emojiPacks(route = EMOJI_PACKS_SETTINGS_ROUTE, navController = navController)
         notifications(route = "notifications_settings", navController = navController)
         zaps(route = "zaps_settings", navController = navController)
         connectedApps(route = "connected_apps", navController = navController)
@@ -328,6 +338,11 @@ private fun EmbeddedSettingsSection(
             embedded = true,
         )
         PrimalSettingsSection.MediaUploads -> MediaUploadsSettingsScreen(
+            viewModel = hiltViewModel(),
+            onClose = {},
+            embedded = true,
+        )
+        PrimalSettingsSection.EmojiPacks -> EmojiPacksSettingsScreen(
             viewModel = hiltViewModel(),
             onClose = {},
             embedded = true,
@@ -553,6 +568,22 @@ private fun NavGraphBuilder.mediaUploads(route: String, navController: NavContro
         val viewModel = hiltViewModel<MediaUploadsSettingsViewModel>(it)
         LockToOrientationPortrait()
         MediaUploadsSettingsScreen(
+            viewModel = viewModel,
+            onClose = { navController.navigateUp() },
+        )
+    }
+
+private fun NavGraphBuilder.emojiPacks(route: String, navController: NavController) =
+    composable(
+        route = route,
+        enterTransition = { primalSlideInHorizontallyFromEnd },
+        exitTransition = { primalScaleOut },
+        popEnterTransition = { primalScaleIn },
+        popExitTransition = { primalSlideOutHorizontallyToEnd },
+    ) {
+        val viewModel = hiltViewModel<EmojiPacksSettingsViewModel>(it)
+        LockToOrientationPortrait()
+        EmojiPacksSettingsScreen(
             viewModel = viewModel,
             onClose = { navController.navigateUp() },
         )

@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">A közvélemény-kutatás bekapcsolása</string>
     <string name="accessibility_poll_remove_choice">A felmérés kiválasztása</string>
     <string name="accessibility_poll_add_choice">Választás hozzáadása</string>
-    <string name="gif_picker_search_placeholder">GIF- ek megnyitása</string>
+    <string name="gif_picker_search_placeholder">GIF-ek keresése</string>
     <string name="gif_picker_cancel">Törlés</string>
     <string name="gif_picker_powered_by">Power by</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Újratöltés</string>
     <string name="post_action_missing_lightning_address">Nem sikerült eltalálni a felhasználót, mivel nincs meg a villám címe.</string>
     <string name="post_action_invalid_zap_request">Nem sikerült elfenekelni. Nézd meg a pénztárcád és próbáld újra.</string>
     <string name="post_action_zap_failed">Nem sikerült elfenekelni. Kérem, próbálja újra.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">szat</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Nem tudok fizetni. %1$s-nek nincs villám-címe.</string>
     <string name="wallet_send_payment_this_user_chunk">Ez a felhasználó</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emojicsomagok</string>
+    <string name="emoji_packs_section_yours">Saját csomagjaid</string>
+    <string name="emoji_packs_section_discover">Csomagok felfedezése</string>
+    <string name="emoji_packs_built_in">Beépített</string>
+    <string name="emoji_packs_add">Hozzáadás</string>
+    <string name="emoji_packs_remove">Eltávolítás</string>
+    <string name="emoji_packs_edit">Szerkesztés</string>
+    <string name="emoji_packs_create">Csomag létrehozása</string>
+    <string name="emoji_packs_link_hint">Illessz be egy csomaglinket (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Még nem található emojicsomag a relay-eiden.</string>
+    <string name="emoji_pack_editor_name_hint">Csomag neve</string>
+    <string name="emoji_pack_editor_shortcode_hint">Rövid kód (nem kötelező)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Csak betűk, számok, - és _, ami még nincs a csomagban</string>
+    <string name="emoji_pack_editor_add_image">Kép hozzáadása</string>
+    <string name="emoji_pack_editor_empty">Válassz egy képet az első emoji hozzáadásához.</string>
+    <string name="emoji_pack_editor_save">Mentés és közzététel</string>
+    <string name="emoji_pack_editor_delete">Csomag törlése</string>
+    <string name="emoji_picker_close">Emojipanel bezárása</string>
+    <string name="emoji_picker_manage_packs">Csomagok kezelése</string>
+    <string name="emoji_picker_my_emoji">Saját emojik</string>
+    <string name="accessibility_emoji_picker">Egyéni emoji beszúrása</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

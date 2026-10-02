@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,7 +54,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,11 +69,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.*
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
@@ -83,20 +86,20 @@ import net.primal.android.articles.feed.ui.FeedArticleListItem
 import net.primal.android.articles.feed.ui.FeedArticleUi
 import net.primal.android.articles.highlights.HighlightUi
 import net.primal.android.core.compose.MediaPickerIconButton
-import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.PrimalAsyncImage
 import net.primal.android.core.compose.PrimalDefaults
 import net.primal.android.core.compose.PrimalDivider
 import net.primal.android.core.compose.PrimalLoadingSpinner
 import net.primal.android.core.compose.PrimalScaffold
-import net.primal.android.editor.ui.PublishCountdownOverlay
 import net.primal.android.core.compose.PrimalTopAppBar
 import net.primal.android.core.compose.ReplyingToText
 import net.primal.android.core.compose.SnackbarErrorHandler
 import net.primal.android.core.compose.UniversalAvatarThumbnail
+import net.primal.android.core.compose.attachment.model.EventUriUi
 import net.primal.android.core.compose.button.PrimalLoadingButton
 import net.primal.android.core.compose.foundation.isAppInDarkPrimalTheme
 import net.primal.android.core.compose.foundation.keyboardVisibilityAsState
+import net.primal.android.core.compose.icons.LibreNavigationIcons
 import net.primal.android.core.compose.icons.PrimalIcons
 import net.primal.android.core.compose.icons.primaliconpack.Delete
 import net.primal.android.core.compose.icons.primaliconpack.Gif
@@ -104,22 +107,24 @@ import net.primal.android.core.compose.icons.primaliconpack.Poll
 import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.drawer.multiaccount.ui.AccountSwitcherBottomSheet
 import net.primal.android.editor.NoteEditorContract.UiEvent
-import net.primal.android.gifpicker.GifPickerInlineContent
-import net.primal.android.gifpicker.GifPickerViewModel
 import net.primal.android.editor.domain.NoteAttachment
 import net.primal.android.editor.ui.NoteAttachmentPreview
 import net.primal.android.editor.ui.NoteOutlinedTextField
 import net.primal.android.editor.ui.NoteTagUserLazyColumn
-import net.primal.android.explore.search.ui.UserProfileListItem
+import net.primal.android.editor.ui.PublishCountdownOverlay
 import net.primal.android.editor.ui.poll.PollEditorSection
+import net.primal.android.emoji.model.CustomEmoji
+import net.primal.android.emoji.picker.EmojiPickerInlineContent
+import net.primal.android.emoji.picker.EmojiPickerViewModel
+import net.primal.android.explore.search.ui.UserProfileListItem
+import net.primal.android.gifpicker.GifPickerInlineContent
+import net.primal.android.gifpicker.GifPickerViewModel
+import net.primal.android.gifpicker.domain.GifItem
 import net.primal.android.nostr.mappers.toReferencedHighlight
-import net.primal.android.core.compose.attachment.model.EventUriUi
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.NoteContentUi
 import net.primal.android.notes.feed.model.PollType
 import net.primal.android.notes.feed.model.toNoteContentUi
-import net.primal.core.utils.runCatching
-import net.primal.domain.links.EventUriType
 import net.primal.android.notes.feed.note.ui.FeedNoteHeader
 import net.primal.android.notes.feed.note.ui.NoteContent
 import net.primal.android.notes.feed.note.ui.NoteLightningInvoice
@@ -129,6 +134,8 @@ import net.primal.android.notes.feed.note.ui.ReferencedHighlight
 import net.primal.android.notes.feed.note.ui.ReferencedNoteCard
 import net.primal.android.notes.feed.note.ui.events.NoteCallbacks
 import net.primal.android.theme.AppTheme
+import net.primal.core.utils.runCatching
+import net.primal.domain.links.EventUriType
 import net.primal.domain.nostr.asATagValue
 import net.primal.domain.nostr.cryptography.utils.assureValidPubKeyHex
 import net.primal.domain.nostr.utils.isValidNostrPublicKey
@@ -172,6 +179,7 @@ private val NOTE_PLACEHOLDER_PHRASES = listOf(
 fun NoteEditorScreen(viewModel: NoteEditorViewModel, callbacks: NoteEditorContract.ScreenCallbacks) {
     val uiState = viewModel.state.collectAsState()
     val gifPickerViewModel: GifPickerViewModel = hiltViewModel()
+    val emojiPickerViewModel: EmojiPickerViewModel = hiltViewModel()
 
     LaunchedEffect(viewModel, callbacks) {
         viewModel.effect.collect {
@@ -186,6 +194,7 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, callbacks: NoteEditorContra
         callbacks = callbacks,
         eventPublisher = { viewModel.setEvent(it) },
         gifPickerViewModel = gifPickerViewModel,
+        emojiPickerViewModel = emojiPickerViewModel,
     )
 }
 
@@ -196,6 +205,7 @@ fun NoteEditorScreen(
     callbacks: NoteEditorContract.ScreenCallbacks,
     eventPublisher: (UiEvent) -> Unit,
     gifPickerViewModel: GifPickerViewModel? = null,
+    emojiPickerViewModel: EmojiPickerViewModel? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -204,6 +214,7 @@ fun NoteEditorScreen(
     val scope = rememberCoroutineScope()
     var showAccountSwitcher by remember { mutableStateOf(false) }
     var showGifPicker by remember { mutableStateOf(false) }
+    var showEmojiPicker by remember { mutableStateOf(false) }
 
     if (showAccountSwitcher && state.selectedAccount != null) {
         AccountSwitcherBottomSheet(
@@ -301,7 +312,10 @@ fun NoteEditorScreen(
                         showAccountSwitcher = true
                     }
                 },
-                onGifClick = { showGifPicker = !showGifPicker },
+                onGifClick = {
+                    showGifPicker = !showGifPicker
+                    showEmojiPicker = false
+                },
                 showGifPicker = showGifPicker,
                 gifPickerViewModel = gifPickerViewModel,
                 onGifDismiss = { showGifPicker = false },
@@ -309,6 +323,22 @@ fun NoteEditorScreen(
                     eventPublisher(UiEvent.InsertGif(it))
                     showGifPicker = false
                 },
+                emojiPanel = EmojiPanelState(
+                    visible = showEmojiPicker,
+                    viewModel = emojiPickerViewModel,
+                    onToggle = {
+                        showEmojiPicker = !showEmojiPicker
+                        showGifPicker = false
+                    },
+                    onDismiss = { showEmojiPicker = false },
+                    onEmojiSelected = { emoji ->
+                        eventPublisher(UiEvent.UpdateContent(state.content.withShortcodeInserted(emoji.shortcode)))
+                    },
+                    onManagePacks = {
+                        showEmojiPicker = false
+                        callbacks.onManageEmojiPacks()
+                    },
+                ),
             )
         },
     )
@@ -340,9 +370,7 @@ private fun NoteEditorContract.UiState.resolvePublishNoteButtonText() =
 
 private fun NoteEditorContract.UiState.isPublishEnabled(): Boolean {
     val hasBlockingState = publishing || uploadingAttachments ||
-        attachments.any { it.uploadError != null } ||
-        pendingGifUploads.any { it.uploading } ||
-        pendingGifUploads.any { it.uploadFailed }
+        attachments.any { it.uploadError != null }
 
     if (hasBlockingState) return false
 
@@ -356,8 +384,7 @@ private fun NoteEditorContract.UiState.isPublishEnabled(): Boolean {
                     pollState.minZapAmountInSats <= pollState.maxZapAmountInSats
                 )
     } else {
-        content.text.isNotBlank() || attachments.isNotEmpty() ||
-            pendingGifUploads.any { it.blossomUrl != null }
+        content.text.isNotBlank() || attachments.isNotEmpty() || attachedGifs.isNotEmpty()
     }
 }
 
@@ -375,7 +402,8 @@ private fun NoteEditorBox(
     showGifPicker: Boolean,
     gifPickerViewModel: GifPickerViewModel?,
     onGifDismiss: () -> Unit,
-    onGifSelected: (String) -> Unit,
+    onGifSelected: (GifItem) -> Unit,
+    emojiPanel: EmojiPanelState,
 ) {
     val editorListState = rememberLazyListState()
     var noteEditorMaxHeightPx by remember { mutableIntStateOf(0) }
@@ -449,8 +477,8 @@ private fun NoteEditorBox(
                 onRemoveHighlight = { eventPublisher(UiEvent.RemoveHighlightByArticle(it)) },
             )
 
-            pendingGifUploads(
-                pendingGifUploads = state.pendingGifUploads,
+            attachedGifs(
+                attachedGifs = state.attachedGifs,
                 eventPublisher = eventPublisher,
             )
 
@@ -470,8 +498,26 @@ private fun NoteEditorBox(
             state = state,
             eventPublisher = eventPublisher,
             onGifClick = onGifClick,
+            onEmojiClick = emojiPanel.onToggle,
             onPollToggle = { eventPublisher(UiEvent.TogglePollMode) },
         )
+
+        if (emojiPanel.visible && emojiPanel.viewModel != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    // Same placement as the GIF panel below, for the same reasons.
+                    .padding(end = 12.dp, start = 12.dp, bottom = with(density) { footerHeight.toDp() } + 8.dp)
+                    .widthIn(max = 420.dp),
+            ) {
+                EmojiPickerInlineContent(
+                    viewModel = emojiPanel.viewModel,
+                    onDismiss = emojiPanel.onDismiss,
+                    onEmojiSelected = emojiPanel.onEmojiSelected,
+                    onManagePacks = emojiPanel.onManagePacks,
+                )
+            }
+        }
 
         if (showGifPicker && gifPickerViewModel != null) {
             Box(
@@ -790,6 +836,7 @@ private fun NoteEditorFooter(
     state: NoteEditorContract.UiState,
     eventPublisher: (UiEvent) -> Unit,
     onGifClick: () -> Unit,
+    onEmojiClick: () -> Unit,
     onPollToggle: () -> Unit,
 ) {
     val isPollMode = state.pollState != null
@@ -821,6 +868,7 @@ private fun NoteEditorFooter(
                     )
                 },
                 onGifClick = onGifClick,
+                onEmojiClick = onEmojiClick,
                 isPollMode = isPollMode,
                 onPollToggle = onPollToggle,
                 showPrivateReplyAction = state.canSendPrivateReply,
@@ -839,19 +887,18 @@ private fun NoteEditorFooter(
     }
 }
 
-private fun LazyListScope.pendingGifUploads(
-    pendingGifUploads: List<NoteEditorContract.PendingGifUpload>,
+private fun LazyListScope.attachedGifs(
+    attachedGifs: List<NoteEditorContract.AttachedGif>,
     eventPublisher: (UiEvent) -> Unit,
 ) {
     items(
-        items = pendingGifUploads,
+        items = attachedGifs,
         key = { it.id },
-        contentType = { "PendingGif" },
-    ) { pendingGif ->
-        PendingGifPreview(
-            pendingGif = pendingGif,
-            onRetry = { eventPublisher(UiEvent.RetryGifUpload(pendingGif.id)) },
-            onRemove = { eventPublisher(UiEvent.RemovePendingGif(pendingGif.id)) },
+        contentType = { "AttachedGif" },
+    ) { attachedGif ->
+        AttachedGifPreview(
+            attachedGif = attachedGif,
+            onRemove = { eventPublisher(UiEvent.RemoveGif(attachedGif.id)) },
         )
     }
 }
@@ -879,11 +926,7 @@ private fun LazyListScope.noteEditorBottomItems(
 }
 
 @Composable
-private fun PendingGifPreview(
-    pendingGif: NoteEditorContract.PendingGifUpload,
-    onRetry: () -> Unit,
-    onRemove: () -> Unit,
-) {
+private fun AttachedGifPreview(attachedGif: NoteEditorContract.AttachedGif, onRemove: () -> Unit) {
     Box(
         modifier = Modifier
             .padding(start = avatarsColumnWidthDp, end = contentEndPadding, bottom = 8.dp)
@@ -891,45 +934,13 @@ private fun PendingGifPreview(
             .heightIn(max = 200.dp),
     ) {
         PrimalAsyncImage(
-            model = pendingGif.originalUrl,
-            contentDescription = null,
+            model = attachedGif.gif.url,
+            contentDescription = attachedGif.gif.contentDescription.ifBlank { null },
             contentScale = ContentScale.FillWidth,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(AppTheme.shapes.medium),
         )
-
-        if (pendingGif.uploading) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(AppTheme.shapes.medium)
-                    .background(Color.Black.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(36.dp),
-                )
-            }
-        }
-
-        if (pendingGif.uploadFailed) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(AppTheme.shapes.medium)
-                    .background(Color.Black.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                TextButton(onClick = onRetry) {
-                    Text(
-                        text = stringResource(id = R.string.gif_picker_retry_upload),
-                        color = Color.White,
-                    )
-                }
-            }
-        }
 
         Box(
             modifier = Modifier
@@ -1004,11 +1015,12 @@ internal fun NoteEditorContract.UiState.toPreviewNoteContentUi(): NoteContentUi 
                 position = index,
             )
         }
-    val gifUris = pendingGifUploads.mapIndexed { index, gif ->
+    val gifUris = attachedGifs.mapIndexed { index, attached ->
         EventUriUi(
-            eventId = gif.id.toString(),
-            url = gif.blossomUrl ?: gif.originalUrl,
+            eventId = attached.id.toString(),
+            url = attached.gif.url,
             type = EventUriType.Image,
+            mimeType = attached.gif.mimeType,
             position = attachmentUris.size + index,
         )
     }
@@ -1016,6 +1028,7 @@ internal fun NoteEditorContract.UiState.toPreviewNoteContentUi(): NoteContentUi 
         noteId = "publish-preview",
         content = content.text,
         uris = attachmentUris + gifUris,
+        customEmojis = availableCustomEmojis,
     )
 }
 
@@ -1151,6 +1164,7 @@ private fun PrivateReplyRecipientDialog(
 private fun NoteActionRow(
     onPhotosImported: (List<Uri>) -> Unit,
     onGifClick: () -> Unit,
+    onEmojiClick: () -> Unit,
     isPollMode: Boolean,
     onPollToggle: () -> Unit,
     showPrivateReplyAction: Boolean,
@@ -1172,6 +1186,14 @@ private fun NoteActionRow(
                 Icon(
                     imageVector = PrimalIcons.Gif,
                     contentDescription = stringResource(id = R.string.accessibility_gif_picker),
+                    tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
+                )
+            }
+
+            IconButton(onClick = onEmojiClick) {
+                Icon(
+                    imageVector = Icons.Outlined.EmojiEmotions,
+                    contentDescription = stringResource(id = R.string.accessibility_emoji_picker),
                     tint = AppTheme.extraColorScheme.onSurfaceVariantAlt2,
                 )
             }
@@ -1228,3 +1250,35 @@ private val connectionLineOffsetXDp = 40.dp
 private val attachmentsHeightDp = 160.dp
 private val avatarsColumnWidthDp = avatarSizeDp + 24.dp
 private val contentEndPadding = 16.dp
+
+/**
+ * What the composer's emoji panel needs from the screen around it, bundled so the deeply nested
+ * editor composables take one parameter for it instead of six.
+ */
+private data class EmojiPanelState(
+    val visible: Boolean,
+    val viewModel: EmojiPickerViewModel?,
+    val onToggle: () -> Unit,
+    val onDismiss: () -> Unit,
+    val onEmojiSelected: (CustomEmoji) -> Unit,
+    val onManagePacks: () -> Unit,
+)
+
+/**
+ * Writes `:shortcode:` where the cursor is (replacing any selection), with a space on either side
+ * when the neighbouring text would otherwise run into it — a shortcode glued to a word is still
+ * drawn, but reads badly as text in clients that do not support NIP-30.
+ */
+private fun TextFieldValue.withShortcodeInserted(shortcode: String): TextFieldValue {
+    val start = selection.min
+    val end = selection.max
+    val before = text.substring(0, start)
+    val after = text.substring(end)
+    val leading = if (before.isNotEmpty() && !before.last().isWhitespace()) " " else ""
+    val trailing = if (after.firstOrNull()?.isWhitespace() == true) "" else " "
+    val inserted = "$leading:$shortcode:$trailing"
+    return copy(
+        text = before + inserted + after,
+        selection = TextRange(start + inserted.length),
+    )
+}

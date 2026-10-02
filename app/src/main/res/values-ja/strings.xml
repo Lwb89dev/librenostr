@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">トグル投票</string>
     <string name="accessibility_poll_remove_choice">投票選択を削除します</string>
     <string name="accessibility_poll_add_choice">投票選択を追加</string>
-    <string name="gif_picker_search_placeholder">GIFを開く</string>
+    <string name="gif_picker_search_placeholder">GIFを検索</string>
     <string name="gif_picker_cancel">キャンセル</string>
     <string name="gif_picker_powered_by">提供</string>
-    <string name="gif_picker_source">ウィキメディアコモンズ</string>
-    <string name="gif_picker_retry_upload">再試行</string>
     <string name="post_action_missing_lightning_address">落雷アドレスが設定されていないので、このユーザをzapできません。</string>
     <string name="post_action_invalid_zap_request">zap が無効です。 ウォレットの接続を確認し、もう一度お試しください。</string>
     <string name="post_action_zap_failed">zap が無効です。 お問い合わせ</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">お支払いはできません。 %1$sには落雷アドレスが設定されていません。</string>
     <string name="wallet_send_payment_this_user_chunk">このユーザ</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">絵文字パック</string>
+    <string name="emoji_packs_section_yours">あなたのパック</string>
+    <string name="emoji_packs_section_discover">パックを探す</string>
+    <string name="emoji_packs_built_in">組み込み</string>
+    <string name="emoji_packs_add">追加</string>
+    <string name="emoji_packs_remove">削除</string>
+    <string name="emoji_packs_edit">編集</string>
+    <string name="emoji_packs_create">パックを作成</string>
+    <string name="emoji_packs_link_hint">パックのリンクを貼り付け (naddr…)</string>
+    <string name="emoji_packs_discover_empty">リレーにはまだ絵文字パックが見つかりません。</string>
+    <string name="emoji_pack_editor_name_hint">パック名</string>
+    <string name="emoji_pack_editor_shortcode_hint">ショートコード (任意)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">英数字・-・_ のみ、パック内で未使用のもの</string>
+    <string name="emoji_pack_editor_add_image">画像を追加</string>
+    <string name="emoji_pack_editor_empty">最初の絵文字を追加する画像を選んでください。</string>
+    <string name="emoji_pack_editor_save">保存して公開</string>
+    <string name="emoji_pack_editor_delete">パックを削除</string>
+    <string name="emoji_picker_close">絵文字パネルを閉じる</string>
+    <string name="emoji_picker_manage_packs">パックを管理</string>
+    <string name="emoji_picker_my_emoji">マイ絵文字</string>
+    <string name="accessibility_emoji_picker">カスタム絵文字を挿入</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d 個の絵文字</item>
+        <item quantity="other">%d 個の絵文字</item>
+    </plurals>
 </resources>

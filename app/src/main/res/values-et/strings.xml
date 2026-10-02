@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Küsitluse lülitamine</string>
     <string name="accessibility_poll_remove_choice">Eemalda küsitluse valik</string>
     <string name="accessibility_poll_add_choice">Lisa küsitluse valik</string>
-    <string name="gif_picker_search_placeholder">Otsi avatud GIF- i</string>
+    <string name="gif_picker_search_placeholder">Otsi GIF-e</string>
     <string name="gif_picker_cancel">Tühistage</string>
     <string name="gif_picker_powered_by">Powered</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Retry</string>
     <string name="post_action_missing_lightning_address">Seda kasutajat ei saa zapida, kuna neil pole äikest seadistatud.</string>
     <string name="post_action_invalid_zap_request">Ei saa zap. Kontrollige oma rahakoti ühendust ja proovige uuesti.</string>
     <string name="post_action_zap_failed">Ei saa zap. Palun proovi uuesti.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Ei saa maksta. %1$s-l ei ole välguaadressi.</string>
     <string name="wallet_send_payment_this_user_chunk">See kasutaja</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emojipaketid</string>
+    <string name="emoji_packs_section_yours">Sinu paketid</string>
+    <string name="emoji_packs_section_discover">Avasta pakette</string>
+    <string name="emoji_packs_built_in">Sisseehitatud</string>
+    <string name="emoji_packs_add">Lisa</string>
+    <string name="emoji_packs_remove">Eemalda</string>
+    <string name="emoji_packs_edit">Muuda</string>
+    <string name="emoji_packs_create">Loo pakett</string>
+    <string name="emoji_packs_link_hint">Kleebi paketi link (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Sinu releedest ei leitud veel ühtegi emojipaketti.</string>
+    <string name="emoji_pack_editor_name_hint">Paketi nimi</string>
+    <string name="emoji_pack_editor_shortcode_hint">Lühikood (valikuline)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Ainult tähed, numbrid, - ja _, mida paketis veel pole</string>
+    <string name="emoji_pack_editor_add_image">Lisa pilt</string>
+    <string name="emoji_pack_editor_empty">Vali pilt, et lisada esimene emoji.</string>
+    <string name="emoji_pack_editor_save">Salvesta ja avalda</string>
+    <string name="emoji_pack_editor_delete">Kustuta pakett</string>
+    <string name="emoji_picker_close">Sulge emojipaneel</string>
+    <string name="emoji_picker_manage_packs">Halda pakette</string>
+    <string name="emoji_picker_my_emoji">Minu emojid</string>
+    <string name="accessibility_emoji_picker">Sisesta kohandatud emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emojit</item>
+    </plurals>
 </resources>

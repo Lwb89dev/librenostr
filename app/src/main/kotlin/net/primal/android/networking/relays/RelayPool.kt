@@ -8,26 +8,28 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.transform
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -37,20 +39,18 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.domain.Relay
 import net.primal.android.user.domain.cleanWebSocketUrl
 import net.primal.core.networking.sockets.NostrIncomingMessage
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
+import net.primal.core.networking.sockets.RelayBackingOffException
 import net.primal.core.networking.sockets.SocketConnectionClosedCallback
 import net.primal.core.networking.sockets.SocketConnectionOpenedCallback
 import net.primal.core.networking.sockets.filterBySubscriptionId
@@ -366,7 +366,13 @@ class RelayPool(
                     result
                 } finally {
                     activeSubscriptions.decrementAndGet()
-                    closeSubscription(clients, subscriptionId)
+                    // Fire-and-forget on the pool's scope instead of awaited here, inside the
+                    // queryGate permit. Every relay leg already sends its own CLOSE the moment it
+                    // settles (see queryOneRelay); this is only the safety net, and awaiting it
+                    // made the permit's release depend on every relay in the pool — the slowest,
+                    // or a dead one, included. It also runs when the query was cancelled, where an
+                    // awaited send would have thrown on the first relay and skipped the rest.
+                    scope.launch { closeSubscription(clients, subscriptionId) }
                 }
             }
         }
@@ -641,8 +647,12 @@ class RelayPool(
         onFailure: suspend (String) -> Unit,
     ) {
         try {
-            client.ensureSocketConnectionOrThrow()
             withTimeout(timeoutMs) {
+                // Connecting counts against this relay's deadline too. It used to run before the
+                // deadline started, so a relay whose handshake hung kept this leg — and with it,
+                // for an id lookup that waits on every relay, the whole query — open for as long
+                // as the OkHttp connect timeout, on top of the query's own timeout.
+                client.ensureSocketConnectionOrThrow()
                 client.incomingMessages
                     .onSubscription { client.sendREQ(subscriptionId = subscriptionId, data = filter) }
                     .filterBySubscriptionId(subscriptionId)
@@ -684,6 +694,12 @@ class RelayPool(
             onFailure("rejected")
         } catch (error: CancellationException) {
             throw error
+        } catch (error: RelayBackingOffException) {
+            // Expected and cheap: the relay failed to connect moments ago and is not dialled
+            // again until its backoff passes. Logged quietly — a dead relay would otherwise put
+            // one warning with a stack trace into the log for every query of every page.
+            Napier.d { "REQ skipped on ${client.socketUrl}: ${error.message}" }
+            onFailure("backing off")
         } catch (error: Exception) {
             Napier.w(throwable = error) { "REQ failed on ${client.socketUrl}" }
             onFailure(error.message ?: "error")

@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Alternar a pesquisa</string>
     <string name="accessibility_poll_remove_choice">Remover a escolha da pesquisa</string>
     <string name="accessibility_poll_add_choice">Adicionar uma escolha de pesquisa</string>
-    <string name="gif_picker_search_placeholder">Procurar GIFs abertos</string>
+    <string name="gif_picker_search_placeholder">Procurar GIFs</string>
     <string name="gif_picker_cancel">Cancelar</string>
     <string name="gif_picker_powered_by">Alimentado por</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Repetir</string>
     <string name="post_action_missing_lightning_address">Incapaz de zap este usuário, uma vez que eles não têm um endereço relâmpago configurado.</string>
     <string name="post_action_invalid_zap_request">Incapaz de zap. Verifique a conexão da sua carteira e tente novamente.</string>
     <string name="post_action_zap_failed">Incapaz de zap. Por favor, tente novamente.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Não é possível fazer o pagamento. %1$s não tem um raio de endereço definido.</string>
     <string name="wallet_send_payment_this_user_chunk">Este utilizador</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Pacotes de emojis</string>
+    <string name="emoji_packs_section_yours">Seus pacotes</string>
+    <string name="emoji_packs_section_discover">Descobrir pacotes</string>
+    <string name="emoji_packs_built_in">Integrado</string>
+    <string name="emoji_packs_add">Adicionar</string>
+    <string name="emoji_packs_remove">Remover</string>
+    <string name="emoji_packs_edit">Editar</string>
+    <string name="emoji_packs_create">Criar um pacote</string>
+    <string name="emoji_packs_link_hint">Cole o link de um pacote (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Nenhum pacote de emojis encontrado nos seus relays ainda.</string>
+    <string name="emoji_pack_editor_name_hint">Nome do pacote</string>
+    <string name="emoji_pack_editor_shortcode_hint">Código curto (opcional)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Apenas letras, números, - e _, que ainda não esteja no pacote</string>
+    <string name="emoji_pack_editor_add_image">Adicionar imagem</string>
+    <string name="emoji_pack_editor_empty">Escolha uma imagem para adicionar o primeiro emoji.</string>
+    <string name="emoji_pack_editor_save">Salvar e publicar</string>
+    <string name="emoji_pack_editor_delete">Excluir pacote</string>
+    <string name="emoji_picker_close">Fechar painel de emojis</string>
+    <string name="emoji_picker_manage_packs">Gerenciar pacotes</string>
+    <string name="emoji_picker_my_emoji">Meus emojis</string>
+    <string name="accessibility_emoji_picker">Inserir um emoji personalizado</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emojis</item>
+    </plurals>
 </resources>

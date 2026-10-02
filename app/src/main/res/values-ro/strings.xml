@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Comută sondajul</string>
     <string name="accessibility_poll_remove_choice">Elimină alegerea sondajului</string>
     <string name="accessibility_poll_add_choice">Adaugă alegere sondaj</string>
-    <string name="gif_picker_search_placeholder">Căutare deschide GIF-uri</string>
+    <string name="gif_picker_search_placeholder">Caută GIF-uri</string>
     <string name="gif_picker_cancel">Renunță</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_source">Comunele Wikimedia</string>
-    <string name="gif_picker_retry_upload">Remetrie</string>
     <string name="post_action_missing_lightning_address">Nu pot zap acest utilizator, deoarece acestea nu au o adresă de fulger înființat.</string>
     <string name="post_action_invalid_zap_request">Nu se poate zap. Verificați conexiunea portofel și încercați din nou.</string>
     <string name="post_action_zap_failed">Nu se poate zap. Vă rugăm să încercați din nou.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">SAT</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Nu pot face plata. %1$s nu are o adresă de fulger set.</string>
     <string name="wallet_send_payment_this_user_chunk">Acest utilizator</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Pachete de emoji</string>
+    <string name="emoji_packs_section_yours">Pachetele tale</string>
+    <string name="emoji_packs_section_discover">Descoperă pachete</string>
+    <string name="emoji_packs_built_in">Integrat</string>
+    <string name="emoji_packs_add">Adaugă</string>
+    <string name="emoji_packs_remove">Elimină</string>
+    <string name="emoji_packs_edit">Editează</string>
+    <string name="emoji_packs_create">Creează un pachet</string>
+    <string name="emoji_packs_link_hint">Lipește linkul unui pachet (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Încă nu s-au găsit pachete de emoji pe releele tale.</string>
+    <string name="emoji_pack_editor_name_hint">Numele pachetului</string>
+    <string name="emoji_pack_editor_shortcode_hint">Cod scurt (opțional)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Doar litere, cifre, - și _, care nu sunt deja în pachet</string>
+    <string name="emoji_pack_editor_add_image">Adaugă imagine</string>
+    <string name="emoji_pack_editor_empty">Alege o imagine pentru a adăuga primul emoji.</string>
+    <string name="emoji_pack_editor_save">Salvează și publică</string>
+    <string name="emoji_pack_editor_delete">Șterge pachetul</string>
+    <string name="emoji_picker_close">Închide panoul de emoji</string>
+    <string name="emoji_picker_manage_packs">Gestionează pachetele</string>
+    <string name="emoji_picker_my_emoji">Emoji-urile mele</string>
+    <string name="accessibility_emoji_picker">Inserează un emoji personalizat</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

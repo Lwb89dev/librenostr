@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Stħarriġ tat-toggle</string>
     <string name="accessibility_poll_remove_choice">Neħħi l-għażla tal-istħarriġ</string>
     <string name="accessibility_poll_add_choice">Żid l-għażla tal-istħarriġ</string>
-    <string name="gif_picker_search_placeholder">Fittex GIFs miftuħa</string>
+    <string name="gif_picker_search_placeholder">Fittex GIFs</string>
     <string name="gif_picker_cancel">Ikkanċella</string>
     <string name="gif_picker_powered_by">Imħaddmin minn</string>
-    <string name="gif_picker_source">Wikimedia Komuni</string>
-    <string name="gif_picker_retry_upload">Retrija</string>
     <string name="post_action_missing_lightning_address">Mhux possibbli li zap dan l-utent peress li dawn ma jkollhomx indirizz sajjetti stabbiliti.</string>
     <string name="post_action_invalid_zap_request">Mhux possibbli li zap. Iċċekkja l-konnessjoni kartiera tiegħek u erġa \'pprova.</string>
     <string name="post_action_zap_failed">Mhux possibbli li zap. Jekk jogħġbok erġa \'pprova.</string>
@@ -1153,4 +1151,31 @@
     <string name="wallet_sats_suffix">poġġamani</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Ma jistgħux jagħmlu ħlas. %1$s masnzet jkollhom sett indirizz sajjetti.</string>
     <string name="wallet_send_payment_this_user_chunk">Dan l-utent</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Pakketti tal-emoji</string>
+    <string name="emoji_packs_section_yours">Il-pakketti tiegħek</string>
+    <string name="emoji_packs_section_discover">Skopri pakketti</string>
+    <string name="emoji_packs_built_in">Integrat</string>
+    <string name="emoji_packs_add">Żid</string>
+    <string name="emoji_packs_remove">Neħħi</string>
+    <string name="emoji_packs_edit">Editja</string>
+    <string name="emoji_packs_create">Oħloq pakkett</string>
+    <string name="emoji_packs_link_hint">Waħħal link ta\' pakkett (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Għadu ma nstab l-ebda pakkett tal-emoji fuq ir-relays tiegħek.</string>
+    <string name="emoji_pack_editor_name_hint">Isem il-pakkett</string>
+    <string name="emoji_pack_editor_shortcode_hint">Kodiċi qasir (mhux obbligatorju)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Ittri, numri, - u _ biss, mhux diġà fil-pakkett</string>
+    <string name="emoji_pack_editor_add_image">Żid immaġni</string>
+    <string name="emoji_pack_editor_empty">Agħżel immaġni biex iżżid l-ewwel emoji.</string>
+    <string name="emoji_pack_editor_save">Issejvja u ippubblika</string>
+    <string name="emoji_pack_editor_delete">Ħassar il-pakkett</string>
+    <string name="emoji_picker_close">Agħlaq il-pannell tal-emoji</string>
+    <string name="emoji_picker_manage_packs">Immaniġġja l-pakketti</string>
+    <string name="emoji_picker_my_emoji">L-emoji tiegħi</string>
+    <string name="accessibility_emoji_picker">Daħħal emoji personalizzat</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

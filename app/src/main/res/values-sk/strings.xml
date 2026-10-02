@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Prepnúť prieskum</string>
     <string name="accessibility_poll_remove_choice">Odstrániť výber hlasu</string>
     <string name="accessibility_poll_add_choice">Pridať výber hlasu</string>
-    <string name="gif_picker_search_placeholder">Hľadať otvorené GIF</string>
+    <string name="gif_picker_search_placeholder">Hľadať GIF</string>
     <string name="gif_picker_cancel">Zrušiť</string>
     <string name="gif_picker_powered_by">Poháňané</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Obnovenie</string>
     <string name="post_action_missing_lightning_address">Nedá sa zapnúť tohto používateľa, pretože nemajú nastavenú adresu blesku.</string>
     <string name="post_action_invalid_zap_request">Nepodarilo sa zap. Skontrolujte prepojenie peňaženky a skúste to znova.</string>
     <string name="post_action_zap_failed">Nepodarilo sa zap. Prosím, skúste to znova.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">saturácie</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Nemôžem zaplatiť. %1$s doesn</string>
     <string name="wallet_send_payment_this_user_chunk">Tento užívateľ</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Balíky emoji</string>
+    <string name="emoji_packs_section_yours">Vaše balíky</string>
+    <string name="emoji_packs_section_discover">Objaviť balíky</string>
+    <string name="emoji_packs_built_in">Vstavaný</string>
+    <string name="emoji_packs_add">Pridať</string>
+    <string name="emoji_packs_remove">Odstrániť</string>
+    <string name="emoji_packs_edit">Upraviť</string>
+    <string name="emoji_packs_create">Vytvoriť balík</string>
+    <string name="emoji_packs_link_hint">Vložte odkaz na balík (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Na vašich relayoch sa zatiaľ nenašli žiadne balíky emoji.</string>
+    <string name="emoji_pack_editor_name_hint">Názov balíka</string>
+    <string name="emoji_pack_editor_shortcode_hint">Skratka (voliteľné)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Iba písmená, číslice, - a _, ešte nie v balíku</string>
+    <string name="emoji_pack_editor_add_image">Pridať obrázok</string>
+    <string name="emoji_pack_editor_empty">Vyberte obrázok na pridanie prvého emoji.</string>
+    <string name="emoji_pack_editor_save">Uložiť a zverejniť</string>
+    <string name="emoji_pack_editor_delete">Odstrániť balík</string>
+    <string name="emoji_picker_close">Zavrieť panel emoji</string>
+    <string name="emoji_picker_manage_packs">Spravovať balíky</string>
+    <string name="emoji_picker_my_emoji">Moje emoji</string>
+    <string name="accessibility_emoji_picker">Vložiť vlastné emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

@@ -1,5 +1,6 @@
 package net.primal.android.notes.feed.model
 
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -7,6 +8,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import net.primal.android.core.compose.attachment.model.isMediaUri
 import net.primal.android.core.utils.TextMatcher
+import net.primal.android.emoji.Nip30
+import net.primal.android.emoji.ui.customEmojiInlineContentId
 import net.primal.domain.links.EventUriNostrType
 import net.primal.domain.links.EventUriType
 import net.primal.domain.nostr.utils.clearAtSignFromNostrUris
@@ -16,6 +19,13 @@ internal const val URL_ANNOTATION_TAG = "url"
 internal const val NOTE_ANNOTATION_TAG = "note"
 internal const val HASHTAG_ANNOTATION_TAG = "hashtag"
 internal const val NOSTR_ADDRESS_ANNOTATION_TAG = "naddr"
+
+/**
+ * A NIP-30 `:shortcode:` the note declared an image for. Unlike the tags above it is not a link:
+ * [toAnnotatedString] turns it into an inline-content placeholder, drawn by
+ * `rememberCustomEmojiInlineContent` with the image instead of the text.
+ */
+internal const val CUSTOM_EMOJI_ANNOTATION_TAG = "customEmoji"
 
 internal const val ELLIPSIZE_THRESHOLD = 300
 
@@ -148,6 +158,8 @@ private fun buildContentAnnotations(
             }
         }
 
+        addCustomEmojiAnnotations(content = content, customEmojis = data.customEmojis)
+
         TextMatcher(content = content, texts = data.hashtags, repeatingOccurrences = true)
             .matches()
             .forEach { textMatch ->
@@ -161,6 +173,29 @@ private fun buildContentAnnotations(
                 )
             }
     }
+
+/**
+ * One annotation per `:shortcode:` in [content] that the note's own `emoji` tags declare. A
+ * shortcode without a tag is left alone — it is just text that happens to have colons around it.
+ */
+private fun MutableList<ContentAnnotation>.addCustomEmojiAnnotations(
+    content: String,
+    customEmojis: Map<String, String>,
+) {
+    if (customEmojis.isEmpty()) return
+    Nip30.SHORTCODE_IN_TEXT.findAll(content)
+        .filter { it.groupValues[1] in customEmojis }
+        .forEach { match ->
+            add(
+                ContentAnnotation(
+                    tag = CUSTOM_EMOJI_ANNOTATION_TAG,
+                    item = match.groupValues[1],
+                    start = match.range.first,
+                    end = match.range.last + 1,
+                ),
+            )
+        }
+}
 
 /**
  * A short, decorative glyph appended right after specific hashtags, in the community's own brand
@@ -203,6 +238,16 @@ fun RenderedNoteContent.toAnnotatedString(seeMoreText: String, highlightColor: C
             // crashed outright.
             if (annotation.start < cursor) return@forEach
             append(fullText.substring(cursor, annotation.start))
+            if (annotation.tag == CUSTOM_EMOJI_ANNOTATION_TAG) {
+                // Drawn as an image by the inline content of the same id; the shortcode stays the
+                // alternate text, so copying the note still copies `:shortcode:`.
+                appendInlineContent(
+                    id = customEmojiInlineContentId(annotation.item),
+                    alternateText = fullText.substring(annotation.start, annotation.end),
+                )
+                cursor = annotation.end
+                return@forEach
+            }
             val spanStart = length
             append(fullText.substring(annotation.start, annotation.end))
             addStyle(style = SpanStyle(color = highlightColor), start = spanStart, end = length)

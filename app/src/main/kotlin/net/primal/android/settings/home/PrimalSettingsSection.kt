@@ -11,6 +11,7 @@ enum class PrimalSettingsSection {
     MutedAccounts,
     WebOfTrust,
     MediaUploads,
+    EmojiPacks,
     Notifications,
     Zaps,
     Language,

@@ -9,6 +9,7 @@ import net.primal.android.editor.domain.NoteAttachment
 import net.primal.android.editor.domain.PollOption
 import net.primal.android.editor.domain.PollPublishRequest
 import net.primal.android.editor.domain.asIMetaTag
+import net.primal.android.emoji.Nip30
 import net.primal.android.networking.UserAgentProvider
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.nostr.publish.NostrPublisher
@@ -129,6 +130,7 @@ class NotePublishHandler @Inject constructor(
         rootArticleNaddr: Naddr? = null,
         rootHighlightNevent: Nevent? = null,
         replyToNoteNevent: Nevent? = null,
+        customEmojis: Map<String, String> = emptyMap(),
     ): PrimalPublishResult {
         val prepared = prepareNote(
             content = content,
@@ -145,6 +147,7 @@ class NotePublishHandler @Inject constructor(
                     pubKey = userId,
                     kind = NostrEventKind.ShortTextNote.value,
                     tags = (prepared.referenceTags + prepared.hashtagTags + prepared.iMetaTags).toList() +
+                        Nip30.emojiTagsForContent(content = prepared.refinedContent, available = customEmojis) +
                         listOf(UserAgentProvider.CLIENT_NAME.asClientTag()),
                     content = prepared.refinedContent,
                 ),
@@ -163,6 +166,7 @@ class NotePublishHandler @Inject constructor(
         rootArticleNaddr: Naddr? = null,
         rootHighlightNevent: Nevent? = null,
         replyToNoteNevent: Nevent? = null,
+        customEmojis: Map<String, String> = emptyMap(),
     ): PrimalPublishResult {
         val prepared = prepareNote(
             content = content,
@@ -203,6 +207,7 @@ class NotePublishHandler @Inject constructor(
                     pubKey = userId,
                     kind = eventKind.value,
                     tags = (prepared.referenceTags + prepared.hashtagTags + prepared.iMetaTags + pollTags).toList() +
+                        Nip30.emojiTagsForContent(content = prepared.refinedContent, available = customEmojis) +
                         listOf(UserAgentProvider.CLIENT_NAME.asClientTag()),
                     content = prepared.refinedContent,
                 ),

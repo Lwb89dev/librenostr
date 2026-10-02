@@ -7,8 +7,9 @@ import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.primal.android.core.errors.UiError
 import net.primal.android.gifpicker.GifPickerContract.SideEffect
 import net.primal.android.gifpicker.GifPickerContract.UiEvent
@@ -27,11 +27,13 @@ import net.primal.android.gifpicker.domain.asGifItem
 import net.primal.core.utils.onFailure
 import net.primal.core.utils.onSuccess
 import net.primal.core.utils.runCatching
-import net.primal.data.remote.api.klipy.KlipyApi
+import net.primal.data.remote.api.gifs.GifSearchApi
+import net.primal.data.remote.api.gifs.model.GifCursor
+import net.primal.data.remote.api.gifs.model.GifSearchPage
 
 @HiltViewModel
 class GifPickerViewModel @Inject constructor(
-    private val klipyApi: KlipyApi,
+    private val gifSearchApi: GifSearchApi,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UiState())
@@ -47,113 +49,129 @@ class GifPickerViewModel @Inject constructor(
 
     companion object {
         private val SEARCH_DEBOUNCE_DURATION = 0.42.seconds
+        private const val MIN_SUGGESTION_QUERY_LENGTH = 2
     }
 
-    private var nextCursor: String? = null
+    /** Where the visible listing continues, or null when it is complete. */
+    private var nextCursor: GifCursor? = null
+
+    /** The query the visible listing belongs to; a late page for any other query is dropped. */
+    private var listingQuery: String? = null
+
+    private var loadMoreJob: Job? = null
+    private var initialLoadJob: Job? = null
 
     init {
         observeEvents()
         observeDebouncedSearchQuery()
-        fetchTrending()
     }
 
     private fun observeEvents() =
         viewModelScope.launch {
             events.collect { event ->
                 when (event) {
-                    is UiEvent.UpdateSearchQuery -> {
-                        setState { copy(searchQuery = event.query) }
-                    }
-
-                    is UiEvent.SelectGif -> selectGif(event)
-
-                    is UiEvent.LoadMoreGifs -> loadMoreGifs()
-
-                    is UiEvent.DismissError -> setState { copy(error = null) }
+                    UiEvent.PickerShown -> onPickerShown()
+                    is UiEvent.UpdateSearchQuery -> setState { copy(searchQuery = event.query) }
+                    is UiEvent.SelectGif -> setEffect(SideEffect.GifSelected(gif = event.gif))
+                    UiEvent.LoadMoreGifs -> loadMoreGifs()
+                    UiEvent.DismissError -> setState { copy(error = null) }
                 }
             }
         }
+
+    /**
+     * Loads what to show before anything is typed — once, or again only if the previous attempt
+     * left the picker empty (it failed, or the picker closed before it finished). Reopening a
+     * picker that already has results keeps them, and keeps whatever the user was searching.
+     */
+    private fun onPickerShown() {
+        val current = _state.value
+        if (current.gifItems.isNotEmpty() || current.searching || current.searchQuery.isNotBlank()) return
+        initialLoadJob = viewModelScope.launch { loadFirstPage(query = "") }
+    }
 
     @OptIn(FlowPreview::class)
     private fun observeDebouncedSearchQuery() =
         viewModelScope.launch {
             events.filterIsInstance<UiEvent.UpdateSearchQuery>()
                 .debounce(SEARCH_DEBOUNCE_DURATION)
-                .collectLatest {
-                    nextCursor = null
-                    setState { copy(gifItems = emptyList()) }
-                    if (it.query.isBlank()) {
-                        performFetchTrending()
-                    } else {
-                        performSearchGifs(query = it.query)
-                    }
-                }
+                .collectLatest { event -> onSearchQuerySettled(query = event.query) }
         }
 
-    private fun fetchTrending(cursor: String? = null) = viewModelScope.launch { performFetchTrending(cursor) }
+    private suspend fun onSearchQuerySettled(query: String) {
+        // A search supersedes the opening page if that is still on its way.
+        initialLoadJob?.cancel()
+        // Both at once: the chips should not wait for the results, nor the results for the
+        // chips. collectLatest cancels both when the text changes again.
+        coroutineScope {
+            launch { refreshTopics(query = query) }
+            loadFirstPage(query = query)
+        }
+    }
 
-    private suspend fun performFetchTrending(cursor: String? = null) {
-        setState { copy(searching = true) }
-        runCatching { klipyApi.fetchTrendingGifs(cursor = cursor) }
-            .onSuccess { response ->
-                val gifs = response.results.mapNotNull { it.asGifItem() }
-                nextCursor = response.next
-                setState {
-                    copy(
-                        gifItems = if (cursor == null) gifs else (gifItems + gifs).distinctBy { it.id },
-                        searching = false,
-                    )
-                }
-            }
+    private suspend fun loadFirstPage(query: String) {
+        loadMoreJob?.cancel()
+        listingQuery = query
+        nextCursor = null
+        setState { copy(gifItems = emptyList(), searching = true) }
+        runCatching { fetchPage(query = query, cursor = null) }
+            .onSuccess { page -> applyPage(query = query, page = page, append = false) }
             .onFailure { error ->
-                Napier.w(throwable = error) { "Failed to fetch trending GIFs" }
+                Napier.w(throwable = error) { "Failed to load GIFs for '$query'" }
                 setState { copy(searching = false, error = UiError.GenericError()) }
             }
     }
 
-    private fun searchGifs(query: String, cursor: String? = null) =
-        viewModelScope.launch { performSearchGifs(query, cursor) }
+    private fun loadMoreGifs() {
+        val cursor = nextCursor
+        val query = listingQuery
+        val busy = _state.value.searching || loadMoreJob?.isActive == true
+        if (cursor == null || query == null || busy) return
 
-    private suspend fun performSearchGifs(query: String, cursor: String? = null) {
-        setState { copy(searching = true) }
-        runCatching { klipyApi.searchGifs(query = query, cursor = cursor) }
-            .onSuccess { response ->
-                val gifs = response.results.mapNotNull { it.asGifItem() }
-                nextCursor = response.next
-                setState {
-                    copy(
-                        gifItems = if (cursor == null) gifs else (gifItems + gifs).distinctBy { it.id },
-                        searching = false,
-                    )
+        loadMoreJob = viewModelScope.launch {
+            setState { copy(searching = true) }
+            runCatching { fetchPage(query = query, cursor = cursor) }
+                .onSuccess { page -> applyPage(query = query, page = page, append = true) }
+                .onFailure { error ->
+                    Napier.w(throwable = error) { "Failed to load more GIFs for '$query'" }
+                    setState { copy(searching = false) }
                 }
-            }
-            .onFailure { error ->
-                Napier.w(throwable = error) { "Failed to search GIFs" }
-                setState { copy(searching = false, error = UiError.GenericError()) }
-            }
+        }
     }
 
-    private fun loadMoreGifs() =
-        viewModelScope.launch {
-            val currentState = _state.value
-            val cursor = nextCursor
-            if (currentState.searching || cursor == null) return@launch
-
-            val query = currentState.searchQuery
-            when {
-                query.isNotBlank() -> searchGifs(query = query, cursor = cursor)
-                else -> fetchTrending(cursor = cursor)
-            }
+    private suspend fun fetchPage(query: String, cursor: GifCursor?): GifSearchPage =
+        if (query.isBlank()) {
+            gifSearchApi.trending(cursor = cursor)
+        } else {
+            gifSearchApi.search(query = query.trim(), cursor = cursor)
         }
 
-    private fun selectGif(event: UiEvent.SelectGif) {
-        setEffect(SideEffect.GifSelected(url = event.gif.url))
-        viewModelScope.launch {
-            withContext(NonCancellable) {
-                runCatching {
-                    klipyApi.registerShare(gifId = event.gif.id, query = _state.value.searchQuery)
-                }
-            }
+    private fun applyPage(
+        query: String,
+        page: GifSearchPage,
+        append: Boolean,
+    ) {
+        // The user typed something else while this page was on its way: it belongs to a listing
+        // that is no longer on screen.
+        if (query != listingQuery) return
+        nextCursor = page.nextCursor
+        val gifs = page.results.map { it.asGifItem() }
+        setState {
+            copy(
+                gifItems = if (append) (gifItems + gifs).distinctBy { it.id } else gifs,
+                source = page.source,
+                searching = false,
+            )
         }
+    }
+
+    private suspend fun refreshTopics(query: String) {
+        val trimmed = query.trim()
+        val topics = when {
+            trimmed.isEmpty() -> GifPickerContract.DEFAULT_TOPICS
+            trimmed.length < MIN_SUGGESTION_QUERY_LENGTH -> emptyList()
+            else -> gifSearchApi.suggest(query = trimmed).filterNot { it.equals(trimmed, ignoreCase = true) }
+        }
+        setState { copy(topics = topics) }
     }
 }

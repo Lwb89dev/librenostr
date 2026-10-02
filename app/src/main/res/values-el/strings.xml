@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Εναλλαγή δημοσκόπησης</string>
     <string name="accessibility_poll_remove_choice">Αφαίρεση επιλογής δημοσκόπησης</string>
     <string name="accessibility_poll_add_choice">Προσθήκη επιλογής δημοσκόπησης</string>
-    <string name="gif_picker_search_placeholder">Αναζήτηση ανοιχτών GIF</string>
+    <string name="gif_picker_search_placeholder">Αναζήτηση GIF</string>
     <string name="gif_picker_cancel">Ακύρωση</string>
     <string name="gif_picker_powered_by">Με ισχύ από</string>
-    <string name="gif_picker_source">Τα Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Επανάληψη</string>
     <string name="post_action_missing_lightning_address">Αδυναμία zap αυτό το χρήστη, δεδομένου ότι δεν έχουν μια διεύθυνση αστραπή συσταθεί.</string>
     <string name="post_action_invalid_zap_request">Αδύνατη η zap. Ελέγξτε τη σύνδεση του πορτοφολιού σας και προσπαθήστε ξανά.</string>
     <string name="post_action_zap_failed">Αδύνατη η zap. Παρακαλώ προσπαθήστε ξανά.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">κορεσμένα</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Δεν είναι δυνατή η πληρωμή. %1$s δεν έχει μια διεύθυνση αστραπή που.</string>
     <string name="wallet_send_payment_this_user_chunk">Αυτός ο χρήστης</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Πακέτα emoji</string>
+    <string name="emoji_packs_section_yours">Τα πακέτα σου</string>
+    <string name="emoji_packs_section_discover">Ανακάλυψε πακέτα</string>
+    <string name="emoji_packs_built_in">Ενσωματωμένο</string>
+    <string name="emoji_packs_add">Προσθήκη</string>
+    <string name="emoji_packs_remove">Αφαίρεση</string>
+    <string name="emoji_packs_edit">Επεξεργασία</string>
+    <string name="emoji_packs_create">Δημιουργία πακέτου</string>
+    <string name="emoji_packs_link_hint">Επικόλλησε σύνδεσμο πακέτου (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Δεν βρέθηκαν ακόμα πακέτα emoji στα relays σου.</string>
+    <string name="emoji_pack_editor_name_hint">Όνομα πακέτου</string>
+    <string name="emoji_pack_editor_shortcode_hint">Σύντομος κωδικός (προαιρετικό)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Μόνο γράμματα, ψηφία, - και _, που δεν υπάρχει ήδη στο πακέτο</string>
+    <string name="emoji_pack_editor_add_image">Προσθήκη εικόνας</string>
+    <string name="emoji_pack_editor_empty">Διάλεξε μια εικόνα για να προσθέσεις το πρώτο emoji.</string>
+    <string name="emoji_pack_editor_save">Αποθήκευση και δημοσίευση</string>
+    <string name="emoji_pack_editor_delete">Διαγραφή πακέτου</string>
+    <string name="emoji_picker_close">Κλείσιμο πίνακα emoji</string>
+    <string name="emoji_picker_manage_packs">Διαχείριση πακέτων</string>
+    <string name="emoji_picker_my_emoji">Τα emoji μου</string>
+    <string name="accessibility_emoji_picker">Εισαγωγή προσαρμοσμένου emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emoji</item>
+    </plurals>
 </resources>

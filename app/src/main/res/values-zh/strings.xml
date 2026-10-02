@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">切换民意调查</string>
     <string name="accessibility_poll_remove_choice">删除民意测验选择</string>
     <string name="accessibility_poll_add_choice">添加民调选择</string>
-    <string name="gif_picker_search_placeholder">搜索打开的 GIFs</string>
+    <string name="gif_picker_search_placeholder">搜索 GIF</string>
     <string name="gif_picker_cancel">取消</string>
     <string name="gif_picker_powered_by">动力</string>
-    <string name="gif_picker_source">维基媒体常识</string>
-    <string name="gif_picker_retry_upload">重试</string>
     <string name="post_action_missing_lightning_address">由于用户没有设置闪电地址,所以无法对该用户进行zap.</string>
     <string name="post_action_invalid_zap_request">无法扎普. 检查您的钱包连接并再次尝试 。</string>
     <string name="post_action_zap_failed">无法扎普. 请再试一次</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">坐着</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">无法支付 。 %1$s没有闪电地址。</string>
     <string name="wallet_send_payment_this_user_chunk">此用户</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">表情包</string>
+    <string name="emoji_packs_section_yours">你的表情包</string>
+    <string name="emoji_packs_section_discover">发现表情包</string>
+    <string name="emoji_packs_built_in">内置</string>
+    <string name="emoji_packs_add">添加</string>
+    <string name="emoji_packs_remove">移除</string>
+    <string name="emoji_packs_edit">编辑</string>
+    <string name="emoji_packs_create">创建表情包</string>
+    <string name="emoji_packs_link_hint">粘贴表情包链接 (naddr…)</string>
+    <string name="emoji_packs_discover_empty">你的中继上暂时没有找到表情包。</string>
+    <string name="emoji_pack_editor_name_hint">表情包名称</string>
+    <string name="emoji_pack_editor_shortcode_hint">短代码（可选）</string>
+    <string name="emoji_pack_editor_shortcode_invalid">仅限字母、数字、- 和 _，且不能与包内已有的重复</string>
+    <string name="emoji_pack_editor_add_image">添加图片</string>
+    <string name="emoji_pack_editor_empty">选择一张图片来添加第一个表情。</string>
+    <string name="emoji_pack_editor_save">保存并发布</string>
+    <string name="emoji_pack_editor_delete">删除表情包</string>
+    <string name="emoji_picker_close">关闭表情面板</string>
+    <string name="emoji_picker_manage_packs">管理表情包</string>
+    <string name="emoji_picker_my_emoji">我的表情</string>
+    <string name="accessibility_emoji_picker">插入自定义表情</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d 个表情</item>
+        <item quantity="other">%d 个表情</item>
+    </plurals>
 </resources>

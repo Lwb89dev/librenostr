@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Toggle poll</string>
     <string name="accessibility_poll_remove_choice">Entfernen Sie die Umfragewahl</string>
     <string name="accessibility_poll_add_choice">Umfrageauswahl hinzufügen</string>
-    <string name="gif_picker_search_placeholder">Offene GIFs suchen</string>
+    <string name="gif_picker_search_placeholder">GIFs suchen</string>
     <string name="gif_picker_cancel">Stornierung</string>
     <string name="gif_picker_powered_by">Powered by</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Versuch</string>
     <string name="post_action_missing_lightning_address">Kann diesen Benutzer nicht zappen, da er keine Blitzadresse eingerichtet hat.</string>
     <string name="post_action_invalid_zap_request">Kann nicht zap. Überprüfen Sie Ihre Wallet-Verbindung und versuchen Sie es erneut.</string>
     <string name="post_action_zap_failed">Kann nicht zap. Bitte versuchen Sie es noch einmal.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">Satt</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Kann nicht bezahlen. %1$s hat keine Blitzadresse.</string>
     <string name="wallet_send_payment_this_user_chunk">Dieser Benutzer</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emoji-Pakete</string>
+    <string name="emoji_packs_section_yours">Deine Pakete</string>
+    <string name="emoji_packs_section_discover">Pakete entdecken</string>
+    <string name="emoji_packs_built_in">Integriert</string>
+    <string name="emoji_packs_add">Hinzufügen</string>
+    <string name="emoji_packs_remove">Entfernen</string>
+    <string name="emoji_packs_edit">Bearbeiten</string>
+    <string name="emoji_packs_create">Paket erstellen</string>
+    <string name="emoji_packs_link_hint">Paket-Link einfügen (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Auf deinen Relays wurden noch keine Emoji-Pakete gefunden.</string>
+    <string name="emoji_pack_editor_name_hint">Paketname</string>
+    <string name="emoji_pack_editor_shortcode_hint">Kurzcode (optional)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Nur Buchstaben, Ziffern, - und _, noch nicht im Paket</string>
+    <string name="emoji_pack_editor_add_image">Bild hinzufügen</string>
+    <string name="emoji_pack_editor_empty">Wähle ein Bild für das erste Emoji.</string>
+    <string name="emoji_pack_editor_save">Speichern und veröffentlichen</string>
+    <string name="emoji_pack_editor_delete">Paket löschen</string>
+    <string name="emoji_picker_close">Emoji-Bereich schließen</string>
+    <string name="emoji_picker_manage_packs">Pakete verwalten</string>
+    <string name="emoji_picker_my_emoji">Meine Emojis</string>
+    <string name="accessibility_emoji_picker">Eigenes Emoji einfügen</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d Emoji</item>
+        <item quantity="other">%d Emojis</item>
+    </plurals>
 </resources>

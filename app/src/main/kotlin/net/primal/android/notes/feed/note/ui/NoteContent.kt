@@ -20,7 +20,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
 import net.primal.android.R
 import net.primal.android.core.activity.LocalContentDisplaySettings
@@ -41,6 +41,7 @@ import net.primal.android.core.compose.icons.primaliconpack.Document
 import net.primal.android.core.compose.preview.PrimalPreview
 import net.primal.android.core.compose.zaps.ReferencedNoteZap
 import net.primal.android.core.compose.zaps.ReferencedZap
+import net.primal.android.emoji.ui.rememberCustomEmojiInlineContent
 import net.primal.android.notes.feed.model.HASHTAG_ANNOTATION_TAG
 import net.primal.android.notes.feed.model.NOSTR_ADDRESS_ANNOTATION_TAG
 import net.primal.android.notes.feed.model.NOTE_ANNOTATION_TAG
@@ -150,6 +151,7 @@ fun NoteContent(
                 overflow = overflow,
                 textSelectable = textSelectable,
                 onClick = clickHandler,
+                inlineContent = rememberCustomEmojiInlineContent(data.customEmojis),
             )
         }
 

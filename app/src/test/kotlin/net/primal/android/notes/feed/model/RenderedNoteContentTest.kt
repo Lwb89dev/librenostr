@@ -156,4 +156,38 @@ class RenderedNoteContentTest {
         val seeMoreStyle = result.spanStyles.last()
         result.text.substring(seeMoreStyle.start, seeMoreStyle.end) shouldBe "see more"
     }
+
+    @Test
+    fun `a declared custom emoji becomes an inline placeholder that keeps its shortcode as text`() {
+        val content = computeRenderedNoteContent(
+            data = NoteContentUi(
+                noteId = "n",
+                content = "gm :ostrich_happy: and :not_declared:",
+                customEmojis = mapOf("ostrich_happy" to "https://example.com/happy.png"),
+            ),
+            expanded = true,
+        )
+
+        val result = content.toAnnotatedString(seeMoreText = "see more", highlightColor = color)
+
+        // Copying the note still copies the shortcode; only the declared one is turned into an image.
+        result.text shouldBe "gm :ostrich_happy: and :not_declared:"
+        val inline = result.getStringAnnotations(0, result.length).filter { it.item.startsWith("nip30:") }
+        inline.map { it.item } shouldBe listOf("nip30:ostrich_happy")
+        result.text.substring(inline.single().start, inline.single().end) shouldBe ":ostrich_happy:"
+        // Not a link: no highlight and no click annotation of its own.
+        result.spanStyles.none { it.item == SpanStyle(color = color) } shouldBe true
+    }
+
+    @Test
+    fun `a note without emoji tags leaves colon-wrapped words alone`() {
+        val content = computeRenderedNoteContent(
+            data = NoteContentUi(noteId = "n", content = "ratio :ostrich_happy: 1:2:3"),
+            expanded = true,
+        )
+
+        val result = content.toAnnotatedString(seeMoreText = "see more", highlightColor = color)
+
+        result.getStringAnnotations(0, result.length).none { it.item.startsWith("nip30:") } shouldBe true
+    }
 }

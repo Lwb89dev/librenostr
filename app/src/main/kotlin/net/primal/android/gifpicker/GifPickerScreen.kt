@@ -1,7 +1,7 @@
 package net.primal.android.gifpicker
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,10 +10,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -40,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -61,6 +63,7 @@ import net.primal.android.core.errors.resolveUiErrorMessage
 import net.primal.android.gifpicker.GifPickerContract.UiEvent
 import net.primal.android.gifpicker.domain.GifItem
 import net.primal.android.theme.AppTheme
+import net.primal.data.remote.api.gifs.model.GifSource
 
 @Composable
 fun GifPickerScreen(viewModel: GifPickerViewModel, callbacks: GifPickerContract.ScreenCallbacks) {
@@ -69,10 +72,11 @@ fun GifPickerScreen(viewModel: GifPickerViewModel, callbacks: GifPickerContract.
     LaunchedEffect(viewModel, callbacks) {
         viewModel.effect.collect {
             when (it) {
-                is GifPickerContract.SideEffect.GifSelected -> callbacks.onGifSelected(it.url)
+                is GifPickerContract.SideEffect.GifSelected -> callbacks.onGifSelected(it.gif)
             }
         }
     }
+    LaunchedEffect(viewModel) { viewModel.setEvent(UiEvent.PickerShown) }
 
     GifPickerScreen(
         state = uiState.value,
@@ -81,22 +85,29 @@ fun GifPickerScreen(viewModel: GifPickerViewModel, callbacks: GifPickerContract.
     )
 }
 
-/** Compact picker shown above the composer toolbar. It stays empty until a query is entered. */
+/**
+ * Compact picker shown above the composer toolbar.
+ *
+ * It used to stay empty until something was typed, because the Wikimedia Commons results it had to
+ * offer were not worth the space. It now opens straight onto GIFs and topic chips: a picker that
+ * shows something worth tapping the moment it opens is the point of having one.
+ */
 @Composable
 fun GifPickerInlineContent(
     viewModel: GifPickerViewModel,
     onDismiss: () -> Unit,
-    onGifSelected: (String) -> Unit,
+    onGifSelected: (GifItem) -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             if (effect is GifPickerContract.SideEffect.GifSelected) {
-                onGifSelected(effect.url)
+                onGifSelected(effect.gif)
                 onDismiss()
             }
         }
     }
+    LaunchedEffect(viewModel) { viewModel.setEvent(UiEvent.PickerShown) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,7 +115,9 @@ fun GifPickerInlineContent(
             // toolbar. Without a cap that is small enough for the IME layout,
             // the result grid grows to its 290.dp height and bottom-aligning
             // the column pushes the search field underneath the top bar.
-            .heightIn(max = 240.dp)
+            // Slightly taller than when it held only a search field, to fit
+            // the topic chips and a first row of results under it.
+            .heightIn(max = 280.dp)
             .shadow(18.dp, RoundedCornerShape(22.dp))
             .background(AppTheme.colorScheme.surfaceVariant, RoundedCornerShape(22.dp))
             .padding(10.dp),
@@ -123,20 +136,16 @@ fun GifPickerInlineContent(
                 )
             }
         }
-        if (state.searchQuery.isBlank()) {
-            Text(
-                text = "Search for a GIF to see results",
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 18.dp),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
-            )
-        } else {
-            GifGridContent(
-                state = state,
-                eventPublisher = viewModel::setEvent,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 290.dp),
-            )
-        }
+        GifTopicChips(
+            topics = state.topics,
+            onTopicClick = { viewModel.setEvent(UiEvent.UpdateSearchQuery(it)) },
+        )
+        GifGridContent(
+            state = state,
+            eventPublisher = viewModel::setEvent,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 290.dp),
+        )
+        GifSourceAttribution(source = state.source)
     }
 }
 
@@ -189,6 +198,12 @@ fun GifPickerScreen(
                     }
                 }
 
+                GifTopicChips(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    topics = state.topics,
+                    onTopicClick = { eventPublisher(UiEvent.UpdateSearchQuery(it)) },
+                )
+
                 GifGridContent(
                     state = state,
                     eventPublisher = eventPublisher,
@@ -197,23 +212,70 @@ fun GifPickerScreen(
                         .weight(1f),
                 )
 
-                Text(
-                    text = buildAnnotatedString {
-                        append(stringResource(id = R.string.gif_picker_powered_by))
-                        append(" ")
-                        withStyle(SpanStyle(color = AppTheme.extraColorScheme.onSurfaceVariantAlt2)) {
-                            append(stringResource(id = R.string.gif_picker_source))
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    textAlign = TextAlign.Center,
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
+                GifSourceAttribution(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    source = state.source,
                 )
             }
         },
+    )
+}
+
+/**
+ * One-tap queries: Nostr staples before anything is typed, the provider's autocomplete after.
+ * Tapping one fills the search field, so what is being shown is always spelled out there.
+ */
+@Composable
+private fun GifTopicChips(
+    topics: List<String>,
+    onTopicClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (topics.isEmpty()) return
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(topics, key = { it }) { topic ->
+            Text(
+                text = topic,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(AppTheme.extraColorScheme.surfaceVariantAlt1)
+                    .clickable { onTopicClick(topic) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/** "Powered by nostr.build" — or by GIFverse while nostr.build is not answering us. */
+@Composable
+private fun GifSourceAttribution(source: GifSource?, modifier: Modifier = Modifier) {
+    val sourceName = when (source) {
+        GifSource.NostrBuild -> stringResource(id = R.string.gif_picker_source_nostr_build)
+        GifSource.Gifverse -> stringResource(id = R.string.gif_picker_source_gifverse)
+        null -> return
+    }
+    Text(
+        text = buildAnnotatedString {
+            append(stringResource(id = R.string.gif_picker_powered_by))
+            append(" ")
+            withStyle(SpanStyle(color = AppTheme.extraColorScheme.onSurfaceVariantAlt2)) {
+                append(sourceName)
+            }
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        textAlign = TextAlign.Center,
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.extraColorScheme.onSurfaceVariantAlt3,
     )
 }
 

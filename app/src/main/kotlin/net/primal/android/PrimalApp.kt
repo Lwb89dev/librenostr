@@ -10,9 +10,10 @@ import io.github.aakira.napier.Antilog
 import io.github.aakira.napier.Napier
 import javax.inject.Inject
 import net.primal.android.core.images.PrimalImageLoaderFactory
-import net.primal.android.networking.relays.OutboxRelayCoordinator
-import net.primal.core.config.store.AppConfigInitializer
 import net.primal.android.core.tor.TorRuntimeBinder
+import net.primal.android.networking.relays.OutboxRelayCoordinator
+import net.primal.android.networking.relays.RelayBackoffNetworkBinder
+import net.primal.core.config.store.AppConfigInitializer
 import net.primal.core.networking.tor.TorProxyContextHolder
 import net.primal.data.account.repository.repository.factory.AccountRepositoryFactory
 import net.primal.data.repository.factory.PrimalRepositoryFactory
@@ -46,6 +47,10 @@ class PrimalApp : Application(), CameraXConfig.Provider {
         // foreground/background and network changes it has to react to. Also before super.onCreate():
         // the first connection any client makes may already need the engine's port.
         TorRuntimeBinder.bind(this)
+        // Forgives every relay's connection backoff when the device switches network or gets its
+        // internet access back, so relays that only failed because the phone was offline are not
+        // left waiting out minutes of backoff once it is online again.
+        RelayBackoffNetworkBinder.bind(this)
         super.onCreate()
         AppConfigInitializer.init(context = this@PrimalApp)
         PrimalRepositoryFactory.init(context = this@PrimalApp)

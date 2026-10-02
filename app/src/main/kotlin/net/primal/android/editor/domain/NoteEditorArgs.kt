@@ -2,6 +2,7 @@ package net.primal.android.editor.domain
 
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.serialization.Serializable
+import net.primal.android.gifpicker.domain.GifItem
 import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.core.utils.serialization.encodeToJsonString
 
@@ -17,7 +18,8 @@ data class NoteEditorArgs(
     val taggedUsers: List<NoteTaggedUser> = emptyList(),
     val isQuoting: Boolean = false,
     val startWithPoll: Boolean = false,
-    val gifUrl: String? = null,
+    /** A GIF picked before the composer opened (a GIF reply from a thread). */
+    val gif: GifItem? = null,
     val privateReplyRecipientId: String? = null,
     val privateReplyRootId: String? = null,
     val privateReplyParentId: String? = null,

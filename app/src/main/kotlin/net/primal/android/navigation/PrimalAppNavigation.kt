@@ -29,15 +29,15 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavDeepLink
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.dialog
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.dialog
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.navOptions
@@ -51,10 +51,10 @@ import net.primal.android.auth.logout.LogoutViewModel
 import net.primal.android.auth.onboarding.account.OnboardingContract
 import net.primal.android.auth.onboarding.account.OnboardingViewModel
 import net.primal.android.auth.onboarding.account.ui.OnboardingScreen
-import net.primal.android.auth.welcome.WelcomeContract
 import net.primal.android.auth.welcome.OrbotOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingScreen
 import net.primal.android.auth.welcome.RelayOnboardingViewModel
+import net.primal.android.auth.welcome.WelcomeContract
 import net.primal.android.auth.welcome.WelcomeScreen
 import net.primal.android.bookmarks.list.BookmarksContract
 import net.primal.android.bookmarks.list.BookmarksScreen
@@ -67,8 +67,8 @@ import net.primal.android.core.compose.PrimalTopLevelDestination
 import net.primal.android.core.compose.UnlockScreenOrientation
 import net.primal.android.core.compose.adaptive.rememberIsDeckModeEligible
 import net.primal.android.core.compose.fab.NewPostFloatingActionButton
-import net.primal.android.deck.DeckScreen
 import net.primal.android.core.pip.PiPManagerProvider
+import net.primal.android.deck.DeckScreen
 import net.primal.android.drawer.DrawerScreenDestination
 import net.primal.android.drawer.multiaccount.events.AccountSwitcherCallbacks
 import net.primal.android.editor.NoteEditorContract
@@ -97,6 +97,7 @@ import net.primal.android.explore.search.ui.SearchScreen
 import net.primal.android.gifpicker.GifPickerContract
 import net.primal.android.gifpicker.GifPickerScreen
 import net.primal.android.gifpicker.GifPickerViewModel
+import net.primal.android.gifpicker.domain.GifItem
 import net.primal.android.main.MainScreen
 import net.primal.android.main.MainViewModel
 import net.primal.android.main.REQUESTED_TAB_KEY
@@ -137,7 +138,6 @@ import net.primal.android.scan.ScanCodeContract.ScanMode
 import net.primal.android.scan.ScanCodeScreen
 import net.primal.android.scan.ScanCodeViewModel
 import net.primal.android.stream.player.StreamStateProvider
-import net.primal.android.zaps.AndroidLightningWallet
 import net.primal.android.theme.AppTheme
 import net.primal.android.theme.PrimalTheme
 import net.primal.android.theme.domain.PrimalTheme
@@ -147,8 +147,10 @@ import net.primal.android.thread.articles.details.ArticleDetailsViewModel
 import net.primal.android.thread.notes.ThreadContract
 import net.primal.android.thread.notes.ThreadScreen
 import net.primal.android.thread.notes.ThreadViewModel
+import net.primal.android.zaps.AndroidLightningWallet
 import net.primal.core.utils.map
 import net.primal.core.utils.runCatching
+import net.primal.core.utils.serialization.decodeFromJsonStringOrNull
 import net.primal.core.utils.serialization.encodeToJsonString
 import net.primal.domain.feeds.buildAdvancedSearchNotesFeedSpec
 import net.primal.domain.feeds.buildAdvancedSearchNotificationsFeedSpec
@@ -1244,14 +1246,16 @@ private fun NavGraphBuilder.noteEditor(
 
     val viewModel = noteEditorViewModel(args = args)
 
-    val gifUrlResult = it.savedStateHandle
-        .getStateFlow<String?>(GIF_URL_RESULT, null)
+    val gifResult = it.savedStateHandle
+        .getStateFlow<String?>(GIF_RESULT, null)
         .collectAsState()
 
-    LaunchedEffect(gifUrlResult.value) {
-        gifUrlResult.value?.let { gifUrl ->
-            viewModel.setEvent(NoteEditorContract.UiEvent.InsertGif(gifUrl))
-            it.savedStateHandle[GIF_URL_RESULT] = null
+    LaunchedEffect(gifResult.value) {
+        gifResult.value?.let { gifJson ->
+            gifJson.decodeFromJsonStringOrNull<GifItem>()?.let { gif ->
+                viewModel.setEvent(NoteEditorContract.UiEvent.InsertGif(gif))
+            }
+            it.savedStateHandle[GIF_RESULT] = null
         }
     }
 
@@ -1265,6 +1269,7 @@ private fun NavGraphBuilder.noteEditor(
                 navController.navigateUp()
             },
             onGifPickerClick = { navController.navigateToGifPicker() },
+            onManageEmojiPacks = { navController.navigateToEmojiPacksSettings() },
         ),
     )
 }
@@ -1281,8 +1286,10 @@ private fun NavGraphBuilder.gifPicker(route: String, navController: NavControlle
             viewModel = viewModel,
             callbacks = GifPickerContract.ScreenCallbacks(
                 onClose = { navController.navigateUp() },
-                onGifSelected = { gifUrl ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(GIF_URL_RESULT, gifUrl)
+                onGifSelected = { gif ->
+                    // As JSON: the back stack's saved state only holds bundle-friendly values,
+                    // and the composer needs the whole item (size, type, alt) for the imeta tag.
+                    navController.previousBackStackEntry?.savedStateHandle?.set(GIF_RESULT, gif.encodeToJsonString())
                     navController.popBackStack()
                 },
             ),
@@ -1582,26 +1589,26 @@ private fun NavGraphBuilder.thread(
         factory.create(noteId = noteId)
     }
 
-    val gifUrlResult = navBackEntry.savedStateHandle
-        .getStateFlow<String?>(GIF_URL_RESULT, null)
+    val gifResult = navBackEntry.savedStateHandle
+        .getStateFlow<String?>(GIF_RESULT, null)
         .collectAsState()
 
-    LaunchedEffect(gifUrlResult.value) {
-        gifUrlResult.value?.let { gifUrl ->
+    LaunchedEffect(gifResult.value) {
+        gifResult.value?.let { gifJson ->
             val pendingArgsJson = navBackEntry.savedStateHandle.get<String>(PENDING_GIF_REPLY_ARGS)
             val pendingArgs = pendingArgsJson?.jsonAsNoteEditorArgs()
             val state = viewModel.state.value
             navController.navigateToNoteEditor(
                 NoteEditorArgs(
                     referencedNoteNevent = state.highlightNote?.asNeventString(),
-                    gifUrl = gifUrl,
+                    gif = gifJson.decodeFromJsonStringOrNull<GifItem>(),
                     content = pendingArgs?.content ?: "",
                     contentSelectionStart = pendingArgs?.contentSelectionStart ?: 0,
                     contentSelectionEnd = pendingArgs?.contentSelectionEnd ?: 0,
                     taggedUsers = pendingArgs?.taggedUsers ?: emptyList(),
                 ),
             )
-            navBackEntry.savedStateHandle[GIF_URL_RESULT] = null
+            navBackEntry.savedStateHandle[GIF_RESULT] = null
             navBackEntry.savedStateHandle[PENDING_GIF_REPLY_ARGS] = null
         }
     }

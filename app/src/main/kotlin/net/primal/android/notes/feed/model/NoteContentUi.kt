@@ -3,6 +3,7 @@ package net.primal.android.notes.feed.model
 import androidx.compose.runtime.Immutable
 import fr.acinq.lightning.payment.Bolt11Invoice
 import net.primal.android.core.compose.attachment.model.EventUriUi
+import net.primal.android.emoji.Nip30.customEmojis
 import net.primal.android.messages.chat.model.ChatMessageUi
 import net.primal.domain.common.util.isPrimalIdentifier
 import net.primal.domain.links.EventUriNostrType
@@ -21,6 +22,8 @@ data class NoteContentUi(
     val invoices: List<String> = emptyList(),
     val blossoms: List<String> = emptyList(),
     val poll: PollUi? = null,
+    /** NIP-30 custom emoji declared by the note: `:shortcode:` in [content] drawn as the image. */
+    val customEmojis: Map<String, String> = emptyMap(),
 ) {
     val partitions: NoteContentPartitions = computePartitions(uris = uris, nostrUris = nostrUris)
 }
@@ -69,6 +72,7 @@ fun FeedPostUi.toNoteContentUi(content: String = this.content): NoteContentUi {
         invoices = invoices,
         blossoms = this.authorBlossoms,
         poll = this.poll,
+        customEmojis = this.customEmojis,
     )
 }
 
@@ -94,6 +98,7 @@ fun FeedPost.toNoteContentUi(nostrUris: List<NoteNostrUriUi> = emptyList()): Not
         hashtags = this.hashtags,
         invoices = emptyList(),
         blossoms = emptyList(),
+        customEmojis = this.tags.customEmojis(),
     )
 }
 

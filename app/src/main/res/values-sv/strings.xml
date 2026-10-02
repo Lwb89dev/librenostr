@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Toggle Poll</string>
     <string name="accessibility_poll_remove_choice">Ta bort opinionsundersökning val</string>
     <string name="accessibility_poll_add_choice">Lägg till opinionsval</string>
-    <string name="gif_picker_search_placeholder">Sök öppna GIF</string>
+    <string name="gif_picker_search_placeholder">Sök GIF:ar</string>
     <string name="gif_picker_cancel">Avbokning</string>
     <string name="gif_picker_powered_by">Styrd av</string>
-    <string name="gif_picker_source">Wikimedia Commons</string>
-    <string name="gif_picker_retry_upload">Retry</string>
     <string name="post_action_missing_lightning_address">Det går inte att zap den här användaren eftersom de inte har en blixt adress inrättad.</string>
     <string name="post_action_invalid_zap_request">Kan inte zap. Kontrollera din plånboksanslutning och försök igen.</string>
     <string name="post_action_zap_failed">Kan inte zap. Försök igen.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Kan inte göra betalning. %1$s har ingen blixtuppsättning.</string>
     <string name="wallet_send_payment_this_user_chunk">Denna användare</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Emojipaket</string>
+    <string name="emoji_packs_section_yours">Dina paket</string>
+    <string name="emoji_packs_section_discover">Upptäck paket</string>
+    <string name="emoji_packs_built_in">Inbyggt</string>
+    <string name="emoji_packs_add">Lägg till</string>
+    <string name="emoji_packs_remove">Ta bort</string>
+    <string name="emoji_packs_edit">Redigera</string>
+    <string name="emoji_packs_create">Skapa ett paket</string>
+    <string name="emoji_packs_link_hint">Klistra in en paketlänk (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Inga emojipaket hittades på dina reläer ännu.</string>
+    <string name="emoji_pack_editor_name_hint">Paketnamn</string>
+    <string name="emoji_pack_editor_shortcode_hint">Kortkod (valfri)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Endast bokstäver, siffror, - och _, inte redan i paketet</string>
+    <string name="emoji_pack_editor_add_image">Lägg till bild</string>
+    <string name="emoji_pack_editor_empty">Välj en bild för att lägga till den första emojin.</string>
+    <string name="emoji_pack_editor_save">Spara och publicera</string>
+    <string name="emoji_pack_editor_delete">Radera paket</string>
+    <string name="emoji_picker_close">Stäng emojipanelen</string>
+    <string name="emoji_picker_manage_packs">Hantera paket</string>
+    <string name="emoji_picker_my_emoji">Mina emojis</string>
+    <string name="accessibility_emoji_picker">Infoga en egen emoji</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emojis</item>
+    </plurals>
 </resources>

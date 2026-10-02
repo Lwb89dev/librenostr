@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import java.time.Instant
 import net.primal.android.core.compose.attachment.model.EventUriUi
 import net.primal.android.core.compose.attachment.model.asEventUriUiModel
+import net.primal.android.emoji.Nip30.customEmojis
 import net.primal.android.events.polls.votes.asPollUi
 import net.primal.android.events.ui.EventZapUiModel
 import net.primal.android.events.ui.asEventZapUiModel
@@ -61,6 +62,8 @@ data class FeedPostUi(
     val isPrivate: Boolean = false,
     val threadRootId: String? = null,
     val threadParentId: String? = null,
+    /** NIP-30 custom emoji the note declares in its `emoji` tags, shortcode to image URL. */
+    val customEmojis: Map<String, String> = emptyMap(),
 )
 
 fun FeedPost.asFeedPostUi(): FeedPostUi {
@@ -110,6 +113,7 @@ fun FeedPost.asFeedPostUi(): FeedPostUi {
         isPrivate = this.isPrivate,
         threadRootId = this.threadRootId(),
         threadParentId = this.immediateParentId(),
+        customEmojis = this.tags.customEmojis(),
     )
     val feedContent = computeFeedContent(content = this.content, uris = uris, nostrUris = nostrUris)
     val feedNoteContent = postUi.toNoteContentUi(content = feedContent)

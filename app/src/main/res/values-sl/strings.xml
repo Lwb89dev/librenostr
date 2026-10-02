@@ -342,11 +342,9 @@
     <string name="accessibility_poll_toggle">Preklopi anketo</string>
     <string name="accessibility_poll_remove_choice">Odstrani izbiro ankete</string>
     <string name="accessibility_poll_add_choice">Dodaj izbiro ankete</string>
-    <string name="gif_picker_search_placeholder">Išči odprte GIF</string>
+    <string name="gif_picker_search_placeholder">Išči GIF-e</string>
     <string name="gif_picker_cancel">Prekliči</string>
     <string name="gif_picker_powered_by">poganja</string>
-    <string name="gif_picker_source">Wikipedija</string>
-    <string name="gif_picker_retry_upload">Poskusi znova</string>
     <string name="post_action_missing_lightning_address">Ni moč zap tega uporabnika, ker nimajo nastavljenega naslova strele.</string>
     <string name="post_action_invalid_zap_request">Ni moč zap. Preverite povezavo z denarnico in poskusite znova.</string>
     <string name="post_action_zap_failed">Ni moč zap. Prosim, poskusite znova.</string>
@@ -1156,4 +1154,31 @@
     <string name="wallet_sats_suffix">sats</string>
     <string name="wallet_send_payment_error_nostr_user_without_lightning_address">Ni mogoče plačati. %1$s nima naslov strele.</string>
     <string name="wallet_send_payment_this_user_chunk">Ta uporabnik</string>
+
+    <!-- NIP-30 custom emoji packs -->
+    <string name="settings_emoji_packs_title">Paketi emojijev</string>
+    <string name="emoji_packs_section_yours">Tvoji paketi</string>
+    <string name="emoji_packs_section_discover">Odkrij pakete</string>
+    <string name="emoji_packs_built_in">Vgrajen</string>
+    <string name="emoji_packs_add">Dodaj</string>
+    <string name="emoji_packs_remove">Odstrani</string>
+    <string name="emoji_packs_edit">Uredi</string>
+    <string name="emoji_packs_create">Ustvari paket</string>
+    <string name="emoji_packs_link_hint">Prilepi povezavo do paketa (naddr…)</string>
+    <string name="emoji_packs_discover_empty">Na tvojih relejih še ni najdenih paketov emojijev.</string>
+    <string name="emoji_pack_editor_name_hint">Ime paketa</string>
+    <string name="emoji_pack_editor_shortcode_hint">Kratka koda (neobvezno)</string>
+    <string name="emoji_pack_editor_shortcode_invalid">Samo črke, številke, - in _, ki še ni v paketu</string>
+    <string name="emoji_pack_editor_add_image">Dodaj sliko</string>
+    <string name="emoji_pack_editor_empty">Izberi sliko, da dodaš prvi emoji.</string>
+    <string name="emoji_pack_editor_save">Shrani in objavi</string>
+    <string name="emoji_pack_editor_delete">Izbriši paket</string>
+    <string name="emoji_picker_close">Zapri ploščo emojijev</string>
+    <string name="emoji_picker_manage_packs">Upravljaj pakete</string>
+    <string name="emoji_picker_my_emoji">Moji emojiji</string>
+    <string name="accessibility_emoji_picker">Vstavi emoji po meri</string>
+    <plurals name="emoji_packs_emoji_count">
+        <item quantity="one">%d emoji</item>
+        <item quantity="other">%d emojijev</item>
+    </plurals>
 </resources>

@@ -12,8 +12,8 @@ import io.github.aakira.napier.Napier
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -44,7 +44,8 @@ import net.primal.android.editor.domain.NoteAttachment
 import net.primal.android.editor.domain.NoteEditorArgs
 import net.primal.android.editor.domain.PollOption
 import net.primal.android.editor.domain.PollPublishRequest
-import net.primal.android.gifpicker.GifBlossomUploader
+import net.primal.android.emoji.repository.CustomEmojiRepository
+import net.primal.android.gifpicker.domain.GifItem
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.notes.feed.model.FeedPostUi
 import net.primal.android.notes.feed.model.PollType
@@ -101,8 +102,8 @@ class NoteEditorViewModel @AssistedInject constructor(
     private val highlightRepository: HighlightRepository,
     private val articleRepository: ArticleRepository,
     private val relayHintsRepository: EventRelayHintsRepository,
-    private val gifBlossomUploader: GifBlossomUploader,
     private val dispatcherProvider: DispatcherProvider,
+    private val customEmojiRepository: CustomEmojiRepository,
 ) : ViewModel() {
 
     private val userMentionHandler = userMentionHandlerFactory.create(
@@ -138,14 +139,21 @@ class NoteEditorViewModel @AssistedInject constructor(
     private fun sendEffect(effect: SideEffect) = viewModelScope.launch { _effect.send(effect) }
 
     private val attachmentUploads = mutableMapOf<UUID, UploadJob>()
-    private val gifUploadJobs = mutableMapOf<UUID, Job>()
 
     init {
         handleArgs()
         subscribeToEvents()
         observeAccounts()
         observeUserTaggingState()
+        observeCustomEmojis()
     }
+
+    private fun observeCustomEmojis() =
+        viewModelScope.launch {
+            customEmojiRepository.library.collect { library ->
+                setState { copy(availableCustomEmojis = library.availableEmojis) }
+            }
+        }
 
     private fun handleArgs() {
         viewModelScope.launch {
@@ -161,9 +169,7 @@ class NoteEditorViewModel @AssistedInject constructor(
                 importPhotos(args.mediaUris.map { it.toUri() })
             }
 
-            if (args.gifUrl != null) {
-                handleGifSelected(args.gifUrl)
-            }
+            args.gif?.let { attachGif(it) }
         }
     }
 
@@ -282,12 +288,10 @@ class NoteEditorViewModel @AssistedInject constructor(
                                 privateReplyRecipientName = event.userName,
                                 privateReplyRecipientPickerVisible = false,
                                 attachments = emptyList(),
-                                pendingGifUploads = emptyList(),
+                                attachedGifs = emptyList(),
                                 pollState = null,
                             )
                         }
-                        gifUploadJobs.values.forEach { it.cancel() }
-                        gifUploadJobs.clear()
                     }
 
                     UiEvent.ClearPrivateReplyRecipient -> setState {
@@ -329,9 +333,10 @@ class NoteEditorViewModel @AssistedInject constructor(
                         copy(selectedAccount = selectedAccount ?: this.selectedAccount)
                     }
 
-                    is UiEvent.InsertGif -> handleGifSelected(event.gifUrl)
-                    is UiEvent.RetryGifUpload -> retryGifUpload(event.gifId)
-                    is UiEvent.RemovePendingGif -> removePendingGif(event.gifId)
+                    is UiEvent.InsertGif -> attachGif(event.gif)
+                    is UiEvent.RemoveGif -> setState {
+                        copy(attachedGifs = attachedGifs.filter { it.id != event.gifId })
+                    }
 
                     UiEvent.TogglePollMode -> handleTogglePollMode()
                     is UiEvent.UpdatePollChoice -> handleUpdatePollChoice(event)
@@ -436,62 +441,28 @@ class NoteEditorViewModel @AssistedInject constructor(
             copy(pollState = pollState.copy(maxZapAmountInSats = event.amountInSats))
         }
 
-    private fun handleGifSelected(gifUrl: String) {
-        val pendingGif = NoteEditorContract.PendingGifUpload(originalUrl = gifUrl)
-        setState { copy(pendingGifUploads = pendingGifUploads + pendingGif) }
-        startGifUpload(pendingGif)
+    private fun attachGif(gif: GifItem) {
+        setState { copy(attachedGifs = attachedGifs + NoteEditorContract.AttachedGif(gif = gif)) }
     }
 
-    private fun startGifUpload(pendingGif: NoteEditorContract.PendingGifUpload) {
-        val job = viewModelScope.launch {
-            val userId = state.value.selectedAccount?.pubkey ?: activeAccountStore.activeUserId()
-            val result = gifBlossomUploader.uploadToBlossom(
-                gifUrl = pendingGif.originalUrl,
-                userId = userId,
-            )
-
-            when (result) {
-                is UploadResult.Success -> {
-                    updatePendingGif(pendingGif.id) {
-                        copy(blossomUrl = result.remoteUrl, uploading = false, uploadFailed = false)
-                    }
-                }
-
-                is UploadResult.Failed -> {
-                    Napier.w(throwable = result.error) { "Failed to upload GIF to Blossom." }
-                    updatePendingGif(pendingGif.id) {
-                        copy(uploading = false, uploadFailed = true)
-                    }
-                }
-            }
-        }
-        gifUploadJobs[pendingGif.id] = job
-    }
-
-    private fun retryGifUpload(gifId: UUID) {
-        val pendingGif = _state.value.pendingGifUploads.find { it.id == gifId } ?: return
-        updatePendingGif(gifId) { copy(uploading = true, uploadFailed = false) }
-        startGifUpload(pendingGif.copy(uploading = true, uploadFailed = false))
-    }
-
-    private fun removePendingGif(gifId: UUID) {
-        gifUploadJobs[gifId]?.cancel()
-        gifUploadJobs.remove(gifId)
-        setState { copy(pendingGifUploads = pendingGifUploads.filter { it.id != gifId }) }
-    }
-
-    private fun updatePendingGif(
-        gifId: UUID,
-        reducer: NoteEditorContract.PendingGifUpload.() -> NoteEditorContract.PendingGifUpload,
-    ) {
-        setState {
-            copy(
-                pendingGifUploads = pendingGifUploads.map {
-                    if (it.id == gifId) it.reducer() else it
-                },
+    /**
+     * The picked GIFs as already-uploaded attachments, so the publish path treats them exactly like
+     * uploaded media: their URLs are appended to the content, and each gets a NIP-92 `imeta` tag
+     * describing it — the type, the dimensions other clients use to reserve space before the GIF
+     * loads, the size, and the provider's title as alt text.
+     */
+    private fun attachedGifsAsAttachments(): List<NoteAttachment> =
+        _state.value.attachedGifs.map { attached ->
+            val gif = attached.gif
+            NoteAttachment(
+                localUri = gif.url.toUri(),
+                remoteUrl = gif.url,
+                mimeType = gif.mimeType,
+                uploadedSizeInBytes = gif.sizeBytes?.takeIf { it <= Int.MAX_VALUE }?.toInt(),
+                dimensionInPixels = if (gif.width > 0 && gif.height > 0) "${gif.width}x${gif.height}" else null,
+                altText = gif.contentDescription.takeIf { it.isNotBlank() },
             )
         }
-    }
 
     private fun handlePasteContent(content: TextFieldValue) =
         viewModelScope.launch {
@@ -858,10 +829,14 @@ class NoteEditorViewModel @AssistedInject constructor(
             ?: state.value.replyToConversation.firstOrNull()?.postId
             ?: args.privateReplyRootId
             ?: parentId
+        // A private reply carries no tags for attachments, so its GIFs travel as plain URLs in the
+        // text, the way they always did.
+        val gifUrls = state.value.attachedGifs.map { it.gif.url }
+        val text = gifUrls.fold(content) { text, gifUrl -> if (text.isBlank()) gifUrl else "$text\n$gifUrl" }
         chatRepository.sendPrivateReply(
             userId = userId,
             receiverId = requireNotNull(state.value.privateReplyRecipientId),
-            text = content,
+            text = text,
             rootId = rootId,
             parentId = parentId,
         )
@@ -873,12 +848,7 @@ class NoteEditorViewModel @AssistedInject constructor(
             users = _state.value.taggedUsers,
         )
 
-        val gifUrls = _state.value.pendingGifUploads.mapNotNull { it.blossomUrl }
-        val noteContentWithGifs = gifUrls.fold(noteContent) { content, gifUrl ->
-            if (content.isBlank()) gifUrl else "$content\n$gifUrl"
-        }
-
-        return noteContentWithGifs.concatenateUris()
+        return noteContent.concatenateUris()
     }
 
     private fun PollEditorState.toPollPublishRequest(): PollPublishRequest {
@@ -916,7 +886,8 @@ class NoteEditorViewModel @AssistedInject constructor(
             notePublishHandler.publishPoll(
                 userId = userId,
                 content = content,
-                attachments = _state.value.attachments,
+                attachments = _state.value.attachments + attachedGifsAsAttachments(),
+                customEmojis = _state.value.availableCustomEmojis,
                 pollRequest = pollState.toPollPublishRequest(),
                 rootNoteNevent = rootNoteNevent,
                 rootArticleNaddr = referencedArticleNaddr
@@ -929,13 +900,15 @@ class NoteEditorViewModel @AssistedInject constructor(
             notePublishHandler.publishShortTextNote(
                 userId = userId,
                 content = content,
-                attachments = _state.value.attachments,
+                attachments = _state.value.attachments + attachedGifsAsAttachments(),
+                customEmojis = _state.value.availableCustomEmojis,
             )
         } else {
             notePublishHandler.publishShortTextNote(
                 userId = userId,
                 content = content,
-                attachments = _state.value.attachments,
+                attachments = _state.value.attachments + attachedGifsAsAttachments(),
+                customEmojis = _state.value.availableCustomEmojis,
                 rootNoteNevent = rootNoteNevent,
                 replyToNoteNevent = replyToNoteNevent,
                 rootArticleNaddr = referencedArticleNaddr
@@ -963,12 +936,10 @@ class NoteEditorViewModel @AssistedInject constructor(
             copy(
                 content = TextFieldValue(),
                 attachments = emptyList(),
-                pendingGifUploads = emptyList(),
+                attachedGifs = emptyList(),
                 pollState = null,
             )
         }
-        gifUploadJobs.values.forEach { it.cancel() }
-        gifUploadJobs.clear()
     }
 
     private fun importPhotos(uris: List<Uri>) {

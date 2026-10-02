@@ -9,6 +9,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,14 +19,15 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import net.primal.android.networking.relays.errors.NostrPublishException
 import net.primal.android.user.domain.Relay
 import net.primal.core.networking.sockets.NostrIncomingMessage
 import net.primal.core.networking.sockets.NostrSocketClient
 import net.primal.core.networking.sockets.NostrSocketClientFactory
 import net.primal.core.testing.CoroutinesTestRule
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
+import net.primal.domain.common.exception.NetworkException
 import net.primal.domain.nostr.NostrEvent
 import net.primal.domain.nostr.serialization.toNostrJsonObject
 import org.junit.Rule
@@ -394,8 +396,42 @@ class RelayPoolTest {
             result.duplicateCount shouldBe 1
             result.eoseRelays shouldBe setOf("wss://a", "wss://b")
             relayPool.activeSubscriptionCount() shouldBe 0
+            // The pool-wide CLOSE safety net runs on the pool scope, after the query returns.
+            runCurrent()
             coVerify { clientA.sendCLOSE("sub-1") }
             coVerify { clientB.sendCLOSE("sub-1") }
+        }
+
+    /**
+     * Regression: a finished query used to send its safety-net CLOSE to every relay *inside* its
+     * query slot, and a CLOSE to a dead relay first tried to reconnect to it. With only
+     * [RelayPool.MAX_CONCURRENT_QUERIES] slots for the whole app, one unreachable relay was enough
+     * to stall every feed, notification and DM query behind it.
+     */
+    @Test
+    fun query_aRelayWhoseCloseNeverReturns_doesNotHoldTheQuerySlot() =
+        runTest {
+            val relayPool = buildRelayPool()
+            var nextId = 0
+            relayPool.subscriptionIdFactory = { "sub-${nextId++}" }
+            val incomingAlive = MutableSharedFlow<NostrIncomingMessage>(extraBufferCapacity = 64)
+            val alive = buildQuerySocket("wss://alive", incomingAlive)
+            val dead = buildQuerySocket("wss://dead", MutableSharedFlow())
+            coEvery { dead.ensureSocketConnectionOrThrow() } throws NetworkException("down")
+            coEvery { dead.sendCLOSE(any()) } coAnswers { awaitCancellation() }
+            relayPool.socketClients = listOf(alive, dead)
+
+            repeat(RelayPool.MAX_CONCURRENT_QUERIES + 2) { index ->
+                val deferred = async { relayPool.query(buildRelayFilter(kinds = listOf(1))) }
+                runCurrent()
+                incomingAlive.emit(NostrIncomingMessage.EoseMessage(subscriptionId = "sub-$index"))
+                runCurrent()
+                testScheduler.advanceTimeBy(RelayPool.FIRST_EOSE_GRACE_MS)
+                runCurrent()
+
+                deferred.isCompleted shouldBe true
+                deferred.await().failedRelays.keys shouldBe setOf("wss://dead")
+            }
         }
 
     @Test
@@ -420,6 +456,8 @@ class RelayPoolTest {
             val result = deferred.await()
             result.events.map { it.id } shouldBe listOf("kept")
             result.failedRelays.keys shouldBe setOf("wss://b")
+            // The pool-wide CLOSE safety net runs on the pool scope, after the query returns.
+            runCurrent()
             coVerify { clientA.sendCLOSE("sub-fail") }
             coVerify { clientB.sendCLOSE("sub-fail") }
         }
@@ -447,6 +485,8 @@ class RelayPoolTest {
             val result = deferred.await()
             result.events.map { it.id } shouldBe listOf("alive")
             result.eoseRelays shouldBe setOf("wss://alive")
+            // The pool-wide CLOSE safety net runs on the pool scope, after the query returns.
+            runCurrent()
             coVerify { alive.sendCLOSE("sub-timeout") }
             coVerify { dead.sendCLOSE("sub-timeout") }
         }

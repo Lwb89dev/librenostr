@@ -11,14 +11,19 @@ import io.ktor.websocket.readReason
 import io.ktor.websocket.readText
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.uuid.Uuid
 import kotlin.time.ComparableTimeMark
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +33,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonObject
 import net.primal.core.utils.coroutines.DispatcherProvider
 import net.primal.core.utils.runCatching
@@ -49,6 +55,7 @@ internal class NostrSocketClientImpl(
     private val onSocketConnectionOpened: SocketConnectionOpenedCallback? = null,
     private val onSocketConnectionClosed: SocketConnectionClosedCallback? = null,
     private val timeSource: TimeSource.WithComparableMarks = TimeSource.Monotonic,
+    private val connectionBackoff: RelayConnectionBackoff = RelayConnectionBackoff.Shared,
 ) : NostrSocketClient {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatcherProvider.io())
@@ -56,6 +63,10 @@ internal class NostrSocketClientImpl(
     private val wsMutex = Mutex()
     private var wsSession: WebSocketSession? = null
     private var wsReceiverJob: Job? = null
+
+    /** The dial currently in flight, shared by every caller that needs a session meanwhile. */
+    @Volatile
+    private var pendingConnect: Deferred<Unit>? = null
 
     @Volatile
     private var lastSentMark: ComparableTimeMark? = null
@@ -78,18 +89,116 @@ internal class NostrSocketClientImpl(
 
     override val socketUrl = wssUrl.cleanWebSocketUrl()
 
+    /**
+     * Makes sure a live session exists, opening one if needed — but never more than one dial at a
+     * time, and never a dial for a relay that is still serving out a [RelayConnectionBackoff].
+     *
+     * The handshake used to run *inside* [wsMutex], awaited by whichever caller happened to arrive
+     * first, with every other caller queued on the lock behind it. Against a relay that silently
+     * drops packets that is a wait of up to the OkHttp connect timeout (10 s, 30 s over Tor) per
+     * caller, back to back, and the callers were queries holding one of the relay pool's few
+     * query slots — so one unreachable relay could freeze every feed, notification and DM load in
+     * the app. Two changes fix that:
+     * - the dial now runs in this client's own scope as a single shared attempt ([pendingConnect]);
+     *   every concurrent caller awaits that same attempt, and a caller giving up (its query hit
+     *   its deadline) no longer cancels the dial for everyone else, so it can still finish and
+     *   record whether the relay is reachable;
+     * - after a failed dial the relay is not dialled again until its backoff window has passed;
+     *   until then this throws [RelayBackingOffException] immediately, which the pool treats as
+     *   that relay failing its share of the query — in microseconds, not seconds.
+     */
     override suspend fun ensureSocketConnectionOrThrow() {
-        if (wsSession?.isActive == true && !isSocketStale()) return
+        if (hasUsableSession()) return
 
-        wsMutex.withLock {
-            if (wsSession == null || wsSession?.isActive == false || isSocketStale()) {
-                cancelSocketSession()
-                wsSession = acquireWebSocketSession(url = socketUrl)
-                // Bump once the session is live so collectors re-subscribe on a ready socket.
-                _connectionGeneration.value += 1
-            }
+        val attempt = wsMutex.withLock {
+            if (hasUsableSession()) return
+            pendingConnect?.takeIf { it.isActive } ?: startConnectAttemptLocked()
+        }
+        try {
+            attempt.await()
+        } catch (error: CancellationException) {
+            // Either this caller was cancelled (rethrown as is by ensureActive), or the shared dial
+            // was — by close(), while this caller still wants an answer. The latter is a failed
+            // connection from this caller's point of view, not a reason for it to stop.
+            currentCoroutineContext().ensureActive()
+            throw NetworkException("Connection to $socketUrl was abandoned.", error)
         }
     }
+
+    private fun hasUsableSession(): Boolean = wsSession?.isActive == true && !isSocketStale()
+
+    /** Call under [wsMutex]. Refuses a relay in backoff; otherwise starts the one shared dial. */
+    private fun startConnectAttemptLocked(): Deferred<Unit> {
+        connectionBackoff.remainingDelay(socketUrl)?.let { remaining ->
+            throw RelayBackingOffException(url = socketUrl, remaining = remaining)
+        }
+        // The previous session is dead or wedged; drop it now rather than after the new
+        // handshake, so nothing keeps sending into it while the dial is in flight.
+        cancelSocketSession()
+        return scope.async { connectOnce() }.also { pendingConnect = it }
+    }
+
+    /**
+     * One dial, run in [scope] rather than in any caller's coroutine. Installs the session under
+     * [wsMutex] on success; records the outcome in [connectionBackoff] either way.
+     */
+    private suspend fun connectOnce() {
+        val session = dial()
+        try {
+            wsMutex.withLock {
+                wsSession = session
+                lastSentMark = null
+                lastReceivedMark = null
+                session.launchWebSocketReceiver()
+            }
+        } catch (error: CancellationException) {
+            // close() landed between the handshake and the install: nobody will ever use or close
+            // this session, so it is torn down here instead of leaking until the relay drops it.
+            session.cancel()
+            throw error
+        }
+        connectionBackoff.recordSuccess(socketUrl)
+        onSocketConnectionOpened?.invoke(socketUrl)
+        // Bump once the session is live so collectors re-subscribe on a ready socket.
+        _connectionGeneration.value += 1
+    }
+
+    /** The handshake itself; any failure comes back as the [NetworkException] callers see. */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun dial(): WebSocketSession {
+        val failure: Throwable = try {
+            // A backstop only: OkHttp's own connect/read timeouts normally end a dead dial first.
+            // Without it a dial that never resolves would be awaited by every future caller.
+            return withTimeout(CONNECT_ATTEMPT_TIMEOUT) { httpClient.webSocketSession(urlString = socketUrl) }
+        } catch (error: TimeoutCancellationException) {
+            error
+        } catch (error: CancellationException) {
+            // Cancellation is control flow (the client was closed), not a transport failure.
+            throw error
+        } catch (error: Exception) {
+            error
+        }
+        throw connectionFailed(failure)
+    }
+
+    private fun connectionFailed(error: Throwable): NetworkException {
+        Napier.w("NostrSocketClient::connect($socketUrl) failed.", error)
+        connectionBackoff.recordFailure(url = socketUrl, refusedByServer = error.isUpgradeRefusal())
+        onSocketConnectionClosed?.invoke(socketUrl, error)
+        return NetworkException(cause = error)
+    }
+
+    /**
+     * Whether the relay answered the WebSocket upgrade with a plain HTTP status instead of
+     * switching protocols — reachable, but refusing (a 503 from an overloaded relay, a 403, …).
+     * Matched on the message because the exception type differs per engine: OkHttp throws a
+     * `ProtocolException("Expected HTTP 101 response but was '503 …'")`, CIO a Ktor
+     * `WebSocketException("… expected status code 101 but was 503")`.
+     */
+    private fun Throwable.isUpgradeRefusal(): Boolean =
+        generateSequence(this) { it.cause }
+            .take(MAX_CAUSE_DEPTH)
+            .any { error -> error.message?.let { UPGRADE_REFUSAL.containsMatchIn(it) } == true }
 
     /**
      * Whether the connection has been silent long enough to be treated as dead.
@@ -107,26 +216,6 @@ internal class NostrSocketClientImpl(
         val received = lastReceivedMark
         return (received == null || sent > received) &&
             sent.elapsedNow() >= SILENCE_TIMEOUT
-    }
-
-    private suspend fun acquireWebSocketSession(url: String): WebSocketSession {
-        return try {
-            httpClient.webSocketSession(urlString = url).apply {
-                lastSentMark = null
-                lastReceivedMark = null
-                launchWebSocketReceiver()
-                onSocketConnectionOpened?.invoke(url)
-            }
-        } catch (error: CancellationException) {
-            // Cancellation is control flow, not a transport failure. Preserve it so callers
-            // can stop relay work promptly instead of receiving a misleading NetworkException.
-            throw error
-        } catch (error: Exception) {
-            Napier.w("NostrSocketClient::acquireWebSocketSession($socketUrl) failed.", error)
-            close()
-            onSocketConnectionClosed?.invoke(socketUrl, error)
-            throw NetworkException(cause = error)
-        }
     }
 
     private fun WebSocketSession.launchWebSocketReceiver() {
@@ -214,6 +303,10 @@ internal class NostrSocketClientImpl(
     }
 
     override suspend fun close() {
+        // A dial still in flight would otherwise install a fresh session on a client that has
+        // just been closed — a socket nobody uses, left open until the relay drops it.
+        pendingConnect?.cancel()
+        pendingConnect = null
         wsReceiverJob?.cancel()
         wsReceiverJob = null
         runCatching {
@@ -236,16 +329,20 @@ internal class NostrSocketClientImpl(
         _incomingMessages.emit(value = parsed)
     }
 
-    private suspend fun sendMessage(text: String, ensureSessionBeforeSend: Boolean = true) {
+    /**
+     * @param expectsReply whether the relay answers this message. Only messages that do arm the
+     *   silence watchdog ([isSocketStale]); see [sendCLOSE] for the one that does not.
+     */
+    private suspend fun sendMessage(text: String, expectsReply: Boolean = true) {
         require(text.length <= MAX_SOCKET_MESSAGE_CHARS) {
             "Outgoing WebSocket frame exceeds the 1 MiB safety limit."
         }
-        if (ensureSessionBeforeSend) {
+        if (expectsReply) {
             ensureSocketConnectionOrThrow()
         }
         wsSession?.let { session ->
             session.send(Frame.Text(text = text))
-            lastSentMark = timeSource.markNow()
+            if (expectsReply) lastSentMark = timeSource.markNow()
         }
     }
 
@@ -261,7 +358,21 @@ internal class NostrSocketClientImpl(
         return subscriptionId
     }
 
-    override suspend fun sendCLOSE(subscriptionId: String) = sendMessage(text = subscriptionId.buildNostrCLOSEMessage())
+    /**
+     * Sent only on the session that is already open, never by opening a new one.
+     *
+     * A subscription lives on one connection; if that connection is gone, so is the subscription,
+     * and there is nothing left to close. Routing CLOSE through the normal connect-before-send path
+     * made every finished query re-dial every dead relay just to tell it to stop — while still
+     * holding its relay-pool query slot — which is how one unreachable relay ended up stalling every
+     * query in the app.
+     *
+     * It also does not arm the silence watchdog: relays do not answer a CLOSE, so counting it as an
+     * unanswered request made every socket look dead ten seconds after its last query finished, and
+     * the next query tore down and re-handshook a perfectly healthy connection.
+     */
+    override suspend fun sendCLOSE(subscriptionId: String) =
+        sendMessage(text = subscriptionId.buildNostrCLOSEMessage(), expectsReply = false)
 
     override suspend fun sendEVENT(signedEvent: JsonObject) = sendMessage(text = signedEvent.buildNostrEVENTMessage())
 
@@ -272,6 +383,15 @@ internal class NostrSocketClientImpl(
 
         /** Deep enough that a burst of events never blocks the socket's read loop. */
         private const val INCOMING_BUFFER_CAPACITY = 256
+
+        /**
+         * Longer than any legitimate handshake: OkHttp's connect + upgrade-read timeouts are 10 s
+         * each on a direct connection and widened to 30 s each over Tor.
+         */
+        private val CONNECT_ATTEMPT_TIMEOUT = 75.seconds
+
+        private const val MAX_CAUSE_DEPTH = 8
+        private val UPGRADE_REFUSAL = Regex("""101.*but was""", RegexOption.IGNORE_CASE)
     }
 
     @Suppress("unused")
